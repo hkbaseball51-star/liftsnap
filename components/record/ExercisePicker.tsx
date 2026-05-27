@@ -1,0 +1,158 @@
+'use client'
+
+import { useState } from 'react'
+import { Search, X, Plus, Check } from 'lucide-react'
+import { createCustomExercise } from '@/actions/workout'
+
+type Exercise = {
+  id: string
+  name: string
+  muscle_group: string
+  equipment: string | null
+  is_custom: boolean
+}
+
+type Props = {
+  exercises: Exercise[]
+  onSelect: (exercise: Exercise) => void
+  onClose: () => void
+}
+
+const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS']
+
+const MG_LABELS: Record<string, string> = {
+  ALL: 'すべて', CHEST: '胸', BACK: '背中', SHOULDERS: '肩',
+  BICEPS: '二頭', TRICEPS: '三頭', FOREARMS: '前腕',
+  QUADS: '大腿四頭', HAMSTRINGS: 'ハムスト', GLUTES: '臀部', CALVES: 'ふくらはぎ', ABS: '腹筋',
+}
+
+export default function ExercisePicker({ exercises: initialExercises, onSelect, onClose }: Props) {
+  const [exercises, setExercises] = useState(initialExercises)
+  const [query, setQuery] = useState('')
+  const [activeGroup, setActiveGroup] = useState('ALL')
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newGroup, setNewGroup] = useState('CHEST')
+  const [creating, setCreating] = useState(false)
+
+  const filtered = exercises.filter(e => {
+    const matchQuery = e.name.toLowerCase().includes(query.toLowerCase())
+    const matchGroup = activeGroup === 'ALL' || e.muscle_group === activeGroup
+    return matchQuery && matchGroup
+  })
+
+  const handleCreate = async () => {
+    if (!newName.trim()) return
+    setCreating(true)
+    try {
+      const created = await createCustomExercise(newName.trim(), newGroup)
+      setExercises(prev => [...prev, created])
+      onSelect(created)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0a0a' }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 pt-14 pb-3">
+        <button onClick={onClose}><X size={22} style={{ color: '#888' }} /></button>
+        <span className="text-base font-black text-white tracking-wide">種目を選択</span>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+          <Search size={16} style={{ color: '#555' }} />
+          <input
+            type="text"
+            placeholder="種目を検索..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-gray-600"
+            autoFocus
+          />
+        </div>
+      </div>
+
+      {/* Muscle group tabs */}
+      <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide">
+        {MUSCLE_GROUPS.map(g => (
+          <button key={g}
+            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold"
+            style={{
+              background: activeGroup === g ? '#ff6b00' : '#1a1a1a',
+              color: activeGroup === g ? '#fff' : '#888',
+            }}
+            onClick={() => setActiveGroup(g)}>
+            {MG_LABELS[g]}
+          </button>
+        ))}
+      </div>
+
+      {/* Exercise list */}
+      <div className="flex-1 overflow-y-auto px-4">
+        {filtered.map(e => (
+          <button key={e.id}
+            className="w-full flex items-center justify-between py-4"
+            style={{ borderBottom: '1px solid #1a1a1a' }}
+            onClick={() => onSelect(e)}>
+            <div className="text-left">
+              <p className="text-sm font-bold text-white">{e.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: '#555' }}>{e.muscle_group}{e.is_custom ? ' · カスタム' : ''}</p>
+            </div>
+            <Plus size={16} style={{ color: '#ff6b00' }} />
+          </button>
+        ))}
+
+        {/* Create custom */}
+        {!showCreate ? (
+          <button
+            className="w-full py-4 flex items-center gap-3"
+            onClick={() => setShowCreate(true)}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#1a1a1a' }}>
+              <Plus size={16} style={{ color: '#ff6b00' }} />
+            </div>
+            <span className="text-sm font-bold" style={{ color: '#ff6b00' }}>カスタム種目を追加</span>
+          </button>
+        ) : (
+          <div className="py-4 space-y-3">
+            <p className="text-sm font-bold text-white">カスタム種目</p>
+            <input
+              type="text"
+              placeholder="種目名"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none"
+              style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}
+            />
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {MUSCLE_GROUPS.slice(1).map(g => (
+                <button key={g}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold"
+                  style={{ background: newGroup === g ? '#ff6b00' : '#1a1a1a', color: newGroup === g ? '#fff' : '#888' }}
+                  onClick={() => setNewGroup(g)}>
+                  {MG_LABELS[g]}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button className="flex-1 py-3 rounded-xl text-sm font-bold"
+                style={{ background: '#1a1a1a', color: '#888' }}
+                onClick={() => setShowCreate(false)}>
+                キャンセル
+              </button>
+              <button className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
+                style={{ background: creating || !newName.trim() ? '#2a2a2a' : '#ff6b00' }}
+                disabled={creating || !newName.trim()}
+                onClick={handleCreate}>
+                {creating ? '保存中...' : '追加する'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
