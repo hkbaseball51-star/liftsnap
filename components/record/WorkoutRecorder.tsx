@@ -308,9 +308,9 @@ export default function WorkoutRecorder({
         {/* Header stats */}
         <div className="flex items-center pb-2.5">
           <HeaderStat label="VOL"      value={displayVolume > 0 ? formatVolume(displayVolume) : '—'} active={displayVolume > 0} accent />
-          <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
+          <div className="w-px h-8 mx-5" style={{ background: '#1e1e1e' }} />
           <HeaderStat label="SETS"     value={displaySetsCount > 0 ? String(displaySetsCount) : '—'} active={displaySetsCount > 0} />
-          <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
+          <div className="w-px h-8 mx-5" style={{ background: '#1e1e1e' }} />
           <HeaderStat label="BEST 1RM" value={bestSessionEst1rm > 0 ? `${bestSessionEst1rm}kg` : '—'} active={bestSessionEst1rm > 0} purple />
         </div>
       </div>
@@ -579,11 +579,11 @@ export default function WorkoutRecorder({
 function HeaderStat({ label, value, active, accent, purple }: {
   label: string; value: string; active: boolean; accent?: boolean; purple?: boolean
 }) {
-  const color = !active ? '#2a2a2a' : accent ? '#ff6b00' : purple ? '#7c3aed' : '#fff'
+  const color = !active ? '#2a2a2a' : accent ? '#ff6b00' : purple ? '#a78bfa' : '#fff'
   return (
     <div>
-      <p className="text-[8px] font-black tracking-widest mb-0.5" style={{ color: '#333' }}>{label}</p>
-      <p className="text-base font-black" style={{ color, fontFamily: 'var(--font-mono)' }}>{value}</p>
+      <p className="text-[11px] font-black tracking-widest mb-1" style={{ color: '#444' }}>{label}</p>
+      <p className="text-xl font-bold" style={{ color, fontFamily: 'var(--font-mono)' }}>{value}</p>
     </div>
   )
 }
