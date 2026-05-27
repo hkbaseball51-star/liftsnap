@@ -31,7 +31,38 @@ export type HeroData = {
   lastSessionId: string | null
 }
 
+/* ── Design tokens ────────────────────────────────────────── */
+const CARD = {
+  background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
+  border: '1px solid rgba(255,255,255,0.07)',
+  boxShadow: '0 0 30px rgba(255,107,0,0.06)',
+  borderRadius: 18,
+  padding: 20,
+  display: 'flex' as const,
+  flexDirection: 'column' as const,
+  minHeight: 220,
+}
+
+const CARD_PR = {
+  ...CARD,
+  border: '1px solid rgba(255,107,0,0.18)',
+  boxShadow: '0 0 30px rgba(255,107,0,0.08)',
+}
+
 /* ── Shared primitives ────────────────────────────────────── */
+function Label({ children, orange }: { children: React.ReactNode; orange?: boolean }) {
+  return (
+    <span style={{
+      fontSize: 11,
+      fontWeight: 500,
+      letterSpacing: '0.08em',
+      color: orange ? '#FF6B00' : 'rgba(255,255,255,0.3)',
+      textTransform: 'uppercase' as const,
+    }}>
+      {children}
+    </span>
+  )
+}
 
 function ShareBtn({ sessionId }: { sessionId: string | null }) {
   return (
@@ -40,30 +71,16 @@ function ShareBtn({ sessionId }: { sessionId: string | null }) {
       className="w-full flex items-center justify-center gap-1.5 rounded-xl"
       style={{
         padding: '10px 16px',
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        color: 'rgba(255,255,255,0.45)',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        color: 'rgba(255,255,255,0.4)',
         fontSize: 13,
         fontWeight: 500,
-        letterSpacing: '0.01em',
+        letterSpacing: '0.02em',
       }}>
       <Share2 size={13} strokeWidth={1.5} />
       Share Story
     </Link>
-  )
-}
-
-function CardLabel({ children, orange }: { children: React.ReactNode; orange?: boolean }) {
-  return (
-    <span style={{
-      fontSize: 10,
-      fontWeight: 500,
-      letterSpacing: '0.08em',
-      color: orange ? '#ff6b00' : 'rgba(255,255,255,0.3)',
-      textTransform: 'uppercase' as const,
-    }}>
-      {children}
-    </span>
   )
 }
 
@@ -81,31 +98,19 @@ function BestLiftSlide({
     : null
 
   return (
-    <div className="rounded-2xl flex flex-col"
-      style={{
-        background: '#0f0f0f',
-        border: '1px solid rgba(255,255,255,0.06)',
-        padding: 20,
-        minHeight: 210,
-      }}>
-
-      {/* Label row */}
+    <div style={CARD}>
       <div className="flex items-center justify-between mb-3">
-        <CardLabel>Best Lift</CardLabel>
-        {(isNew || isFirst) && (
-          <CardLabel orange>{isNew ? 'New PR ↑' : 'First Set'}</CardLabel>
-        )}
+        <Label>Best Lift</Label>
+        {(isNew || isFirst) && <Label orange>{isNew ? 'New PR ↑' : 'First Set'}</Label>}
       </div>
 
-      {/* Exercise name */}
-      <p className="mb-3" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 400 }}>
+      <p className="mb-3" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, fontWeight: 400, letterSpacing: '-0.01em' }}>
         {d.exerciseName}
       </p>
 
-      {/* Main number */}
       <div className="flex items-baseline gap-2 flex-1 mb-3">
         <span style={{
-          fontSize: 58,
+          fontSize: 60,
           fontWeight: 700,
           color: '#fff',
           lineHeight: 1,
@@ -115,27 +120,26 @@ function BestLiftSlide({
           {d.bestWeight}
         </span>
         <div>
-          <span style={{ fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.2)' }}>kg</span>
-          <p style={{ fontSize: 15, fontWeight: 500, color: '#fff', marginTop: 2 }}>
+          <span style={{ fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>kg</span>
+          <p style={{ fontSize: 16, fontWeight: 500, color: '#fff', marginTop: 2 }}>
             × {d.bestReps}
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>reps</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>reps</span>
           </p>
         </div>
       </div>
 
-      {/* Small stats */}
       <div className="flex items-center gap-3 mb-4"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 10 }}>
+        style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
         <div className="flex items-center gap-1.5">
-          <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.2)' }}>
+          <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.2)' }}>
             EST. 1RM
           </span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)' }}>
             {d.est1rm} kg
           </span>
         </div>
         {improvement !== null && (
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#22c55e' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#22c55e' }}>
             +{improvement} kg
           </span>
         )}
@@ -162,33 +166,25 @@ function TodayEffortSlide({
     : Math.round(d.totalVolume).toLocaleString()
   const volUnit = d.totalVolume >= 10000 ? '' : 'kg'
 
-  const metaItems = [
+  const meta = [
     `${d.totalSets} sets`,
     `${d.exercises.length} exercises`,
     ...(dur ? [dur] : []),
-  ]
+  ].join('  ·  ')
 
   return (
-    <div className="rounded-2xl flex flex-col"
-      style={{
-        background: '#0f0f0f',
-        border: '1px solid rgba(255,255,255,0.06)',
-        padding: 20,
-        minHeight: 210,
-      }}>
-
-      <div className="mb-3">
-        <CardLabel>Today's Effort</CardLabel>
+    <div style={CARD}>
+      <div className="mb-4">
+        <Label>Today's Effort</Label>
       </div>
 
-      {/* Volume */}
-      <div className="flex-1 mb-2">
-        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.2)', marginBottom: 4 }}>
+      <div className="flex-1 mb-3">
+        <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.22)', marginBottom: 6 }}>
           TOTAL VOLUME
         </p>
-        <div className="flex items-baseline gap-1">
+        <div className="flex items-baseline gap-1.5">
           <span style={{
-            fontSize: 46,
+            fontSize: 40,
             fontWeight: 600,
             color: '#fff',
             lineHeight: 1,
@@ -197,19 +193,17 @@ function TodayEffortSlide({
           }}>
             {volNum}
           </span>
-          <span style={{ fontSize: 16, fontWeight: 400, color: 'rgba(255,255,255,0.2)' }}>
+          <span style={{ fontSize: 16, fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>
             {volUnit}
           </span>
         </div>
       </div>
 
-      {/* Meta */}
-      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 400, marginBottom: 10 }}>
-        {metaItems.join('  ·  ')}
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.32)', fontWeight: 400, marginBottom: 10 }}>
+        {meta}
       </p>
 
-      {/* Exercise list */}
-      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontWeight: 400, lineHeight: 1.7, marginBottom: 14 }}>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', fontWeight: 400, lineHeight: 1.7, marginBottom: 14 }}>
         {d.exercises.slice(0, 4).map(e => e.name).join('  ·  ')}
       </p>
 
@@ -226,27 +220,20 @@ function MuscleFocusSlide({
   sessionId: string | null
 }) {
   return (
-    <div className="rounded-2xl flex flex-col"
-      style={{
-        background: '#0f0f0f',
-        border: '1px solid rgba(255,255,255,0.06)',
-        padding: 20,
-        minHeight: 210,
-      }}>
-
+    <div style={CARD}>
       <div className="mb-4">
-        <CardLabel>Muscle Focus</CardLabel>
+        <Label>Muscle Focus</Label>
       </div>
 
-      <div className="flex-1 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="flex-1 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {d.muscles.slice(0, 4).map(m => (
           <div key={m.name}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginBottom: 4 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.03em', marginBottom: 5 }}>
               {m.name}
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {m.exercises.slice(0, 3).map(ex => (
-                <p key={ex} style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>
+                <p key={ex} style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.28)', lineHeight: 1.4 }}>
                   {ex}
                 </p>
               ))}
@@ -260,7 +247,7 @@ function MuscleFocusSlide({
   )
 }
 
-/* ── Slide 4: PR CARD ─────────────────────────────────────── */
+/* ── Slide 4: PR CARD (vertical layout) ──────────────────── */
 function PRCardSlide({
   d, sessionId,
 }: {
@@ -268,47 +255,43 @@ function PRCardSlide({
   sessionId: string | null
 }) {
   return (
-    <div className="rounded-2xl flex flex-col"
-      style={{
-        background: '#0f0f0f',
-        border: '1px solid rgba(255,107,0,0.2)',
-        padding: 20,
-        minHeight: 210,
-      }}>
-
+    <div style={CARD_PR}>
       <div className="flex items-center justify-between mb-3">
-        <CardLabel orange>Personal Record</CardLabel>
+        <Label orange>Personal Record</Label>
       </div>
 
-      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 400, marginBottom: 16 }}>
+      <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, fontWeight: 400, marginBottom: 20 }}>
         {d.exerciseName}
       </p>
 
-      <div className="flex items-end gap-5 flex-1 mb-3">
+      <div className="flex-1 flex flex-col justify-center gap-2 mb-4">
+        {/* Previous */}
         <div>
-          <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
+          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.22)', marginBottom: 4 }}>
             PREVIOUS
           </p>
           <span style={{
-            fontSize: 28,
+            fontSize: 30,
             fontWeight: 500,
-            color: 'rgba(255,255,255,0.2)',
+            color: 'rgba(255,255,255,0.22)',
             fontFamily: 'var(--font-mono)',
             letterSpacing: '-0.02em',
           }}>
             {d.prevPR}
-            <span style={{ fontSize: 14, marginLeft: 2, color: 'rgba(255,255,255,0.15)' }}>kg</span>
+            <span style={{ fontSize: 15, marginLeft: 3, color: 'rgba(255,255,255,0.15)' }}>kg</span>
           </span>
         </div>
 
-        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.15)', paddingBottom: 4 }}>→</span>
+        {/* Arrow */}
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.15)', paddingLeft: 2, lineHeight: 1 }}>↓</p>
 
+        {/* New best */}
         <div>
-          <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', color: '#ff6b00', marginBottom: 6 }}>
+          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.07em', color: '#FF6B00', marginBottom: 4 }}>
             NEW BEST
           </p>
           <span style={{
-            fontSize: 52,
+            fontSize: 54,
             fontWeight: 700,
             color: '#fff',
             lineHeight: 1,
@@ -316,14 +299,14 @@ function PRCardSlide({
             fontFamily: 'var(--font-mono)',
           }}>
             {d.newPR}
-            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', marginLeft: 2 }}>kg</span>
+            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', marginLeft: 3 }}>kg</span>
           </span>
         </div>
-      </div>
 
-      <p style={{ fontSize: 12, fontWeight: 500, color: '#22c55e', marginBottom: 14 }}>
-        +{d.improvement} kg improvement
-      </p>
+        <p style={{ fontSize: 13, fontWeight: 500, color: '#22c55e', marginTop: 4 }}>
+          +{d.improvement} kg improvement
+        </p>
+      </div>
 
       <ShareBtn sessionId={sessionId} />
     </div>
@@ -333,30 +316,21 @@ function PRCardSlide({
 /* ── Empty state ──────────────────────────────────────────── */
 export function EmptyHeroCard() {
   return (
-    <div className="rounded-2xl"
-      style={{
-        background: '#0f0f0f',
-        border: '1px solid rgba(255,255,255,0.06)',
-        padding: 40,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-      }}>
-      <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: 14 }}>
+    <div style={{ ...CARD, alignItems: 'center', textAlign: 'center', padding: 40, minHeight: 200 }}>
+      <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: 14 }}>
         HERO CARD
       </p>
       <p style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 8 }}>
         Log your first lift
       </p>
-      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontWeight: 400, marginBottom: 28, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontWeight: 400, marginBottom: 28, lineHeight: 1.6 }}>
         Your best set will appear here<br />after your workout
       </p>
       <Link href="/record"
         className="rounded-xl"
         style={{
           padding: '12px 28px',
-          background: '#ff6b00',
+          background: '#FF6B00',
           color: '#fff',
           fontSize: 14,
           fontWeight: 600,
@@ -404,7 +378,7 @@ export default function HeroCarousel({ data }: { data: HeroData }) {
               style={{
                 width: active === i ? 16 : 5,
                 height: 5,
-                background: active === i ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.12)',
+                background: active === i ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.1)',
               }} />
           ))}
         </div>

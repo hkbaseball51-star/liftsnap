@@ -26,7 +26,7 @@ export default async function HomePage() {
   /* ── Round 1: parallel fetches ──────────────────────────── */
   const [
     thisWeekRes, todaySessionsRes, lastWeekRes,
-    todayWeightRes, calendarSessionsRes, preSessionsRes,
+    todayWeightRes, calendarSessionsRes, preSessionsRes, profileRes,
   ] = await Promise.all([
     supabase.from('workout_sessions')
       .select('id, total_volume_kg, trained_at')
@@ -64,6 +64,11 @@ export default async function HomePage() {
       .eq('user_id', user.id)
       .lt('trained_at', todayStr)
       .not('completed_at', 'is', null),
+
+    supabase.from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single(),
   ])
 
   const todaySessions = todaySessionsRes.data ?? []
@@ -241,32 +246,43 @@ export default async function HomePage() {
   const todayWeight = todayWeightRes.data?.weight_kg ?? null
   const todayWorked = thisWeekSessions.some(s => s.trained_at === todayStr)
   const totalSessions90 = calendarSessionsRes.data?.length ?? 0
+  const displayName = profileRes.data?.display_name as string | null
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-14 pb-2">
-        <h1 className="text-lg font-bold tracking-widest text-white">LIFTSNAP</h1>
+        <h1 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.12em', color: '#fff' }}>LIFTSNAP</h1>
         <div className="flex items-center gap-1.5">
-          <Zap size={11} style={{ color: 'rgba(255,255,255,0.25)' }} />
-          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>
+          <Zap size={11} style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
             {totalSessions90} lifts
           </span>
         </div>
       </div>
 
       {/* ── WELCOME ── */}
-      <div className="px-4 pt-3 pb-5">
-        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
+      <div className="px-4 pt-4 pb-6">
+        <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
           {getGreeting()}
         </p>
-        <p className="text-3xl font-bold text-white tracking-tight leading-none">Welcome</p>
-        <p className="text-3xl font-bold tracking-tight leading-none" style={{ color: '#ff6b00' }}>back.</p>
+        <p style={{ fontSize: 30, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+          Welcome back{displayName ? `,` : '.'}
+        </p>
+        {displayName && (
+          <p style={{ fontSize: 30, fontWeight: 600, color: '#FF6B00', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+            {displayName}.
+          </p>
+        )}
         {todayWorked ? (
-          <p style={{ fontSize: 12, fontWeight: 400, color: '#22c55e', marginTop: 8 }}>Great work today.</p>
+          <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
+            Great work today.
+          </p>
         ) : (
-          <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>No session today — let's change that.</p>
+          <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginTop: 10 }}>
+            No session today — let's change that.
+          </p>
         )}
       </div>
 
@@ -286,10 +302,12 @@ export default async function HomePage() {
           <div className="rounded-2xl px-5 py-4 flex items-center justify-between active:opacity-70"
             style={{
               background: todayWorked
-                ? '#0f0f0f'
-                : 'linear-gradient(135deg, #ff6b00 0%, #e85d00 100%)',
-              border: todayWorked ? '1px solid rgba(255,255,255,0.06)' : 'none',
-              boxShadow: todayWorked ? 'none' : '0 4px 24px rgba(255,107,0,0.22)',
+                ? 'linear-gradient(135deg, rgba(255,107,0,0.04), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.02))'
+                : 'linear-gradient(135deg, #FF6B00 0%, #d95e00 100%)',
+              border: todayWorked ? '1px solid rgba(255,255,255,0.07)' : 'none',
+              boxShadow: todayWorked
+                ? '0 0 30px rgba(255,107,0,0.05)'
+                : '0 4px 20px rgba(255,107,0,0.2)',
             }}>
             <div>
               <p style={{
@@ -344,8 +362,12 @@ export default async function HomePage() {
             },
           ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
             <div key={label} className="rounded-xl p-3"
-              style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 8 }}>
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
+                border: '1px solid rgba(255,255,255,0.07)',
+                boxShadow: '0 0 30px rgba(255,107,0,0.05)',
+              }}>
+              <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
                 {label}
               </p>
               <div className="flex items-baseline gap-0.5">

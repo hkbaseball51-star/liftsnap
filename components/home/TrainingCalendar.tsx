@@ -150,7 +150,7 @@ export default function TrainingCalendar({
                 <button
                   className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                   style={{
-                    background: muscle ? `${color}1a` : 'transparent',
+                    background: muscle ? 'rgba(255,107,0,0.15)' : 'transparent',
                     border: isToday ? '2px solid #ff6b00' : '1px solid transparent',
                     boxShadow: isToday ? '0 0 12px rgba(255,107,0,0.4)' : 'none',
                     cursor: isFuture ? 'default' : 'pointer',
