@@ -5,11 +5,11 @@ import { usePathname } from 'next/navigation'
 import { Home, BarChart2, Plus, ShoppingBag, User } from 'lucide-react'
 
 const tabs = [
-  { href: '/home', icon: Home, label: 'ホーム' },
-  { href: '/analytics', icon: BarChart2, label: 'グラフ' },
-  { href: '/record', icon: Plus, label: '記録', primary: true },
-  { href: '/shop', icon: ShoppingBag, label: 'ショップ' },
-  { href: '/profile', icon: User, label: 'プロフィール' },
+  { href: '/home',      icon: Home,        label: 'HOME'    },
+  { href: '/analytics', icon: BarChart2,   label: 'STATS'   },
+  { href: '/record',    icon: Plus,        label: '',        primary: true },
+  { href: '/shop',      icon: ShoppingBag, label: 'SHOP'    },
+  { href: '/profile',   icon: User,        label: 'ME'      },
 ]
 
 export default function BottomNav() {
@@ -19,9 +19,9 @@ export default function BottomNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"
       style={{
-        background: 'rgba(10,10,10,0.95)',
-        backdropFilter: 'blur(12px)',
-        borderTop: '1px solid #2a2a2a',
+        background: 'rgba(10,10,10,0.96)',
+        backdropFilter: 'blur(16px)',
+        borderTop: '1px solid #1e1e1e',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
@@ -33,7 +33,10 @@ export default function BottomNav() {
               <Link key={href} href={href} className="flex flex-col items-center -mt-5">
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-                  style={{ background: '#ff6b00' }}
+                  style={{
+                    background: '#ff6b00',
+                    boxShadow: '0 4px 20px rgba(255,107,0,0.45)',
+                  }}
                 >
                   <Icon size={26} color="#fff" strokeWidth={2.5} />
                 </div>
@@ -48,15 +51,17 @@ export default function BottomNav() {
             >
               <Icon
                 size={22}
-                color={active ? '#ff6b00' : '#555'}
+                color={active ? '#ff6b00' : '#444'}
                 strokeWidth={active ? 2.5 : 2}
               />
-              <span
-                className="text-[10px]"
-                style={{ color: active ? '#ff6b00' : '#555' }}
-              >
-                {label}
-              </span>
+              {label && (
+                <span
+                  className="text-[8px] font-black tracking-widest"
+                  style={{ color: active ? '#ff6b00' : '#444' }}
+                >
+                  {label}
+                </span>
+              )}
             </Link>
           )
         })}

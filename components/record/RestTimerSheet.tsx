@@ -15,10 +15,7 @@ export default function RestTimerSheet({ defaultSeconds = 90, onClose }: Props) 
 
   useEffect(() => {
     if (!running) return
-    if (remaining <= 0) {
-      setRunning(false)
-      return
-    }
+    if (remaining <= 0) { setRunning(false); return }
     const t = setTimeout(() => setRemaining(r => r - 1), 1000)
     return () => clearTimeout(t)
   }, [running, remaining])
@@ -30,21 +27,23 @@ export default function RestTimerSheet({ defaultSeconds = 90, onClose }: Props) 
   const presets = [60, 90, 120, 180]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.7)' }}
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
-      <div className="w-full rounded-t-3xl p-6 pb-10" style={{ background: '#1a1a1a' }}
+      <div className="w-full rounded-t-3xl p-6 pb-10" style={{ background: '#111', border: '1px solid #1e1e1e' }}
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-bold" style={{ color: '#888' }}>レスト タイマー</span>
-          <button onClick={onClose}><X size={20} style={{ color: '#888' }} /></button>
+
+        <div className="flex items-center justify-between mb-5">
+          <span className="text-[10px] font-black tracking-widest" style={{ color: '#555' }}>REST TIMER</span>
+          <button onClick={onClose}><X size={20} style={{ color: '#555' }} /></button>
         </div>
 
-        {/* Circle progress */}
-        <div className="flex justify-center mb-4">
+        {/* Ring */}
+        <div className="flex justify-center mb-5">
           <div className="relative w-36 h-36">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 144 144">
-              <circle cx="72" cy="72" r="60" fill="none" stroke="#2a2a2a" strokeWidth="8" />
-              <circle cx="72" cy="72" r="60" fill="none" stroke={remaining > 0 ? '#ff6b00' : '#22c55e'}
+              <circle cx="72" cy="72" r="60" fill="none" stroke="#1a1a1a" strokeWidth="8" />
+              <circle cx="72" cy="72" r="60" fill="none"
+                stroke={remaining > 0 ? '#ff6b00' : '#22c55e'}
                 strokeWidth="8" strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 60}`}
                 strokeDashoffset={`${2 * Math.PI * 60 * (1 - progress)}`}
@@ -52,38 +51,43 @@ export default function RestTimerSheet({ defaultSeconds = 90, onClose }: Props) 
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {remaining > 0 ? (
-                <span className="text-4xl font-black text-white">
+                <span className="text-4xl font-black text-white"
+                  style={{ fontFamily: 'var(--font-mono)' }}>
                   {minutes}:{String(seconds).padStart(2, '0')}
                 </span>
               ) : (
-                <span className="text-2xl font-black" style={{ color: '#22c55e' }}>完了！</span>
+                <span className="text-xl font-black tracking-widest" style={{ color: '#22c55e' }}>DONE!</span>
               )}
             </div>
           </div>
         </div>
 
         {/* Presets */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-5">
           {presets.map(s => (
             <button key={s}
-              className="flex-1 py-2 rounded-xl text-xs font-bold"
-              style={{ background: total === s ? '#ff6b00' : '#242424', color: total === s ? '#fff' : '#888' }}
+              className="flex-1 py-2.5 rounded-xl text-xs font-black tracking-wider"
+              style={{
+                background: total === s ? '#ff6b00' : '#1a1a1a',
+                color: total === s ? '#fff' : '#555',
+                border: total === s ? 'none' : '1px solid #1e1e1e',
+              }}
               onClick={() => { setTotal(s); setRemaining(s); setRunning(true) }}>
-              {s < 60 ? `${s}s` : `${s / 60}分`}
+              {s < 60 ? `${s}s` : `${s / 60}min`}
             </button>
           ))}
         </div>
 
         <div className="flex gap-3">
-          <button className="flex-1 py-3 rounded-2xl text-sm font-bold"
-            style={{ background: '#242424', color: '#888' }}
-            onClick={() => { setRunning(r => !r) }}>
-            {running ? '一時停止' : '再開'}
+          <button className="flex-1 py-3.5 rounded-2xl text-sm font-black tracking-widest"
+            style={{ background: '#1a1a1a', color: '#666', border: '1px solid #1e1e1e' }}
+            onClick={() => setRunning(r => !r)}>
+            {running ? 'PAUSE' : 'RESUME'}
           </button>
-          <button className="flex-1 py-3 rounded-2xl text-sm font-bold text-white"
+          <button className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white tracking-widest"
             style={{ background: '#ff6b00' }}
             onClick={onClose}>
-            スキップ
+            SKIP
           </button>
         </div>
       </div>

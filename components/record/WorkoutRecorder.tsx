@@ -280,16 +280,16 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         <div className="space-y-3">
           {sessionId && (
             <Link href={`/share?session=${sessionId}`}
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-base font-black text-white"
-              style={{ background: '#ff6b00' }}>
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-sm font-black text-white tracking-widest"
+              style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.35)' }}>
               <Share2 size={18} />
-              Storyにする ↗
+              SHARE STORY ↗
             </Link>
           )}
-          <button className="w-full py-3.5 rounded-2xl text-sm font-bold"
-            style={{ background: '#111', color: '#555', border: '1px solid #1e1e1e' }}
+          <button className="w-full py-3.5 rounded-2xl text-sm font-black tracking-widest"
+            style={{ background: '#111', color: '#444', border: '1px solid #1e1e1e' }}
             onClick={() => router.push('/home')}>
-            ホームへ
+            HOME
           </button>
         </div>
       </div>
@@ -338,7 +338,8 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
             style={{ background: '#111', border: '1px solid #1e1e1e' }}>
             <span className="w-1.5 h-1.5 rounded-full"
               style={{ background: '#22c55e', animation: 'pulse 2s infinite' }} />
-            <span className="text-sm font-black text-white tabular-nums">{formatElapsed(elapsed)}</span>
+            <span className="text-sm font-black text-white tabular-nums"
+              style={{ fontFamily: 'var(--font-mono)' }}>{formatElapsed(elapsed)}</span>
           </div>
         </div>
 
@@ -358,8 +359,8 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="text-5xl mb-5">⚡</div>
-            <p className="text-base font-black text-white mb-2">今日も積み上げよう</p>
-            <p className="text-xs" style={{ color: '#444' }}>下の + Add Exercise から種目を追加</p>
+            <p className="text-base font-black text-white mb-2 tracking-wide">BUILD TODAY'S EFFORT</p>
+            <p className="text-xs font-bold" style={{ color: '#444' }}>Tap + Add Exercise to get started</p>
           </div>
         )}
 
@@ -549,7 +550,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
               style={{ background: '#ff6b00' }}
               disabled={saving}
               onClick={handleFinish}>
-              {saving ? '保存中...' : `Finish · ${completedSets.length}`}
+              {saving ? 'SAVING...' : `FINISH · ${completedSets.length}`}
             </button>
           )}
         </div>
@@ -566,9 +567,9 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
 
       {numberTarget && (
         <NumberInputSheet
-          label={numberTarget.field === 'weight_kg' ? '重量 (kg)' : '回数 (reps)'}
+          label={numberTarget.field === 'weight_kg' ? 'WEIGHT (kg)' : 'REPS'}
           value={currentTarget}
-          unit={numberTarget.field === 'weight_kg' ? 'kg' : '回'}
+          unit={numberTarget.field === 'weight_kg' ? 'kg' : 'reps'}
           step={numberTarget.field === 'weight_kg' ? 2.5 : 1}
           quickSteps={numberTarget.field === 'weight_kg' ? [-5, -2.5, 2.5, 5] : [-2, -1, 1, 2]}
           onConfirm={v => updateSet(numberTarget.exerciseId, numberTarget.setId, numberTarget.field, v)}
@@ -582,18 +583,18 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.92)' }}>
           <div className="w-full rounded-3xl p-6" style={{ background: '#111', border: '1px solid #222' }}>
-            <p className="text-xl font-black text-white text-center mb-1">終了しますか？</p>
-            <p className="text-xs text-center mb-6" style={{ color: '#555' }}>記録は保存されません</p>
+            <p className="text-xl font-black text-white text-center mb-1 tracking-wide">QUIT WORKOUT?</p>
+            <p className="text-xs text-center mb-6 font-bold" style={{ color: '#555' }}>Your progress will not be saved</p>
             <div className="flex gap-3">
-              <button className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: '#1a1a1a', color: '#888' }}
+              <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
+                style={{ background: '#1a1a1a', color: '#666', border: '1px solid #1e1e1e' }}
                 onClick={() => setShowCancelConfirm(false)}>
-                続ける
+                KEEP GOING
               </button>
-              <button className="flex-1 py-4 rounded-2xl text-sm font-black"
+              <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
                 onClick={handleCancel}>
-                終了
+                QUIT
               </button>
             </div>
           </div>

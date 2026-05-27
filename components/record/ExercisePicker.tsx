@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, X, Plus, Check } from 'lucide-react'
+import { Search, X, Plus } from 'lucide-react'
 import { createCustomExercise } from '@/actions/workout'
 
 type Exercise = {
@@ -19,12 +19,6 @@ type Props = {
 }
 
 const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS']
-
-const MG_LABELS: Record<string, string> = {
-  ALL: 'すべて', CHEST: '胸', BACK: '背中', SHOULDERS: '肩',
-  BICEPS: '二頭', TRICEPS: '三頭', FOREARMS: '前腕',
-  QUADS: '大腿四頭', HAMSTRINGS: 'ハムスト', GLUTES: '臀部', CALVES: 'ふくらはぎ', ABS: '腹筋',
-}
 
 export default function ExercisePicker({ exercises: initialExercises, onSelect, onClose }: Props) {
   const [exercises, setExercises] = useState(initialExercises)
@@ -57,97 +51,119 @@ export default function ExercisePicker({ exercises: initialExercises, onSelect, 
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0a0a' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
-        <button onClick={onClose}><X size={22} style={{ color: '#888' }} /></button>
-        <span className="text-base font-black text-white tracking-wide">種目を選択</span>
+        <button onClick={onClose}><X size={22} style={{ color: '#555' }} /></button>
+        <span className="text-base font-black text-white tracking-widest">SELECT EXERCISE</span>
       </div>
 
       {/* Search */}
       <div className="px-4 mb-3">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-          <Search size={16} style={{ color: '#555' }} />
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+          style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+          <Search size={16} style={{ color: '#444' }} />
           <input
             type="text"
-            placeholder="種目を検索..."
+            placeholder="Search exercises..."
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-gray-600"
+            className="flex-1 bg-transparent text-sm text-white outline-none"
+            style={{ '::placeholder': { color: '#333' } } as React.CSSProperties}
             autoFocus
           />
         </div>
       </div>
 
-      {/* Muscle group tabs */}
-      <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide">
+      {/* Muscle group filter */}
+      <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
         {MUSCLE_GROUPS.map(g => (
           <button key={g}
-            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold"
+            className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
             style={{
-              background: activeGroup === g ? '#ff6b00' : '#1a1a1a',
-              color: activeGroup === g ? '#fff' : '#888',
+              background: activeGroup === g ? '#ff6b00' : '#111',
+              color: activeGroup === g ? '#fff' : '#555',
+              border: activeGroup === g ? 'none' : '1px solid #1e1e1e',
             }}
             onClick={() => setActiveGroup(g)}>
-            {MG_LABELS[g]}
+            {g}
           </button>
         ))}
       </div>
 
       {/* Exercise list */}
       <div className="flex-1 overflow-y-auto px-4">
+        {filtered.length === 0 && (
+          <div className="py-12 text-center">
+            <p className="text-sm font-bold" style={{ color: '#444' }}>No exercises found</p>
+          </div>
+        )}
         {filtered.map(e => (
           <button key={e.id}
-            className="w-full flex items-center justify-between py-4"
-            style={{ borderBottom: '1px solid #1a1a1a' }}
+            className="w-full flex items-center justify-between py-4 active:opacity-70"
+            style={{ borderBottom: '1px solid #111' }}
             onClick={() => onSelect(e)}>
             <div className="text-left">
-              <p className="text-sm font-bold text-white">{e.name}</p>
-              <p className="text-xs mt-0.5" style={{ color: '#555' }}>{e.muscle_group}{e.is_custom ? ' · カスタム' : ''}</p>
+              <p className="text-sm font-black text-white">{e.name}</p>
+              <p className="text-[10px] font-bold mt-0.5 tracking-wider"
+                style={{ color: '#555' }}>
+                {e.muscle_group}{e.is_custom ? ' · CUSTOM' : ''}
+              </p>
             </div>
-            <Plus size={16} style={{ color: '#ff6b00' }} />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(255,107,0,0.1)', border: '1px solid rgba(255,107,0,0.2)' }}>
+              <Plus size={14} style={{ color: '#ff6b00' }} />
+            </div>
           </button>
         ))}
 
         {/* Create custom */}
         {!showCreate ? (
           <button
-            className="w-full py-4 flex items-center gap-3"
+            className="w-full py-4 flex items-center gap-3 active:opacity-70"
             onClick={() => setShowCreate(true)}>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#1a1a1a' }}>
-              <Plus size={16} style={{ color: '#ff6b00' }} />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+              <Plus size={14} style={{ color: '#ff6b00' }} />
             </div>
-            <span className="text-sm font-bold" style={{ color: '#ff6b00' }}>カスタム種目を追加</span>
+            <span className="text-sm font-black tracking-wide" style={{ color: '#ff6b00' }}>
+              Add Custom Exercise
+            </span>
           </button>
         ) : (
           <div className="py-4 space-y-3">
-            <p className="text-sm font-bold text-white">カスタム種目</p>
+            <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>CUSTOM EXERCISE</p>
             <input
               type="text"
-              placeholder="種目名"
+              placeholder="Exercise name"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none"
-              style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}
+              className="w-full px-3 py-3 rounded-xl text-sm text-white outline-none"
+              style={{ background: '#111', border: '1px solid #1e1e1e' }}
+              autoFocus
             />
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               {MUSCLE_GROUPS.slice(1).map(g => (
                 <button key={g}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{ background: newGroup === g ? '#ff6b00' : '#1a1a1a', color: newGroup === g ? '#fff' : '#888' }}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
+                  style={{
+                    background: newGroup === g ? '#ff6b00' : '#111',
+                    color: newGroup === g ? '#fff' : '#555',
+                    border: newGroup === g ? 'none' : '1px solid #1e1e1e',
+                  }}
                   onClick={() => setNewGroup(g)}>
-                  {MG_LABELS[g]}
+                  {g}
                 </button>
               ))}
             </div>
             <div className="flex gap-2">
-              <button className="flex-1 py-3 rounded-xl text-sm font-bold"
-                style={{ background: '#1a1a1a', color: '#888' }}
+              <button className="flex-1 py-3 rounded-xl text-sm font-black"
+                style={{ background: '#111', color: '#555', border: '1px solid #1e1e1e' }}
                 onClick={() => setShowCreate(false)}>
-                キャンセル
+                CANCEL
               </button>
-              <button className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
-                style={{ background: creating || !newName.trim() ? '#2a2a2a' : '#ff6b00' }}
+              <button className="flex-1 py-3 rounded-xl text-sm font-black text-white"
+                style={{ background: creating || !newName.trim() ? '#222' : '#ff6b00' }}
                 disabled={creating || !newName.trim()}
                 onClick={handleCreate}>
-                {creating ? '保存中...' : '追加する'}
+                {creating ? 'SAVING...' : 'ADD'}
               </button>
             </div>
           </div>
