@@ -78,12 +78,6 @@ function formatDateLabel(date: string) {
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
-function formatElapsed(seconds: number) {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
 function est1rmOf(weightKg: number, reps: number): number {
   return reps === 1 ? weightKg : Math.round(weightKg * (1 + reps / 30))
 }
@@ -146,8 +140,6 @@ export default function WorkoutRecorder({
       })),
     }))
   )
-  const [startedAt] = useState(() => Date.now())
-  const [elapsed, setElapsed] = useState(0)
   const [showPicker, setShowPicker] = useState(false)
   const [numberTarget, setNumberTarget] = useState<NumberTarget | null>(null)
   const [saving, setSaving] = useState(false)
@@ -167,11 +159,6 @@ export default function WorkoutRecorder({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000)
-    return () => clearInterval(t)
-  }, [startedAt])
 
   const displayVolume = Math.round(exerciseList.reduce((sum, ex) =>
     sum + ex.sets.reduce((s, set) =>
@@ -297,13 +284,7 @@ export default function WorkoutRecorder({
               {formatDateLabel(date)}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-            style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-            <span className="w-1.5 h-1.5 rounded-full"
-              style={{ background: isEditing ? '#22c55e' : '#ff6b00', animation: 'pulse 2s infinite' }} />
-            <span className="text-sm font-black text-white tabular-nums"
-              style={{ fontFamily: 'var(--font-mono)' }}>{formatElapsed(elapsed)}</span>
-          </div>
+          <div className="w-10" />
         </div>
 
         {/* Session title */}
