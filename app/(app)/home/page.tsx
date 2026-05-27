@@ -19,9 +19,9 @@ export default async function HomePage() {
   }
 
   const todayStr = today()
-  const ninetyDaysAgo = new Date()
+  const ninetyDaysAgo = new Date(todayStr + 'T00:00:00')
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-  const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0]
+  const ninetyDaysAgoStr = `${ninetyDaysAgo.getFullYear()}-${String(ninetyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(ninetyDaysAgo.getDate()).padStart(2, '0')}`
 
   /* ── Round 1: parallel fetches ──────────────────────────── */
   const [
@@ -492,22 +492,27 @@ function getNextClub(oneRM: number): ClubInfo {
   return { name: `${target}KG CLUB`, target, gap: Math.max(1, Math.round(target - oneRM)), progress, prev }
 }
 
-function today() { return new Date().toISOString().split('T')[0] }
+/** YYYY-MM-DD in JST — avoids UTC-off-by-one for Japan users */
+function jstDate(d: Date = new Date()): string {
+  return d.toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
+}
+
+function today() { return jstDate() }
 
 function getWeekStart() {
-  const d = new Date()
+  const d = new Date(jstDate() + 'T00:00:00')
   d.setDate(d.getDate() + (d.getDay() === 0 ? -6 : 1 - d.getDay()))
-  return d.toISOString().split('T')[0]
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function getLastWeekStart() {
-  const d = new Date(getWeekStart())
+  const d = new Date(getWeekStart() + 'T00:00:00')
   d.setDate(d.getDate() - 7)
-  return d.toISOString().split('T')[0]
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function getGreeting() {
-  const h = new Date().getUTCHours() + 9
+  const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', hour12: false }), 10)
   if (h < 12) return 'GOOD MORNING'
   if (h < 17) return 'GOOD AFTERNOON'
   return 'GOOD EVENING'

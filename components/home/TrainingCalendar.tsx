@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -46,6 +46,11 @@ const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
+/** YYYY-MM-DD from local time — avoids UTC off-by-one */
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function TrainingCalendar({
   sessions,
   todayStr,
@@ -54,9 +59,23 @@ export default function TrainingCalendar({
   todayStr: string
 }) {
   const router = useRouter()
-  const todayDate = new Date(todayStr + 'T00:00:00')
-  const [year, setYear] = useState(todayDate.getFullYear())
-  const [month, setMonth] = useState(todayDate.getMonth())
+
+  // Compute today client-side (not UTC-based server prop)
+  const clientToday = useMemo(() => localDateStr(new Date()), [])
+
+  // Initial month from client date to avoid server-timezone mismatch
+  const [year, setYear] = useState(() => new Date().getFullYear())
+  const [month, setMonth] = useState(() => new Date().getMonth())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[TrainingCalendar] today (client):', clientToday)
+    console.log('[TrainingCalendar] todayStr (server prop):', todayStr)
+    console.log('[TrainingCalendar] selectedDate:', selectedDate)
+    console.log('[TrainingCalendar] currentMonth:', `${year}-${String(month + 1).padStart(2, '0')}`)
+    console.log('[TrainingCalendar] sessions (trained_at):', sessions.slice(0, 10).map(s => s.date))
+  }, [clientToday, todayStr, selectedDate, year, month, sessions])
 
   const prevMonth = () => {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -74,7 +93,6 @@ export default function TrainingCalendar({
   const sessionMap = new Map<string, string>()
   activeSessions.forEach(s => sessionMap.set(s.date, s.muscleGroup.toLowerCase()))
 
-  // Count workouts this month
   const thisMonthCount = [...sessionMap.keys()].filter(d => {
     const [y, m] = d.split('-').map(Number)
     return y === year && m - 1 === month
@@ -138,42 +156,72 @@ export default function TrainingCalendar({
 
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const muscle = sessionMap.get(dateStr)
-            const isToday = dateStr === todayStr
-            const isFuture = dateStr > todayStr
+            const isToday = dateStr === clientToday      // client-local today
+            const isSelected = dateStr === selectedDate
+            const isFuture = dateStr > clientToday
             const color = muscle ? (COLORS[muscle] ?? '#ff6b00') : null
             const abbrev = muscle
               ? (ABBREV[muscle] ?? muscle.charAt(0).toUpperCase())
               : null
 
+            // ── Visual state matrix ──────────────────────────
+            let bg: string
+            let border: string
+            let shadow: string
+            let textColor: string
+
+            if (isSelected && isToday) {
+              // Strongest: solid orange + white ring glow
+              bg = '#ff6b00'
+              border = '2.5px solid rgba(255,255,255,0.55)'
+              shadow = '0 0 20px rgba(255,107,0,0.6)'
+              textColor = '#ffffff'
+            } else if (isSelected) {
+              // Selected (not today): solid orange fill
+              bg = '#ff6b00'
+              border = '1.5px solid rgba(255,255,255,0.2)'
+              shadow = '0 0 12px rgba(255,107,0,0.35)'
+              textColor = '#ffffff'
+            } else if (isToday) {
+              // Today (not selected): ring + tinted bg
+              bg = muscle ? 'rgba(255,107,0,0.22)' : 'rgba(255,107,0,0.1)'
+              border = '2.5px solid #ff6b00'
+              shadow = '0 0 16px rgba(255,107,0,0.45)'
+              textColor = '#ff6b00'
+            } else if (muscle) {
+              // Trained day: muscle-color tint
+              bg = `${color!}2e`
+              border = '1px solid transparent'
+              shadow = 'none'
+              textColor = color!
+            } else {
+              // Normal / future
+              bg = 'transparent'
+              border = '1px solid transparent'
+              shadow = 'none'
+              textColor = isFuture ? '#2a2a2a' : '#5a5a5a'
+            }
+
             return (
               <div key={dateStr} className="flex flex-col items-center h-12 justify-start pt-0.5">
                 <button
                   className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-                  style={{
-                    background: muscle
-                      ? (isToday ? 'rgba(255,107,0,0.22)' : `${color}2e`)
-                      : (isToday ? 'rgba(255,107,0,0.1)' : 'transparent'),
-                    border: isToday ? '2.5px solid #ff6b00' : '1px solid transparent',
-                    boxShadow: isToday ? '0 0 16px rgba(255,107,0,0.45)' : 'none',
-                    cursor: isFuture ? 'default' : 'pointer',
-                  }}
-                  onClick={() => !isFuture && router.push(`/record?date=${dateStr}`)}>
+                  style={{ background: bg, border, boxShadow: shadow, cursor: isFuture ? 'default' : 'pointer' }}
+                  onClick={() => {
+                    if (isFuture) return
+                    setSelectedDate(dateStr)
+                    router.push(`/record?date=${dateStr}`)
+                  }}>
                   <span
-                    className="text-xs font-bold"
-                    style={{
-                      color: isToday ? '#ff6b00'
-                        : muscle ? color!
-                        : isFuture ? '#2a2a2a'
-                        : '#5a5a5a',
-                      fontWeight: isToday || muscle ? 900 : 600,
-                    }}>
+                    className="text-xs"
+                    style={{ color: textColor, fontWeight: isToday || muscle || isSelected ? 900 : 600 }}>
                     {day}
                   </span>
                 </button>
                 {abbrev ? (
                   <span
                     className="text-[9px] font-black leading-none mt-0.5"
-                    style={{ color: color! }}>
+                    style={{ color: isSelected ? '#ff6b00' : color! }}>
                     {abbrev}
                   </span>
                 ) : (

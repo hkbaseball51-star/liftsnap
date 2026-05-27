@@ -14,7 +14,7 @@ export async function createSession(title: string, bodyWeightKg?: number) {
       user_id: user.id,
       title,
       body_weight_kg: bodyWeightKg ?? null,
-      trained_at: new Date().toISOString().split('T')[0],
+      trained_at: new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' }),
     })
     .select('id')
     .single()
