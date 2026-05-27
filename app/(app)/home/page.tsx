@@ -333,7 +333,7 @@ export default async function HomePage() {
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-5">
-        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: 10 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
           WEEKLY EFFORT
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -349,7 +349,7 @@ export default async function HomePage() {
               label: 'SESSIONS',
               value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
               sub: 'goal: 3×',
-              subColor: 'rgba(255,255,255,0.18)' as string,
+              subColor: 'rgba(255,255,255,0.32)' as string,
               active: thisWeekSessions.length > 0,
             },
             {
@@ -362,7 +362,7 @@ export default async function HomePage() {
             },
           ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
             <div key={label} className="premium-card rounded-xl p-3">
-              <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
+              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', marginBottom: 8 }}>
                 {label}
               </p>
               <div className="flex items-baseline gap-0.5">
@@ -394,7 +394,7 @@ export default async function HomePage() {
       <div className="px-4">
         <div className="premium-card rounded-xl px-4 py-4 flex items-center justify-between">
           <div>
-            <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
+            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
               BODY WEIGHT
             </p>
             {todayWeight ? (
@@ -403,7 +403,7 @@ export default async function HomePage() {
                 <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
               </div>
             ) : (
-              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>Not logged</p>
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.32)' }}>Not logged</p>
             )}
           </div>
           <Link href="/analytics"
@@ -433,14 +433,14 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
   if (!club || !allTimeEst1rm) {
     return (
       <div className="premium-card rounded-xl p-4">
-        <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>
+        <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 12 }}>
           STRENGTH CLUB
         </p>
         <div className="flex items-center gap-3 mb-3">
           <span style={{ fontSize: 18 }}>🏅</span>
           <div>
             <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>100KG Club</p>
-            <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>
+            <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>
               Log your first lift to track progress
             </p>
           </div>
@@ -455,7 +455,7 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
 
   return (
     <div className="premium-card rounded-xl p-4">
-      <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>
+      <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 12 }}>
         STRENGTH CLUB
       </p>
       <div className="flex items-start justify-between mb-4">
@@ -473,7 +473,7 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
           <span style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{current}</span>
           <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.15)' }}>/ {club.target} kg</span>
+        <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.28)' }}>/ {club.target} kg</span>
       </div>
       <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#ff6b00' }} />
