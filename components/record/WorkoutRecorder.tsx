@@ -353,7 +353,8 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       </div>
 
       {/* ── Exercise list ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4"
+        style={{ paddingBottom: 'calc(9rem + env(safe-area-inset-bottom))' }}>
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="text-5xl mb-5">⚡</div>
@@ -529,8 +530,11 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       )}
 
       {/* ── Bottom bar ── */}
-      <div className="fixed bottom-0 inset-x-0 z-10 px-4 pb-8 pt-3"
-        style={{ background: 'linear-gradient(to top, #0a0a0a 65%, transparent)' }}>
+      <div className="fixed inset-x-0 z-10 px-4 pb-4 pt-3"
+        style={{
+          bottom: 'calc(4rem + env(safe-area-inset-bottom))',
+          background: 'linear-gradient(to top, #0a0a0a 70%, transparent)',
+        }}>
         <div className="flex gap-2.5">
           <button
             className="flex-1 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
