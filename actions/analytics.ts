@@ -144,3 +144,96 @@ export async function saveBodyWeight(weightKg: number) {
     recorded_at: today,
   }, { onConflict: 'user_id,recorded_at' })
 }
+
+export async function getExercise1RMData(exerciseName: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: sessions } = await supabase
+    .from('workout_sessions')
+    .select('id, trained_at')
+    .eq('user_id', user.id)
+    .not('completed_at', 'is', null)
+    .order('trained_at')
+
+  if (!sessions?.length) return []
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('session_id, weight_kg, reps')
+    .eq('exercise_name', exerciseName)
+    .in('session_id', sessions.map(s => s.id))
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
+
+  if (!sets?.length) return []
+
+  const est1rmBySession = new Map<string, number>()
+  sets.forEach(s => {
+    const w = s.weight_kg ?? 0
+    const r = s.reps ?? 0
+    const est = r === 1 ? w : Math.round(w * (1 + r / 30))
+    const cur = est1rmBySession.get(s.session_id) ?? 0
+    if (est > cur) est1rmBySession.set(s.session_id, est)
+  })
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return sessions
+    .filter(s => est1rmBySession.has(s.id))
+    .map(s => {
+      const d = new Date(s.trained_at)
+      return {
+        date: s.trained_at,
+        label: `${months[d.getMonth()]} ${d.getDate()}`,
+        est1rm: est1rmBySession.get(s.id)!,
+      }
+    })
+}
+
+export async function getExerciseDailyVolumeData(exerciseName: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: sessions } = await supabase
+    .from('workout_sessions')
+    .select('id, trained_at')
+    .eq('user_id', user.id)
+    .not('completed_at', 'is', null)
+    .order('trained_at')
+
+  if (!sessions?.length) return []
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('session_id, weight_kg, reps')
+    .eq('exercise_name', exerciseName)
+    .in('session_id', sessions.map(s => s.id))
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
+
+  if (!sets?.length) return []
+
+  const sessionDateMap = new Map(sessions.map(s => [s.id, s.trained_at]))
+  const volumeByDate = new Map<string, number>()
+
+  sets.forEach(s => {
+    const date = sessionDateMap.get(s.session_id)
+    if (!date) return
+    const vol = (s.weight_kg ?? 0) * (s.reps ?? 0)
+    volumeByDate.set(date, (volumeByDate.get(date) ?? 0) + vol)
+  })
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return Array.from(volumeByDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, volume]) => {
+      const d = new Date(date)
+      return {
+        date,
+        label: `${months[d.getMonth()]} ${d.getDate()}`,
+        volume: Math.round(volume),
+      }
+    })
+}

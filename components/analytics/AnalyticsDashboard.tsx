@@ -1,56 +1,97 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
-import { getMaxPRData, saveBodyWeight } from '@/actions/analytics'
-import { formatVolume } from '@/lib/utils'
+import { getExercise1RMData, getExerciseDailyVolumeData, saveBodyWeight } from '@/actions/analytics'
 
-type VolumePoint = { week: string; label: string; volume: number }
 type WeightPoint = { date: string; label: string; weight: number }
-type PRPoint = { date: string; label: string; maxWeight: number }
 type Exercise = { name: string; muscle_group: string }
+type RMPoint = { date: string; label: string; est1rm: number }
+type VolPoint = { date: string; label: string; volume: number }
 
 type Props = {
-  volumeData: VolumePoint[]
   bodyWeightData: WeightPoint[]
   exercises: Exercise[]
 }
 
-const TABS = ['MAX PR', 'VOLUME', 'BODY WEIGHT'] as const
+const TABS = ['MAX 1RM', 'DAILY VOLUME', 'BODY WEIGHT'] as const
 type Tab = typeof TABS[number]
 
-const tooltipStyle = {
-  contentStyle: { background: '#111', border: '1px solid #1e1e1e', borderRadius: 12, color: '#fff' },
-  labelStyle: { color: '#555', fontSize: 10 },
-  itemStyle: { color: '#ff6b00', fontWeight: 'bold' },
-  cursor: { stroke: '#222' },
+const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS', 'ABS'] as const
+type MuscleGroup = typeof MUSCLE_GROUPS[number]
+
+function matchesMuscleGroup(mg: string, filter: MuscleGroup): boolean {
+  if (filter === 'ALL') return true
+  const m = mg.toLowerCase()
+  switch (filter) {
+    case 'CHEST':     return m.includes('chest')
+    case 'BACK':      return m.includes('back')
+    case 'LEGS':      return m.includes('leg') || m.includes('lower') || m.includes('glute')
+    case 'SHOULDERS': return m.includes('shoulder')
+    case 'ARMS':      return m.includes('arm') || m.includes('bicep') || m.includes('tricep')
+    case 'ABS':       return m.includes('abs') || m.includes('core')
+    default:          return true
+  }
 }
 
-export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercises }: Props) {
-  const [tab, setTab] = useState<Tab>('MAX PR')
+const CARD = {
+  background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
+  border: '1px solid rgba(255,107,0,0.22)',
+  boxShadow: '0 0 30px rgba(255,107,0,0.04)',
+  borderRadius: 18,
+} as const
+
+const tooltipStyle = {
+  contentStyle: { background: '#111', border: '1px solid rgba(255,107,0,0.22)', borderRadius: 12, color: '#fff' },
+  labelStyle: { color: '#555', fontSize: 10 },
+  itemStyle: { color: '#ff6b00', fontWeight: 'bold' as const },
+  cursor: { stroke: '#1a1a1a' },
+}
+
+export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props) {
+  const [tab, setTab] = useState<Tab>('MAX 1RM')
+  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
-  const [prData, setPrData] = useState<PRPoint[]>([])
-  const [prLoading, startPrTransition] = useTransition()
+
+  const [rmData, setRmData] = useState<RMPoint[]>([])
+  const [rmLoading, startRmTransition] = useTransition()
+
+  const [volData, setVolData] = useState<VolPoint[]>([])
+  const [volLoading, startVolTransition] = useTransition()
 
   const [bwInput, setBwInput] = useState('')
   const [bwSaving, startBwTransition] = useTransition()
   const [bwData, setBwData] = useState(bodyWeightData)
 
-  const selectExercise = (name: string) => {
-    setSelectedExercise(name)
-    startPrTransition(async () => {
-      const data = await getMaxPRData(name)
-      setPrData(data)
-    })
-  }
+  const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
-  const handleTabChange = (t: Tab) => {
-    setTab(t)
-    if (t === 'MAX PR' && selectedExercise && prData.length === 0) {
-      selectExercise(selectedExercise)
+  // Auto-load data when tab or selected exercise changes
+  useEffect(() => {
+    if (!selectedExercise) return
+    if (tab === 'MAX 1RM') {
+      setRmData([])
+      startRmTransition(async () => {
+        const data = await getExercise1RMData(selectedExercise)
+        setRmData(data)
+      })
+    } else if (tab === 'DAILY VOLUME') {
+      setVolData([])
+      startVolTransition(async () => {
+        const data = await getExerciseDailyVolumeData(selectedExercise)
+        setVolData(data)
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, selectedExercise])
+
+  const handleMuscleFilter = (mg: MuscleGroup) => {
+    setMuscleFilter(mg)
+    const newFiltered = exercises.filter(e => matchesMuscleGroup(e.muscle_group, mg))
+    if (newFiltered.length > 0 && !newFiltered.find(e => e.name === selectedExercise)) {
+      setSelectedExercise(newFiltered[0].name)
     }
   }
 
@@ -60,8 +101,10 @@ export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercis
     startBwTransition(async () => {
       await saveBodyWeight(v)
       const today = new Date()
-      const label = `${today.getMonth() + 1}/${today.getDate()}`
       const date = today.toISOString().split('T')[0]
+      const d = today
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      const label = `${months[d.getMonth()]} ${d.getDate()}`
       setBwData(prev => {
         const filtered = prev.filter(p => p.date !== date)
         return [...filtered, { date, label, weight: v }].sort((a, b) => a.date.localeCompare(b.date))
@@ -70,154 +113,241 @@ export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercis
     })
   }
 
-  const currentPR = prData.length > 0 ? Math.max(...prData.map(p => p.maxWeight)) : null
   const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
-  const thisWeekVol = volumeData[volumeData.length - 1]?.volume ?? 0
-  const lastWeekVol = volumeData[volumeData.length - 2]?.volume ?? 0
-  const volDiff = lastWeekVol > 0 ? Math.round(((thisWeekVol - lastWeekVol) / lastWeekVol) * 100) : null
+  const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
+  const totalVol = volData.reduce((s, p) => s + p.volume, 0)
+  const showExerciseSelector = tab !== 'BODY WEIGHT' && exercises.length > 0
 
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
       <h1 className="text-xl font-black tracking-widest text-white mb-5">ANALYTICS</h1>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-5 p-1 rounded-2xl" style={{ background: '#111' }}>
+      <div className="flex gap-1 mb-4 p-1 rounded-2xl" style={{ background: '#111', border: '1px solid rgba(255,107,0,0.1)' }}>
         {TABS.map(t => (
           <button key={t}
             className="flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all"
             style={{
               background: tab === t ? '#ff6b00' : 'transparent',
-              color: tab === t ? '#fff' : '#444',
+              color: tab === t ? '#fff' : '#555',
             }}
-            onClick={() => handleTabChange(t)}>
+            onClick={() => setTab(t)}>
             {t}
           </button>
         ))}
       </div>
 
-      {/* MAX PR Tab */}
-      {tab === 'MAX PR' && (
+      {/* Muscle group + exercise selector */}
+      {showExerciseSelector && (
+        <>
+          {/* Muscle group filter */}
+          <div className="overflow-x-auto no-scrollbar mb-3">
+            <div className="flex gap-1.5 pb-1">
+              {MUSCLE_GROUPS.map(mg => (
+                <button key={mg}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all"
+                  style={{
+                    background: muscleFilter === mg ? 'rgba(255,107,0,0.14)' : '#111',
+                    color: muscleFilter === mg ? '#FF6B00' : '#444',
+                    border: muscleFilter === mg ? '1px solid rgba(255,107,0,0.35)' : '1px solid #1e1e1e',
+                  }}
+                  onClick={() => handleMuscleFilter(mg)}>
+                  {mg}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Exercise chips */}
+          {filteredExercises.length === 0 ? (
+            <p className="text-xs font-bold mb-4" style={{ color: '#444' }}>No exercises logged in this group</p>
+          ) : (
+            <div className="overflow-x-auto no-scrollbar mb-4">
+              <div className="flex gap-2 pb-1">
+                {filteredExercises.map(e => (
+                  <button key={e.name}
+                    className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all"
+                    style={{
+                      background: selectedExercise === e.name ? '#FF6B00' : '#111',
+                      color: selectedExercise === e.name ? '#fff' : '#555',
+                      border: selectedExercise === e.name ? 'none' : '1px solid #1e1e1e',
+                    }}
+                    onClick={() => setSelectedExercise(e.name)}>
+                    {e.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* MAX 1RM Tab */}
+      {tab === 'MAX 1RM' && (
         <div>
           {exercises.length === 0 ? (
-            <EmptyState text="Log workouts to see your PR chart" />
+            <EmptyState />
+          ) : filteredExercises.length === 0 ? (
+            <NoGroupData />
           ) : (
             <>
-              <div className="mb-4 overflow-x-auto no-scrollbar">
-                <div className="flex gap-2 pb-1">
-                  {exercises.map(e => (
-                    <button key={e.name}
-                      className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
-                      style={{
-                        background: selectedExercise === e.name ? '#ff6b00' : '#111',
-                        color: selectedExercise === e.name ? '#fff' : '#555',
-                        border: selectedExercise === e.name ? 'none' : '1px solid #1e1e1e',
-                      }}
-                      onClick={() => selectExercise(e.name)}>
-                      {e.name}
-                    </button>
-                  ))}
+              {/* Summary card */}
+              <div className="rounded-2xl p-4 mb-3 flex items-center justify-between" style={CARD}>
+                <div>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>BEST 1RM</p>
+                  {rmLoading ? (
+                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
+                  ) : bestRM !== null ? (
+                    <div className="flex items-baseline gap-1">
+                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{bestRM}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSIONS</p>
+                  <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                    {rmLoading ? '...' : rmData.length > 0 ? rmData.length : '—'}
+                  </p>
                 </div>
               </div>
 
-              {currentPR !== null && (
-                <div className="rounded-2xl p-4 mb-4 flex items-center justify-between"
-                  style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-                  <div>
-                    <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>ALL-TIME BEST</p>
-                    <p className="text-2xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {currentPR}<span className="text-sm font-bold ml-1" style={{ color: '#555' }}>kg</span>
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>SESSIONS</p>
-                    <p className="text-2xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {prData.length}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-                <p className="text-[9px] font-black tracking-widest mb-4" style={{ color: '#444' }}>WEIGHT PROGRESSION</p>
-                {prLoading ? (
-                  <div className="h-48 flex items-center justify-center">
-                    <p className="text-xs font-black tracking-widest" style={{ color: '#444' }}>LOADING...</p>
-                  </div>
-                ) : prData.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center">
-                    <p className="text-xs font-bold" style={{ color: '#444' }}>No data yet</p>
-                  </div>
+              {/* 1RM chart */}
+              <div className="rounded-2xl p-4 mb-3" style={CARD}>
+                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>1RM PROGRESSION</p>
+                {rmLoading ? (
+                  <LoadingChart />
+                ) : rmData.length === 0 ? (
+                  <ChartEmpty />
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={prData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                    <LineChart data={rmData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, 'Max Weight']} />
-                      <Line type="monotone" dataKey="maxWeight" stroke="#ff6b00" strokeWidth={2.5}
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, 'Est. 1RM']} />
+                      <Line type="monotone" dataKey="est1rm" stroke="#ff6b00" strokeWidth={2.5}
                         dot={{ fill: '#ff6b00', r: 4, strokeWidth: 0 }}
                         activeDot={{ r: 6, fill: '#ff6b00' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
               </div>
+
+              {/* History list */}
+              {rmData.length > 0 && (
+                <div className="rounded-2xl overflow-hidden" style={CARD}>
+                  <div className="px-4 pt-4 pb-2">
+                    <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
+                  </div>
+                  {[...rmData].reverse().slice(0, 6).map(p => (
+                    <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                      <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                      <div className="flex items-baseline gap-1">
+                        <span style={{ fontSize: 16, fontWeight: 700, color: p.est1rm === bestRM ? '#FF6B00' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
       )}
 
-      {/* VOLUME Tab */}
-      {tab === 'VOLUME' && (
+      {/* DAILY VOLUME Tab */}
+      {tab === 'DAILY VOLUME' && (
         <div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-              <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: '#444' }}>THIS WEEK</p>
-              <p className="text-xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-                {formatVolume(thisWeekVol)}
-              </p>
-            </div>
-            <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-              <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: '#444' }}>VS LAST WEEK</p>
-              {volDiff !== null ? (
-                <p className="text-xl font-black" style={{ color: volDiff >= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)' }}>
-                  {volDiff >= 0 ? '+' : ''}{volDiff}%
-                </p>
-              ) : (
-                <p className="text-xl font-black" style={{ color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-            <p className="text-[9px] font-black tracking-widest mb-4" style={{ color: '#444' }}>WEEKLY VOLUME (12 WEEKS)</p>
-            {volumeData.every(d => d.volume === 0) ? (
-              <div className="h-48 flex items-center justify-center">
-                <p className="text-xs font-bold" style={{ color: '#444' }}>Log workouts to see your chart</p>
+          {exercises.length === 0 ? (
+            <EmptyState />
+          ) : filteredExercises.length === 0 ? (
+            <NoGroupData />
+          ) : (
+            <>
+              {/* Summary card */}
+              <div className="rounded-2xl p-4 mb-3 flex items-center justify-between" style={CARD}>
+                <div>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>TOTAL VOLUME</p>
+                  {volLoading ? (
+                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
+                  ) : totalVol > 0 ? (
+                    <div className="flex items-baseline gap-1">
+                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                        {totalVol >= 10000 ? `${(totalVol / 1000).toFixed(1)}k` : totalVol.toLocaleString()}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
+                        {totalVol >= 10000 ? '' : 'kg'}
+                      </span>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSIONS</p>
+                  <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                    {volLoading ? '...' : volData.length > 0 ? volData.length : '—'}
+                  </p>
+                </div>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={volumeData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={2} />
-                  <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
-                    tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                  <Tooltip {...tooltipStyle} formatter={(v: number) => [formatVolume(v), 'Volume']} />
-                  <Bar dataKey="volume" fill="#ff6b00" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+
+              {/* Volume chart */}
+              <div className="rounded-2xl p-4 mb-3" style={CARD}>
+                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>DAILY VOLUME</p>
+                {volLoading ? (
+                  <LoadingChart />
+                ) : volData.length === 0 ? (
+                  <ChartEmpty />
+                ) : (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={volData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false}
+                        interval={Math.max(0, Math.floor(volData.length / 5) - 1)} />
+                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
+                        tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} kg`, 'Volume']} />
+                      <Bar dataKey="volume" fill="#ff6b00" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Volume history list */}
+              {volData.length > 0 && (
+                <div className="rounded-2xl overflow-hidden" style={CARD}>
+                  <div className="px-4 pt-4 pb-2">
+                    <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
+                  </div>
+                  {[...volData].reverse().slice(0, 8).map(p => (
+                    <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                      <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                      <div className="flex items-baseline gap-1">
+                        <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
+                          {p.volume >= 1000 ? `${(p.volume / 1000).toFixed(1)}k` : p.volume.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
       {/* BODY WEIGHT Tab */}
       {tab === 'BODY WEIGHT' && (
         <div>
-          {/* Input */}
-          <div className="rounded-2xl p-4 mb-4 flex items-center gap-3"
-            style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+          <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={CARD}>
             <div className="flex-1">
-              <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: '#444' }}>TODAY'S WEIGHT</p>
+              <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>TODAY'S WEIGHT</p>
               <div className="flex items-baseline gap-1.5">
                 <input
                   type="number"
@@ -228,12 +358,16 @@ export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercis
                   className="w-20 bg-transparent text-white text-xl font-black outline-none"
                   style={{ fontFamily: 'var(--font-mono)' }}
                 />
-                <span className="text-sm font-bold" style={{ color: '#555' }}>kg</span>
+                <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>kg</span>
               </div>
             </div>
             <button
               className="px-5 py-3 rounded-xl text-xs font-black tracking-widest"
-              style={{ background: bwInput ? '#ff6b00' : '#1a1a1a', color: '#fff' }}
+              style={{
+                background: bwInput ? '#ff6b00' : 'rgba(255,255,255,0.04)',
+                color: bwInput ? '#fff' : '#444',
+                border: bwInput ? 'none' : '1px solid rgba(255,255,255,0.06)',
+              }}
               disabled={!bwInput || bwSaving}
               onClick={saveBW}>
               {bwSaving ? '...' : 'LOG'}
@@ -241,30 +375,33 @@ export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercis
           </div>
 
           {latestWeight && (
-            <div className="rounded-2xl p-4 mb-4 flex items-center justify-between"
-              style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+            <div className="rounded-2xl p-4 mb-4 flex items-center justify-between" style={CARD}>
               <div>
-                <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>LATEST</p>
-                <p className="text-2xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-                  {latestWeight}<span className="text-sm font-bold ml-1" style={{ color: '#555' }}>kg</span>
-                </p>
+                <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>LATEST</p>
+                <div className="flex items-baseline gap-1">
+                  <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                </div>
               </div>
               {bwData.length >= 2 && (() => {
                 const diff = bwData[bwData.length - 1].weight - bwData[0].weight
                 return (
                   <div className="text-right">
-                    <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>CHANGE</p>
-                    <p className="text-xl font-black" style={{ color: diff <= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)' }}>
-                      {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
-                    </p>
+                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>CHANGE</p>
+                    <div className="flex items-baseline gap-1 justify-end">
+                      <span style={{ fontSize: 28, fontWeight: 900, color: diff <= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                        {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                    </div>
                   </div>
                 )
               })()}
             </div>
           )}
 
-          <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-            <p className="text-[9px] font-black tracking-widest mb-4" style={{ color: '#444' }}>BODY WEIGHT (90 DAYS)</p>
+          <div className="rounded-2xl p-4" style={CARD}>
+            <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>BODY WEIGHT (90 DAYS)</p>
             {bwData.length < 2 ? (
               <div className="h-48 flex items-center justify-center">
                 <p className="text-xs font-bold" style={{ color: '#444' }}>Log 2+ days to see your chart</p>
@@ -278,9 +415,9 @@ export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercis
                   <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, 'Weight']} />
                   <ReferenceLine y={bwData[0]?.weight} stroke="#222" strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="weight" stroke="#7c3aed" strokeWidth={2.5}
-                    dot={{ fill: '#7c3aed', r: 3, strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: '#7c3aed' }} />
+                  <Line type="monotone" dataKey="weight" stroke="#a78bfa" strokeWidth={2.5}
+                    dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: '#a78bfa' }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -291,11 +428,45 @@ export default function AnalyticsDashboard({ volumeData, bodyWeightData, exercis
   )
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState() {
   return (
-    <div className="rounded-2xl p-8 text-center" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-      <p className="text-3xl mb-3">📊</p>
-      <p className="text-sm font-bold" style={{ color: '#444' }}>{text}</p>
+    <div className="rounded-2xl p-10 text-center" style={{
+      background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
+      border: '1px solid rgba(255,107,0,0.22)',
+      borderRadius: 18,
+    }}>
+      <p style={{ fontSize: 32, marginBottom: 12 }}>📊</p>
+      <p className="text-base font-bold text-white mb-2">No data yet</p>
+      <p className="text-sm font-bold" style={{ color: '#444' }}>Log your first set to unlock stats</p>
+    </div>
+  )
+}
+
+function NoGroupData() {
+  return (
+    <div className="rounded-2xl p-8 text-center" style={{
+      background: '#111',
+      border: '1px solid rgba(255,107,0,0.22)',
+      borderRadius: 18,
+    }}>
+      <p className="text-sm font-bold" style={{ color: '#555' }}>No exercises logged in this group yet</p>
+    </div>
+  )
+}
+
+function LoadingChart() {
+  return (
+    <div className="h-48 flex items-center justify-center">
+      <p className="text-xs font-black tracking-widest" style={{ color: '#444' }}>LOADING...</p>
+    </div>
+  )
+}
+
+function ChartEmpty() {
+  return (
+    <div className="h-48 flex items-center justify-center flex-col gap-2">
+      <p className="text-sm font-bold" style={{ color: '#444' }}>No data yet</p>
+      <p className="text-xs font-bold" style={{ color: '#2a2a2a' }}>Log your first set to unlock stats</p>
     </div>
   )
 }
