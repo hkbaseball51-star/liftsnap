@@ -124,7 +124,7 @@ export default function TrainingCalendar({
         <div className="grid grid-cols-7 mb-1">
           {DAY_NAMES.map(d => (
             <div key={d} className="text-center py-1.5">
-              <span className="text-[9px] font-black tracking-wider" style={{ color: '#2a2a2a' }}>{d}</span>
+              <span className="text-[9px] font-black tracking-wider" style={{ color: '#4a4a4a' }}>{d}</span>
             </div>
           ))}
         </div>
@@ -150,9 +150,11 @@ export default function TrainingCalendar({
                 <button
                   className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                   style={{
-                    background: muscle ? 'rgba(255,107,0,0.15)' : 'transparent',
-                    border: isToday ? '2px solid #ff6b00' : '1px solid transparent',
-                    boxShadow: isToday ? '0 0 12px rgba(255,107,0,0.4)' : 'none',
+                    background: muscle
+                      ? (isToday ? 'rgba(255,107,0,0.22)' : `${color}2e`)
+                      : (isToday ? 'rgba(255,107,0,0.1)' : 'transparent'),
+                    border: isToday ? '2.5px solid #ff6b00' : '1px solid transparent',
+                    boxShadow: isToday ? '0 0 16px rgba(255,107,0,0.45)' : 'none',
                     cursor: isFuture ? 'default' : 'pointer',
                   }}
                   onClick={() => !isFuture && router.push(`/record?date=${dateStr}`)}>
@@ -161,8 +163,8 @@ export default function TrainingCalendar({
                     style={{
                       color: isToday ? '#ff6b00'
                         : muscle ? color!
-                        : isFuture ? '#1e1e1e'
-                        : '#333',
+                        : isFuture ? '#2a2a2a'
+                        : '#5a5a5a',
                       fontWeight: isToday || muscle ? 900 : 600,
                     }}>
                     {day}
@@ -170,7 +172,7 @@ export default function TrainingCalendar({
                 </button>
                 {abbrev ? (
                   <span
-                    className="text-[8px] font-black leading-none mt-0.5"
+                    className="text-[9px] font-black leading-none mt-0.5"
                     style={{ color: color! }}>
                     {abbrev}
                   </span>
@@ -188,7 +190,7 @@ export default function TrainingCalendar({
           {Object.entries(COLORS).slice(0, 6).map(([muscle, color]) => (
             <div key={muscle} className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-              <span className="text-[9px] font-black tracking-wide uppercase" style={{ color: '#333' }}>
+              <span className="text-[9px] font-black tracking-wide uppercase" style={{ color: '#484848' }}>
                 {muscle}
               </span>
             </div>
