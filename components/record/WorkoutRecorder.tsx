@@ -71,23 +71,17 @@ function est1rmOf(weightKg: number, reps: number): number {
 }
 
 function calcExerciseStats(ex: ExerciseEntry) {
-  const done = ex.sets.filter(
-    s => s.is_completed && s.weight_kg !== null && s.reps !== null
-  )
-  if (done.length === 0) return null
+  // Include all sets with both weight and reps entered (not just completed)
+  const entered = ex.sets.filter(s => s.weight_kg !== null && s.reps !== null)
+  if (entered.length === 0) return null
 
-  const volume = Math.round(
-    done.reduce((sum, s) => sum + s.weight_kg! * s.reps!, 0)
-  )
+  const volume = Math.round(entered.reduce((sum, s) => sum + s.weight_kg! * s.reps!, 0))
 
-  // Best set by estimated 1RM
-  const bestSet = done.reduce((prev, s) =>
+  const bestSet = entered.reduce((prev, s) =>
     est1rmOf(s.weight_kg!, s.reps!) > est1rmOf(prev.weight_kg!, prev.reps!) ? s : prev
   )
   const est1rm = est1rmOf(bestSet.weight_kg!, bestSet.reps!)
-
-  // Heaviest raw weight (for PR comparison)
-  const maxWeightToday = Math.max(...done.map(s => s.weight_kg!))
+  const maxWeightToday = Math.max(...entered.map(s => s.weight_kg!))
 
   return { volume, bestWeight: bestSet.weight_kg!, bestReps: bestSet.reps!, est1rm, maxWeightToday }
 }
@@ -148,7 +142,12 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
     }))
   )
 
-  // Best est1RM across all exercises this session (for header)
+  // Display stats — include all entered (weight+reps filled) not just completed
+  const displayVolume = Math.round(exerciseList.reduce((sum, ex) =>
+    sum + ex.sets.reduce((s, set) =>
+      s + (set.weight_kg !== null && set.reps !== null ? set.weight_kg * set.reps : 0), 0), 0))
+  const displaySetsCount = exerciseList.reduce((sum, ex) =>
+    sum + ex.sets.filter(s => s.weight_kg !== null && s.reps !== null).length, 0)
   const bestSessionEst1rm = exerciseList.reduce((best, ex) => {
     const stats = calcExerciseStats(ex)
     return (stats?.est1rm ?? 0) > best ? stats!.est1rm : best
@@ -377,15 +376,15 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         <div className="flex items-center pb-3 gap-0">
           <HeaderStat
             label="VOL"
-            value={totalVolume > 0 ? formatVolume(totalVolume) : '—'}
-            active={totalVolume > 0}
+            value={displayVolume > 0 ? formatVolume(displayVolume) : '—'}
+            active={displayVolume > 0}
             accent
           />
           <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
           <HeaderStat
             label="SETS"
-            value={completedSets.length > 0 ? String(completedSets.length) : '—'}
-            active={completedSets.length > 0}
+            value={displaySetsCount > 0 ? String(displaySetsCount) : '—'}
+            active={displaySetsCount > 0}
           />
           <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
           <HeaderStat
@@ -436,16 +435,19 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                     <span className="text-[10px] font-black tracking-wider" style={{ color: '#ff6b00' }}>
                       {ex.muscle_group}
                     </span>
-                    {ex.allTimePR !== null && (
-                      <>
-                        <span style={{ color: '#2a2a2a' }}>·</span>
-                        <span className="text-[10px] font-bold" style={{ color: '#444' }}>
-                          PR {ex.allTimePR}kg
-                        </span>
-                      </>
-                    )}
-                    {ex.allTimePR === null && (
-                      <span className="text-[10px] font-bold" style={{ color: '#333' }}>No history</span>
+                    {ex.allTimePR !== null ? (
+                      <span className="text-[10px] font-bold" style={{ color: '#444' }}>
+                        · PR {ex.allTimePR}kg
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
+                        style={{
+                          background: 'rgba(59,130,246,0.12)',
+                          color: '#60a5fa',
+                          border: '1px solid rgba(59,130,246,0.25)',
+                        }}>
+                        FIRST LOG
+                      </span>
                     )}
                   </div>
                 </div>
@@ -554,50 +556,47 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                 )
               })}
 
-              {/* ── Exercise stats panel (shows after first completed set) ── */}
+              {/* ── Exercise stats panel ── */}
               {stats && (
-                <div style={{ borderTop: '1px solid #1a1a1a' }}>
+                <div className="mx-3 mb-3 rounded-2xl overflow-hidden"
+                  style={{ border: '1px solid #1e1e1e', marginTop: 8 }}>
 
-                  {/* Row 1: Volume + Est 1RM */}
-                  <div className="grid grid-cols-2 gap-px" style={{ background: '#1a1a1a' }}>
-                    <div className="px-4 py-3" style={{ background: '#0f0f0f' }}>
-                      <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>
-                        TOTAL VOLUME
-                      </p>
+                  {/* Row 1: Volume + EST 1RM — big numbers */}
+                  <div className="grid grid-cols-2"
+                    style={{ background: '#0d0d0d', borderBottom: '1px solid #1a1a1a' }}>
+                    <div className="px-4 py-4" style={{ borderRight: '1px solid #1a1a1a' }}>
+                      <p className="text-[9px] font-black tracking-widest mb-2"
+                        style={{ color: '#555' }}>TOTAL VOLUME</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-black text-white"
+                        <span className="text-3xl font-black text-white leading-none"
                           style={{ fontFamily: 'var(--font-mono)' }}>
-                          {stats.volume >= 1000
-                            ? (stats.volume / 1000).toFixed(1)
-                            : stats.volume}
+                          {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
                         </span>
-                        <span className="text-xs font-bold" style={{ color: '#555' }}>
+                        <span className="text-base font-bold ml-0.5" style={{ color: '#555' }}>
                           {stats.volume >= 1000 ? 't' : 'kg'}
                         </span>
                       </div>
                     </div>
-                    <div className="px-4 py-3" style={{ background: '#0f0f0f' }}>
-                      <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>
-                        EST. 1RM
-                      </p>
+                    <div className="px-4 py-4">
+                      <p className="text-[9px] font-black tracking-widest mb-2"
+                        style={{ color: '#555' }}>EST. 1RM</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-black"
-                          style={{ color: '#7c3aed', fontFamily: 'var(--font-mono)' }}>
+                        <span className="text-3xl font-black leading-none"
+                          style={{ color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>
                           {stats.est1rm}
                         </span>
-                        <span className="text-xs font-bold" style={{ color: '#555' }}>kg</span>
+                        <span className="text-base font-bold ml-0.5" style={{ color: '#555' }}>kg</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Row 2: Best set + PR status */}
-                  <div className="flex items-center justify-between px-4 py-3"
-                    style={{ background: '#0d0d0d' }}>
+                  {/* Row 2: Best set + PR badge */}
+                  <div className="grid grid-cols-2 px-4 py-4 items-start"
+                    style={{ background: '#0a0a0a' }}>
                     <div>
-                      <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: '#444' }}>
-                        BEST SET
-                      </p>
-                      <p className="text-sm font-black text-white"
+                      <p className="text-[9px] font-black tracking-widest mb-2"
+                        style={{ color: '#555' }}>BEST SET</p>
+                      <p className="text-lg font-black text-white leading-none"
                         style={{ fontFamily: 'var(--font-mono)' }}>
                         {stats.bestWeight}kg × {stats.bestReps}
                       </p>
@@ -734,42 +733,47 @@ function HeaderStat({ label, value, active, accent, purple }: {
 function PRBadge({ status }: { status: PRStatus }) {
   if (status.type === 'first') {
     return (
-      <div className="px-3 py-2 rounded-xl text-center"
-        style={{
-          background: 'rgba(59,130,246,0.1)',
-          border: '1px solid rgba(59,130,246,0.2)',
-        }}>
-        <p className="text-[9px] font-black tracking-widest" style={{ color: '#3b82f6' }}>FIRST LOG</p>
-        <p className="text-[9px] font-bold mt-0.5" style={{ color: '#3b82f6', opacity: 0.6 }}>no history</p>
+      <div className="flex flex-col items-end gap-1.5">
+        <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>PR STATUS</p>
+        <div className="px-3 py-2 rounded-xl"
+          style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}>
+          <p className="text-xs font-black tracking-widest" style={{ color: '#60a5fa' }}>FIRST LOG</p>
+        </div>
       </div>
     )
   }
 
   if (status.type === 'new_pr') {
     return (
-      <div className="px-3 py-2 rounded-xl text-center"
-        style={{
-          background: 'rgba(255,107,0,0.15)',
-          border: '1px solid rgba(255,107,0,0.4)',
-          boxShadow: '0 0 16px rgba(255,107,0,0.2)',
-        }}>
-        <p className="text-[9px] font-black tracking-widest" style={{ color: '#ff6b00' }}>
-          🔥 NEW MAX
-        </p>
-        <p className="text-xs font-black mt-0.5" style={{ color: '#22c55e', fontFamily: 'var(--font-mono)' }}>
-          +{status.gap}kg
-        </p>
+      <div className="flex flex-col items-end gap-1.5">
+        <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>PR STATUS</p>
+        <div className="px-3 py-2 rounded-xl text-right"
+          style={{
+            background: 'rgba(255,107,0,0.18)',
+            border: '1px solid rgba(255,107,0,0.5)',
+            boxShadow: '0 0 24px rgba(255,107,0,0.22)',
+          }}>
+          <p className="text-xs font-black tracking-wide" style={{ color: '#ff6b00' }}>🔥 NEW MAX PR</p>
+          <p className="text-lg font-black leading-tight"
+            style={{ color: '#22c55e', fontFamily: 'var(--font-mono)' }}>
+            +{status.gap}kg
+          </p>
+        </div>
       </div>
     )
   }
 
-  // below PR
   return (
-    <div className="text-right">
-      <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>BEST TODAY</p>
-      <p className="text-[10px] font-black mt-0.5" style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>
-        -{status.gap}kg from PR
-      </p>
+    <div className="flex flex-col items-end gap-1.5">
+      <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>PR STATUS</p>
+      <div className="px-3 py-2 rounded-xl text-right"
+        style={{ background: '#161616', border: '1px solid #222' }}>
+        <p className="text-xs font-black tracking-widest" style={{ color: '#666' }}>BEST TODAY</p>
+        <p className="text-sm font-black leading-tight"
+          style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>
+          -{status.gap}kg
+        </p>
+      </div>
     </div>
   )
 }
