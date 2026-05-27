@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, X, Pencil } from 'lucide-react'
-import { getExercisePR } from '@/actions/workout'
+import { createSession, completeSession, cancelSession, getExercisePR } from '@/actions/workout'
+import { createClient } from '@/lib/supabase/client'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import { formatVolume } from '@/lib/utils'
@@ -84,10 +85,20 @@ function calcPRStatus(maxWeightToday: number, allTimePR: number | null): PRStatu
   return { type: 'below', gap: Math.round((allTimePR - maxWeightToday) * 10) / 10 }
 }
 
+async function ensureAuth() {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    await supabase.auth.signInAnonymously()
+    await new Promise(r => setTimeout(r, 600))
+  }
+}
+
 /* ─── Main component ──────────────────────────────────── */
 
 export default function WorkoutRecorder({ exercises: allExercises }: { exercises: Exercise[] }) {
   const router = useRouter()
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [title, setTitle] = useState(getDefaultTitle)
   const [editingTitle, setEditingTitle] = useState(false)
   const [exerciseList, setExerciseList] = useState<ExerciseEntry[]>([])
@@ -95,6 +106,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
   const [elapsed, setElapsed] = useState(0)
   const [showPicker, setShowPicker] = useState(false)
   const [numberTarget, setNumberTarget] = useState<NumberTarget | null>(null)
+  const [saving, setSaving] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const listEndRef = useRef<HTMLDivElement>(null)
 
@@ -113,7 +125,12 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
     return (s?.est1rm ?? 0) > best ? s!.est1rm : best
   }, 0)
 
-  const addExercise = (exercise: Exercise) => {
+  const addExercise = async (exercise: Exercise) => {
+    if (!sessionId) {
+      await ensureAuth()
+      const id = await createSession(title)
+      setSessionId(id)
+    }
     setExerciseList(prev => [...prev, {
       id: uid(),
       name: exercise.name,
@@ -130,6 +147,28 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       }
     })
     setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  const handleFinish = async () => {
+    if (!sessionId) return
+    setSaving(true)
+    try {
+      const setsToSave = exerciseList.flatMap(ex =>
+        ex.sets
+          .filter(s => s.weight_kg !== null && s.reps !== null)
+          .map(s => ({
+            exercise_name: ex.name,
+            muscle_group: ex.muscle_group,
+            set_number: s.set_number,
+            weight_kg: s.weight_kg,
+            reps: s.reps,
+          }))
+      )
+      await completeSession(sessionId, setsToSave)
+      router.push('/home')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const addSet = (exerciseId: string) => {
@@ -404,13 +443,24 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
           bottom: 'calc(4rem + env(safe-area-inset-bottom))',
           background: 'linear-gradient(to top, #0a0a0a 65%, transparent)',
         }}>
-        <button
-          className="w-full py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2 tracking-widest"
-          style={{ background: '#111', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.35)' }}
-          onClick={() => setShowPicker(true)}>
-          <Plus size={16} strokeWidth={2.5} />
-          ADD EXERCISE
-        </button>
+        <div className="flex gap-2.5">
+          <button
+            className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2 tracking-widest"
+            style={{ background: '#111', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.35)' }}
+            onClick={() => setShowPicker(true)}>
+            <Plus size={16} strokeWidth={2.5} />
+            ADD
+          </button>
+          {displaySetsCount > 0 && (
+            <button
+              className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white tracking-widest"
+              style={{ background: saving ? '#333' : '#ff6b00', boxShadow: saving ? 'none' : '0 4px 20px rgba(255,107,0,0.35)' }}
+              disabled={saving}
+              onClick={handleFinish}>
+              {saving ? 'SAVING...' : `FINISH · ${displaySetsCount}`}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Modals ── */}
@@ -442,7 +492,10 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                 onClick={() => setShowCancelConfirm(false)}>KEEP GOING</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
-                onClick={() => router.push('/home')}>LEAVE</button>
+                onClick={async () => {
+                  if (sessionId) await cancelSession(sessionId).catch(() => {})
+                  router.push('/home')
+                }}>LEAVE</button>
             </div>
           </div>
         </div>
