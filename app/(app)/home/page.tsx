@@ -247,27 +247,26 @@ export default async function HomePage() {
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-14 pb-2">
-        <h1 className="text-xl font-black tracking-widest text-white">LIFTSNAP</h1>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-          style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-          <Zap size={12} style={{ color: '#ff6b00' }} />
-          <span className="text-[10px] font-black tracking-widest" style={{ color: '#ff6b00' }}>
-            {totalSessions90} LIFTS
+        <h1 className="text-lg font-bold tracking-widest text-white">LIFTSNAP</h1>
+        <div className="flex items-center gap-1.5">
+          <Zap size={11} style={{ color: 'rgba(255,255,255,0.25)' }} />
+          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>
+            {totalSessions90} lifts
           </span>
         </div>
       </div>
 
       {/* ── WELCOME ── */}
       <div className="px-4 pt-3 pb-5">
-        <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#333' }}>
+        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
           {getGreeting()}
         </p>
-        <p className="text-3xl font-black text-white tracking-tight leading-none">WELCOME</p>
-        <p className="text-3xl font-black tracking-tight leading-none" style={{ color: '#ff6b00' }}>BACK.</p>
+        <p className="text-3xl font-bold text-white tracking-tight leading-none">Welcome</p>
+        <p className="text-3xl font-bold tracking-tight leading-none" style={{ color: '#ff6b00' }}>back.</p>
         {todayWorked ? (
-          <p className="text-xs font-bold mt-2" style={{ color: '#22c55e' }}>Great work today. Session logged.</p>
+          <p style={{ fontSize: 12, fontWeight: 400, color: '#22c55e', marginTop: 8 }}>Great work today.</p>
         ) : (
-          <p className="text-xs font-bold mt-2" style={{ color: '#444' }}>No session logged today — let's change that.</p>
+          <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>No session today — let's change that.</p>
         )}
       </div>
 
@@ -286,27 +285,29 @@ export default async function HomePage() {
         <Link href="/record">
           <div className="rounded-2xl px-5 py-4 flex items-center justify-between active:opacity-70"
             style={{
-              background: todayWorked ? '#111' : 'linear-gradient(135deg, #ff6b00 0%, #ff8c2a 100%)',
-              border: todayWorked ? '1px solid #1e1e1e' : 'none',
-              boxShadow: todayWorked ? 'none' : '0 8px 30px rgba(255,107,0,0.35)',
+              background: todayWorked
+                ? '#0f0f0f'
+                : 'linear-gradient(135deg, #ff6b00 0%, #e85d00 100%)',
+              border: todayWorked ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              boxShadow: todayWorked ? 'none' : '0 4px 24px rgba(255,107,0,0.22)',
             }}>
             <div>
-              <p className="text-[10px] font-black tracking-widest mb-0.5"
-                style={{ color: todayWorked ? '#444' : 'rgba(255,255,255,0.7)' }}>
+              <p style={{
+                fontSize: 10, fontWeight: 500, letterSpacing: '0.07em', marginBottom: 3,
+                color: todayWorked ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.65)',
+              }}>
                 {todayWorked ? 'LOG ANOTHER' : 'TODAY'}
               </p>
-              <p className="text-base font-black"
-                style={{ color: todayWorked ? '#666' : '#fff' }}>
-                {todayWorked ? 'Start New Session' : 'START WORKOUT'}
+              <p style={{ fontSize: 16, fontWeight: 600, color: todayWorked ? 'rgba(255,255,255,0.45)' : '#fff' }}>
+                {todayWorked ? 'Start New Session' : 'Start Workout'}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
               style={{
-                background: todayWorked ? '#1a1a1a' : 'rgba(255,255,255,0.2)',
-                border: todayWorked ? '1px solid #2a2a2a' : 'none',
+                background: todayWorked ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.18)',
+                border: todayWorked ? '1px solid rgba(255,255,255,0.06)' : 'none',
               }}>
-              <span className="text-xl font-black leading-none"
-                style={{ color: todayWorked ? '#555' : '#fff' }}>+</span>
+              <span style={{ fontSize: 20, fontWeight: 400, color: todayWorked ? 'rgba(255,255,255,0.3)' : '#fff' }}>+</span>
             </div>
           </div>
         </Link>
@@ -314,21 +315,23 @@ export default async function HomePage() {
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-5">
-        <p className="text-[10px] font-black tracking-widest mb-3" style={{ color: '#333' }}>WEEKLY EFFORT</p>
+        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.2)', marginBottom: 10 }}>
+          WEEKLY EFFORT
+        </p>
         <div className="grid grid-cols-3 gap-2">
           {([
             {
               label: 'VOLUME',
               value: thisWeekVolume > 0 ? formatVolume(thisWeekVolume) : '—',
-              sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}% vs last wk` : null,
+              sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}%` : null,
               subColor: volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined,
               active: thisWeekVolume > 0,
             },
             {
               label: 'SESSIONS',
               value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
-              sub: 'GOAL: 3×',
-              subColor: '#333' as string,
+              sub: 'goal: 3×',
+              subColor: 'rgba(255,255,255,0.18)' as string,
               active: thisWeekSessions.length > 0,
             },
             {
@@ -340,18 +343,25 @@ export default async function HomePage() {
               active: allTimeEst1rm !== null,
             },
           ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
-            <div key={label} className="rounded-2xl p-3.5"
-              style={{ background: '#111', border: '1px solid #1a1a1a' }}>
-              <p className="text-[9px] font-black tracking-widest mb-2" style={{ color: '#333' }}>{label}</p>
+            <div key={label} className="rounded-xl p-3"
+              style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 8 }}>
+                {label}
+              </p>
               <div className="flex items-baseline gap-0.5">
-                <p className="text-xl font-black leading-none"
-                  style={{ color: active ? '#fff' : '#222' }}>{value}</p>
+                <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? '#fff' : 'rgba(255,255,255,0.1)' }}>
+                  {value}
+                </p>
                 {'unit' in rest && rest.unit && (
-                  <span className="text-[10px] font-bold" style={{ color: '#444' }}>{rest.unit}</span>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginLeft: 1 }}>
+                    {rest.unit}
+                  </span>
                 )}
               </div>
               {sub && (
-                <p className="text-[9px] mt-1.5 font-black tracking-wide" style={{ color: subColor ?? '#333' }}>{sub}</p>
+                <p style={{ fontSize: 9, fontWeight: 500, marginTop: 5, color: subColor ?? 'rgba(255,255,255,0.2)' }}>
+                  {sub}
+                </p>
               )}
             </div>
           ))}
@@ -365,23 +375,32 @@ export default async function HomePage() {
 
       {/* ── BODY WEIGHT ── */}
       <div className="px-4">
-        <div className="rounded-2xl px-4 py-4 flex items-center justify-between"
-          style={{ background: '#111', border: '1px solid #1a1a1a' }}>
+        <div className="rounded-xl px-4 py-4 flex items-center justify-between"
+          style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div>
-            <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: '#333' }}>BODY WEIGHT</p>
+            <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
+              BODY WEIGHT
+            </p>
             {todayWeight ? (
               <div className="flex items-baseline gap-1">
-                <p className="text-2xl font-black text-white">{todayWeight}</p>
-                <span className="text-sm font-bold" style={{ color: '#444' }}>kg</span>
+                <p style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{todayWeight}</p>
+                <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
               </div>
             ) : (
-              <p className="text-sm font-bold" style={{ color: '#2a2a2a' }}>NOT LOGGED</p>
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>Not logged</p>
             )}
           </div>
           <Link href="/analytics"
-            className="px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest"
-            style={{ background: todayWeight ? '#1a1a1a' : '#ff6b00', color: todayWeight ? '#444' : '#fff' }}>
-            {todayWeight ? 'VIEW →' : 'LOG +'}
+            className="rounded-xl"
+            style={{
+              padding: '8px 14px',
+              background: todayWeight ? 'rgba(255,255,255,0.04)' : '#ff6b00',
+              border: todayWeight ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              color: todayWeight ? 'rgba(255,255,255,0.4)' : '#fff',
+              fontSize: 11,
+              fontWeight: 500,
+            }}>
+            {todayWeight ? 'View →' : 'Log +'}
           </Link>
         </div>
       </div>
@@ -397,19 +416,20 @@ type ClubInfo = { name: string; target: number; gap: number; progress: number; p
 function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1rm: number | null }) {
   if (!club || !allTimeEst1rm) {
     return (
-      <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #1a1a1a' }}>
-        <p className="text-[9px] font-black tracking-widest mb-3" style={{ color: '#333' }}>STRENGTH CLUB</p>
+      <div className="rounded-xl p-4" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>
+          STRENGTH CLUB
+        </p>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(255,107,0,0.08)', border: '1px solid rgba(255,107,0,0.12)' }}>
-            <span className="text-lg">🏅</span>
-          </div>
+          <span style={{ fontSize: 18 }}>🏅</span>
           <div>
-            <p className="text-sm font-black text-white">100KG CLUB</p>
-            <p className="text-xs font-bold" style={{ color: '#333' }}>Log your first lift to track progress</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>100KG Club</p>
+            <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>
+              Log your first lift to track progress
+            </p>
           </div>
         </div>
-        <div className="h-1.5 rounded-full" style={{ background: '#1a1a1a' }} />
+        <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }} />
       </div>
     )
   }
@@ -418,39 +438,29 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
   const pct = club.progress
 
   return (
-    <div className="rounded-2xl p-4 relative overflow-hidden"
-      style={{ background: '#111', border: '1px solid #1a1a1a' }}>
-      <div className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
-        style={{ background: 'radial-gradient(circle at 80% 20%, rgba(255,107,0,0.06) 0%, transparent 65%)' }} />
-      <p className="text-[9px] font-black tracking-widest mb-3" style={{ color: '#333' }}>STRENGTH CLUB</p>
-      <div className="relative flex items-start justify-between mb-4">
+    <div className="rounded-xl p-4" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>
+        STRENGTH CLUB
+      </p>
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(255,107,0,0.1)', border: '1px solid rgba(255,107,0,0.2)' }}>
-            <span className="text-lg">🏅</span>
-          </div>
+          <span style={{ fontSize: 18 }}>🏅</span>
           <div>
-            <p className="text-sm font-black text-white">{club.name}</p>
-            <p className="text-xs font-black" style={{ color: '#22c55e' }}>+{club.gap}kg to go</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{club.name}</p>
+            <p style={{ fontSize: 12, fontWeight: 400, color: '#22c55e' }}>+{club.gap} kg to go</p>
           </div>
         </div>
-        <span className="text-xs font-black px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(255,107,0,0.1)', color: '#ff6b00' }}>{pct}%</span>
+        <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)' }}>{pct}%</span>
       </div>
       <div className="flex items-end justify-between mb-3">
         <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-white">{current}</span>
-          <span className="text-sm font-bold" style={{ color: '#444' }}>kg</span>
+          <span style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{current}</span>
+          <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
         </div>
-        <span className="text-sm font-black" style={{ color: '#2a2a2a' }}>/ {club.target}kg</span>
+        <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.15)' }}>/ {club.target} kg</span>
       </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ background: '#1a1a1a' }}>
-        <div className="h-full rounded-full"
-          style={{
-            width: `${pct}%`,
-            background: 'linear-gradient(90deg, #ff6b00, #ffaa44)',
-            boxShadow: '0 0 10px rgba(255,107,0,0.5)',
-          }} />
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#ff6b00' }} />
       </div>
     </div>
   )
