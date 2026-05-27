@@ -5,6 +5,8 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
+import Link from 'next/link'
+import { Share2 } from 'lucide-react'
 import { getExercise1RMData, getExerciseDailyVolumeData, saveBodyWeight } from '@/actions/analytics'
 
 type WeightPoint = { date: string; label: string; weight: number }
@@ -238,21 +240,37 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
 
               {/* History list */}
               {rmData.length > 0 && (
-                <div className="rounded-2xl overflow-hidden" style={CARD}>
-                  <div className="px-4 pt-4 pb-2">
-                    <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
-                  </div>
-                  {[...rmData].reverse().slice(0, 6).map(p => (
-                    <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
-                      <div className="flex items-baseline gap-1">
-                        <span style={{ fontSize: 16, fontWeight: 700, color: p.est1rm === bestRM ? '#FF6B00' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
-                      </div>
+                <>
+                  <div className="rounded-2xl overflow-hidden" style={CARD}>
+                    <div className="px-4 pt-4 pb-2">
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
                     </div>
-                  ))}
-                </div>
+                    {[...rmData].reverse().slice(0, 6).map(p => (
+                      <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
+                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                        <div className="flex items-baseline gap-1">
+                          <span style={{ fontSize: 16, fontWeight: 700, color: p.est1rm === bestRM ? '#FF6B00' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
+                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                    style={{
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      color: 'rgba(255,255,255,0.4)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                    }}>
+                    <Share2 size={14} strokeWidth={1.5} />
+                    Share Story
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -319,23 +337,39 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
 
               {/* Volume history list */}
               {volData.length > 0 && (
-                <div className="rounded-2xl overflow-hidden" style={CARD}>
-                  <div className="px-4 pt-4 pb-2">
-                    <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
-                  </div>
-                  {[...volData].reverse().slice(0, 8).map(p => (
-                    <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
-                      <div className="flex items-baseline gap-1">
-                        <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
-                          {p.volume >= 1000 ? `${(p.volume / 1000).toFixed(1)}k` : p.volume.toLocaleString()}
-                        </span>
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
-                      </div>
+                <>
+                  <div className="rounded-2xl overflow-hidden" style={CARD}>
+                    <div className="px-4 pt-4 pb-2">
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
                     </div>
-                  ))}
-                </div>
+                    {[...volData].reverse().slice(0, 8).map(p => (
+                      <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
+                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                        <div className="flex items-baseline gap-1">
+                          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
+                            {p.volume >= 1000 ? `${(p.volume / 1000).toFixed(1)}k` : p.volume.toLocaleString()}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    href={`/share?type=stats&metric=volume&exercise=${encodeURIComponent(selectedExercise)}`}
+                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                    style={{
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      color: 'rgba(255,255,255,0.4)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                    }}>
+                    <Share2 size={14} strokeWidth={1.5} />
+                    Share Story
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -422,6 +456,22 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
               </ResponsiveContainer>
             )}
           </div>
+          {bwData.length > 0 && (
+            <Link
+              href="/share?type=stats&metric=bodyweight"
+              className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+              style={{
+                padding: '12px 16px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.4)',
+                fontSize: 13,
+                fontWeight: 500,
+              }}>
+              <Share2 size={14} strokeWidth={1.5} />
+              Share Story
+            </Link>
+          )}
         </div>
       )}
     </div>

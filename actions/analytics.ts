@@ -237,3 +237,77 @@ export async function getExerciseDailyVolumeData(exerciseName: string) {
       }
     })
 }
+
+export async function getStatsForShare(metric: string, exercise?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  if (metric === 'max1rm' && exercise) {
+    const rm = await getExercise1RMData(exercise)
+    if (!rm.length) return null
+    const bestRM = Math.max(...rm.map(d => d.est1rm))
+    const bestEntry = rm.find(d => d.est1rm === bestRM)!
+
+    const { data: sess } = await supabase
+      .from('workout_sessions')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('trained_at', bestEntry.date)
+      .not('completed_at', 'is', null)
+
+    let bestSet: { weight: number; reps: number } | null = null
+    if (sess?.length) {
+      const { data: sets } = await supabase
+        .from('workout_sets')
+        .select('weight_kg, reps')
+        .eq('exercise_name', exercise)
+        .in('session_id', sess.map(s => s.id))
+        .gt('weight_kg', 0)
+        .gt('reps', 0)
+      if (sets?.length) {
+        const b = sets.reduce((prev, s) => {
+          const e = (s.reps ?? 0) === 1 ? (s.weight_kg ?? 0) : Math.round((s.weight_kg ?? 0) * (1 + (s.reps ?? 0) / 30))
+          const pe = (prev.reps ?? 0) === 1 ? (prev.weight_kg ?? 0) : Math.round((prev.weight_kg ?? 0) * (1 + (prev.reps ?? 0) / 30))
+          return e > pe ? s : prev
+        })
+        bestSet = { weight: b.weight_kg!, reps: b.reps! }
+      }
+    }
+    return {
+      type: 'max1rm' as const,
+      exerciseName: exercise,
+      bestRM,
+      bestDate: bestEntry.label,
+      bestSet,
+      history: rm.slice(-6),
+      sessionCount: rm.length,
+    }
+  }
+
+  if (metric === 'volume' && exercise) {
+    const vol = await getExerciseDailyVolumeData(exercise)
+    if (!vol.length) return null
+    return {
+      type: 'volume' as const,
+      exerciseName: exercise,
+      totalVolume: vol.reduce((s, d) => s + d.volume, 0),
+      sessionCount: vol.length,
+      history: vol.slice(-6),
+    }
+  }
+
+  if (metric === 'bodyweight') {
+    const bw = await getBodyWeightData(90)
+    if (!bw.length) return null
+    const latest = bw[bw.length - 1].weight
+    return {
+      type: 'bodyweight' as const,
+      currentWeight: latest,
+      change: bw.length >= 2 ? Math.round((latest - bw[0].weight) * 10) / 10 : 0,
+      history: bw.slice(-6),
+    }
+  }
+
+  return null
+}
