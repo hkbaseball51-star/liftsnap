@@ -302,11 +302,11 @@ export default async function HomePage() {
           <div className="rounded-2xl px-5 py-4 flex items-center justify-between active:opacity-70"
             style={{
               background: todayWorked
-                ? 'linear-gradient(135deg, rgba(255,107,0,0.04), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.02))'
+                ? 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))'
                 : 'linear-gradient(135deg, #FF6B00 0%, #d95e00 100%)',
-              border: todayWorked ? '1px solid rgba(255,255,255,0.07)' : 'none',
+              border: todayWorked ? '1px solid rgba(255,107,0,0.22)' : 'none',
               boxShadow: todayWorked
-                ? '0 0 30px rgba(255,107,0,0.05)'
+                ? '0 0 30px rgba(255,107,0,0.04)'
                 : '0 4px 20px rgba(255,107,0,0.2)',
             }}>
             <div>
@@ -361,12 +361,7 @@ export default async function HomePage() {
               active: allTimeEst1rm !== null,
             },
           ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
-            <div key={label} className="rounded-xl p-3"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
-                border: '1px solid rgba(255,255,255,0.07)',
-                boxShadow: '0 0 30px rgba(255,107,0,0.05)',
-              }}>
+            <div key={label} className="premium-card rounded-xl p-3">
               <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
                 {label}
               </p>
@@ -397,8 +392,7 @@ export default async function HomePage() {
 
       {/* ── BODY WEIGHT ── */}
       <div className="px-4">
-        <div className="rounded-xl px-4 py-4 flex items-center justify-between"
-          style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="premium-card rounded-xl px-4 py-4 flex items-center justify-between">
           <div>
             <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
               BODY WEIGHT
@@ -438,7 +432,7 @@ type ClubInfo = { name: string; target: number; gap: number; progress: number; p
 function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1rm: number | null }) {
   if (!club || !allTimeEst1rm) {
     return (
-      <div className="rounded-xl p-4" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="premium-card rounded-xl p-4">
         <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>
           STRENGTH CLUB
         </p>
@@ -460,7 +454,7 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
   const pct = club.progress
 
   return (
-    <div className="rounded-xl p-4" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.05)' }}>
+    <div className="premium-card rounded-xl p-4">
       <p style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.2)', marginBottom: 12 }}>
         STRENGTH CLUB
       </p>

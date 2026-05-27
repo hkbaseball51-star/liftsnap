@@ -59,6 +59,13 @@ h1, h2 {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Shared premium card shell */
+.premium-card {
+  background: linear-gradient(135deg, rgba(255,107,0,0.05) 0%, rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03) 100%);
+  border: 1px solid rgba(255,107,0,0.22);
+  box-shadow: 0 0 30px rgba(255,107,0,0.04);
+}
+
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;

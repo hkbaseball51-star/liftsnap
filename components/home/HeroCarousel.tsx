@@ -34,19 +34,13 @@ export type HeroData = {
 /* ── Design tokens ────────────────────────────────────────── */
 const CARD = {
   background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
-  border: '1px solid rgba(255,255,255,0.07)',
-  boxShadow: '0 0 30px rgba(255,107,0,0.06)',
+  border: '1px solid rgba(255,107,0,0.22)',
+  boxShadow: '0 0 30px rgba(255,107,0,0.04)',
   borderRadius: 18,
   padding: 20,
   display: 'flex' as const,
   flexDirection: 'column' as const,
   minHeight: 220,
-}
-
-const CARD_PR = {
-  ...CARD,
-  border: '1px solid rgba(255,107,0,0.18)',
-  boxShadow: '0 0 30px rgba(255,107,0,0.08)',
 }
 
 /* ── Shared primitives ────────────────────────────────────── */
@@ -219,25 +213,46 @@ function MuscleFocusSlide({
   d: NonNullable<HeroData['muscleFocus']>
   sessionId: string | null
 }) {
+  const muscles = d.muscles.slice(0, 4)
+  const primaryNames = muscles.map(m => m.name.toUpperCase()).join(' / ')
+
   return (
     <div style={CARD}>
-      <div className="mb-4">
+      <div className="flex items-center justify-between mb-3">
         <Label>Muscle Focus</Label>
+        <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.2)' }}>
+          {muscles.length} {muscles.length === 1 ? 'GROUP' : 'GROUPS'}
+        </span>
       </div>
 
-      <div className="flex-1 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {d.muscles.slice(0, 4).map(m => (
-          <div key={m.name}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.03em', marginBottom: 5 }}>
-              {m.name}
+      <p style={{
+        fontSize: 22, fontWeight: 700, color: '#fff',
+        letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16,
+      }}>
+        {primaryNames}
+      </p>
+
+      <div className="flex-1 mb-4" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {muscles.map((m, i) => (
+          <div key={m.name} className="flex items-start gap-2">
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '3px 9px',
+              borderRadius: 20,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              flexShrink: 0,
+              marginTop: 1,
+              background: i === 0 ? 'rgba(255,107,0,0.14)' : 'rgba(255,255,255,0.06)',
+              color: i === 0 ? '#FF6B00' : 'rgba(255,255,255,0.32)',
+            }}>
+              {m.name.toUpperCase()}
+            </span>
+            <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.26)', lineHeight: 1.65 }}>
+              {m.exercises.slice(0, 3).join('  ·  ')}
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {m.exercises.slice(0, 3).map(ex => (
-                <p key={ex} style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.28)', lineHeight: 1.4 }}>
-                  {ex}
-                </p>
-              ))}
-            </div>
           </div>
         ))}
       </div>
@@ -255,7 +270,7 @@ function PRCardSlide({
   sessionId: string | null
 }) {
   return (
-    <div style={CARD_PR}>
+    <div style={CARD}>
       <div className="flex items-center justify-between mb-3">
         <Label orange>Personal Record</Label>
       </div>
