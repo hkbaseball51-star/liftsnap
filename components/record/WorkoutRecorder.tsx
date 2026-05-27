@@ -68,14 +68,12 @@ function est1rmOf(weightKg: number, reps: number): number {
 function calcExerciseStats(ex: ExerciseEntry) {
   const entered = ex.sets.filter(s => s.weight_kg !== null && s.reps !== null)
   if (entered.length === 0) return null
-
   const volume = Math.round(entered.reduce((sum, s) => sum + s.weight_kg! * s.reps!, 0))
   const bestSet = entered.reduce((prev, s) =>
     est1rmOf(s.weight_kg!, s.reps!) > est1rmOf(prev.weight_kg!, prev.reps!) ? s : prev
   )
   const est1rm = est1rmOf(bestSet.weight_kg!, bestSet.reps!)
   const maxWeightToday = Math.max(...entered.map(s => s.weight_kg!))
-
   return { volume, bestWeight: bestSet.weight_kg!, bestReps: bestSet.reps!, est1rm, maxWeightToday }
 }
 
@@ -105,15 +103,14 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
     return () => clearInterval(t)
   }, [startedAt])
 
-  // Stats computed from all sets with both weight + reps entered
   const displayVolume = Math.round(exerciseList.reduce((sum, ex) =>
     sum + ex.sets.reduce((s, set) =>
       s + (set.weight_kg !== null && set.reps !== null ? set.weight_kg * set.reps : 0), 0), 0))
   const displaySetsCount = exerciseList.reduce((sum, ex) =>
     sum + ex.sets.filter(s => s.weight_kg !== null && s.reps !== null).length, 0)
   const bestSessionEst1rm = exerciseList.reduce((best, ex) => {
-    const stats = calcExerciseStats(ex)
-    return (stats?.est1rm ?? 0) > best ? stats!.est1rm : best
+    const s = calcExerciseStats(ex)
+    return (s?.est1rm ?? 0) > best ? s!.est1rm : best
   }, 0)
 
   const addExercise = (exercise: Exercise) => {
@@ -125,7 +122,6 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null }],
     }])
     setShowPicker(false)
-
     getExercisePR(exercise.name).then(pr => {
       if (pr !== null) {
         setExerciseList(prev => prev.map(ex =>
@@ -139,14 +135,14 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
   const addSet = (exerciseId: string) => {
     setExerciseList(prev => prev.map(ex => {
       if (ex.id !== exerciseId) return ex
-      const lastWithValues = [...ex.sets].reverse().find(s => s.weight_kg !== null && s.reps !== null)
+      const last = [...ex.sets].reverse().find(s => s.weight_kg !== null && s.reps !== null)
       return {
         ...ex,
         sets: [...ex.sets, {
           id: uid(),
           set_number: ex.sets.length + 1,
-          weight_kg: lastWithValues?.weight_kg ?? null,
-          reps: lastWithValues?.reps ?? null,
+          weight_kg: last?.weight_kg ?? null,
+          reps: last?.reps ?? null,
         }],
       }
     }))
@@ -177,7 +173,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       <div className="sticky top-0 z-20 px-4 pt-14"
         style={{ background: '#0a0a0a', borderBottom: '1px solid #111' }}>
 
-        <div className="flex items-center justify-between pb-3">
+        <div className="flex items-center justify-between pb-2.5">
           <button onClick={() => setShowCancelConfirm(true)} className="p-1.5 -ml-1.5">
             <X size={20} style={{ color: '#444' }} />
           </button>
@@ -208,37 +204,23 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
           </div>
         </div>
 
-        {/* ── Header stats strip ── */}
-        <div className="flex items-center pb-3">
-          <HeaderStat
-            label="VOL"
-            value={displayVolume > 0 ? formatVolume(displayVolume) : '—'}
-            active={displayVolume > 0}
-            accent
-          />
-          <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
-          <HeaderStat
-            label="SETS"
-            value={displaySetsCount > 0 ? String(displaySetsCount) : '—'}
-            active={displaySetsCount > 0}
-          />
-          <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
-          <HeaderStat
-            label="BEST 1RM"
-            value={bestSessionEst1rm > 0 ? `${bestSessionEst1rm}kg` : '—'}
-            active={bestSessionEst1rm > 0}
-            purple
-          />
+        {/* Header stats strip */}
+        <div className="flex items-center pb-2.5">
+          <HeaderStat label="VOL"     value={displayVolume > 0 ? formatVolume(displayVolume) : '—'} active={displayVolume > 0} accent />
+          <div className="w-px h-4 mx-3.5" style={{ background: '#1e1e1e' }} />
+          <HeaderStat label="SETS"    value={displaySetsCount > 0 ? String(displaySetsCount) : '—'} active={displaySetsCount > 0} />
+          <div className="w-px h-4 mx-3.5" style={{ background: '#1e1e1e' }} />
+          <HeaderStat label="BEST 1RM" value={bestSessionEst1rm > 0 ? `${bestSessionEst1rm}kg` : '—'} active={bestSessionEst1rm > 0} purple />
         </div>
       </div>
 
       {/* ── Exercise list ── */}
-      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4"
-        style={{ paddingBottom: 'calc(9rem + env(safe-area-inset-bottom))' }}>
+      <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-3"
+        style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
 
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="text-5xl mb-5">⚡</div>
+            <div className="text-5xl mb-4">⚡</div>
             <p className="text-base font-black text-white mb-2 tracking-wide">BUILD TODAY'S EFFORT</p>
             <p className="text-xs font-bold" style={{ color: '#444' }}>Tap + Add Exercise to get started</p>
           </div>
@@ -247,92 +229,87 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         {exerciseList.map(ex => {
           const stats = calcExerciseStats(ex)
           const prStatus = stats ? calcPRStatus(stats.maxWeightToday, ex.allTimePR) : null
+          const isNewPR = prStatus?.type === 'new_pr'
+          const volStr = stats
+            ? stats.volume >= 1000 ? `${(stats.volume / 1000).toFixed(1)}t` : `${stats.volume}kg`
+            : null
 
           return (
             <div key={ex.id} className="rounded-2xl overflow-hidden"
               style={{
                 background: '#111',
-                border: prStatus?.type === 'new_pr'
-                  ? '1px solid rgba(255,107,0,0.4)'
-                  : '1px solid #1e1e1e',
-                boxShadow: prStatus?.type === 'new_pr'
-                  ? '0 0 20px rgba(255,107,0,0.1)'
-                  : 'none',
+                border: isNewPR ? '1px solid rgba(255,107,0,0.4)' : '1px solid #1e1e1e',
+                boxShadow: isNewPR ? '0 0 18px rgba(255,107,0,0.08)' : 'none',
               }}>
 
-              {/* Exercise header */}
-              <div className="flex items-center gap-3 px-4 py-3.5"
-                style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <div className="w-1 h-10 rounded-full flex-shrink-0"
-                  style={{ background: prStatus?.type === 'new_pr' ? '#ff6b00' : '#2a2a2a' }} />
+              {/* ── Exercise header (compact) ── */}
+              <div className="flex items-center gap-2.5 px-3 py-2.5">
+                <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
+                  style={{ background: isNewPR ? '#ff6b00' : '#2a2a2a' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-white tracking-wide truncate">{ex.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-sm font-black text-white leading-tight truncate">{ex.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[10px] font-black tracking-wider" style={{ color: '#ff6b00' }}>
                       {ex.muscle_group}
                     </span>
                     {ex.allTimePR !== null ? (
-                      <span className="text-[10px] font-bold" style={{ color: '#444' }}>
+                      <span className="text-[10px] font-bold" style={{ color: '#3a3a3a' }}>
                         · PR {ex.allTimePR}kg
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
+                      <span className="px-1.5 py-px rounded-full text-[8px] font-black tracking-widest"
                         style={{
-                          background: 'rgba(59,130,246,0.12)',
+                          background: 'rgba(59,130,246,0.1)',
                           color: '#60a5fa',
-                          border: '1px solid rgba(59,130,246,0.25)',
+                          border: '1px solid rgba(59,130,246,0.2)',
                         }}>
                         FIRST LOG
                       </span>
                     )}
                   </div>
                 </div>
-                <button onClick={() => removeExercise(ex.id)} className="p-1">
-                  <X size={15} style={{ color: '#333' }} />
+                <button onClick={() => removeExercise(ex.id)} className="p-1 flex-shrink-0">
+                  <X size={14} style={{ color: '#2a2a2a' }} />
                 </button>
               </div>
 
-              {/* Column labels — SET | KG | REPS (no DONE column) */}
-              <div className="grid grid-cols-12 gap-2 px-4 pt-3 pb-1.5">
-                <span className="col-span-2 text-center text-[9px] font-black tracking-widest"
-                  style={{ color: '#333' }}>SET</span>
-                <span className="col-span-5 text-center text-[9px] font-black tracking-widest"
-                  style={{ color: '#333' }}>KG</span>
-                <span className="col-span-5 text-center text-[9px] font-black tracking-widest"
-                  style={{ color: '#333' }}>REPS</span>
+              {/* Column labels */}
+              <div className="grid grid-cols-12 gap-1.5 px-3 pt-1.5 pb-1"
+                style={{ borderTop: '1px solid #1a1a1a' }}>
+                <span className="col-span-2 text-center text-[8px] font-black tracking-widest"
+                  style={{ color: '#2a2a2a' }}>#</span>
+                <span className="col-span-5 text-center text-[8px] font-black tracking-widest"
+                  style={{ color: '#2a2a2a' }}>KG</span>
+                <span className="col-span-5 text-center text-[8px] font-black tracking-widest"
+                  style={{ color: '#2a2a2a' }}>REPS</span>
               </div>
 
-              {/* Sets */}
+              {/* Set rows */}
               {ex.sets.map(set => (
-                <div key={set.id} className="grid grid-cols-12 gap-2 items-center px-4 py-2">
-                  {/* Set number */}
+                <div key={set.id} className="grid grid-cols-12 gap-1.5 items-center px-3 py-1">
                   <div className="col-span-2 flex justify-center">
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
-                      style={{ background: '#1a1a1a', color: '#555', fontFamily: 'var(--font-mono)' }}>
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black"
+                      style={{ background: '#181818', color: '#444', fontFamily: 'var(--font-mono)' }}>
                       {set.set_number}
                     </span>
                   </div>
-
-                  {/* Weight */}
                   <button
-                    className="col-span-5 py-3.5 rounded-xl text-center font-black"
+                    className="col-span-5 py-2 rounded-lg text-center font-black active:scale-95 transition-transform"
                     style={{
                       background: '#1a1a1a',
-                      color: set.weight_kg !== null ? '#fff' : '#333',
-                      fontSize: set.weight_kg !== null ? 20 : 15,
+                      color: set.weight_kg !== null ? '#fff' : '#2a2a2a',
+                      fontSize: set.weight_kg !== null ? 17 : 14,
                       fontFamily: set.weight_kg !== null ? 'var(--font-mono)' : 'inherit',
                     }}
                     onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
                     {set.weight_kg ?? '—'}
                   </button>
-
-                  {/* Reps */}
                   <button
-                    className="col-span-5 py-3.5 rounded-xl text-center font-black"
+                    className="col-span-5 py-2 rounded-lg text-center font-black active:scale-95 transition-transform"
                     style={{
                       background: '#1a1a1a',
-                      color: set.reps !== null ? '#fff' : '#333',
-                      fontSize: set.reps !== null ? 20 : 15,
+                      color: set.reps !== null ? '#fff' : '#2a2a2a',
+                      fontSize: set.reps !== null ? 17 : 14,
                       fontFamily: set.reps !== null ? 'var(--font-mono)' : 'inherit',
                     }}
                     onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
@@ -341,66 +318,27 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                 </div>
               ))}
 
-              {/* ── Exercise stats panel (shows as soon as any set has weight + reps) ── */}
-              {stats && (
-                <div className="mx-3 mb-3 rounded-2xl overflow-hidden"
-                  style={{ border: '1px solid #1e1e1e', marginTop: 8 }}>
-
-                  {/* Row 1: Total Volume + EST 1RM */}
-                  <div className="grid grid-cols-2"
-                    style={{ background: '#0d0d0d', borderBottom: '1px solid #1a1a1a' }}>
-                    <div className="px-4 py-4" style={{ borderRight: '1px solid #1a1a1a' }}>
-                      <p className="text-[9px] font-black tracking-widest mb-2" style={{ color: '#555' }}>
-                        TOTAL VOLUME
-                      </p>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-white leading-none"
-                          style={{ fontFamily: 'var(--font-mono)' }}>
-                          {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
-                        </span>
-                        <span className="text-base font-bold ml-0.5" style={{ color: '#555' }}>
-                          {stats.volume >= 1000 ? 't' : 'kg'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="px-4 py-4">
-                      <p className="text-[9px] font-black tracking-widest mb-2" style={{ color: '#555' }}>
-                        EST. 1RM
-                      </p>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black leading-none"
-                          style={{ color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>
-                          {stats.est1rm}
-                        </span>
-                        <span className="text-base font-bold ml-0.5" style={{ color: '#555' }}>kg</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Row 2: Best set + PR badge */}
-                  <div className="grid grid-cols-2 px-4 py-4 items-start"
-                    style={{ background: '#0a0a0a' }}>
-                    <div>
-                      <p className="text-[9px] font-black tracking-widest mb-2" style={{ color: '#555' }}>
-                        BEST SET
-                      </p>
-                      <p className="text-lg font-black text-white leading-none"
-                        style={{ fontFamily: 'var(--font-mono)' }}>
-                        {stats.bestWeight}kg × {stats.bestReps}
-                      </p>
-                    </div>
-                    {prStatus && <PRBadge status={prStatus} />}
-                  </div>
+              {/* ── Compact stats bar (1 line) ── */}
+              {stats && volStr && (
+                <div className="flex items-center gap-0 px-3 py-2 overflow-x-auto no-scrollbar"
+                  style={{ borderTop: '1px solid #1a1a1a', background: '#0d0d0d' }}>
+                  <StatChip label="VOL" value={volStr} color="#ff6b00" />
+                  <Dot />
+                  <StatChip label="1RM" value={`${stats.est1rm}kg`} color="#a78bfa" />
+                  <Dot />
+                  <StatChip label="BEST" value={`${stats.bestWeight}×${stats.bestReps}`} color="#e0e0e0" />
+                  <Dot />
+                  {prStatus && <PRPill status={prStatus} />}
                 </div>
               )}
 
               {/* Add set */}
               <button
-                className="w-full py-3.5 flex items-center justify-center gap-1.5 text-[10px] font-black tracking-widest"
+                className="w-full py-2 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
                 style={{ color: '#ff6b00', borderTop: '1px solid #1a1a1a' }}
                 onClick={() => addSet(ex.id)}>
-                <Plus size={12} strokeWidth={3} />
-                ADD SET
+                <Plus size={10} strokeWidth={3} />
+                + SET
               </button>
             </div>
           )
@@ -409,17 +347,17 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         <div ref={listEndRef} />
       </div>
 
-      {/* ── Bottom bar — Add Exercise only ── */}
-      <div className="fixed inset-x-0 z-10 px-4 pb-4 pt-3"
+      {/* ── Bottom bar ── */}
+      <div className="fixed inset-x-0 z-10 px-4 pb-3 pt-2"
         style={{
           bottom: 'calc(4rem + env(safe-area-inset-bottom))',
-          background: 'linear-gradient(to top, #0a0a0a 70%, transparent)',
+          background: 'linear-gradient(to top, #0a0a0a 65%, transparent)',
         }}>
         <button
-          className="w-full py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 tracking-widest"
+          className="w-full py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2 tracking-widest"
           style={{ background: '#111', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.35)' }}
           onClick={() => setShowPicker(true)}>
-          <Plus size={18} strokeWidth={2.5} />
+          <Plus size={16} strokeWidth={2.5} />
           ADD EXERCISE
         </button>
       </div>
@@ -475,11 +413,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
 /* ─── Sub-components ──────────────────────────────────── */
 
 function HeaderStat({ label, value, active, accent, purple }: {
-  label: string
-  value: string
-  active: boolean
-  accent?: boolean
-  purple?: boolean
+  label: string; value: string; active: boolean; accent?: boolean; purple?: boolean
 }) {
   const color = !active ? '#2a2a2a' : accent ? '#ff6b00' : purple ? '#7c3aed' : '#fff'
   return (
@@ -490,50 +424,45 @@ function HeaderStat({ label, value, active, accent, purple }: {
   )
 }
 
-function PRBadge({ status }: { status: PRStatus }) {
+function StatChip({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="flex items-baseline gap-1 shrink-0">
+      <span style={{ color: '#3a3a3a', fontSize: 8, fontWeight: 900, letterSpacing: '0.08em' }}>{label}</span>
+      <span style={{ color, fontSize: 12, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>{value}</span>
+    </div>
+  )
+}
+
+function Dot() {
+  return <span style={{ color: '#2a2a2a', fontSize: 12, margin: '0 7px' }}>·</span>
+}
+
+function PRPill({ status }: { status: PRStatus }) {
   if (status.type === 'first') {
     return (
-      <div className="flex flex-col items-end gap-1.5">
-        <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>PR STATUS</p>
-        <div className="px-3 py-2 rounded-xl"
-          style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}>
-          <p className="text-xs font-black tracking-widest" style={{ color: '#60a5fa' }}>FIRST LOG</p>
-        </div>
-      </div>
+      <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
+        style={{ background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.25)' }}>
+        FIRST LOG
+      </span>
     )
   }
-
   if (status.type === 'new_pr') {
     return (
-      <div className="flex flex-col items-end gap-1.5">
-        <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>PR STATUS</p>
-        <div className="px-3 py-2 rounded-xl text-right"
-          style={{
-            background: 'rgba(255,107,0,0.18)',
-            border: '1px solid rgba(255,107,0,0.5)',
-            boxShadow: '0 0 24px rgba(255,107,0,0.22)',
-          }}>
-          <p className="text-xs font-black tracking-wide" style={{ color: '#ff6b00' }}>🔥 NEW MAX PR</p>
-          <p className="text-lg font-black leading-tight"
-            style={{ color: '#22c55e', fontFamily: 'var(--font-mono)' }}>
-            +{status.gap}kg
-          </p>
-        </div>
-      </div>
+      <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-black"
+        style={{
+          background: 'rgba(255,107,0,0.18)',
+          color: '#ff6b00',
+          border: '1px solid rgba(255,107,0,0.45)',
+          boxShadow: '0 0 10px rgba(255,107,0,0.2)',
+        }}>
+        🔥 +{status.gap}kg
+      </span>
     )
   }
-
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <p className="text-[9px] font-black tracking-widest" style={{ color: '#555' }}>PR STATUS</p>
-      <div className="px-3 py-2 rounded-xl text-right"
-        style={{ background: '#161616', border: '1px solid #222' }}>
-        <p className="text-xs font-black tracking-widest" style={{ color: '#666' }}>BEST TODAY</p>
-        <p className="text-sm font-black leading-tight"
-          style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>
-          -{status.gap}kg
-        </p>
-      </div>
-    </div>
+    <span className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
+      style={{ background: '#161616', color: '#444', border: '1px solid #222' }}>
+      -{status.gap}kg
+    </span>
   )
 }
