@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export type CalendarSession = {
@@ -52,6 +53,7 @@ export default function TrainingCalendar({
   sessions: CalendarSession[]
   todayStr: string
 }) {
+  const router = useRouter()
   const todayDate = new Date(todayStr + 'T00:00:00')
   const [year, setYear] = useState(todayDate.getFullYear())
   const [month, setMonth] = useState(todayDate.getMonth())
@@ -145,13 +147,15 @@ export default function TrainingCalendar({
 
             return (
               <div key={dateStr} className="flex flex-col items-center h-12 justify-start pt-0.5">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                <button
+                  className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                   style={{
                     background: muscle ? `${color}1a` : 'transparent',
                     border: isToday ? '2px solid #ff6b00' : '1px solid transparent',
                     boxShadow: isToday ? '0 0 12px rgba(255,107,0,0.4)' : 'none',
-                  }}>
+                    cursor: isFuture ? 'default' : 'pointer',
+                  }}
+                  onClick={() => !isFuture && router.push(`/record?date=${dateStr}`)}>
                   <span
                     className="text-xs font-bold"
                     style={{
@@ -163,7 +167,7 @@ export default function TrainingCalendar({
                     }}>
                     {day}
                   </span>
-                </div>
+                </button>
                 {abbrev ? (
                   <span
                     className="text-[8px] font-black leading-none mt-0.5"

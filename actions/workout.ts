@@ -202,6 +202,109 @@ export async function getSessionForShare(sessionId: string) {
   }
 }
 
+/* ─── Date-aware session actions ────────────────────── */
+
+export async function createSessionForDate(date: string, title: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .insert({ user_id: user.id, title, trained_at: date })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data.id as string
+}
+
+export async function getSessionForDate(date: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: session } = await supabase
+    .from('workout_sessions')
+    .select('id, title')
+    .eq('user_id', user.id)
+    .eq('trained_at', date)
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!session) return null
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('id, exercise_name, muscle_group, set_number, weight_kg, reps')
+    .eq('session_id', session.id)
+    .order('set_number')
+
+  const exerciseMap = new Map<string, {
+    muscle_group: string
+    sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[]
+  }>()
+
+  for (const s of sets ?? []) {
+    if (!exerciseMap.has(s.exercise_name)) {
+      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: [] })
+    }
+    exerciseMap.get(s.exercise_name)!.sets.push({
+      id: s.id,
+      set_number: s.set_number,
+      weight_kg: s.weight_kg,
+      reps: s.reps,
+    })
+  }
+
+  return {
+    id: session.id as string,
+    title: (session.title ?? '') as string,
+    exercises: Array.from(exerciseMap.entries()).map(([name, d]) => ({
+      name,
+      muscle_group: d.muscle_group,
+      sets: d.sets,
+    })),
+  }
+}
+
+export async function saveFullSession(
+  sessionId: string,
+  title: string,
+  sets: {
+    exercise_name: string
+    muscle_group: string
+    set_number: number
+    weight_kg: number | null
+    reps: number | null
+  }[]
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  await supabase.from('workout_sets').delete().eq('session_id', sessionId)
+
+  if (sets.length > 0) {
+    const { error } = await supabase.from('workout_sets').insert(
+      sets.map(s => ({ ...s, session_id: sessionId, is_completed: true }))
+    )
+    if (error) throw new Error(error.message)
+  }
+
+  const totalVolume = sets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0)
+
+  await supabase
+    .from('workout_sessions')
+    .update({ title, total_volume_kg: totalVolume, completed_at: new Date().toISOString() })
+    .eq('id', sessionId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/home')
+}
+
 export async function getLastSessionSets(sessionTitle: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

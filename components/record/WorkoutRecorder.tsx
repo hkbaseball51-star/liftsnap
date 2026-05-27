@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Pencil } from 'lucide-react'
-import { createSession, completeSession, cancelSession, getExercisePR } from '@/actions/workout'
+import { Plus, X, Pencil, Minus } from 'lucide-react'
+import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
 import { createClient } from '@/lib/supabase/client'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import { formatVolume } from '@/lib/utils'
+
+/* ─── Types ───────────────────────────────────────────── */
 
 type SetEntry = {
   id: string
@@ -43,17 +45,37 @@ type PRStatus =
   | { type: 'new_pr'; gap: number }
   | { type: 'below';  gap: number }
 
+type InitialExercise = {
+  name: string
+  muscle_group: string
+  sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[]
+}
+
+type Props = {
+  exercises: Exercise[]
+  date: string                      // YYYY-MM-DD
+  existingSessionId?: string
+  existingExercises?: InitialExercise[]
+}
+
 /* ─── Pure helpers ────────────────────────────────────── */
 
 function uid() { return Math.random().toString(36).slice(2) }
 
-function getDefaultTitle() {
-  const h = new Date().getHours()
+function getDefaultTitle(date: string) {
+  const d = new Date(date + 'T00:00:00')
+  const h = d.getHours()
   if (h < 6)  return 'NIGHT SESSION'
   if (h < 12) return 'MORNING SESSION'
   if (h < 15) return 'NOON SESSION'
   if (h < 19) return 'EVENING SESSION'
   return 'NIGHT SESSION'
+}
+
+function formatDateLabel(date: string) {
+  const d = new Date(date + 'T00:00:00')
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
 function formatElapsed(seconds: number) {
@@ -96,12 +118,34 @@ async function ensureAuth() {
 
 /* ─── Main component ──────────────────────────────────── */
 
-export default function WorkoutRecorder({ exercises: allExercises }: { exercises: Exercise[] }) {
+export default function WorkoutRecorder({
+  exercises: allExercises,
+  date,
+  existingSessionId,
+  existingExercises,
+}: Props) {
   const router = useRouter()
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [title, setTitle] = useState(getDefaultTitle)
+  const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
+  const todayJST = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+  const isToday = date === todayJST
+
+  const [sessionId, setSessionId] = useState<string | null>(existingSessionId ?? null)
+  const [title, setTitle] = useState(() => getDefaultTitle(date))
   const [editingTitle, setEditingTitle] = useState(false)
-  const [exerciseList, setExerciseList] = useState<ExerciseEntry[]>([])
+  const [exerciseList, setExerciseList] = useState<ExerciseEntry[]>(() =>
+    (existingExercises ?? []).map(ex => ({
+      id: uid(),
+      name: ex.name,
+      muscle_group: ex.muscle_group,
+      allTimePR: null,
+      sets: ex.sets.map(s => ({
+        id: uid(),
+        set_number: s.set_number,
+        weight_kg: s.weight_kg,
+        reps: s.reps,
+      })),
+    }))
+  )
   const [startedAt] = useState(() => Date.now())
   const [elapsed, setElapsed] = useState(0)
   const [showPicker, setShowPicker] = useState(false)
@@ -109,6 +153,20 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
   const [saving, setSaving] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const listEndRef = useRef<HTMLDivElement>(null)
+
+  // Fetch PR data for pre-loaded exercises
+  useEffect(() => {
+    for (const ex of existingExercises ?? []) {
+      getExercisePR(ex.name).then(pr => {
+        if (pr !== null) {
+          setExerciseList(prev => prev.map(e =>
+            e.name === ex.name && e.allTimePR === null ? { ...e, allTimePR: pr } : e
+          ))
+        }
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000)
@@ -128,7 +186,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
   const addExercise = async (exercise: Exercise) => {
     if (!sessionId) {
       await ensureAuth()
-      const id = await createSession(title)
+      const id = await createSessionForDate(date, title)
       setSessionId(id)
     }
     setExerciseList(prev => [...prev, {
@@ -149,28 +207,6 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
     setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
-  const handleFinish = async () => {
-    if (!sessionId) return
-    setSaving(true)
-    try {
-      const setsToSave = exerciseList.flatMap(ex =>
-        ex.sets
-          .filter(s => s.weight_kg !== null && s.reps !== null)
-          .map(s => ({
-            exercise_name: ex.name,
-            muscle_group: ex.muscle_group,
-            set_number: s.set_number,
-            weight_kg: s.weight_kg,
-            reps: s.reps,
-          }))
-      )
-      await completeSession(sessionId, setsToSave)
-      router.push('/home')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const addSet = (exerciseId: string) => {
     setExerciseList(prev => prev.map(ex => {
       if (ex.id !== exerciseId) return ex
@@ -187,6 +223,16 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
     }))
   }
 
+  const removeSet = (exerciseId: string, setId: string) => {
+    setExerciseList(prev => prev.flatMap(ex => {
+      if (ex.id !== exerciseId) return [ex]
+      const newSets = ex.sets.filter(s => s.id !== setId)
+        .map((s, i) => ({ ...s, set_number: i + 1 }))
+      if (newSets.length === 0) return []     // remove exercise if no sets left
+      return [{ ...ex, sets: newSets }]
+    }))
+  }
+
   const removeExercise = (id: string) =>
     setExerciseList(prev => prev.filter(ex => ex.id !== id))
 
@@ -195,6 +241,33 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       ex.id !== exerciseId ? ex :
       { ...ex, sets: ex.sets.map(s => s.id === setId ? { ...s, [field]: value } : s) }
     ))
+
+  const handleFinish = async () => {
+    setSaving(true)
+    try {
+      let sid = sessionId
+      if (!sid) {
+        await ensureAuth()
+        sid = await createSessionForDate(date, title)
+        setSessionId(sid)
+      }
+      const setsToSave = exerciseList.flatMap(ex =>
+        ex.sets
+          .filter(s => s.weight_kg !== null && s.reps !== null)
+          .map(s => ({
+            exercise_name: ex.name,
+            muscle_group: ex.muscle_group,
+            set_number: s.set_number,
+            weight_kg: s.weight_kg,
+            reps: s.reps,
+          }))
+      )
+      await saveFullSession(sid, title, setsToSave)
+      router.push('/home')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const currentTarget = (() => {
     if (!numberTarget) return null
@@ -210,17 +283,38 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
       <div className="sticky top-0 z-20 px-4 pt-14"
         style={{ background: '#0a0a0a', borderBottom: '1px solid #111' }}>
 
-        <div className="flex items-center justify-between pb-2.5">
+        {/* Date label */}
+        <div className="flex items-center justify-between pb-1">
           <button onClick={() => setShowCancelConfirm(true)} className="p-1.5 -ml-1.5">
             <X size={20} style={{ color: '#444' }} />
           </button>
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black tracking-widest"
+              style={{ color: isEditing ? '#22c55e' : isToday ? '#ff6b00' : '#555' }}>
+              {isEditing ? 'EDITING SESSION' : isToday ? 'TODAY' : 'PAST SESSION'}
+            </span>
+            <span className="text-[11px] font-black tracking-wider" style={{ color: '#444' }}>
+              {formatDateLabel(date)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+            <span className="w-1.5 h-1.5 rounded-full"
+              style={{ background: isEditing ? '#22c55e' : '#ff6b00', animation: 'pulse 2s infinite' }} />
+            <span className="text-sm font-black text-white tabular-nums"
+              style={{ fontFamily: 'var(--font-mono)' }}>{formatElapsed(elapsed)}</span>
+          </div>
+        </div>
+
+        {/* Session title */}
+        <div className="flex justify-center pb-2">
           {editingTitle ? (
             <input autoFocus value={title}
               onChange={e => setTitle(e.target.value)}
               onBlur={() => setEditingTitle(false)}
               onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
               className="text-center text-base font-black text-white bg-transparent outline-none"
-              style={{ borderBottom: '2px solid #ff6b00', maxWidth: 200 }}
+              style={{ borderBottom: '2px solid #ff6b00', maxWidth: 220 }}
             />
           ) : (
             <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1.5">
@@ -228,16 +322,9 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
               <Pencil size={11} style={{ color: '#444' }} />
             </button>
           )}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-            style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-            <span className="w-1.5 h-1.5 rounded-full"
-              style={{ background: '#22c55e', animation: 'pulse 2s infinite' }} />
-            <span className="text-sm font-black text-white tabular-nums"
-              style={{ fontFamily: 'var(--font-mono)' }}>{formatElapsed(elapsed)}</span>
-          </div>
         </div>
 
-        {/* Header stats — slightly larger values */}
+        {/* Header stats */}
         <div className="flex items-center pb-2.5">
           <HeaderStat label="VOL"      value={displayVolume > 0 ? formatVolume(displayVolume) : '—'} active={displayVolume > 0} accent />
           <div className="w-px h-5 mx-4" style={{ background: '#1e1e1e' }} />
@@ -252,9 +339,11 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
 
         {exerciseList.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="text-5xl mb-4">⚡</div>
-            <p className="text-base font-black text-white mb-2 tracking-wide">BUILD TODAY'S EFFORT</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="text-5xl mb-4">{isEditing ? '✏️' : '⚡'}</div>
+            <p className="text-base font-black text-white mb-2 tracking-wide">
+              {isEditing ? 'EDIT TODAY\'S SESSION' : 'BUILD TODAY\'S EFFORT'}
+            </p>
             <p className="text-xs font-bold" style={{ color: '#444' }}>Tap + Add Exercise to get started</p>
           </div>
         )}
@@ -308,22 +397,34 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                 <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#2a2a2a' }}>1RM</span>
               </div>
 
-              {/* Set rows — # | KG | REPS | 1RM */}
+              {/* Set rows */}
               {ex.sets.map(set => {
                 const setEst1rm = set.weight_kg !== null && set.reps !== null
                   ? est1rmOf(set.weight_kg, set.reps) : null
                 const isBestSet = stats !== null && setEst1rm !== null && setEst1rm === stats.est1rm
+                const canDelete = ex.sets.length > 1
 
                 return (
                   <div key={set.id} className="grid grid-cols-12 gap-1.5 items-center px-3 py-1.5">
-                    {/* Set number */}
-                    <div className="col-span-2 flex justify-center">
-                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black"
+                    {/* Set number + delete */}
+                    <div className="col-span-2 flex items-center justify-center gap-1">
+                      {canDelete ? (
+                        <button
+                          className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}
+                          onClick={() => removeSet(ex.id, set.id)}>
+                          <Minus size={8} style={{ color: '#ef4444' }} />
+                        </button>
+                      ) : (
+                        <div className="w-5 h-5 flex-shrink-0" />
+                      )}
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
                         style={{
                           background: isBestSet ? 'rgba(255,107,0,0.15)' : '#181818',
                           color: isBestSet ? '#ff6b00' : '#444',
                           fontFamily: 'var(--font-mono)',
                           border: isBestSet ? '1px solid rgba(255,107,0,0.3)' : '1px solid transparent',
+                          flexShrink: 0,
                         }}>
                         {set.set_number}
                       </span>
@@ -355,19 +456,12 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                       {set.reps ?? '—'}
                     </button>
 
-                    {/* SET 1RM display */}
-                    <div className="col-span-3 flex flex-col items-center justify-center"
-                      style={{ minHeight: 38 }}>
+                    {/* SET 1RM */}
+                    <div className="col-span-3 flex flex-col items-center justify-center" style={{ minHeight: 38 }}>
                       {setEst1rm !== null ? (
                         <>
                           <span style={{ color: '#333', fontSize: 7, fontWeight: 900, letterSpacing: '0.06em', lineHeight: 1.2 }}>1RM</span>
-                          <span style={{
-                            color: isBestSet ? '#a78bfa' : '#666',
-                            fontSize: 14,
-                            fontWeight: 900,
-                            fontFamily: 'var(--font-mono)',
-                            lineHeight: 1.1,
-                          }}>
+                          <span style={{ color: isBestSet ? '#a78bfa' : '#666', fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1.1 }}>
                             {setEst1rm}
                           </span>
                           <span style={{ color: '#2a2a2a', fontSize: 8, fontWeight: 700, lineHeight: 1 }}>kg</span>
@@ -380,12 +474,10 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                 )
               })}
 
-              {/* ── Stats card (shows when any set has weight + reps) ── */}
+              {/* Stats card */}
               {stats && (
                 <div className="mx-3 mb-2.5 rounded-xl overflow-hidden"
                   style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', marginTop: 6 }}>
-
-                  {/* Row 1: VOLUME + BEST 1RM */}
                   <div className="grid grid-cols-2" style={{ borderBottom: '1px solid #1a1a1a' }}>
                     <div className="px-3 py-2.5" style={{ borderRight: '1px solid #1a1a1a' }}>
                       <p style={{ color: '#3a3a3a', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 3 }}>VOLUME</p>
@@ -408,8 +500,6 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                       </div>
                     </div>
                   </div>
-
-                  {/* Row 2: BEST SET + PR badge */}
                   <div className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-baseline gap-2">
                       <span style={{ color: '#3a3a3a', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em' }}>BEST SET</span>
@@ -422,7 +512,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
                 </div>
               )}
 
-              {/* + SET button */}
+              {/* + SET */}
               <button
                 className="w-full py-2 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
                 style={{ color: '#ff6b00', borderTop: '1px solid #1a1a1a' }}
@@ -457,7 +547,7 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
               style={{ background: saving ? '#333' : '#ff6b00', boxShadow: saving ? 'none' : '0 4px 20px rgba(255,107,0,0.35)' }}
               disabled={saving}
               onClick={handleFinish}>
-              {saving ? 'SAVING...' : `FINISH · ${displaySetsCount}`}
+              {saving ? 'SAVING...' : isEditing ? `UPDATE · ${displaySetsCount}` : `FINISH · ${displaySetsCount}`}
             </button>
           )}
         </div>
@@ -484,18 +574,17 @@ export default function WorkoutRecorder({ exercises: allExercises }: { exercises
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.92)' }}>
           <div className="w-full rounded-3xl p-6" style={{ background: '#111', border: '1px solid #222' }}>
-            <p className="text-xl font-black text-white text-center mb-1 tracking-wide">LEAVE WORKOUT?</p>
-            <p className="text-xs text-center mb-6 font-bold" style={{ color: '#555' }}>Your entries will not be saved</p>
+            <p className="text-xl font-black text-white text-center mb-1 tracking-wide">LEAVE?</p>
+            <p className="text-xs text-center mb-6 font-bold" style={{ color: '#555' }}>
+              {isEditing ? 'Changes will not be saved' : 'Your entries will not be saved'}
+            </p>
             <div className="flex gap-3">
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#1a1a1a', color: '#666', border: '1px solid #1e1e1e' }}
                 onClick={() => setShowCancelConfirm(false)}>KEEP GOING</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
-                onClick={async () => {
-                  if (sessionId) await cancelSession(sessionId).catch(() => {})
-                  router.push('/home')
-                }}>LEAVE</button>
+                onClick={() => router.push('/home')}>LEAVE</button>
             </div>
           </div>
         </div>
@@ -513,7 +602,6 @@ function HeaderStat({ label, value, active, accent, purple }: {
   return (
     <div>
       <p className="text-[8px] font-black tracking-widest mb-0.5" style={{ color: '#333' }}>{label}</p>
-      {/* text-base = 16px (was text-sm = 14px) */}
       <p className="text-base font-black" style={{ color, fontFamily: 'var(--font-mono)' }}>{value}</p>
     </div>
   )
@@ -531,12 +619,7 @@ function PRPill({ status }: { status: PRStatus }) {
   if (status.type === 'new_pr') {
     return (
       <span className="px-2.5 py-1 rounded-full text-[10px] font-black"
-        style={{
-          background: 'rgba(255,107,0,0.15)',
-          color: '#ff6b00',
-          border: '1px solid rgba(255,107,0,0.4)',
-          boxShadow: '0 0 10px rgba(255,107,0,0.18)',
-        }}>
+        style={{ background: 'rgba(255,107,0,0.15)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.4)', boxShadow: '0 0 10px rgba(255,107,0,0.18)' }}>
         🔥 NEW PR +{status.gap}kg
       </span>
     )
