@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatVolume } from '@/lib/utils'
-import { Share2, Zap } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import TrainingCalendar, { type CalendarSession } from '@/components/home/TrainingCalendar'
+import HeroCarousel, { type HeroData, EmptyHeroCard } from '@/components/home/HeroCarousel'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -22,69 +23,176 @@ export default async function HomePage() {
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0]
 
-  const [thisWeekRes, lastSessionRes, lastWeekRes, todayWeightRes, calendarSessionsRes] = await Promise.all([
+  /* ── Round 1: parallel fetches ──────────────────────────── */
+  const [
+    thisWeekRes, todaySessionsRes, lastWeekRes,
+    todayWeightRes, calendarSessionsRes, preSessionsRes,
+  ] = await Promise.all([
     supabase.from('workout_sessions')
       .select('id, total_volume_kg, trained_at')
       .eq('user_id', user.id)
       .gte('trained_at', getWeekStart())
       .not('completed_at', 'is', null),
+
     supabase.from('workout_sessions')
-      .select('id, title, total_volume_kg, trained_at')
+      .select('id, duration_seconds')
       .eq('user_id', user.id)
-      .not('completed_at', 'is', null)
-      .order('trained_at', { ascending: false })
-      .limit(1)
-      .single(),
+      .eq('trained_at', todayStr)
+      .not('completed_at', 'is', null),
+
     supabase.from('workout_sessions')
       .select('total_volume_kg')
       .eq('user_id', user.id)
       .gte('trained_at', getLastWeekStart())
       .lt('trained_at', getWeekStart())
       .not('completed_at', 'is', null),
+
     supabase.from('body_weights')
       .select('weight_kg')
       .eq('user_id', user.id)
       .eq('recorded_at', todayStr)
       .single(),
+
     supabase.from('workout_sessions')
       .select('id, trained_at')
       .eq('user_id', user.id)
       .gte('trained_at', ninetyDaysAgoStr)
       .not('completed_at', 'is', null),
+
+    supabase.from('workout_sessions')
+      .select('id')
+      .eq('user_id', user.id)
+      .lt('trained_at', todayStr)
+      .not('completed_at', 'is', null),
   ])
 
-  const lastSession = lastSessionRes.data
+  const todaySessions = todaySessionsRes.data ?? []
+  const todaySessionIds = todaySessions.map(s => s.id)
+  const preSessionIds = preSessionsRes.data?.map(s => s.id) ?? []
 
-  // Fetch best set from last session
-  let bestSet: { exercise_name: string; weight_kg: number; reps: number } | null = null
-  if (lastSession?.id) {
-    const { data } = await supabase
-      .from('workout_sets')
-      .select('exercise_name, weight_kg, reps')
-      .eq('session_id', lastSession.id)
+  /* ── Round 2: today's sets + all-time best ──────────────── */
+  const [todaySets, atbData] = await Promise.all([
+    todaySessionIds.length > 0
+      ? supabase.from('workout_sets')
+          .select('exercise_name, muscle_group, weight_kg, reps')
+          .in('session_id', todaySessionIds)
+          .eq('is_completed', true)
+          .then(r => r.data ?? [])
+      : Promise.resolve([] as { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null }[]),
+    supabase.from('workout_sets')
+      .select('weight_kg, reps')
       .eq('is_completed', true)
       .not('weight_kg', 'is', null)
       .gt('weight_kg', 0)
       .order('weight_kg', { ascending: false })
       .limit(1)
       .single()
-    if (data) bestSet = data as { exercise_name: string; weight_kg: number; reps: number }
+      .then(r => r.data as { weight_kg: number; reps: number } | null),
+  ])
+
+  /* ── Compute per-exercise stats ─────────────────────────── */
+  type ExStat = {
+    muscle: string; maxWeight: number; bestReps: number
+    maxEst1rm: number; totalVolume: number; setCount: number
+  }
+  const exMap = new Map<string, ExStat>()
+  for (const s of todaySets) {
+    const w = s.weight_kg ?? 0
+    const r = s.reps ?? 0
+    if (w <= 0 || r <= 0) continue
+    if (!exMap.has(s.exercise_name)) {
+      exMap.set(s.exercise_name, { muscle: s.muscle_group, maxWeight: 0, bestReps: 0, maxEst1rm: 0, totalVolume: 0, setCount: 0 })
+    }
+    const ex = exMap.get(s.exercise_name)!
+    const e1rm = r === 1 ? w : Math.round(w * (1 + r / 30))
+    if (e1rm > ex.maxEst1rm) { ex.maxEst1rm = e1rm; ex.maxWeight = w; ex.bestReps = r }
+    ex.totalVolume += w * r
+    ex.setCount++
   }
 
-  // All-time best for club progress
-  let allTimeBest: { weight_kg: number; reps: number } | null = null
-  const { data: atbData } = await supabase
-    .from('workout_sets')
-    .select('weight_kg, reps')
-    .eq('is_completed', true)
-    .not('weight_kg', 'is', null)
-    .gt('weight_kg', 0)
-    .order('weight_kg', { ascending: false })
-    .limit(1)
-    .single()
-  if (atbData) allTimeBest = atbData as { weight_kg: number; reps: number }
+  /* ── Round 3: historical PRs for today's exercises ───────── */
+  const todayExNames = [...exMap.keys()]
+  const historicalMax = new Map<string, number>()
+  if (todayExNames.length > 0 && preSessionIds.length > 0) {
+    const { data: hSets } = await supabase
+      .from('workout_sets')
+      .select('exercise_name, weight_kg')
+      .in('session_id', preSessionIds)
+      .in('exercise_name', todayExNames)
+      .eq('is_completed', true)
+      .not('weight_kg', 'is', null)
+    for (const s of hSets ?? []) {
+      const cur = historicalMax.get(s.exercise_name) ?? 0
+      if ((s.weight_kg ?? 0) > cur) historicalMax.set(s.exercise_name, s.weight_kg!)
+    }
+  }
 
-  // Build calendar sessions with dominant muscle group
+  /* ── Build candidates with PR status ─────────────────────── */
+  type Candidate = ExStat & {
+    name: string
+    prStatus: 'new_pr' | 'first' | 'matched' | 'below'
+    prevPR: number | null
+  }
+  const candidates: Candidate[] = [...exMap.entries()].map(([name, stat]) => {
+    const prevPR = historicalMax.get(name) ?? null
+    const prStatus: Candidate['prStatus'] =
+      prevPR === null ? 'first' :
+      stat.maxWeight > prevPR ? 'new_pr' :
+      stat.maxWeight === prevPR ? 'matched' : 'below'
+    return { name, ...stat, prStatus, prevPR }
+  })
+
+  // Priority: new_pr > highest est1rm
+  candidates.sort((a, b) => {
+    const pa = a.prStatus === 'new_pr' ? 2 : a.prStatus === 'first' ? 1 : 0
+    const pb = b.prStatus === 'new_pr' ? 2 : b.prStatus === 'first' ? 1 : 0
+    if (pa !== pb) return pb - pa
+    return b.maxEst1rm - a.maxEst1rm
+  })
+
+  const best = candidates[0] ?? null
+  const newPRs = candidates.filter(c => c.prStatus === 'new_pr')
+    .sort((a, b) => (b.maxWeight - (b.prevPR ?? 0)) - (a.maxWeight - (a.prevPR ?? 0)))
+  const bestPR = newPRs[0] ?? null
+
+  const muscleMap = new Map<string, string[]>()
+  for (const [name, stat] of exMap.entries()) {
+    if (!muscleMap.has(stat.muscle)) muscleMap.set(stat.muscle, [])
+    muscleMap.get(stat.muscle)!.push(name)
+  }
+
+  const totalDuration = todaySessions.reduce((s, sess) => s + (sess.duration_seconds ?? 0), 0)
+  const totalVolume = todaySets.reduce((s, set) => s + (set.weight_kg ?? 0) * (set.reps ?? 0), 0)
+  const totalSets = todaySets.filter(s => (s.weight_kg ?? 0) > 0 && (s.reps ?? 0) > 0).length
+
+  const heroData: HeroData = {
+    bestLift: best ? {
+      exerciseName: best.name,
+      bestWeight: best.maxWeight,
+      bestReps: best.bestReps,
+      est1rm: best.maxEst1rm,
+      prStatus: best.prStatus,
+      prevPR: best.prevPR,
+    } : null,
+    todayEffort: candidates.length > 0 ? {
+      totalVolume,
+      totalSets,
+      exercises: candidates.map(c => ({ name: c.name, muscle: c.muscle, sets: c.setCount })),
+      durationSeconds: totalDuration,
+    } : null,
+    muscleFocus: muscleMap.size > 0 ? {
+      muscles: [...muscleMap.entries()].map(([name, exercises]) => ({ name, exercises })),
+    } : null,
+    prCard: bestPR && bestPR.prevPR !== null ? {
+      exerciseName: bestPR.name,
+      newPR: bestPR.maxWeight,
+      prevPR: bestPR.prevPR,
+      improvement: Math.round((bestPR.maxWeight - bestPR.prevPR) * 10) / 10,
+    } : null,
+    lastSessionId: todaySessions[todaySessions.length - 1]?.id ?? null,
+  }
+
+  /* ── Calendar sessions ───────────────────────────────────── */
   let calendarSessions: CalendarSession[] = []
   if (calendarSessionsRes.data && calendarSessionsRes.data.length > 0) {
     const sessionIds = calendarSessionsRes.data.map(s => s.id)
@@ -115,6 +223,13 @@ export default async function HomePage() {
     }
   }
 
+  /* ── Derived values ──────────────────────────────────────── */
+  const allTimeBest = atbData
+  const allTimeEst1rm = allTimeBest
+    ? allTimeBest.reps === 1 ? allTimeBest.weight_kg : Math.round(allTimeBest.weight_kg * (1 + allTimeBest.reps / 30))
+    : null
+  const club = allTimeEst1rm ? getNextClub(allTimeEst1rm) : null
+
   const thisWeekSessions = thisWeekRes.data ?? []
   const thisWeekVolume = thisWeekSessions.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0)
   const lastWeekVolume = (lastWeekRes.data ?? []).reduce(
@@ -125,19 +240,7 @@ export default async function HomePage() {
     : null
   const todayWeight = todayWeightRes.data?.weight_kg ?? null
   const todayWorked = thisWeekSessions.some(s => s.trained_at === todayStr)
-
-  const est1rm = bestSet
-    ? bestSet.reps === 1 ? bestSet.weight_kg : Math.round(bestSet.weight_kg * (1 + bestSet.reps / 30))
-    : null
-  const allTimeEst1rm = allTimeBest
-    ? allTimeBest.reps === 1 ? allTimeBest.weight_kg : Math.round(allTimeBest.weight_kg * (1 + allTimeBest.reps / 30))
-    : null
-  const club = allTimeEst1rm ? getNextClub(allTimeEst1rm) : null
-  const isToday = lastSession?.trained_at === todayStr
-  const scoreValue = est1rm && club ? Math.min(99, Math.round((est1rm / club.target) * 100)) : null
-
-  const totalSessions = calendarSessionsRes.data?.length ?? 0
-  const greeting = getGreeting()
+  const totalSessions90 = calendarSessionsRes.data?.length ?? 0
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
@@ -149,50 +252,28 @@ export default async function HomePage() {
           style={{ background: '#111', border: '1px solid #1e1e1e' }}>
           <Zap size={12} style={{ color: '#ff6b00' }} />
           <span className="text-[10px] font-black tracking-widest" style={{ color: '#ff6b00' }}>
-            {totalSessions} LIFTS
+            {totalSessions90} LIFTS
           </span>
         </div>
       </div>
 
-      {/* ── WELCOME BACK ── */}
+      {/* ── WELCOME ── */}
       <div className="px-4 pt-3 pb-5">
         <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#333' }}>
-          {greeting}
+          {getGreeting()}
         </p>
-        <p className="text-3xl font-black text-white tracking-tight leading-none">
-          WELCOME
-        </p>
-        <p className="text-3xl font-black tracking-tight leading-none" style={{ color: '#ff6b00' }}>
-          BACK.
-        </p>
-        {!todayWorked && (
-          <p className="text-xs font-bold mt-2" style={{ color: '#444' }}>
-            No session logged today — let's change that.
-          </p>
-        )}
-        {todayWorked && (
-          <p className="text-xs font-bold mt-2" style={{ color: '#22c55e' }}>
-            Great work today. Session logged.
-          </p>
+        <p className="text-3xl font-black text-white tracking-tight leading-none">WELCOME</p>
+        <p className="text-3xl font-black tracking-tight leading-none" style={{ color: '#ff6b00' }}>BACK.</p>
+        {todayWorked ? (
+          <p className="text-xs font-bold mt-2" style={{ color: '#22c55e' }}>Great work today. Session logged.</p>
+        ) : (
+          <p className="text-xs font-bold mt-2" style={{ color: '#444' }}>No session logged today — let's change that.</p>
         )}
       </div>
 
-      {/* ── HERO EFFORT CARD ── */}
+      {/* ── HERO CAROUSEL ── */}
       <div className="px-4 mb-5">
-        {bestSet ? (
-          <HeroCard
-            exerciseName={bestSet.exercise_name}
-            weightKg={bestSet.weight_kg}
-            reps={bestSet.reps}
-            est1rm={est1rm!}
-            club={club}
-            sessionId={lastSession!.id}
-            isToday={isToday}
-            score={scoreValue}
-          />
-        ) : (
-          <EmptyHeroCard />
-        )}
+        <HeroCarousel data={heroData} />
       </div>
 
       {/* ── MONTHLY TRAINING CALENDAR ── */}
@@ -233,25 +314,19 @@ export default async function HomePage() {
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-5">
-        <p className="text-[10px] font-black tracking-widest mb-3" style={{ color: '#333' }}>
-          WEEKLY EFFORT
-        </p>
+        <p className="text-[10px] font-black tracking-widest mb-3" style={{ color: '#333' }}>WEEKLY EFFORT</p>
         <div className="grid grid-cols-3 gap-2">
           {([
             {
               label: 'VOLUME',
               value: thisWeekVolume > 0 ? formatVolume(thisWeekVolume) : '—',
-              unit: thisWeekVolume > 0 ? 'kg' : undefined,
-              sub: volumeDiff !== null
-                ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}% vs last wk`
-                : null,
+              sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}% vs last wk` : null,
               subColor: volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined,
               active: thisWeekVolume > 0,
             },
             {
               label: 'SESSIONS',
               value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
-              unit: undefined,
               sub: 'GOAL: 3×',
               subColor: '#333' as string,
               active: thisWeekSessions.length > 0,
@@ -264,20 +339,19 @@ export default async function HomePage() {
               subColor: undefined,
               active: allTimeEst1rm !== null,
             },
-          ] as const).map(({ label, value, unit, sub, subColor, active }) => (
+          ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
             <div key={label} className="rounded-2xl p-3.5"
               style={{ background: '#111', border: '1px solid #1a1a1a' }}>
               <p className="text-[9px] font-black tracking-widest mb-2" style={{ color: '#333' }}>{label}</p>
               <div className="flex items-baseline gap-0.5">
                 <p className="text-xl font-black leading-none"
                   style={{ color: active ? '#fff' : '#222' }}>{value}</p>
-                {unit && (
-                  <span className="text-[10px] font-bold" style={{ color: '#444' }}>{unit}</span>
+                {'unit' in rest && rest.unit && (
+                  <span className="text-[10px] font-bold" style={{ color: '#444' }}>{rest.unit}</span>
                 )}
               </div>
               {sub && (
-                <p className="text-[9px] mt-1.5 font-black tracking-wide"
-                  style={{ color: subColor ?? '#333' }}>{sub}</p>
+                <p className="text-[9px] mt-1.5 font-black tracking-wide" style={{ color: subColor ?? '#333' }}>{sub}</p>
               )}
             </div>
           ))}
@@ -306,10 +380,7 @@ export default async function HomePage() {
           </div>
           <Link href="/analytics"
             className="px-4 py-2.5 rounded-xl text-[10px] font-black tracking-widest"
-            style={{
-              background: todayWeight ? '#1a1a1a' : '#ff6b00',
-              color: todayWeight ? '#444' : '#fff',
-            }}>
+            style={{ background: todayWeight ? '#1a1a1a' : '#ff6b00', color: todayWeight ? '#444' : '#fff' }}>
             {todayWeight ? 'VIEW →' : 'LOG +'}
           </Link>
         </div>
@@ -322,180 +393,6 @@ export default async function HomePage() {
 /* ─── Sub-components ──────────────────────────────────────── */
 
 type ClubInfo = { name: string; target: number; gap: number; progress: number; prev: number }
-
-function EmptyHeroCard() {
-  return (
-    <div className="relative rounded-3xl overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #0d0700 0%, #0f0f0f 60%)',
-        border: '1px solid rgba(255,107,0,0.1)',
-      }}>
-      <div className="absolute top-0 inset-x-0 h-px"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,107,0,0.35), transparent)' }} />
-      <div className="p-8 flex flex-col items-center text-center">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
-          style={{
-            background: 'rgba(255,107,0,0.08)',
-            border: '1px solid rgba(255,107,0,0.15)',
-            boxShadow: '0 0 30px rgba(255,107,0,0.08)',
-          }}>
-          <span className="text-2xl">⚡</span>
-        </div>
-        <p className="text-xs font-black tracking-widest mb-1" style={{ color: '#ff6b00' }}>HERO CARD</p>
-        <p className="text-lg font-black text-white mb-1">LOG YOUR FIRST LIFT</p>
-        <p className="text-xs font-bold mb-7" style={{ color: '#333' }}>
-          Your best set will appear here after your workout
-        </p>
-        <Link href="/record"
-          className="px-8 py-3.5 rounded-2xl text-sm font-black text-white"
-          style={{
-            background: '#ff6b00',
-            boxShadow: '0 4px 20px rgba(255,107,0,0.35)',
-          }}>
-          START WORKOUT →
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-function HeroCard({ exerciseName, weightKg, reps, est1rm, club, sessionId, isToday, score }: {
-  exerciseName: string
-  weightKg: number
-  reps: number
-  est1rm: number
-  club: ClubInfo | null
-  sessionId: string
-  isToday: boolean
-  score: number | null
-}) {
-  const ringRadius = 38
-  const circumference = 2 * Math.PI * ringRadius
-  const ringOffset = club ? circumference * (1 - club.progress / 100) : circumference
-
-  return (
-    <div className="relative rounded-3xl overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #120800 0%, #0f0f0f 55%, #0a0a0a 100%)',
-        border: '1px solid rgba(255,107,0,0.2)',
-        boxShadow: '0 0 60px rgba(255,107,0,0.1), 0 20px 60px rgba(0,0,0,0.6)',
-      }}>
-
-      {/* Top gradient bar */}
-      <div className="absolute top-0 inset-x-0 h-px"
-        style={{ background: 'linear-gradient(90deg, #ff6b00 0%, #7c3aed 70%, transparent 100%)' }} />
-
-      {/* Radial glow */}
-      <div className="absolute top-0 right-0 w-52 h-52 pointer-events-none"
-        style={{ background: 'radial-gradient(circle at 75% 20%, rgba(255,107,0,0.12) 0%, transparent 60%)' }} />
-
-      <div className="relative p-5">
-        {/* Label row */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full"
-            style={{ background: 'rgba(255,107,0,0.12)', color: '#ff6b00', letterSpacing: '0.12em' }}>
-            {isToday ? "TODAY'S EFFORT" : 'LAST EFFORT'}
-          </span>
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
-            style={{ background: '#ff6b00', color: '#fff' }}>
-            PR
-          </span>
-        </div>
-
-        {/* Main content */}
-        <div className="flex items-start justify-between">
-          {/* Left */}
-          <div className="flex-1 mr-3">
-            <p className="text-[10px] font-black tracking-widest mb-2" style={{ color: '#ff6b00' }}>
-              {exerciseName.toUpperCase()}
-            </p>
-
-            {/* Weight */}
-            <div className="flex items-baseline gap-1.5 mb-3">
-              <span className="font-black text-white leading-none" style={{ fontSize: 60 }}>{weightKg}</span>
-              <div>
-                <span className="text-xl font-bold" style={{ color: '#3a3a3a' }}>kg</span>
-                <p className="text-lg font-black text-white leading-tight">
-                  × {reps}
-                  <span className="text-xs font-bold ml-1" style={{ color: '#444' }}>reps</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Est 1RM */}
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>EST. 1RM</span>
-              <span className="text-base font-black text-white">{est1rm}
-                <span className="text-xs font-bold ml-0.5" style={{ color: '#555' }}>kg</span>
-              </span>
-            </div>
-
-            {/* Club gap */}
-            {club && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl inline-flex"
-                style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.12)' }}>
-                <span className="text-xs">⚡</span>
-                <span className="text-xs font-black" style={{ color: '#22c55e' }}>
-                  +{club.gap}kg to {club.name}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Right: Progress ring */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-1">
-            <svg width="92" height="92" viewBox="0 0 92 92">
-              <circle cx="46" cy="46" r={ringRadius} fill="none" stroke="#1a1a1a" strokeWidth="7" />
-              <circle cx="46" cy="46" r={ringRadius} fill="none"
-                stroke="rgba(255,107,0,0.08)" strokeWidth="14" />
-              <circle cx="46" cy="46" r={ringRadius} fill="none"
-                stroke="#ff6b00" strokeWidth="7"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={ringOffset}
-                transform="rotate(-90 46 46)" />
-              <text x="46" y="42" textAnchor="middle" fill="white" fontSize="15" fontWeight="900"
-                fontFamily="system-ui, sans-serif">
-                {club ? `${club.progress}%` : '—'}
-              </text>
-              <text x="46" y="56" textAnchor="middle" fill="#444" fontSize="8" fontWeight="700"
-                fontFamily="system-ui, sans-serif">
-                {club ? 'TO CLUB' : ''}
-              </text>
-            </svg>
-            {club && (
-              <p className="text-[8px] font-black text-center" style={{ color: '#333', maxWidth: 80 }}>
-                {club.name}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom row: Score + Share */}
-        <div className="flex items-center gap-3 mt-4 pt-4"
-          style={{ borderTop: '1px solid rgba(255,107,0,0.08)' }}>
-          {score !== null && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1a1a1a' }}>
-              <span className="text-[9px] font-black tracking-widest" style={{ color: '#444' }}>SCORE</span>
-              <span className="text-base font-black" style={{ color: '#ff6b00' }}>{score}</span>
-            </div>
-          )}
-          <Link href={`/share?session=${sessionId}`}
-            className="flex-1 py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm font-black text-white active:opacity-80"
-            style={{
-              background: '#ff6b00',
-              boxShadow: '0 4px 20px rgba(255,107,0,0.3)',
-              letterSpacing: '0.03em',
-            }}>
-            <Share2 size={14} />
-            SHARE STORY ↗
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1rm: number | null }) {
   if (!club || !allTimeEst1rm) {
@@ -525,9 +422,7 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
       style={{ background: '#111', border: '1px solid #1a1a1a' }}>
       <div className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
         style={{ background: 'radial-gradient(circle at 80% 20%, rgba(255,107,0,0.06) 0%, transparent 65%)' }} />
-
       <p className="text-[9px] font-black tracking-widest mb-3" style={{ color: '#333' }}>STRENGTH CLUB</p>
-
       <div className="relative flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -540,11 +435,8 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
           </div>
         </div>
         <span className="text-xs font-black px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(255,107,0,0.1)', color: '#ff6b00' }}>
-          {pct}%
-        </span>
+          style={{ background: 'rgba(255,107,0,0.1)', color: '#ff6b00' }}>{pct}%</span>
       </div>
-
       <div className="flex items-end justify-between mb-3">
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-black text-white">{current}</span>
@@ -552,7 +444,6 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
         </div>
         <span className="text-sm font-black" style={{ color: '#2a2a2a' }}>/ {club.target}kg</span>
       </div>
-
       <div className="h-2 rounded-full overflow-hidden" style={{ background: '#1a1a1a' }}>
         <div className="h-full rounded-full"
           style={{
@@ -590,7 +481,7 @@ function getLastWeekStart() {
 }
 
 function getGreeting() {
-  const h = new Date().getUTCHours() + 9 // JST approx
+  const h = new Date().getUTCHours() + 9
   if (h < 12) return 'GOOD MORNING'
   if (h < 17) return 'GOOD AFTERNOON'
   return 'GOOD EVENING'
