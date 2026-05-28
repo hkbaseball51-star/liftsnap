@@ -100,14 +100,27 @@ async function captureCard(captureEl: HTMLDivElement, theme: Theme): Promise<Blo
   // One more frame for the layout change to propagate
   await new Promise(r => requestAnimationFrame(r))
 
+  // Measure AFTER layout settles with scroll container unclipped
   const W = captureEl.offsetWidth
+  // scrollHeight = full content height (not clipped by maxHeight)
+  const H = captureEl.scrollHeight
   const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
 
   try {
     const dataUrl = await toPng(captureEl, {
+      width:  W,
+      height: H,
+      // Force the clone to the measured width so the inherited ancestor
+      // width constraint (min(94vw,420px)) is not lost in html-to-image's
+      // cloning context. Without this, flex/text layout can reflow to 0.
+      style: {
+        width:     `${W}px`,
+        maxHeight: 'none',
+        overflow:  'visible',
+      },
       pixelRatio,
       cacheBust: true,
-      skipFonts: true,   // system-ui is always available; skip font embedding
+      skipFonts: true,
     })
     const res = await fetch(dataUrl)
     return await res.blob()
@@ -235,10 +248,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   <span style={{ fontSize: 42, fontWeight: 900, color: acHex, lineHeight: 1 }}>{volStr}</span>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.65)', lineHeight: 1, paddingBottom: 2 }}>kg</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px' }}>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.78)', lineHeight: 1.4 }}>{data.setsCount} SETS</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px', flexWrap: 'nowrap' }}>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.78)', lineHeight: 1.4, whiteSpace: 'nowrap' }}>{data.setsCount} SETS</span>
                   {g1rm > 0 && (
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.62)', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.62)', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
                       · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(g1rm)}kg</span>
                     </span>
                   )}
@@ -262,14 +275,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                         </p>
 
                         {/* Meta row: N sets · est. 1RM — compact, right under name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '0 0 5px' }}>
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.58)', fontWeight: 500, lineHeight: 1.4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '0 0 5px', flexWrap: 'nowrap' }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.58)', fontWeight: 500, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
                             {ex.setCount} sets
                           </span>
                           {ex.best1RM > 0 && (
                             <>
                               <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', lineHeight: 1 }}>·</span>
-                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 }}>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
                                 est. 1RM&nbsp;
                                 <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
                               </span>
