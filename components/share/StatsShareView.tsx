@@ -447,37 +447,53 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     : `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
 
   /* ── MAX 1RM chart data ──────────────────────────────────── */
-  const MAX_SHOW  = 8
-  const rm1All    = isMax1RM ? [...(data as Extract<StatsData,{type:'max1rm'}>).history].reverse() : []
-  const rm1Data   = rm1All.slice(0, MAX_SHOW)
-  const rm1Count  = data.type === 'max1rm' ? data.sessionCount : 0
-  const rm1Over   = Math.max(0, rm1Count - MAX_SHOW)
-  const rm1Max    = rm1Data.length ? Math.max(...rm1Data.map(d => d.est1rm)) : 0
+  const rm1FullHistory = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).history : []
+  const bestRM         = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).bestRM : 0
+  const exNameRaw      = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName : ''
+  const exName         = exNameRaw.length > 14 ? exNameRaw.slice(0, 13).toUpperCase() + '…' : exNameRaw.toUpperCase()
 
-  const rm1Growth = isMax1RM && (data as Extract<StatsData,{type:'max1rm'}>).history.length >= 2
-    ? (() => {
-        const h = (data as Extract<StatsData,{type:'max1rm'}>).history
-        return Math.round(((data as Extract<StatsData,{type:'max1rm'}>).bestRM - h[0].est1rm) * 10) / 10
-      })()
+  const rm1Growth   = rm1FullHistory.length >= 2
+    ? Math.round((bestRM - rm1FullHistory[0].est1rm) * 10) / 10
     : null
+  const rm1FirstVal = rm1FullHistory.length >= 1 ? rm1FullHistory[0].est1rm : null
 
-  const rm1FirstVal = isMax1RM && (data as Extract<StatsData,{type:'max1rm'}>).history.length >= 1
-    ? (data as Extract<StatsData,{type:'max1rm'}>).history[0].est1rm
-    : null
+  // Sample up to 50 records: latest on top, first on bottom, middle evenly sampled
+  const rm1DisplayData: RMPoint[] = (() => {
+    if (!rm1FullHistory.length) return []
+    const MAX_DISP = 50
+    if (rm1FullHistory.length <= MAX_DISP) return [...rm1FullHistory].reverse()
+    const latest = rm1FullHistory[rm1FullHistory.length - 1]
+    const first  = rm1FullHistory[0]
+    const middle = rm1FullHistory.slice(1, rm1FullHistory.length - 1)
+    const needed = MAX_DISP - 2
+    const step   = middle.length / needed
+    const sampled: RMPoint[] = Array.from({ length: needed }, (_, i) =>
+      middle[Math.floor(i * step)]
+    )
+    return [latest, ...sampled.reverse(), first]
+  })()
 
-  // Bar sizing
-  const n         = rm1Data.length
-  const chartBarH = n <= 3 ? 13 : n <= 6 ? 11 : 9
-  const chartLatH = n <= 3 ? 19 : n <= 6 ? 15 : 13
-  const rowGap    = n <= 3 ? 28 : n <= 6 ? 22 : 16
+  const n      = rm1DisplayData.length
+  const rm1Max = n ? Math.max(...rm1DisplayData.map(d => d.est1rm)) : 0
 
-  // Graduated opacity: oldest bar is most faded, latest is full opacity
+  // Bar heights scale with record count so chart always looks substantial
+  const chartBarH = n <= 5 ? 20 : n <= 15 ? 14 : n <= 30 ? 9 : 5
+  const chartLatH = n <= 5 ? 26 : n <= 15 ? 18 : n <= 30 ? 13 : 10
+
+  // Graduated opacity: latest = full, first = slightly elevated, middle = faded
   const getBarBg = (idx: number): string => {
     if (idx === 0) return acHex
-    const opacity = Math.max(0.20, 0.50 - idx * 0.05)
-    if (accent === 'orange') return `rgba(255,107,0,${opacity.toFixed(2)})`
-    if (accent === 'purple') return `rgba(168,85,247,${opacity.toFixed(2)})`
-    return `rgba(255,255,255,${opacity.toFixed(2)})`
+    if (idx === n - 1) {
+      const op = 0.42
+      if (accent === 'orange') return `rgba(255,107,0,${op})`
+      if (accent === 'purple') return `rgba(168,85,247,${op})`
+      return `rgba(255,255,255,${op})`
+    }
+    const t  = idx / Math.max(n - 1, 1)
+    const op = Math.max(0.20, 0.48 - t * 0.25)
+    if (accent === 'orange') return `rgba(255,107,0,${op.toFixed(2)})`
+    if (accent === 'purple') return `rgba(168,85,247,${op.toFixed(2)})`
+    return `rgba(255,255,255,${op.toFixed(2)})`
   }
 
   /* ── Non-max1rm preview values ───────────────────────────── */
@@ -543,19 +559,19 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {/* Accent stripe */}
             <div style={{ height: 2, background: ac.topLine }} />
 
-            {/* Left content column */}
+            {/* Left content column — right 66% stays clear for background photo */}
             <div style={{
-              width: '38%',
-              padding: '12px 0 12px 14px',
+              width: '34%',
+              padding: '10px 0 8px 12px',
               height: 'calc(100% - 2px)',
               display: 'flex',
               flexDirection: 'column',
               textShadow: tsh,
             }}>
-              {/* Badge */}
-              <div style={{ display: 'inline-flex', marginBottom: 7 }}>
+              {/* LIFTSNAP badge */}
+              <div style={{ display: 'inline-flex', marginBottom: 6, flexShrink: 0 }}>
                 <span style={{
-                  fontSize: 8, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
+                  fontSize: 7, fontWeight: 900, padding: '2px 6px', borderRadius: 5,
                   background: ac.badgeBg, color: ac.badgeText,
                   border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
                   whiteSpace: 'nowrap',
@@ -563,105 +579,117 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
 
               {/* Exercise name — primary title */}
-              <p style={{ fontSize: 11, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 3px' }}>
-                {(data as Extract<StatsData,{type:'max1rm'}>).exerciseName.length > 14
-                  ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName.slice(0, 13).toUpperCase() + '…'
-                  : (data as Extract<StatsData,{type:'max1rm'}>).exerciseName.toUpperCase()}
+              <p style={{ fontSize: 10.5, fontWeight: 900, color: '#ffffff', lineHeight: 1.15, margin: '0 0 2px', flexShrink: 0 }}>
+                {exName}
               </p>
 
               {/* 1RM PROGRESS subtitle */}
-              <p style={{ fontSize: 7.5, fontWeight: 700, color: acHex, letterSpacing: '0.1em', margin: '0 0 8px', lineHeight: 1.2 }}>
+              <p style={{ fontSize: 7, fontWeight: 700, color: acHex, letterSpacing: '0.08em', margin: '0 0 6px', lineHeight: 1.2, flexShrink: 0 }}>
                 1RM PROGRESS
               </p>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 0 8px', marginRight: 0 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', margin: '0 0 6px', flexShrink: 0 }} />
 
-              {/* Current max */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, margin: '0 0 3px', lineHeight: 1 }}>
-                <span style={{ fontSize: 34, fontWeight: 900, color: acHex, lineHeight: 1 }}>
-                  {(data as Extract<StatsData,{type:'max1rm'}>).bestRM}
+              {/* Current max hero */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, margin: '0 0 2px', lineHeight: 1, flexShrink: 0 }}>
+                <span style={{ fontSize: 32, fontWeight: 900, color: acHex, lineHeight: 1 }}>
+                  {bestRM}
                 </span>
-                <span style={{ fontSize: 10, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 2 }}>kg</span>
+                <span style={{ fontSize: 9, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 2 }}>kg</span>
               </div>
 
               {/* Growth summary */}
               {rm1Growth !== null && rm1FirstVal !== null ? (
-                <div style={{ margin: '0 0 8px' }}>
-                  <p style={{ fontSize: 7.5, color: '#B8B8B8', lineHeight: 1.4, margin: '0 0 1px', fontWeight: 500 }}>
-                    {rm1FirstVal}kg → {(data as Extract<StatsData,{type:'max1rm'}>).bestRM}kg
+                <div style={{ margin: '0 0 6px', flexShrink: 0 }}>
+                  <p style={{ fontSize: 7, color: '#B0B0B0', lineHeight: 1.4, margin: '0 0 1px', fontWeight: 500 }}>
+                    {rm1FirstVal}kg → {bestRM}kg
                   </p>
-                  <p style={{ fontSize: 8.5, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', lineHeight: 1.3, margin: 0, fontWeight: 700 }}>
+                  <p style={{ fontSize: 8, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', lineHeight: 1.3, margin: 0, fontWeight: 700 }}>
                     {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
                   </p>
                 </div>
               ) : (
-                <p style={{ fontSize: 7.5, color: '#666', margin: '0 0 8px', lineHeight: 1.3 }}>
+                <p style={{ fontSize: 7, color: '#666', margin: '0 0 6px', lineHeight: 1.3, flexShrink: 0 }}>
                   Keep training
                 </p>
               )}
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 0 7px' }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 5px', flexShrink: 0 }} />
 
               {/* PROGRESSION label */}
-              <p style={{ fontSize: 6.5, fontWeight: 600, color: '#888', letterSpacing: '0.1em', margin: '0 0 9px', lineHeight: 1.2 }}>
+              <p style={{ fontSize: 6, fontWeight: 600, color: '#666', letterSpacing: '0.1em', margin: '0 0 4px', lineHeight: 1.2, flexShrink: 0 }}>
                 PROGRESSION
               </p>
 
-              {/* Chart section: flex:1 so bars fill all remaining height */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                {rm1Data.map((pt, i) => {
-                  const isLatest = i === 0
-                  const pct = rm1Max > 0 ? (pt.est1rm / rm1Max) * 100 : 0
-                  const bH  = isLatest ? chartLatH : chartBarH
-                  return (
-                    <div key={pt.date} style={{
-                      marginTop: i > 0 ? rowGap : 0,
-                      display: 'flex', alignItems: 'center', gap: 3,
-                    }}>
-                      {/* Date — short M/D format, left-aligned */}
-                      <span style={{
-                        width: 22, fontSize: 6.5, color: isLatest ? '#D0D0D0' : '#B8B8B8',
-                        whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1,
-                      }}>
-                        {fmtBarDate(pt.date)}
-                      </span>
-                      {/* Bar — square, graduated opacity */}
-                      <div style={{ flex: 1, height: bH, position: 'relative' }}>
-                        <div style={{
-                          position: 'absolute', top: 0, left: 0,
-                          width: `${pct}%`, height: '100%',
-                          background: getBarBg(i),
-                          borderRadius: 0,
-                          boxShadow: isLatest ? `0 2px 6px ${acHex}55` : 'none',
-                          minWidth: 2,
-                        }} />
+              {/* Chart: flex:1 fills all remaining space, space-between distributes bars top-to-bottom */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
+                {n === 0 ? (
+                  <p style={{ fontSize: 7, color: '#444' }}>No data yet</p>
+                ) : n === 1 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ width: 22, flexShrink: 0, fontSize: 6, fontWeight: 700, color: acHex }}>{fmtShort(rm1DisplayData[0].date)}</span>
+                    <div style={{ flex: 1, height: chartLatH, background: acHex, boxShadow: `0 2px 6px ${acHex}44` }} />
+                    <span style={{ width: 22, flexShrink: 0, fontSize: 7.5, fontWeight: 700, color: '#F4F4F4', textAlign: 'right' }}>{rm1DisplayData[0].est1rm}</span>
+                  </div>
+                ) : (
+                  rm1DisplayData.map((pt, i) => {
+                    const isLatest      = i === 0
+                    const isFirstRecord = i === n - 1
+                    const pct = rm1Max > 0 ? (pt.est1rm / rm1Max) * 100 : 0
+                    const bH  = isLatest ? chartLatH : chartBarH
+                    return (
+                      <div key={`${pt.date}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        {/* Date/label: 2-line NOW/START for ≤20 records, else 1-line with color */}
+                        {n <= 20 && (isLatest || isFirstRecord) ? (
+                          <div style={{ width: 22, flexShrink: 0 }}>
+                            <div style={{ fontSize: 4.5, fontWeight: 800, letterSpacing: '0.06em', lineHeight: 1.3, color: isLatest ? acHex : '#888' }}>
+                              {isLatest ? 'NOW' : 'START'}
+                            </div>
+                            <div style={{ fontSize: 6, fontWeight: isLatest ? 700 : 500, lineHeight: 1.2, color: isLatest ? acHex : '#AAAAAA' }}>
+                              {fmtShort(pt.date)}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{
+                            width: 22, flexShrink: 0, fontSize: 6, lineHeight: 1.2, whiteSpace: 'nowrap',
+                            color: isLatest ? acHex : isFirstRecord ? '#AAAAAA' : '#686868',
+                            fontWeight: isLatest ? 700 : isFirstRecord ? 600 : 400,
+                          }}>
+                            {fmtShort(pt.date)}
+                          </span>
+                        )}
+                        {/* Bar — square, no border-radius */}
+                        <div style={{ flex: 1, height: bH, position: 'relative' }}>
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0,
+                            width: `${pct}%`, height: '100%',
+                            background: getBarBg(i),
+                            borderRadius: 0,
+                            boxShadow: isLatest ? `0 2px 6px ${acHex}44` : 'none',
+                            minWidth: 2,
+                          }} />
+                        </div>
+                        {/* Weight label — right-aligned */}
+                        <span style={{
+                          width: 22, flexShrink: 0,
+                          fontSize: isLatest ? 7.5 : isFirstRecord ? 7 : 6,
+                          fontWeight: isLatest ? 700 : isFirstRecord ? 600 : 400,
+                          color: isLatest ? '#F4F4F4' : isFirstRecord ? '#D0D0D0' : '#A0A0A0',
+                          textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1,
+                        }}>
+                          {pt.est1rm}
+                        </span>
                       </div>
-                      {/* Weight — right-aligned for clean column */}
-                      <span style={{
-                        width: 26, fontSize: isLatest ? 8 : 7,
-                        fontWeight: isLatest ? 700 : 400,
-                        color: isLatest ? '#F0F0F0' : '#C4C4C4',
-                        textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1,
-                      }}>
-                        {pt.est1rm}
-                      </span>
-                    </div>
-                  )
-                })}
-
-                {/* Overflow */}
-                {rm1Over > 0 && (
-                  <p style={{ fontSize: 6, color: '#666', lineHeight: 1.3, textShadow: 'none', flexShrink: 0, paddingBottom: 2 }}>
-                    +{rm1Over} more in app
-                  </p>
+                    )
+                  })
                 )}
               </div>
 
-              {/* Watermark — anchored to bottom of column */}
-              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
-                Made with LIFTSNAP
+              {/* Watermark */}
+              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.18)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
+                LIFTSNAP
               </p>
             </div>
           </div>
