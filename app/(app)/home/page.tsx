@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatVolume } from '@/lib/utils'
-import { Zap } from 'lucide-react'
+import { Zap, Share2 } from 'lucide-react'
 import TrainingCalendar, { type CalendarSession } from '@/components/home/TrainingCalendar'
 import HeroCarousel, { type HeroData, EmptyHeroCard } from '@/components/home/HeroCarousel'
 
@@ -289,6 +289,53 @@ export default async function HomePage() {
       {/* ── HERO CAROUSEL ── */}
       <div className="px-4 mb-5">
         <HeroCarousel data={heroData} />
+      </div>
+
+      {/* ── SHARE TODAY'S WORKOUT CTA ── */}
+      <div className="px-4 mb-5">
+        <Link href={todayWorked ? `/share?type=today&date=${todayStr}` : `/record?date=${todayStr}`}>
+          <div className="rounded-2xl overflow-hidden relative active:opacity-75 transition-opacity"
+            style={{
+              background: '#0d0d0d',
+              border: `1px solid ${todayWorked ? 'rgba(255,107,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
+              boxShadow: todayWorked ? '0 0 48px rgba(255,107,0,0.07)' : 'none',
+            }}>
+            {/* Subtle top line */}
+            {todayWorked && (
+              <div style={{ height: 1, background: 'linear-gradient(90deg, #ff6b00 0%, transparent 70%)', opacity: 0.7 }} />
+            )}
+            <div className="px-5 py-4 flex items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <p style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 4,
+                  color: todayWorked ? 'rgba(255,107,0,0.8)' : 'rgba(255,255,255,0.18)',
+                }}>
+                  {todayWorked ? "TODAY'S WORKOUT" : 'NO SESSION YET'}
+                </p>
+                <p style={{
+                  fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 3,
+                  color: todayWorked ? '#ffffff' : 'rgba(255,255,255,0.3)',
+                }}>
+                  {todayWorked ? "Share Today's Workout" : "Log Today's Workout"}
+                </p>
+                <p style={{
+                  fontSize: 11, fontWeight: 400,
+                  color: todayWorked ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.15)',
+                }}>
+                  {todayWorked ? 'Post your effort to Instagram Story' : 'Record your session first'}
+                </p>
+              </div>
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                style={{
+                  background: todayWorked ? '#ff6b00' : 'rgba(255,255,255,0.04)',
+                  border: todayWorked ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: todayWorked ? '0 4px 16px rgba(255,107,0,0.4)' : 'none',
+                }}>
+                <Share2 size={18} style={{ color: todayWorked ? '#fff' : 'rgba(255,255,255,0.18)' }} />
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* ── MONTHLY TRAINING CALENDAR ── */}

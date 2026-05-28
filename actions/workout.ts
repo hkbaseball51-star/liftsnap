@@ -330,3 +330,64 @@ export async function getLastSessionSets(sessionTitle: string) {
 
   return sets ?? []
 }
+
+export async function getTodayWorkoutForShare(date: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: session } = await supabase
+    .from('workout_sessions')
+    .select('id, title, trained_at, total_volume_kg')
+    .eq('user_id', user.id)
+    .eq('trained_at', date)
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!session) return null
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('exercise_name, muscle_group, weight_kg, reps, is_completed')
+    .eq('session_id', session.id)
+    .eq('is_completed', true)
+
+  const exerciseMap = new Map<string, { muscle_group: string; sets: number; maxWeight: number }>()
+  sets?.forEach(s => {
+    if (!exerciseMap.has(s.exercise_name))
+      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: 0, maxWeight: 0 })
+    const ex = exerciseMap.get(s.exercise_name)!
+    ex.sets++
+    if ((s.weight_kg ?? 0) > ex.maxWeight) ex.maxWeight = s.weight_kg ?? 0
+  })
+
+  let bestLiftName = '', bestLiftWeight = 0
+  exerciseMap.forEach((v, k) => {
+    if (v.maxWeight > bestLiftWeight) { bestLiftWeight = v.maxWeight; bestLiftName = k }
+  })
+
+  const muscleCount = new Map<string, number>()
+  sets?.forEach(s => {
+    if (s.muscle_group) muscleCount.set(s.muscle_group, (muscleCount.get(s.muscle_group) ?? 0) + 1)
+  })
+  let muscleFocus = '', maxMuscleCount = 0
+  muscleCount.forEach((count, muscle) => {
+    if (count > maxMuscleCount) { maxMuscleCount = count; muscleFocus = muscle }
+  })
+
+  const totalVolume = sets?.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0) ?? 0
+
+  return {
+    title: (session.title ?? "Today's Workout") as string,
+    date: session.trained_at as string,
+    volume: totalVolume,
+    setsCount: sets?.length ?? 0,
+    exercises: Array.from(exerciseMap.entries()).map(([name, d]) => ({
+      name, sets: d.sets, maxWeight: d.maxWeight,
+    })),
+    bestLift: bestLiftName ? { name: bestLiftName, weight: bestLiftWeight } : null,
+    muscleFocus: muscleFocus || null,
+  }
+}
