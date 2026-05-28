@@ -21,10 +21,12 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-black tracking-widest text-white">LIFTSNAP</h1>
-        <p className="text-sm mt-2 font-bold" style={{ color: '#555' }}>Create your account</p>
+      {/* Logo */}
+      <div className="mb-4 flex items-center overflow-hidden" style={{ height: 88 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/liftsnap-hero.png" alt="LIFTSNAP" style={{ width: '100%', height: 'auto', display: 'block' }} />
       </div>
+      <p className="text-center text-sm mb-8 font-bold" style={{ color: '#555' }}>Create your account</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>

@@ -21,9 +21,10 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-black tracking-widest text-white">LIFTSNAP</h1>
-        <p className="text-sm mt-2 font-bold" style={{ color: '#555' }}>Log your lifts. Share your story.</p>
+      {/* Logo — flex centering crops equal black from top & bottom */}
+      <div className="mb-8 flex items-center overflow-hidden" style={{ height: 88 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/liftsnap-hero.png" alt="LIFTSNAP" style={{ width: '100%', height: 'auto', display: 'block' }} />
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
