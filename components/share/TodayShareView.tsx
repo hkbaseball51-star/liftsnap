@@ -270,19 +270,19 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     return (
                       <div key={ex.name}>
                         {/* Exercise name */}
-                        <p style={{ fontSize: 14, fontWeight: 800, color: '#ffffff', margin: '0 0 2px', letterSpacing: '0.005em', lineHeight: 1.2 }}>
+                        <p style={{ fontSize: 14, fontWeight: 800, color: '#ffffff', margin: '0 0 8px', letterSpacing: '0.005em', lineHeight: 1.1 }}>
                           {tname(ex.name)}
                         </p>
 
-                        {/* Meta row: N sets · est. 1RM — compact, right under name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '0 0 5px', flexWrap: 'nowrap' }}>
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.58)', fontWeight: 500, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+                        {/* Meta row: N sets · est. 1RM — single line, no wrap */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 12px', flexWrap: 'nowrap', lineHeight: 1.1 }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.58)', fontWeight: 500, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                             {ex.setCount} sets
                           </span>
                           {ex.best1RM > 0 && (
                             <>
-                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', lineHeight: 1 }}>·</span>
-                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', lineHeight: 1.1 }}>·</span>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                                 est. 1RM&nbsp;
                                 <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
                               </span>
@@ -291,14 +291,16 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                         </div>
 
                         {/* Set rows — hero data */}
-                        {visibleSets.map((s, si) => (
-                          <p key={si} style={{ fontSize: 13, lineHeight: 1.65, margin: 0, fontWeight: 500 }}>
-                            <span style={{ color: 'rgba(255,255,255,0.92)' }}>
-                              {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
-                            </span>
-                            <span style={{ color: 'rgba(255,255,255,0.50)' }}> × {s.reps}</span>
-                          </p>
-                        ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {visibleSets.map((s, si) => (
+                            <p key={si} style={{ fontSize: 13, lineHeight: 1.3, margin: 0, fontWeight: 500 }}>
+                              <span style={{ color: 'rgba(255,255,255,0.92)' }}>
+                                {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
+                              </span>
+                              <span style={{ color: 'rgba(255,255,255,0.50)' }}> × {s.reps}</span>
+                            </p>
+                          ))}
+                        </div>
 
                         {/* Thin divider between exercises, not after last */}
                         {idx < data.exercises.length - 1 && (
