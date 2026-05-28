@@ -170,11 +170,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
   const volStr       = fmtVol(data.volume)
   const g1rm         = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
-  const dividerColor = isT ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)'
-  // text-shadow cascades to all children; strong in transparent, subtle in dark
-  const tsh = isT
-    ? '0 1px 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,0.9)'
-    : '0 1px 4px rgba(0,0,0,0.7)'
+  const dividerColor = 'rgba(255,255,255,0.12)'
+  // text-shadow cascades to all children; natural shadow keeps white readable over photos
+  const tsh = '0 2px 8px rgba(0,0,0,0.75)'
   // Preview background (checker for transparent to indicate alpha)
   const previewBg = isT
     ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
@@ -304,7 +302,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
                         {/* Thin divider between exercises, not after last */}
                         {idx < data.exercises.length - 1 && (
-                          <div style={{ height: 1, background: isT ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)', margin: '10px 0' }} />
+                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 0' }} />
                         )}
                       </div>
                     )
