@@ -354,18 +354,21 @@ export async function getTodayWorkoutForShare(date: string) {
     .eq('session_id', session.id)
     .eq('is_completed', true)
 
-  const exerciseMap = new Map<string, { muscle_group: string; sets: number; maxWeight: number }>()
+  const exerciseMap = new Map<string, { muscle_group: string; sets: number; best1RM: number; bestWeight: number; bestReps: number }>()
   sets?.forEach(s => {
     if (!exerciseMap.has(s.exercise_name))
-      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: 0, maxWeight: 0 })
+      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: 0, best1RM: 0, bestWeight: 0, bestReps: 0 })
     const ex = exerciseMap.get(s.exercise_name)!
     ex.sets++
-    if ((s.weight_kg ?? 0) > ex.maxWeight) ex.maxWeight = s.weight_kg ?? 0
+    const w = s.weight_kg ?? 0
+    const r = s.reps ?? 0
+    const e1rm = w * (1 + r / 30)
+    if (e1rm > ex.best1RM) { ex.best1RM = e1rm; ex.bestWeight = w; ex.bestReps = r }
   })
 
-  let bestLiftName = '', bestLiftWeight = 0
+  let bestLiftName = '', bestLift1RM = 0, bestLiftWeight = 0
   exerciseMap.forEach((v, k) => {
-    if (v.maxWeight > bestLiftWeight) { bestLiftWeight = v.maxWeight; bestLiftName = k }
+    if (v.best1RM > bestLift1RM) { bestLift1RM = v.best1RM; bestLiftWeight = v.bestWeight; bestLiftName = k }
   })
 
   const muscleCount = new Map<string, number>()
@@ -385,7 +388,7 @@ export async function getTodayWorkoutForShare(date: string) {
     volume: totalVolume,
     setsCount: sets?.length ?? 0,
     exercises: Array.from(exerciseMap.entries()).map(([name, d]) => ({
-      name, sets: d.sets, maxWeight: d.maxWeight,
+      name, sets: d.sets, bestWeight: d.bestWeight, bestReps: d.bestReps,
     })),
     bestLift: bestLiftName ? { name: bestLiftName, weight: bestLiftWeight } : null,
     muscleFocus: muscleFocus || null,
