@@ -53,6 +53,25 @@ function fmtBarDate(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
+const RM_JA_EN: Record<string, string> = {
+  'ベンチプレス': 'BENCH PRESS', 'インクラインベンチプレス': 'INCLINE BENCH',
+  'ダンベルベンチプレス': 'DB BENCH PRESS', 'デッドリフト': 'DEADLIFT',
+  'スクワット': 'SQUAT', 'バーベルスクワット': 'BARBELL SQUAT',
+  'フロントスクワット': 'FRONT SQUAT', 'ルーマニアンデッドリフト': 'RDL',
+  'ショルダープレス': 'SHOULDER PRESS', 'オーバーヘッドプレス': 'OHP',
+  'ダンベルショルダープレス': 'DB SHOULDER PRESS',
+  'ラットプルダウン': 'LAT PULLDOWN', 'チンニング': 'CHIN-UP',
+  'プルアップ': 'PULL-UP', '懸垂': 'PULL-UP',
+  'バーベルロウ': 'BARBELL ROW', 'ベントオーバーロウ': 'BENT OVER ROW',
+  'ダンベルロウ': 'DB ROW', 'ケーブルロウ': 'CABLE ROW',
+  'レッグプレス': 'LEG PRESS', 'レッグカール': 'LEG CURL',
+  'バーベルカール': 'BARBELL CURL', 'ダンベルカール': 'DB CURL',
+  'ハンマーカール': 'HAMMER CURL', 'ディップス': 'DIPS',
+  'プッシュアップ': 'PUSH-UP', 'ヒップスラスト': 'HIP THRUST',
+  'ブルガリアンスクワット': 'BULGARIAN SQUAT', 'サイドレイズ': 'LATERAL RAISE',
+  'フェイスプル': 'FACE PULL', 'ランジ': 'LUNGE',
+}
+
 function fmtYLabel(v: number, isVolume: boolean): string {
   if (isVolume) {
     if (v >= 10000) return `${Math.round(v/1000)}k`
@@ -450,7 +469,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const rm1FullHistory = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).history : []
   const bestRM         = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).bestRM : 0
   const exNameRaw      = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName : ''
-  const exName         = exNameRaw.length > 14 ? exNameRaw.slice(0, 13).toUpperCase() + '…' : exNameRaw.toUpperCase()
+  const exNameEn       = RM_JA_EN[exNameRaw] ?? exNameRaw.toUpperCase()
+  const exName         = exNameEn.length > 18 ? exNameEn.slice(0, 17) + '…' : exNameEn
 
   const rm1Growth   = rm1FullHistory.length >= 2
     ? Math.round((bestRM - rm1FullHistory[0].est1rm) * 10) / 10
@@ -568,50 +588,59 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               flexDirection: 'column',
               textShadow: tsh,
             }}>
-              {/* LIFTSNAP badge */}
-              <div style={{ display: 'inline-flex', marginBottom: 5, flexShrink: 0 }}>
+              {/* LIFTSNAP badge — same scale as TodayShareView */}
+              <div style={{ display: 'inline-flex', marginBottom: 7, flexShrink: 0 }}>
                 <span style={{
-                  fontSize: 7, fontWeight: 900, padding: '2px 6px', borderRadius: 5,
+                  fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 7,
                   background: ac.badgeBg, color: ac.badgeText,
                   border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
                   whiteSpace: 'nowrap',
                 }}>LIFTSNAP</span>
               </div>
 
-              {/* Exercise name */}
-              <p style={{ fontSize: 12, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 2px', flexShrink: 0 }}>
+              {/* Exercise name — same role as "NIGHT SESSION" in TodayShareView */}
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 3px', flexShrink: 0 }}>
                 {exName}
               </p>
 
               {/* 1RM PROGRESS subtitle */}
-              <p style={{ fontSize: 7.5, fontWeight: 700, color: acHex, letterSpacing: '0.08em', margin: '0 0 7px', lineHeight: 1.2, flexShrink: 0 }}>
+              <p style={{ fontSize: 8.5, fontWeight: 700, color: acHex, letterSpacing: '0.1em', margin: '0 0 8px', lineHeight: 1.2, flexShrink: 0 }}>
                 1RM PROGRESS
               </p>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', margin: '0 0 8px', flexShrink: 0 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 0 9px', flexShrink: 0 }} />
 
-              {/* Growth hero — START → NOW is the main message */}
-              <div style={{ flexShrink: 0, margin: '0 0 8px' }}>
-                {rm1FirstVal !== null && rm1Growth !== null ? (
+              {/* Growth hero — same scale as "5,790kg TOTAL VOLUME" in TodayShareView */}
+              <div style={{ flexShrink: 0, margin: '0 0 9px' }}>
+                {rm1FirstVal !== null ? (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, margin: '0 0 4px', flexWrap: 'nowrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#B8B8B8', lineHeight: 1, paddingBottom: 1, whiteSpace: 'nowrap' }}>
-                        {rm1FirstVal}<span style={{ fontSize: 7.5, fontWeight: 500, color: '#888' }}>kg</span>
-                      </span>
-                      <span style={{ fontSize: 9, color: '#555', lineHeight: 1, paddingBottom: 2 }}>→</span>
-                      <span style={{ fontSize: 22, fontWeight: 900, color: acHex, lineHeight: 1, whiteSpace: 'nowrap' }}>
-                        {bestRM}<span style={{ fontSize: 9, fontWeight: 500, color: '#C4C4C4', lineHeight: 1 }}>kg</span>
+                    {/* START row — subtle */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, margin: '0 0 3px', flexWrap: 'nowrap' }}>
+                      <span style={{ fontSize: 6.5, fontWeight: 700, color: '#777', letterSpacing: '0.1em' }}>START</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#C4C4C4', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                        {rm1FirstVal}<span style={{ fontSize: 9, fontWeight: 500, color: '#888' }}>kg</span>
                       </span>
                     </div>
-                    <p style={{ fontSize: 12, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1.2 }}>
-                      {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
-                    </p>
+                    {/* NOW row — hero number */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, margin: '0 0 4px', flexWrap: 'nowrap' }}>
+                      <span style={{ fontSize: 7, fontWeight: 700, color: acHex, letterSpacing: '0.08em', paddingBottom: 4 }}>NOW</span>
+                      <span style={{ fontSize: 36, fontWeight: 900, color: acHex, lineHeight: 1, whiteSpace: 'nowrap' }}>
+                        {bestRM}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 3 }}>kg</span>
+                    </div>
+                    {/* GAIN row */}
+                    {rm1Growth !== null && (
+                      <p style={{ fontSize: 13, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1.2 }}>
+                        {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: acHex, lineHeight: 1 }}>{bestRM}</span>
-                    <span style={{ fontSize: 9, fontWeight: 500, color: '#C4C4C4', paddingBottom: 2 }}>kg</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+                    <span style={{ fontSize: 36, fontWeight: 900, color: acHex, lineHeight: 1 }}>{bestRM}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#C4C4C4', paddingBottom: 3 }}>kg</span>
                   </div>
                 )}
               </div>
@@ -620,7 +649,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 5px', flexShrink: 0 }} />
 
               {/* PROGRESSION label */}
-              <p style={{ fontSize: 6, fontWeight: 600, color: '#666', letterSpacing: '0.1em', margin: '0 0 4px', lineHeight: 1.2, flexShrink: 0 }}>
+              <p style={{ fontSize: 6.5, fontWeight: 600, color: '#666', letterSpacing: '0.1em', margin: '0 0 4px', lineHeight: 1.2, flexShrink: 0 }}>
                 PROGRESSION
               </p>
 
