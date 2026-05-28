@@ -149,9 +149,11 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   const ac = AC[accent]
   const heroColor = accent === 'dark' ? '#ffffff' : ac.hex
 
-  // Background
-  ctx.fillStyle = theme === 'dark' ? '#0a0a0a' : 'rgba(10,10,10,0.82)'
-  ctx.fillRect(0, 0, W, H)
+  // Background — transparent: skip fill entirely so canvas alpha stays 0
+  if (theme === 'dark') {
+    ctx.fillStyle = '#0a0a0a'
+    ctx.fillRect(0, 0, W, H)
+  }
 
   // Top accent stripe
   ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 7)
@@ -415,11 +417,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       {/* ── 9:16 story preview ─────────────────────────────── */}
       <div className="px-4 mb-5">
         <div className="w-full rounded-3xl overflow-hidden relative"
-          style={{ aspectRatio: '9/16', background: theme === 'dark' ? '#0a0a0a' : 'rgba(10,10,10,0.82)', border: `1px solid ${ac.cardBorder}` }}>
-
-          {theme === 'transparent' && (
-            <div className="absolute inset-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/svg%3E")` }} />
-          )}
+          style={{
+            aspectRatio: '9/16',
+            background: theme === 'dark'
+              ? '#0a0a0a'
+              : `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E") #1a1a1a`,
+            border: `1px solid ${ac.cardBorder}`,
+          }}>
 
           {/* Top accent stripe */}
           <div className="absolute top-0 inset-x-0" style={{ height: 2, background: ac.topLine }} />
