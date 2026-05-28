@@ -24,23 +24,11 @@ type Accent = 'orange' | 'purple' | 'dark'
 
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
-  cardBorder: string; topLine: string; exCardBg: string; exCardBorder: string
+  cardBorder: string; topLine: string
 }> = {
-  orange: {
-    hex: '#ff6b00', badgeBg: '#ff6b00', badgeBorder: 'transparent', badgeText: '#ffffff',
-    cardBorder: 'rgba(255,107,0,0.35)', topLine: '#ff6b00',
-    exCardBg: 'rgba(255,255,255,0.045)', exCardBorder: 'rgba(255,255,255,0.09)',
-  },
-  purple: {
-    hex: '#a855f7', badgeBg: '#a855f7', badgeBorder: 'transparent', badgeText: '#ffffff',
-    cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7',
-    exCardBg: 'rgba(255,255,255,0.045)', exCardBorder: 'rgba(255,255,255,0.09)',
-  },
-  dark: {
-    hex: 'rgba(255,255,255,0.7)', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)',
-    badgeText: 'rgba(255,255,255,0.65)', cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.18)',
-    exCardBg: 'rgba(255,255,255,0.04)', exCardBorder: 'rgba(255,255,255,0.08)',
-  },
+  orange: { hex: '#ff6b00', badgeBg: '#ff6b00', badgeBorder: 'transparent', badgeText: '#ffffff', cardBorder: 'rgba(255,107,0,0.35)', topLine: '#ff6b00' },
+  purple: { hex: '#a855f7', badgeBg: '#a855f7', badgeBorder: 'transparent', badgeText: '#ffffff', cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7' },
+  dark:   { hex: 'rgba(255,255,255,0.85)', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)', cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)' },
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -115,36 +103,49 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   const ctx = cv.getContext('2d')!
   const ac = AC[accent]
   const acHex = accent === 'dark' ? '#ffffff' : ac.hex
+  const isTransparent = theme === 'transparent'
 
-  if (theme === 'dark') { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H) }
+  if (!isTransparent) { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H) }
   ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 6)
 
-  const sh = () => { ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 16 }
-  const ns = () => { ctx.shadowBlur = 0 }
+  // sh() = big title shadow; ns() = restore base shadow (8px in transparent, 0 in dark)
+  const sh = () => { ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 2 }
+  const ns = () => {
+    if (isTransparent) { ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.shadowBlur = 9; ctx.shadowOffsetY = 1 }
+    else { ctx.shadowBlur = 0; ctx.shadowOffsetY = 0 }
+  }
   const hr = (y: number) => {
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1.5
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = isTransparent ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.12)'
+    ctx.lineWidth = 1.5
     ctx.beginPath(); ctx.moveTo(80, y); ctx.lineTo(W-80, y); ctx.stroke()
+    ns()
   }
   const f = (sz: number, w: 400|500|700 = 400) =>
     `${w === 700 ? 'bold ' : w === 500 ? '500 ' : ''}${sz}px system-ui,-apple-system,sans-serif`
 
+  // Start with base shadow in transparent mode
+  ns()
+
   // Badge
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
   ctx.fillStyle = ac.badgeBg
   rr(ctx, 80, 90, 268, 62, 12); ctx.fill()
   if (accent === 'dark') { ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5; rr(ctx, 80, 90, 268, 62, 12); ctx.stroke() }
+  ns()
   ctx.fillStyle = ac.badgeText; ctx.font = f(28, 700); ctx.fillText('LIFTSNAP', 110, 132)
 
   let cy = 174
 
-  sh()
-  ctx.fillStyle = 'rgba(255,255,255,0.32)'; ctx.font = f(22, 500)
+  // TODAY'S WORKOUT + date
+  ctx.fillStyle = 'rgba(255,255,255,0.58)'; ctx.font = f(22, 500)
   ctx.fillText("TODAY'S WORKOUT", 80, cy); cy += 38
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = f(32)
+  ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.font = f(32)
   ctx.fillText(fmtDate(data.date), 80, cy); cy += 50
-  ns()
 
-  ctx.fillStyle = '#ffffff'; ctx.font = f(76, 700)
+  // Title
   const tu = data.title.toUpperCase()
+  ctx.fillStyle = '#ffffff'; ctx.font = f(76, 700)
   if (ctx.measureText(tu).width > W - 160) {
     const words = tu.split(' ')
     let l1 = '', i2 = 0
@@ -161,30 +162,32 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
 
   cy += 24; hr(cy); cy += 48
 
-  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(22, 500)
+  // TOTAL VOLUME
+  ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(22, 500)
   ctx.fillText('TOTAL VOLUME', 80, cy); cy += 32
 
   const vs = fmtVol(data.volume)
   sh()
   ctx.fillStyle = acHex; ctx.font = f(112, 700)
   ctx.fillText(vs, 80, cy)
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = f(44, 500)
+  ctx.fillStyle = 'rgba(255,255,255,0.68)'; ctx.font = f(44, 500)
   ctx.fillText(' kg', 80 + ctx.measureText(vs).width, cy - 8)
   cy += 122; ns()
 
+  // Stats row
   const g1rm = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = f(32, 700)
+  ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.font = f(32, 700)
   ctx.fillText(`${data.setsCount}`, 80, cy)
   const sw = ctx.measureText(`${data.setsCount}`).width
-  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
+  ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(32)
   ctx.fillText(' SETS', 80 + sw, cy)
   if (g1rm > 0) {
     const sfw = ctx.measureText(`${data.setsCount} SETS`).width
     const sep = '  ·  '
-    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = f(32)
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
     ctx.fillText(sep, 80 + sfw, cy)
     const sepW = ctx.measureText(sep).width
-    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
+    ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(32)
     const lbl = 'BEST 1RM  '
     ctx.fillText(lbl, 80 + sfw + sepW, cy)
     ctx.fillStyle = acHex; ctx.font = f(32, 700)
@@ -193,7 +196,8 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   cy += 46
   cy += 20; hr(cy); cy += 44
 
-  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(22, 500)
+  // EXERCISES header
+  ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(22, 500)
   ctx.fillText('EXERCISES', 80, cy); cy += 36
 
   // ── Exercise cards ──────────────────────────────────
@@ -203,22 +207,25 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
 
     if (cy > H - 120) return
 
-    // Card background + border
-    ctx.fillStyle = 'rgba(255,255,255,0.04)'
+    // Card background + border (darker in transparent for readability)
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
+    ctx.fillStyle = isTransparent ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.04)'
     rr(ctx, 80, cy, W - 160, cardH, 16); ctx.fill()
-    ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 1.5
+    ctx.strokeStyle = isTransparent ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'
+    ctx.lineWidth = 1.5
     rr(ctx, 80, cy, W - 160, cardH, 16); ctx.stroke()
+    ns()
 
     cy += 24
 
     // Exercise name (left)
     sh()
-    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = f(40, 700)
+    ctx.fillStyle = '#ffffff'; ctx.font = f(40, 700)
     ctx.fillText(tname(ex.name), 114, cy)
     ns()
 
     // Set count (right)
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(30)
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = f(30)
     ctx.textAlign = 'right'
     ctx.fillText(`${ex.setCount} sets`, W - 114, cy)
     ctx.textAlign = 'left'
@@ -228,9 +235,9 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
     visibleSets.forEach(s => {
       if (cy > H - 120) return
       const kg = s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'
-      ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = f(34)
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = f(34)
       ctx.fillText(kg, 114, cy)
-      ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(34)
+      ctx.fillStyle = 'rgba(255,255,255,0.58)'; ctx.font = f(34)
       ctx.fillText(` × ${s.reps}`, 114 + ctx.measureText(kg).width, cy)
       cy += 44
     })
@@ -242,7 +249,7 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
       ctx.textAlign = 'right'
       ctx.fillText(val, W - 114, cy)
       const valW = ctx.measureText(val).width
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(28)
+      ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = f(28)
       ctx.fillText(lbl, W - 114 - valW, cy)
       ctx.textAlign = 'left'
       cy += 36
@@ -255,16 +262,19 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   if (data.muscleFocus) {
     cy += 22
     const lbl = data.muscleFocus.toUpperCase()
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
     ctx.font = f(24, 700)
     const tw = ctx.measureText(lbl).width
     ctx.fillStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.08)' : acHex}1a`
     rr(ctx, 80, cy - 32, tw + 44, 48, 24); ctx.fill()
     ctx.strokeStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.15)' : acHex}44`; ctx.lineWidth = 1.5
     rr(ctx, 80, cy - 32, tw + 44, 48, 24); ctx.stroke()
+    ns()
     ctx.fillStyle = acHex; ctx.fillText(lbl, 102, cy)
   }
 
-  ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.font = f(26)
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
+  ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.font = f(26)
   ctx.fillText('Made with LIFTSNAP · liftsnap.app', 80, H - 80)
 
   return new Promise(resolve => cv.toBlob(b => resolve(b!), 'image/png'))
@@ -304,6 +314,16 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const volStr = fmtVol(data.volume)
   const g1rm   = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
+  // Transparent-mode derived values
+  const isTransparent = theme === 'transparent'
+  const dividerColor  = isTransparent ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.10)'
+  const exCardBg      = isTransparent ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.045)'
+  const exCardBorder  = isTransparent ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'
+  // text-shadow inherited by all children in transparent mode
+  const contentTsh    = isTransparent
+    ? '0 1px 6px rgba(0,0,0,0.98), 0 0 12px rgba(0,0,0,0.85)'
+    : undefined
+
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
@@ -324,13 +344,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             overflowX: 'hidden',
             borderRadius: 24,
             position: 'relative',
-            background: theme === 'dark' ? '#0a0a0a' : `${CHECKER} #1a1a1a`,
+            // Transparent: dark gradient overlay simulates dark photo background
+            background: isTransparent
+              ? `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.50)), ${CHECKER} #1a1a1a`
+              : '#0a0a0a',
             border: `1px solid ${ac.cardBorder}`,
           }}>
             {/* Sticky top accent stripe */}
             <div style={{ position: 'sticky', top: 0, left: 0, right: 0, height: 2, background: ac.topLine, zIndex: 2 }} />
 
-            <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column' }}>
+            {/* textShadow is CSS-inherited — all text children get it in transparent mode */}
+            <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: contentTsh }}>
 
               {/* Badge */}
               <div style={{ display: 'inline-flex', marginBottom: 8 }}>
@@ -341,53 +365,53 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 }}>LIFTSNAP</span>
               </div>
 
-              {/* Header text */}
-              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em', margin: '0 0 2px' }}>
+              {/* Header labels */}
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.58)', letterSpacing: '0.1em', margin: '0 0 2px' }}>
                 TODAY&apos;S WORKOUT
               </p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: '0 0 3px' }}>{fmtDate(data.date)}</p>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.78)', margin: '0 0 3px' }}>{fmtDate(data.date)}</p>
               <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 10px' }}>
                 {data.title}
               </p>
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 8px' }} />
+              <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
               {/* Stats */}
-              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 2px' }}>TOTAL VOLUME</p>
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.08em', margin: '0 0 2px' }}>TOTAL VOLUME</p>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, margin: '0 0 3px' }}>
                 <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.38)' }}>kg</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}>kg</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px' }}>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>{data.setsCount} SETS</span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.78)' }}>{data.setsCount} SETS</span>
                 {g1rm > 0 && (
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.62)' }}>
                     · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(g1rm)}kg</span>
                   </span>
                 )}
               </div>
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 8px' }} />
+              <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
               {/* Exercises */}
-              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 7px' }}>EXERCISES</p>
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.08em', margin: '0 0 7px' }}>EXERCISES</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {data.exercises.map(ex => {
                   const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
                   return (
                     <div key={ex.name} style={{
-                      background: ac.exCardBg,
-                      border: `1px solid ${ac.exCardBorder}`,
+                      background: exCardBg,
+                      border: `1px solid ${exCardBorder}`,
                       borderRadius: 10,
                       padding: '9px 12px 8px',
                     }}>
                       {/* Card header: name + set count */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.9)', margin: 0, letterSpacing: '0.01em' }}>
+                        <p style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '0.01em' }}>
                           {tname(ex.name)}
                         </p>
-                        <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>
+                        <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
                           {ex.setCount} sets
                         </span>
                       </div>
@@ -395,17 +419,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       {/* Set rows */}
                       {visibleSets.map((s, si) => (
                         <p key={si} style={{ fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-                          <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.90)', fontWeight: 600 }}>
                             {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
                           </span>
-                          <span style={{ color: 'rgba(255,255,255,0.32)' }}> × {s.reps}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.55)' }}> × {s.reps}</span>
                         </p>
                       ))}
 
                       {/* Best 1RM — right-aligned footer */}
                       {ex.best1RM > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 5 }}>
-                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)' }}>Best 1RM&nbsp;</span>
+                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>Best 1RM&nbsp;</span>
                           <span style={{ fontSize: 9, color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
                         </div>
                       )}
@@ -426,7 +450,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 </span>
               )}
 
-              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.1)', marginTop: 10 }}>Made with LIFTSNAP · liftsnap.app</p>
+              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.18)', marginTop: 10, textShadow: 'none' }}>
+                Made with LIFTSNAP · liftsnap.app
+              </p>
             </div>
           </div>
         </div>
