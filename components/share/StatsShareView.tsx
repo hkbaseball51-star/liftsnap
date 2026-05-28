@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
 
@@ -17,14 +17,13 @@ type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark'
 type ChartType = 'bar' | 'line'
 
-/* ── Per-accent design tokens ─────────────────────────────── */
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
   cardBorder: string; topLine: string
   barActive: string; barInactive: string; barTrack: string
 }> = {
-  orange: { hex:'#ff6b00', badgeBg:'rgba(255,107,0,0.14)', badgeBorder:'rgba(255,107,0,0.3)',  badgeText:'#ff6b00', cardBorder:'rgba(255,107,0,0.35)',  topLine:'#ff6b00', barActive:'#ff6b00', barInactive:'rgba(255,107,0,0.35)',  barTrack:'rgba(255,107,0,0.06)' },
-  purple: { hex:'#a855f7', badgeBg:'rgba(168,85,247,0.14)', badgeBorder:'rgba(168,85,247,0.3)', badgeText:'#a855f7', cardBorder:'rgba(168,85,247,0.35)', topLine:'#a855f7', barActive:'#a855f7', barInactive:'rgba(168,85,247,0.35)', barTrack:'rgba(168,85,247,0.06)' },
+  orange: { hex:'#ff6b00', badgeBg:'rgba(255,107,0,0.14)', badgeBorder:'rgba(255,107,0,0.3)',  badgeText:'#ff6b00', cardBorder:'rgba(255,107,0,0.35)',  topLine:'#ff6b00', barActive:'#ff6b00', barInactive:'rgba(255,107,0,0.32)',  barTrack:'rgba(255,107,0,0.06)' },
+  purple: { hex:'#a855f7', badgeBg:'rgba(168,85,247,0.14)', badgeBorder:'rgba(168,85,247,0.3)', badgeText:'#a855f7', cardBorder:'rgba(168,85,247,0.35)', topLine:'#a855f7', barActive:'#a855f7', barInactive:'rgba(168,85,247,0.32)', barTrack:'rgba(168,85,247,0.06)' },
   dark:   { hex:'rgba(255,255,255,0.7)', badgeBg:'rgba(255,255,255,0.06)', badgeBorder:'rgba(255,255,255,0.18)', badgeText:'rgba(255,255,255,0.6)', cardBorder:'rgba(255,255,255,0.1)', topLine:'rgba(255,255,255,0.18)', barActive:'rgba(255,255,255,0.6)', barInactive:'rgba(255,255,255,0.18)', barTrack:'rgba(255,255,255,0.04)' },
 }
 
@@ -34,7 +33,9 @@ const AREA_FILL: Record<Accent, string> = {
   dark:   'rgba(255,255,255,0.05)',
 }
 
-/* ── Helpers ──────────────────────────────────────────────── */
+const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
+
+/* ── Helpers ─────────────────────────────────────────────── */
 function fmtShort(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   return `${d.getMonth() + 1}/${d.getDate()}`
@@ -70,12 +71,10 @@ function niceYTicks(dataMin: number, dataMax: number, count = 4): number[] {
   return ticks
 }
 
-/* ── Canvas font shorthand ───────────────────────────────── */
 function f(size: number, weight: 400 | 500 | 700 = 400): string {
   return `${weight >= 700 ? 'bold ' : weight === 500 ? '500 ' : ''}${size}px system-ui,-apple-system,sans-serif`
 }
 
-/* ── Canvas roundRect ────────────────────────────────────── */
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
   ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r)
@@ -87,7 +86,7 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 
 type ChartPt = { date: string; value: number }
 
-/* ── BAR chart (canvas) ──────────────────────────────────── */
+/* ── BAR chart (canvas — used for volume/bodyweight) ──────── */
 function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], isVolume = false) {
   if (!pts.length) return
   const n   = Math.min(pts.length, 14)
@@ -96,7 +95,6 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
   const slotW = w / n
   const barW  = Math.max(Math.floor(slotW * 0.52), 22)
 
-  // Y-axis guide lines (behind bars)
   const yTicks = niceYTicks(0, max, 4)
   yTicks.forEach(tick => {
     if (tick === 0) return
@@ -127,7 +125,6 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
     }
   })
 
-  // Y-axis text labels
   ctx.textAlign = 'right'; ctx.font = f(34)
   yTicks.forEach(tick => {
     const ty = max > 0 ? y + h - Math.round((tick / max) * h * 0.9) : y + h
@@ -138,7 +135,7 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
   ctx.textAlign = 'left'
 }
 
-/* ── LINE chart (canvas) ─────────────────────────────────── */
+/* ── LINE chart (canvas — used for volume/bodyweight) ─────── */
 function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], accent: Accent, isVolume = false) {
   if (pts.length < 2) { canvasBar(ctx, pts, x, y, w, h, ac, isVolume); return }
   const n    = Math.min(pts.length, 14)
@@ -150,7 +147,6 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
   const px = (i: number) => x + (i / (sub.length - 1)) * w
   const py = (v: number) => y + h - padY - ((v - min) / rng) * (h - padY * 2)
 
-  // Y-axis guide lines (behind area)
   const yTicks = niceYTicks(min, max, 4)
   yTicks.forEach(tick => {
     const ty = py(tick)
@@ -161,21 +157,18 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
     ctx.setLineDash([])
   })
 
-  // Area
   ctx.beginPath()
   ctx.moveTo(px(0), py(sub[0].value))
   for (let i = 1; i < sub.length; i++) ctx.lineTo(px(i), py(sub[i].value))
   ctx.lineTo(px(sub.length-1), y+h); ctx.lineTo(x, y+h); ctx.closePath()
   ctx.fillStyle = AREA_FILL[accent]; ctx.fill()
 
-  // Line
   ctx.beginPath()
   ctx.moveTo(px(0), py(sub[0].value))
   for (let i = 1; i < sub.length; i++) ctx.lineTo(px(i), py(sub[i].value))
   ctx.strokeStyle = ac.barActive; ctx.lineWidth = 5
   ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke()
 
-  // Dots
   sub.forEach((pt, i) => {
     const isLast = i === sub.length - 1
     const cx2 = px(i), cy2 = py(pt.value)
@@ -188,7 +181,6 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
     ctx.fillStyle = isLast ? ac.barActive : 'rgba(255,255,255,0.3)'; ctx.fill()
   })
 
-  // X labels: first, mid, last
   const show = [0, Math.floor((sub.length-1)/2), sub.length-1]
   ctx.font = f(34); ctx.textAlign = 'center'
   show.forEach(i => {
@@ -197,7 +189,6 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
   })
   ctx.textAlign = 'left'
 
-  // Y-axis text labels
   ctx.textAlign = 'right'; ctx.font = f(34)
   yTicks.forEach(tick => {
     const ty = py(tick)
@@ -208,7 +199,7 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
   ctx.textAlign = 'left'
 }
 
-/* ── Canvas card generation ──────────────────────────────── */
+/* ── Canvas card (volume / bodyweight only) ──────────────── */
 async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, chartType: ChartType): Promise<Blob> {
   const W = 1080, H = 1920
   const cv = document.createElement('canvas')
@@ -217,16 +208,13 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   const ac = AC[accent]
   const heroColor = accent === 'dark' ? '#ffffff' : ac.hex
 
-  // Background — transparent: skip fill entirely so canvas alpha stays 0
   if (theme === 'dark') {
     ctx.fillStyle = '#0a0a0a'
     ctx.fillRect(0, 0, W, H)
   }
 
-  // Top accent stripe
   ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 7)
 
-  // Badge (fixed position)
   ctx.fillStyle = ac.badgeBg; rr(ctx, 80, 100, 268, 68, 14); ctx.fill()
   if (accent === 'dark') {
     ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5
@@ -239,7 +227,6 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     ctx.beginPath(); ctx.moveTo(80, y); ctx.lineTo(W-80, y); ctx.stroke()
   }
 
-  // ── Per-type values ───────────────────────────────────────
   let metricLabel: string
   let exerciseName: string | null = null
   let heroStr: string
@@ -248,17 +235,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   let supp2Color = 'rgba(255,255,255,0.5)'
   let chartData: ChartPt[] = []
 
-  if (data.type === 'max1rm') {
-    metricLabel = 'MAX 1RM'; exerciseName = data.exerciseName
-    heroStr = String(data.bestRM)
-    if (data.bestSet) supp1 = `Best Set  ${data.bestSet.weight} kg × ${data.bestSet.reps}`
-    if (data.history.length >= 2) {
-      const gain = Math.round((data.bestRM - data.history[0].est1rm) * 10) / 10
-      supp2 = `${gain >= 0 ? '+' : ''}${gain} kg from first`
-      supp2Color = gain >= 0 ? '#22c55e' : '#ef4444'
-    }
-    chartData = data.history.map(d => ({ date: d.date, value: d.est1rm }))
-  } else if (data.type === 'volume') {
+  if (data.type === 'volume') {
     metricLabel = 'DAILY VOLUME'; exerciseName = data.exerciseName
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
     heroStr = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
@@ -266,36 +243,30 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.4)'
     chartData = data.history.map(d => ({ date: d.date, value: d.volume }))
   } else {
-    metricLabel = 'BODY WEIGHT'; heroStr = String(data.currentWeight)
-    if (data.change !== 0) {
-      supp1 = `${data.change > 0 ? '+' : ''}${data.change} kg since start`
-    }
-    if (data.history.length >= 2) {
-      supp2 = `${data.history[0].weight} kg → ${data.currentWeight} kg`
+    // bodyweight
+    metricLabel = 'BODY WEIGHT'; heroStr = String((data as Extract<StatsData, {type:'bodyweight'}>).currentWeight)
+    const bw = data as Extract<StatsData, {type:'bodyweight'}>
+    if (bw.change !== 0) supp1 = `${bw.change > 0 ? '+' : ''}${bw.change} kg since start`
+    if (bw.history.length >= 2) {
+      supp2 = `${bw.history[0].weight} kg → ${bw.currentWeight} kg`
       supp2Color = 'rgba(255,255,255,0.35)'
     }
-    chartData = data.history.map(d => ({ date: d.date, value: d.weight }))
+    chartData = bw.history.map(d => ({ date: d.date, value: d.weight }))
   }
 
-  // ── Draw with y-cursor ────────────────────────────────────
   let cy = 202
-
-  // Metric label
   ctx.fillStyle = 'rgba(255,255,255,0.36)'; ctx.font = f(32, 500)
   ctx.fillText(metricLabel, 80, cy); cy += 78
 
-  // Exercise name
   if (exerciseName) {
     ctx.fillStyle = '#fff'; ctx.font = f(60, 700)
     ctx.fillText(exerciseName.length > 23 ? exerciseName.slice(0,21)+'…' : exerciseName, 80, cy); cy += 84
   } else {
-    cy += 28 // breathing room for bodyweight card
+    cy += 28
   }
 
-  // Single divider separating header from metric
   cy += 22; divider(cy); cy += 52
 
-  // Hero number — large
   cy += 106
   ctx.fillStyle = heroColor; ctx.font = f(152, 700); ctx.fillText(heroStr, 80, cy)
   const hw = ctx.measureText(heroStr).width
@@ -303,7 +274,6 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   ctx.fillText(' kg', 80 + hw + 10, cy - 12)
   cy += 72
 
-  // Supplements (2 lines max)
   if (supp1) {
     ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = f(34)
     ctx.fillText(supp1, 80, cy)
@@ -316,35 +286,58 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   }
   cy += 58
 
-  // Thin divider before chart
   cy += 26; divider(cy); cy += 46
-
-  // "PROGRESSION" micro label
   ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.font = f(24, 500)
   ctx.fillText('PROGRESSION', 80, cy); cy += 38
 
-  // ── Chart: fills remaining space ──────────────────────────
   const chartTop    = cy
-  const chartBottom = H - 170          // extra room for larger X-axis labels + watermark
+  const chartBottom = H - 170
   const chartH      = chartBottom - chartTop
+  const isVol       = data.type === 'volume'
+  const chartX      = 200
+  const chartW      = W - chartX - 80
 
-  const isVol    = data.type === 'volume'
-  const chartX   = 200   // left pad for Y-axis labels (34px font needs ~120px)
-  const chartW   = W - chartX - 80
   if (chartType === 'line') {
     canvasLine(ctx, chartData, chartX, chartTop, chartW, chartH, ac, accent, isVol)
   } else {
     canvasBar(ctx, chartData, chartX, chartTop, chartW, chartH, ac, isVol)
   }
 
-  // Watermark
   ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.font = f(26)
   ctx.fillText('Made with LIFTSNAP · liftsnap.app', 80, H - 56)
 
   return new Promise(resolve => cv.toBlob(b => resolve(b!), 'image/png'))
 }
 
-/* ── SVG chart for DOM preview ───────────────────────────── */
+/* ── MAX 1RM card capture via html-to-image ──────────────── */
+async function captureMax1RMCard(el: HTMLDivElement, theme: Theme): Promise<Blob> {
+  const { toPng } = await import('html-to-image')
+  await document.fonts.ready
+  await new Promise(r => requestAnimationFrame(r))
+  await new Promise(r => setTimeout(r, 60))
+
+  const W = el.offsetWidth
+  const H = el.offsetHeight
+  const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
+
+  const prevBg = el.style.background
+  el.style.background = theme === 'transparent' ? 'transparent' : '#0a0a0a'
+  await new Promise(r => requestAnimationFrame(r))
+
+  try {
+    const dataUrl = await toPng(el, {
+      width: W, height: H,
+      style: { width: `${W}px`, height: `${H}px` },
+      pixelRatio, cacheBust: true, skipFonts: true,
+    })
+    const res = await fetch(dataUrl)
+    return await res.blob()
+  } finally {
+    el.style.background = prevBg
+  }
+}
+
+/* ── SVG chart for DOM preview (volume / bodyweight) ──────── */
 function ChartSVG({ pts, ac, accent, chartType }: {
   pts: ChartPt[]
   ac: typeof AC[Accent]
@@ -381,7 +374,6 @@ function ChartSVG({ pts, ac, accent, chartType }: {
     )
   }
 
-  // Line chart
   const padY = H * 0.08
   const px = (i: number) => (i / (sub.length - 1)) * W
   const py = (v: number) => H - padY - ((v - min) / rng) * (H - padY * 2)
@@ -404,7 +396,9 @@ function ChartSVG({ pts, ac, accent, chartType }: {
 
 /* ── Main component ──────────────────────────────────────── */
 export default function StatsShareView({ data }: { data: StatsData }) {
-  const router = useRouter()
+  const router     = useRouter()
+  const captureRef = useRef<HTMLDivElement>(null)
+
   const [theme,     setTheme]     = useState<Theme>('dark')
   const [accent,    setAccent]    = useState<Accent>('orange')
   const [chartType, setChartType] = useState<ChartType>(data.type === 'volume' ? 'bar' : 'line')
@@ -414,7 +408,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const handleShare = async () => {
     setSharing(true); setStatus('Generating card...')
     try {
-      const blob = await generateStatsCard(data, theme, accent, chartType)
+      let blob: Blob
+      if (data.type === 'max1rm' && captureRef.current) {
+        blob = await captureMax1RMCard(captureRef.current, theme)
+      } else {
+        blob = await generateStatsCard(data, theme, accent, chartType)
+      }
       const file = new File([blob], 'liftsnap-stats.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
@@ -433,40 +432,55 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     } finally { setSharing(false) }
   }
 
-  const ac = AC[accent]
-  const heroColor = accent === 'dark' ? '#ffffff' : ac.hex
+  const ac       = AC[accent]
+  const acHex    = accent === 'dark' ? '#ffffff' : ac.hex
+  const isMax1RM = data.type === 'max1rm'
+  const tsh      = '0 2px 8px rgba(0,0,0,0.75)'
 
-  // ── Preview values ─────────────────────────────────────────
-  let metricLabel: string
+  const cardBg = theme === 'dark'
+    ? '#0a0a0a'
+    : `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
+
+  /* ── MAX 1RM chart data ──────────────────────────────────── */
+  const MAX_SHOW  = 8
+  const rm1All    = isMax1RM ? [...(data as Extract<StatsData,{type:'max1rm'}>).history].reverse() : []
+  const rm1Data   = rm1All.slice(0, MAX_SHOW)
+  const rm1Count  = data.type === 'max1rm' ? data.sessionCount : 0
+  const rm1Over   = Math.max(0, rm1Count - MAX_SHOW)
+  const rm1Max    = rm1Data.length ? Math.max(...rm1Data.map(d => d.est1rm)) : 0
+
+  const rm1Growth = isMax1RM && (data as Extract<StatsData,{type:'max1rm'}>).history.length >= 2
+    ? (() => {
+        const h = (data as Extract<StatsData,{type:'max1rm'}>).history
+        return Math.round(((data as Extract<StatsData,{type:'max1rm'}>).bestRM - h[0].est1rm) * 10) / 10
+      })()
+    : null
+
+  // Adaptive bar sizing
+  const n      = rm1Data.length
+  const barH   = n <= 1 ? 20 : n <= 3 ? 16 : n <= 6 ? 12 : 9
+  const latH   = barH + 5
+  const rowGap = n <= 1 ? 0  : n <= 3 ? 13 : n <= 6 ? 9  : 7
+
+  /* ── Non-max1rm preview values ───────────────────────────── */
+  let metricLabel = ''
   let exerciseName: string | null = null
-  let heroNum: string
+  let heroNum = ''
   let supp1: string | null = null
   let supp2: string | null = null
   let supp2Color = 'rgba(255,255,255,0.5)'
   let chartData: ChartPt[] = []
 
-  if (data.type === 'max1rm') {
-    metricLabel = 'MAX 1RM'; exerciseName = data.exerciseName
-    heroNum = String(data.bestRM)
-    if (data.bestSet) supp1 = `Best Set  ${data.bestSet.weight} × ${data.bestSet.reps}`
-    if (data.history.length >= 2) {
-      const gain = Math.round((data.bestRM - data.history[0].est1rm) * 10) / 10
-      supp2 = `${gain >= 0 ? '+' : ''}${gain} kg from first`
-      supp2Color = gain >= 0 ? '#22c55e' : '#ef4444'
-    }
-    chartData = data.history.map(d => ({ date: d.date, value: d.est1rm }))
-  } else if (data.type === 'volume') {
+  if (data.type === 'volume') {
     metricLabel = 'DAILY VOLUME'; exerciseName = data.exerciseName
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
     heroNum = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
     supp1 = `${data.totalVolume >= 10000 ? `${(data.totalVolume/1000).toFixed(1)}k` : data.totalVolume.toLocaleString()} kg total`
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.4)'
     chartData = data.history.map(d => ({ date: d.date, value: d.volume }))
-  } else {
+  } else if (data.type === 'bodyweight') {
     metricLabel = 'BODY WEIGHT'; heroNum = String(data.currentWeight)
-    if (data.change !== 0) {
-      supp1 = `${data.change > 0 ? '+' : ''}${data.change} kg since start`
-    }
+    if (data.change !== 0) supp1 = `${data.change > 0 ? '+' : ''}${data.change} kg since start`
     if (data.history.length >= 2) {
       supp2 = `${data.history[0].weight} kg → ${data.currentWeight} kg`
       supp2Color = 'rgba(255,255,255,0.35)'
@@ -488,7 +502,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
-      {/* Header bar */}
+      {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
         <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={18} style={{ color: '#888' }} />
@@ -496,104 +510,222 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
       </div>
 
-      {/* ── 9:16 story preview ─────────────────────────────── */}
+      {/* ── Story preview ───────────────────────────────────── */}
       <div className="px-4 mb-5">
-        <div className="w-full rounded-3xl overflow-hidden relative"
-          style={{
-            aspectRatio: '9/16',
-            background: theme === 'dark'
-              ? '#0a0a0a'
-              : `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E") #1a1a1a`,
+
+        {isMax1RM ? (
+          /* ── MAX 1RM: horizontal bar chart, left 38% column ── */
+          <div ref={captureRef} style={{
+            aspectRatio: '9/16', width: '100%',
+            background: cardBg,
+            borderRadius: 24, overflow: 'hidden',
             border: `1px solid ${ac.cardBorder}`,
+            position: 'relative',
           }}>
+            {/* Accent stripe */}
+            <div style={{ height: 2, background: ac.topLine }} />
 
-          {/* Top accent stripe */}
-          <div className="absolute top-0 inset-x-0" style={{ height: 2, background: ac.topLine }} />
-
-          {/* ── Content: flex column, chart fills remaining ── */}
-          <div className="relative flex flex-col h-full" style={{ padding: '14px 16px 10px', paddingTop: 16 }}>
-
-            {/* Badge */}
-            <div className="inline-flex mb-2.5">
-              <span className="text-[10px] font-black px-2.5 py-1 rounded-lg"
-                style={{ background: ac.badgeBg, color: ac.badgeText, border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em' }}>
-                LIFTSNAP
-              </span>
-            </div>
-
-            {/* Metric + exercise */}
-            <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', marginBottom: 2 }}>
-              {metricLabel}
-            </p>
-            {exerciseName && (
-              <p style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.1, marginBottom: 0 }}>
-                {exerciseName}
-              </p>
-            )}
-
-            {/* Single divider */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginTop: 7, marginBottom: 7 }} />
-
-            {/* Hero number */}
-            <div className="flex items-baseline" style={{ gap: 3, marginBottom: 1 }}>
-              <span style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: heroColor }}>
-                {heroNum}
-              </span>
-              <span style={{ fontSize: 15, fontWeight: 500, color: 'rgba(255,255,255,0.25)' }}>kg</span>
-            </div>
-
-            {/* Supplements */}
-            {supp1 && (
-              <p style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.5)', marginBottom: 1.5 }}>{supp1}</p>
-            )}
-            {supp2 && (
-              <p style={{ fontSize: 9.5, color: supp2Color, marginBottom: 0 }}>{supp2}</p>
-            )}
-
-            {/* Divider before chart */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginTop: 7, marginBottom: 5 }} />
-
-            {/* PROGRESSION label */}
-            <p style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.1em', marginBottom: 5 }}>
-              PROGRESSION
-            </p>
-
-            {/* Chart with axes — takes ALL remaining space */}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              {/* Row: Y-labels + SVG */}
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 3 }}>
-                {/* Y-axis */}
-                <div style={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 3, paddingTop: 1 }}>
-                  {[...yTicks].reverse().map((v, i) => (
-                    <span key={i} style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.65)', textAlign: 'right', lineHeight: 1, display: 'block' }}>
-                      {fmtYLabel(v, data.type === 'volume')}
-                    </span>
-                  ))}
-                </div>
-                {/* SVG chart */}
-                <div style={{ flex: 1, minHeight: 0 }}>
-                  <ChartSVG pts={chartData} ac={ac} accent={accent} chartType={chartType} />
-                </div>
+            {/* Left content column */}
+            <div style={{
+              width: '38%',
+              padding: '12px 0 12px 14px',
+              height: 'calc(100% - 2px)',
+              display: 'flex',
+              flexDirection: 'column',
+              textShadow: tsh,
+            }}>
+              {/* Badge */}
+              <div style={{ display: 'inline-flex', marginBottom: 7 }}>
+                <span style={{
+                  fontSize: 8, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
+                  background: ac.badgeBg, color: ac.badgeText,
+                  border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
+                  whiteSpace: 'nowrap',
+                }}>LIFTSNAP</span>
               </div>
-              {/* X-axis labels */}
-              {xLabels.length > 0 && (
-                <div style={{ height: 14, display: 'flex', justifyContent: 'space-between', paddingLeft: 35, marginTop: 3 }}>
-                  {xLabels.map((lbl, i) => (
-                    <span key={i} style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1 }}>{lbl}</span>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Watermark */}
-            <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.1)', marginTop: 5 }}>
-              Made with LIFTSNAP · liftsnap.app
-            </p>
+              {/* MAX 1RM label */}
+              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.1em', margin: '0 0 3px', lineHeight: 1.2 }}>
+                MAX 1RM
+              </p>
+
+              {/* Exercise name */}
+              <p style={{ fontSize: 11, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 8px' }}>
+                {(data as Extract<StatsData,{type:'max1rm'}>).exerciseName.length > 14
+                  ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName.slice(0, 13) + '…'
+                  : (data as Extract<StatsData,{type:'max1rm'}>).exerciseName}
+              </p>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 0 8px', marginRight: 0 }} />
+
+              {/* Current max */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, margin: '0 0 3px', lineHeight: 1 }}>
+                <span style={{ fontSize: 34, fontWeight: 900, color: acHex, lineHeight: 1 }}>
+                  {(data as Extract<StatsData,{type:'max1rm'}>).bestRM}
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 2 }}>kg</span>
+              </div>
+
+              {/* Growth text */}
+              {rm1Growth !== null ? (
+                <p style={{ fontSize: 8.5, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '0 0 8px', lineHeight: 1.3, fontWeight: 600 }}>
+                  {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg from first
+                </p>
+              ) : (
+                <p style={{ fontSize: 7.5, color: '#666', margin: '0 0 8px', lineHeight: 1.3 }}>
+                  Keep training
+                </p>
+              )}
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 0 7px' }} />
+
+              {/* PROGRESSION label */}
+              <p style={{ fontSize: 6.5, fontWeight: 600, color: '#888', letterSpacing: '0.1em', margin: '0 0 9px', lineHeight: 1.2 }}>
+                PROGRESSION
+              </p>
+
+              {/* Horizontal bar chart */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {rm1Data.map((pt, i) => {
+                  const isLatest = i === 0
+                  const pct = rm1Max > 0 ? (pt.est1rm / rm1Max) * 100 : 0
+                  const h = isLatest ? latH : barH
+                  return (
+                    <div key={pt.date} style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      marginTop: i > 0 ? rowGap : 0,
+                    }}>
+                      {/* Date label */}
+                      <span style={{
+                        width: 28, fontSize: 6.5, color: '#B8B8B8',
+                        textAlign: 'right', whiteSpace: 'nowrap',
+                        flexShrink: 0, lineHeight: 1,
+                      }}>
+                        {pt.label}
+                      </span>
+                      {/* Bar */}
+                      <div style={{ flex: 1, height: h }}>
+                        <div style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: isLatest ? acHex : ac.barInactive,
+                          borderRadius: 999,
+                          boxShadow: isLatest ? `0 2px 8px ${acHex}55` : 'none',
+                          minWidth: 3,
+                        }} />
+                      </div>
+                      {/* Weight label */}
+                      <span style={{
+                        width: 26, fontSize: isLatest ? 8 : 7,
+                        fontWeight: isLatest ? 700 : 400,
+                        color: isLatest ? '#F0F0F0' : '#C4C4C4',
+                        whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1,
+                      }}>
+                        {pt.est1rm}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Overflow indicator */}
+              {rm1Over > 0 && (
+                <p style={{ fontSize: 6.5, color: '#666', marginTop: 7, lineHeight: 1.3 }}>
+                  +{rm1Over} more in app
+                </p>
+              )}
+
+              {/* Spacer pushes watermark to bottom */}
+              <div style={{ flex: 1 }} />
+
+              {/* Watermark */}
+              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4, textShadow: 'none' }}>
+                Made with LIFTSNAP
+              </p>
+            </div>
           </div>
-        </div>
+
+        ) : (
+
+          /* ── Volume / bodyweight: existing vertical layout ─── */
+          <div className="w-full rounded-3xl overflow-hidden relative"
+            style={{
+              aspectRatio: '9/16',
+              background: cardBg,
+              border: `1px solid ${ac.cardBorder}`,
+            }}>
+
+            <div className="absolute top-0 inset-x-0" style={{ height: 2, background: ac.topLine }} />
+
+            <div className="relative flex flex-col h-full" style={{ padding: '14px 16px 10px', paddingTop: 16 }}>
+
+              <div className="inline-flex mb-2.5">
+                <span className="text-[10px] font-black px-2.5 py-1 rounded-lg"
+                  style={{ background: ac.badgeBg, color: ac.badgeText, border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em' }}>
+                  LIFTSNAP
+                </span>
+              </div>
+
+              <p style={{ fontSize: 9, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.1em', marginBottom: 2 }}>
+                {metricLabel}
+              </p>
+              {exerciseName && (
+                <p style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.1, marginBottom: 0 }}>
+                  {exerciseName}
+                </p>
+              )}
+
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginTop: 7, marginBottom: 7 }} />
+
+              <div className="flex items-baseline" style={{ gap: 3, marginBottom: 1 }}>
+                <span style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: acHex }}>
+                  {heroNum}
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#C4C4C4' }}>kg</span>
+              </div>
+
+              {supp1 && <p style={{ fontSize: 9.5, color: '#B8B8B8', marginBottom: 1.5 }}>{supp1}</p>}
+              {supp2 && <p style={{ fontSize: 9.5, color: supp2Color, marginBottom: 0 }}>{supp2}</p>}
+
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginTop: 7, marginBottom: 5 }} />
+
+              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#888', letterSpacing: '0.1em', marginBottom: 5 }}>
+                PROGRESSION
+              </p>
+
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 3 }}>
+                  <div style={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 3, paddingTop: 1 }}>
+                    {[...yTicks].reverse().map((v, i) => (
+                      <span key={i} style={{ fontSize: 7.5, color: '#B8B8B8', textAlign: 'right', lineHeight: 1, display: 'block' }}>
+                        {fmtYLabel(v, data.type === 'volume')}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ flex: 1, minHeight: 0 }}>
+                    <ChartSVG pts={chartData} ac={ac} accent={accent} chartType={chartType} />
+                  </div>
+                </div>
+                {xLabels.length > 0 && (
+                  <div style={{ height: 14, display: 'flex', justifyContent: 'space-between', paddingLeft: 35, marginTop: 3 }}>
+                    {xLabels.map((lbl, i) => (
+                      <span key={i} style={{ fontSize: 7.5, color: '#B8B8B8', lineHeight: 1 }}>{lbl}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.20)', marginTop: 5 }}>
+                Made with LIFTSNAP · liftsnap.app
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── Option selectors ──────────────────────────────── */}
+      {/* ── Options ─────────────────────────────────────────── */}
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Background</p>
         <div className="flex gap-2">
@@ -624,21 +756,24 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       </div>
 
-      <div className="px-4 mb-6">
-        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Chart Type</p>
-        <div className="flex gap-2">
-          {(['bar', 'line'] as ChartType[]).map(ct => (
-            <button key={ct} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: chartType === ct ? '#ff6b00' : '#1a1a1a', color: chartType === ct ? '#fff' : '#666', border: `1px solid ${chartType === ct ? '#ff6b00' : '#2a2a2a'}` }}
-              onClick={() => setChartType(ct)}>
-              {ct === 'bar' ? 'Bar' : 'Line'}
-            </button>
-          ))}
+      {/* Chart Type: only for volume / bodyweight */}
+      {!isMax1RM && (
+        <div className="px-4 mb-6">
+          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Chart Type</p>
+          <div className="flex gap-2">
+            {(['bar', 'line'] as ChartType[]).map(ct => (
+              <button key={ct} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{ background: chartType === ct ? '#ff6b00' : '#1a1a1a', color: chartType === ct ? '#fff' : '#666', border: `1px solid ${chartType === ct ? '#ff6b00' : '#2a2a2a'}` }}
+                onClick={() => setChartType(ct)}>
+                {ct === 'bar' ? 'Bar' : 'Line'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Share button */}
-      <div className="px-4 space-y-2">
+      <div className="px-4 space-y-2 mb-6">
         {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"

@@ -280,7 +280,7 @@ export async function getStatsForShare(metric: string, exercise?: string) {
       bestRM,
       bestDate: bestEntry.label,
       bestSet,
-      history: rm.slice(-6),
+      history: rm.slice(-8),
       sessionCount: rm.length,
     }
   }
