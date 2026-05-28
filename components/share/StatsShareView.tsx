@@ -40,6 +40,33 @@ function fmtShort(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
+function fmtXLabel(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T00:00:00')
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${M[d.getMonth()]} ${d.getDate()}`
+}
+
+function fmtYLabel(v: number, isVolume: boolean): string {
+  if (isVolume && v >= 1000) return v >= 10000 ? `${Math.round(v/1000)}k` : `${(v/1000).toFixed(1)}k`
+  return String(Math.round(v * 10) / 10)
+}
+
+function niceYTicks(dataMin: number, dataMax: number, count = 4): number[] {
+  if (dataMax === 0) return [0]
+  const range  = dataMax - dataMin || dataMax * 0.2 || 1
+  const raw    = range / (count - 1)
+  const mag    = Math.pow(10, Math.floor(Math.log10(raw)))
+  const step   = Math.ceil(raw / mag) * mag
+  const niceMax = Math.ceil(dataMax / step) * step
+  const niceMin = dataMin === 0 ? 0 : Math.floor(dataMin / step) * step
+  const ticks: number[] = []
+  for (let v = niceMin; v <= niceMax + step * 0.01 && ticks.length <= count + 1; v = Math.round((v + step) * 1e9) / 1e9) {
+    ticks.push(v)
+  }
+  return ticks
+}
+
 /* ── Canvas font shorthand ───────────────────────────────── */
 function f(size: number, weight: 400 | 500 | 700 = 400): string {
   return `${weight >= 700 ? 'bold ' : weight === 500 ? '500 ' : ''}${size}px system-ui,-apple-system,sans-serif`
@@ -58,13 +85,25 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 type ChartPt = { date: string; value: number }
 
 /* ── BAR chart (canvas) ──────────────────────────────────── */
-function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent]) {
+function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], isVolume = false) {
   if (!pts.length) return
   const n   = Math.min(pts.length, 14)
   const sub = pts.slice(-n)
   const max = Math.max(...sub.map(d => d.value))
   const slotW = w / n
   const barW  = Math.max(Math.floor(slotW * 0.52), 22)
+
+  // Y-axis guide lines (behind bars)
+  const yTicks = niceYTicks(0, max, 4)
+  yTicks.forEach(tick => {
+    if (tick === 0) return
+    const ty = max > 0 ? y + h - Math.round((tick / max) * h * 0.9) : y
+    if (ty < y - 4) return
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1
+    ctx.setLineDash([6, 6])
+    ctx.beginPath(); ctx.moveTo(x, ty); ctx.lineTo(x + w, ty); ctx.stroke()
+    ctx.setLineDash([])
+  })
 
   sub.forEach((pt, i) => {
     const isLast = i === sub.length - 1
@@ -77,23 +116,28 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
     ctx.fillRect(bx, by, barW, bH)
 
     if (isLast) {
-      ctx.fillStyle = ac.barActive
-      ctx.font = f(26, 700)
-      ctx.textAlign = 'center'
-      ctx.fillText(pt.date ? fmtShort(pt.date) : '', bx + barW / 2, y + h + 44)
+      ctx.fillStyle = ac.barActive; ctx.font = f(26, 700); ctx.textAlign = 'center'
+      ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 44)
     } else if (i === 0 || i === Math.floor(n / 2)) {
-      ctx.fillStyle = 'rgba(255,255,255,0.2)'
-      ctx.font = f(22)
-      ctx.textAlign = 'center'
-      ctx.fillText(pt.date ? fmtShort(pt.date) : '', bx + barW / 2, y + h + 44)
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = f(22); ctx.textAlign = 'center'
+      ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 44)
     }
+  })
+
+  // Y-axis text labels (on top so they're readable)
+  ctx.textAlign = 'right'; ctx.font = f(22)
+  yTicks.forEach(tick => {
+    const ty = max > 0 ? y + h - Math.round((tick / max) * h * 0.9) : y + h
+    if (ty < y - 4) return
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 8)
   })
   ctx.textAlign = 'left'
 }
 
 /* ── LINE chart (canvas) ─────────────────────────────────── */
-function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], accent: Accent) {
-  if (pts.length < 2) { canvasBar(ctx, pts, x, y, w, h, ac); return }
+function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], accent: Accent, isVolume = false) {
+  if (pts.length < 2) { canvasBar(ctx, pts, x, y, w, h, ac, isVolume); return }
   const n    = Math.min(pts.length, 14)
   const sub  = pts.slice(-n)
   const max  = Math.max(...sub.map(d => d.value))
@@ -102,6 +146,17 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
   const padY = h * 0.08
   const px = (i: number) => x + (i / (sub.length - 1)) * w
   const py = (v: number) => y + h - padY - ((v - min) / rng) * (h - padY * 2)
+
+  // Y-axis guide lines (behind area)
+  const yTicks = niceYTicks(min, max, 4)
+  yTicks.forEach(tick => {
+    const ty = py(tick)
+    if (ty < y - 4 || ty > y + h + 4) return
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1
+    ctx.setLineDash([6, 6])
+    ctx.beginPath(); ctx.moveTo(x, ty); ctx.lineTo(x + w, ty); ctx.stroke()
+    ctx.setLineDash([])
+  })
 
   // Area
   ctx.beginPath()
@@ -130,12 +185,22 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
     ctx.fillStyle = isLast ? ac.barActive : 'rgba(255,255,255,0.3)'; ctx.fill()
   })
 
-  // Minimal date labels: first, mid, last
+  // X labels: first, mid, last
   const show = [0, Math.floor((sub.length-1)/2), sub.length-1]
   ctx.font = f(24); ctx.textAlign = 'center'
   show.forEach(i => {
     ctx.fillStyle = i === sub.length-1 ? ac.barActive : 'rgba(255,255,255,0.22)'
-    ctx.fillText(sub[i].date ? fmtShort(sub[i].date) : '', px(i), y+h+46)
+    ctx.fillText(sub[i].date ? fmtXLabel(sub[i].date) : '', px(i), y+h+46)
+  })
+  ctx.textAlign = 'left'
+
+  // Y-axis text labels
+  ctx.textAlign = 'right'; ctx.font = f(22)
+  yTicks.forEach(tick => {
+    const ty = py(tick)
+    if (ty < y - 4 || ty > y + h + 4) return
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 8)
   })
   ctx.textAlign = 'left'
 }
@@ -260,10 +325,13 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   const chartBottom = H - 130          // leave room for date labels + watermark
   const chartH      = chartBottom - chartTop
 
+  const isVol    = data.type === 'volume'
+  const chartX   = 172   // left pad for Y-axis labels
+  const chartW   = W - chartX - 80
   if (chartType === 'line') {
-    canvasLine(ctx, chartData, 80, chartTop, W-160, chartH, ac, accent)
+    canvasLine(ctx, chartData, chartX, chartTop, chartW, chartH, ac, accent, isVol)
   } else {
-    canvasBar(ctx, chartData, 80, chartTop, W-160, chartH, ac)
+    canvasBar(ctx, chartData, chartX, chartTop, chartW, chartH, ac, isVol)
   }
 
   // Watermark
@@ -403,6 +471,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     chartData = data.history.map(d => ({ date: d.date, value: d.weight }))
   }
 
+  const chartMin = chartData.length ? Math.min(...chartData.map(d => d.value)) : 0
+  const chartMax = chartData.length ? Math.max(...chartData.map(d => d.value)) : 0
+  const yTicks   = chartData.length ? niceYTicks(chartType === 'bar' ? 0 : chartMin, chartMax, 4) : []
+  const xLabels  = (() => {
+    if (!chartData.length) return [] as string[]
+    const idxs = chartData.length === 1
+      ? [0]
+      : [0, Math.floor((chartData.length - 1) / 2), chartData.length - 1].filter((v, i, a) => a.indexOf(v) === i)
+    return idxs.map(i => fmtXLabel(chartData[i].date))
+  })()
+
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
@@ -476,9 +555,31 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               PROGRESSION
             </p>
 
-            {/* Chart — takes ALL remaining space */}
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <ChartSVG pts={chartData} ac={ac} accent={accent} chartType={chartType} />
+            {/* Chart with axes — takes ALL remaining space */}
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              {/* Row: Y-labels + SVG */}
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 3 }}>
+                {/* Y-axis */}
+                <div style={{ width: 20, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 3, paddingTop: 1 }}>
+                  {[...yTicks].reverse().map((v, i) => (
+                    <span key={i} style={{ fontSize: 5, color: 'rgba(255,255,255,0.28)', textAlign: 'right', lineHeight: 1, display: 'block' }}>
+                      {fmtYLabel(v, data.type === 'volume')}
+                    </span>
+                  ))}
+                </div>
+                {/* SVG chart */}
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <ChartSVG pts={chartData} ac={ac} accent={accent} chartType={chartType} />
+                </div>
+              </div>
+              {/* X-axis labels */}
+              {xLabels.length > 0 && (
+                <div style={{ height: 11, display: 'flex', justifyContent: 'space-between', paddingLeft: 23, marginTop: 2 }}>
+                  {xLabels.map((lbl, i) => (
+                    <span key={i} style={{ fontSize: 5, color: 'rgba(255,255,255,0.28)', lineHeight: 1 }}>{lbl}</span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Watermark */}
