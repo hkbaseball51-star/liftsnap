@@ -461,10 +461,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       })()
     : null
 
-  // Bar sizing — larger when fewer records so chart fills vertical space
+  const rm1FirstVal = isMax1RM && (data as Extract<StatsData,{type:'max1rm'}>).history.length >= 1
+    ? (data as Extract<StatsData,{type:'max1rm'}>).history[0].est1rm
+    : null
+
+  // Bar sizing
   const n         = rm1Data.length
-  const chartBarH = n <= 1 ? 24 : n <= 3 ? 16 : n <= 6 ? 11 : 8
-  const chartLatH = n <= 1 ? 30 : n <= 3 ? 20 : n <= 6 ? 15 : 12
+  const chartBarH = n <= 3 ? 13 : n <= 6 ? 11 : 9
+  const chartLatH = n <= 3 ? 19 : n <= 6 ? 15 : 13
+  const rowGap    = n <= 3 ? 28 : n <= 6 ? 22 : 16
 
   // Graduated opacity: oldest bar is most faded, latest is full opacity
   const getBarBg = (idx: number): string => {
@@ -557,16 +562,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 }}>LIFTSNAP</span>
               </div>
 
-              {/* MAX 1RM label */}
-              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.1em', margin: '0 0 3px', lineHeight: 1.2 }}>
-                MAX 1RM
+              {/* Exercise name — primary title */}
+              <p style={{ fontSize: 11, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 3px' }}>
+                {(data as Extract<StatsData,{type:'max1rm'}>).exerciseName.length > 14
+                  ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName.slice(0, 13).toUpperCase() + '…'
+                  : (data as Extract<StatsData,{type:'max1rm'}>).exerciseName.toUpperCase()}
               </p>
 
-              {/* Exercise name */}
-              <p style={{ fontSize: 11, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 8px' }}>
-                {(data as Extract<StatsData,{type:'max1rm'}>).exerciseName.length > 14
-                  ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName.slice(0, 13) + '…'
-                  : (data as Extract<StatsData,{type:'max1rm'}>).exerciseName}
+              {/* 1RM PROGRESS subtitle */}
+              <p style={{ fontSize: 7.5, fontWeight: 700, color: acHex, letterSpacing: '0.1em', margin: '0 0 8px', lineHeight: 1.2 }}>
+                1RM PROGRESS
               </p>
 
               {/* Divider */}
@@ -580,11 +585,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <span style={{ fontSize: 10, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 2 }}>kg</span>
               </div>
 
-              {/* Growth text */}
-              {rm1Growth !== null ? (
-                <p style={{ fontSize: 8.5, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '0 0 8px', lineHeight: 1.3, fontWeight: 600 }}>
-                  {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg from first
-                </p>
+              {/* Growth summary */}
+              {rm1Growth !== null && rm1FirstVal !== null ? (
+                <div style={{ margin: '0 0 8px' }}>
+                  <p style={{ fontSize: 7.5, color: '#B8B8B8', lineHeight: 1.4, margin: '0 0 1px', fontWeight: 500 }}>
+                    {rm1FirstVal}kg → {(data as Extract<StatsData,{type:'max1rm'}>).bestRM}kg
+                  </p>
+                  <p style={{ fontSize: 8.5, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', lineHeight: 1.3, margin: 0, fontWeight: 700 }}>
+                    {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
+                  </p>
+                </div>
               ) : (
                 <p style={{ fontSize: 7.5, color: '#666', margin: '0 0 8px', lineHeight: 1.3 }}>
                   Keep training
@@ -607,9 +617,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   const bH  = isLatest ? chartLatH : chartBarH
                   return (
                     <div key={pt.date} style={{
-                      flex: 1,
+                      marginTop: i > 0 ? rowGap : 0,
                       display: 'flex', alignItems: 'center', gap: 3,
-                      minHeight: bH + 6,
                     }}>
                       {/* Date — short M/D format, left-aligned */}
                       <span style={{
