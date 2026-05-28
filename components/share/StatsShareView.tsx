@@ -457,10 +457,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     : null
   const rm1FirstVal = rm1FullHistory.length >= 1 ? rm1FullHistory[0].est1rm : null
 
-  // Sample up to 50 records: latest on top, first on bottom, middle evenly sampled
+  // Story display: max 16 bars — latest on top, first on bottom, middle evenly sampled
   const rm1DisplayData: RMPoint[] = (() => {
     if (!rm1FullHistory.length) return []
-    const MAX_DISP = 50
+    const MAX_DISP = 16
     if (rm1FullHistory.length <= MAX_DISP) return [...rm1FullHistory].reverse()
     const latest = rm1FullHistory[rm1FullHistory.length - 1]
     const first  = rm1FullHistory[0]
@@ -476,9 +476,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const n      = rm1DisplayData.length
   const rm1Max = n ? Math.max(...rm1DisplayData.map(d => d.est1rm)) : 0
 
-  // Bar heights scale with record count so chart always looks substantial
-  const chartBarH = n <= 5 ? 20 : n <= 15 ? 14 : n <= 30 ? 9 : 5
-  const chartLatH = n <= 5 ? 26 : n <= 15 ? 18 : n <= 30 ? 13 : 10
+  // Bar heights for max 16 bars
+  const chartBarH = n <= 5 ? 20 : n <= 10 ? 15 : 11
+  const chartLatH = n <= 5 ? 26 : n <= 10 ? 20 : 15
 
   // Graduated opacity: latest = full, first = slightly elevated, middle = faded
   const getBarBg = (idx: number): string => {
@@ -569,7 +569,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               textShadow: tsh,
             }}>
               {/* LIFTSNAP badge */}
-              <div style={{ display: 'inline-flex', marginBottom: 6, flexShrink: 0 }}>
+              <div style={{ display: 'inline-flex', marginBottom: 5, flexShrink: 0 }}>
                 <span style={{
                   fontSize: 7, fontWeight: 900, padding: '2px 6px', borderRadius: 5,
                   background: ac.badgeBg, color: ac.badgeText,
@@ -578,42 +578,43 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 }}>LIFTSNAP</span>
               </div>
 
-              {/* Exercise name — primary title */}
-              <p style={{ fontSize: 10.5, fontWeight: 900, color: '#ffffff', lineHeight: 1.15, margin: '0 0 2px', flexShrink: 0 }}>
+              {/* Exercise name */}
+              <p style={{ fontSize: 12, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 2px', flexShrink: 0 }}>
                 {exName}
               </p>
 
               {/* 1RM PROGRESS subtitle */}
-              <p style={{ fontSize: 7, fontWeight: 700, color: acHex, letterSpacing: '0.08em', margin: '0 0 6px', lineHeight: 1.2, flexShrink: 0 }}>
+              <p style={{ fontSize: 7.5, fontWeight: 700, color: acHex, letterSpacing: '0.08em', margin: '0 0 7px', lineHeight: 1.2, flexShrink: 0 }}>
                 1RM PROGRESS
               </p>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', margin: '0 0 6px', flexShrink: 0 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', margin: '0 0 8px', flexShrink: 0 }} />
 
-              {/* Current max hero */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, margin: '0 0 2px', lineHeight: 1, flexShrink: 0 }}>
-                <span style={{ fontSize: 32, fontWeight: 900, color: acHex, lineHeight: 1 }}>
-                  {bestRM}
-                </span>
-                <span style={{ fontSize: 9, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 2 }}>kg</span>
+              {/* Growth hero — START → NOW is the main message */}
+              <div style={{ flexShrink: 0, margin: '0 0 8px' }}>
+                {rm1FirstVal !== null && rm1Growth !== null ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, margin: '0 0 4px', flexWrap: 'nowrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#B8B8B8', lineHeight: 1, paddingBottom: 1, whiteSpace: 'nowrap' }}>
+                        {rm1FirstVal}<span style={{ fontSize: 7.5, fontWeight: 500, color: '#888' }}>kg</span>
+                      </span>
+                      <span style={{ fontSize: 9, color: '#555', lineHeight: 1, paddingBottom: 2 }}>→</span>
+                      <span style={{ fontSize: 22, fontWeight: 900, color: acHex, lineHeight: 1, whiteSpace: 'nowrap' }}>
+                        {bestRM}<span style={{ fontSize: 9, fontWeight: 500, color: '#C4C4C4', lineHeight: 1 }}>kg</span>
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1.2 }}>
+                      {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
+                    </p>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: acHex, lineHeight: 1 }}>{bestRM}</span>
+                    <span style={{ fontSize: 9, fontWeight: 500, color: '#C4C4C4', paddingBottom: 2 }}>kg</span>
+                  </div>
+                )}
               </div>
-
-              {/* Growth summary */}
-              {rm1Growth !== null && rm1FirstVal !== null ? (
-                <div style={{ margin: '0 0 6px', flexShrink: 0 }}>
-                  <p style={{ fontSize: 7, color: '#B0B0B0', lineHeight: 1.4, margin: '0 0 1px', fontWeight: 500 }}>
-                    {rm1FirstVal}kg → {bestRM}kg
-                  </p>
-                  <p style={{ fontSize: 8, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', lineHeight: 1.3, margin: 0, fontWeight: 700 }}>
-                    {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
-                  </p>
-                </div>
-              ) : (
-                <p style={{ fontSize: 7, color: '#666', margin: '0 0 6px', lineHeight: 1.3, flexShrink: 0 }}>
-                  Keep training
-                </p>
-              )}
 
               {/* Divider */}
               <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 5px', flexShrink: 0 }} />
@@ -623,16 +624,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 PROGRESSION
               </p>
 
-              {/* Chart: flex:1 fills all remaining space, space-between distributes bars top-to-bottom */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
+              {/* Chart: space-between for ≥5 bars (fills full height), gap-based for fewer */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: n >= 5 ? 'space-between' : 'flex-start',
+                gap: n < 5 ? 14 : 0,
+                minHeight: 0,
+              }}>
                 {n === 0 ? (
                   <p style={{ fontSize: 7, color: '#444' }}>No data yet</p>
-                ) : n === 1 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <span style={{ width: 22, flexShrink: 0, fontSize: 6, fontWeight: 700, color: acHex }}>{fmtShort(rm1DisplayData[0].date)}</span>
-                    <div style={{ flex: 1, height: chartLatH, background: acHex, boxShadow: `0 2px 6px ${acHex}44` }} />
-                    <span style={{ width: 22, flexShrink: 0, fontSize: 7.5, fontWeight: 700, color: '#F4F4F4', textAlign: 'right' }}>{rm1DisplayData[0].est1rm}</span>
-                  </div>
                 ) : (
                   rm1DisplayData.map((pt, i) => {
                     const isLatest      = i === 0
@@ -641,21 +643,20 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     const bH  = isLatest ? chartLatH : chartBarH
                     return (
                       <div key={`${pt.date}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        {/* Date/label: 2-line NOW/START for ≤20 records, else 1-line with color */}
-                        {n <= 20 && (isLatest || isFirstRecord) ? (
-                          <div style={{ width: 22, flexShrink: 0 }}>
-                            <div style={{ fontSize: 4.5, fontWeight: 800, letterSpacing: '0.06em', lineHeight: 1.3, color: isLatest ? acHex : '#888' }}>
+                        {/* NOW/START label + date for first/last, date-only for middle */}
+                        {isLatest || isFirstRecord ? (
+                          <div style={{ width: 24, flexShrink: 0 }}>
+                            <div style={{ fontSize: 4.5, fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1.3, color: isLatest ? acHex : '#888' }}>
                               {isLatest ? 'NOW' : 'START'}
                             </div>
-                            <div style={{ fontSize: 6, fontWeight: isLatest ? 700 : 500, lineHeight: 1.2, color: isLatest ? acHex : '#AAAAAA' }}>
+                            <div style={{ fontSize: 5.5, fontWeight: isLatest ? 700 : 400, lineHeight: 1.2, color: isLatest ? acHex : '#999' }}>
                               {fmtShort(pt.date)}
                             </div>
                           </div>
                         ) : (
                           <span style={{
-                            width: 22, flexShrink: 0, fontSize: 6, lineHeight: 1.2, whiteSpace: 'nowrap',
-                            color: isLatest ? acHex : isFirstRecord ? '#AAAAAA' : '#686868',
-                            fontWeight: isLatest ? 700 : isFirstRecord ? 600 : 400,
+                            width: 24, flexShrink: 0, fontSize: 5.5, lineHeight: 1.2, whiteSpace: 'nowrap',
+                            color: '#666', fontWeight: 400,
                           }}>
                             {fmtShort(pt.date)}
                           </span>
@@ -667,16 +668,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                             width: `${pct}%`, height: '100%',
                             background: getBarBg(i),
                             borderRadius: 0,
-                            boxShadow: isLatest ? `0 2px 6px ${acHex}44` : 'none',
+                            boxShadow: isLatest ? `0 2px 8px rgba(255,106,0,0.35)` : 'none',
                             minWidth: 2,
                           }} />
                         </div>
                         {/* Weight label — right-aligned */}
                         <span style={{
-                          width: 22, flexShrink: 0,
-                          fontSize: isLatest ? 7.5 : isFirstRecord ? 7 : 6,
-                          fontWeight: isLatest ? 700 : isFirstRecord ? 600 : 400,
-                          color: isLatest ? '#F4F4F4' : isFirstRecord ? '#D0D0D0' : '#A0A0A0',
+                          width: 20, flexShrink: 0,
+                          fontSize: isLatest ? 8 : isFirstRecord ? 7 : 6,
+                          fontWeight: isLatest ? 800 : isFirstRecord ? 600 : 400,
+                          color: isLatest ? '#FFFFFF' : isFirstRecord ? '#D4D4D4' : '#909090',
                           textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1,
                         }}>
                           {pt.est1rm}
