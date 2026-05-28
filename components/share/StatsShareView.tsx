@@ -48,6 +48,11 @@ function fmtXLabel(dateStr: string): string {
   return `${M[d.getMonth()]} ${d.getDate()}`
 }
 
+function fmtBarDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
 function fmtYLabel(v: number, isVolume: boolean): string {
   if (isVolume) {
     if (v >= 10000) return `${Math.round(v/1000)}k`
@@ -456,11 +461,19 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       })()
     : null
 
-  // Adaptive bar sizing
-  const n      = rm1Data.length
-  const barH   = n <= 1 ? 20 : n <= 3 ? 16 : n <= 6 ? 12 : 9
-  const latH   = barH + 5
-  const rowGap = n <= 1 ? 0  : n <= 3 ? 13 : n <= 6 ? 9  : 7
+  // Bar sizing — larger when fewer records so chart fills vertical space
+  const n         = rm1Data.length
+  const chartBarH = n <= 1 ? 24 : n <= 3 ? 16 : n <= 6 ? 11 : 8
+  const chartLatH = n <= 1 ? 30 : n <= 3 ? 20 : n <= 6 ? 15 : 12
+
+  // Graduated opacity: oldest bar is most faded, latest is full opacity
+  const getBarBg = (idx: number): string => {
+    if (idx === 0) return acHex
+    const opacity = Math.max(0.20, 0.50 - idx * 0.05)
+    if (accent === 'orange') return `rgba(255,107,0,${opacity.toFixed(2)})`
+    if (accent === 'purple') return `rgba(168,85,247,${opacity.toFixed(2)})`
+    return `rgba(255,255,255,${opacity.toFixed(2)})`
+  }
 
   /* ── Non-max1rm preview values ───────────────────────────── */
   let metricLabel = ''
@@ -586,62 +599,59 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 PROGRESSION
               </p>
 
-              {/* Horizontal bar chart */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {/* Chart section: flex:1 so bars fill all remaining height */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 {rm1Data.map((pt, i) => {
                   const isLatest = i === 0
                   const pct = rm1Max > 0 ? (pt.est1rm / rm1Max) * 100 : 0
-                  const h = isLatest ? latH : barH
+                  const bH  = isLatest ? chartLatH : chartBarH
                   return (
                     <div key={pt.date} style={{
+                      flex: 1,
                       display: 'flex', alignItems: 'center', gap: 3,
-                      marginTop: i > 0 ? rowGap : 0,
+                      minHeight: bH + 6,
                     }}>
-                      {/* Date label */}
+                      {/* Date — short M/D format, left-aligned */}
                       <span style={{
-                        width: 28, fontSize: 6.5, color: '#B8B8B8',
-                        textAlign: 'right', whiteSpace: 'nowrap',
-                        flexShrink: 0, lineHeight: 1,
+                        width: 22, fontSize: 6.5, color: isLatest ? '#D0D0D0' : '#B8B8B8',
+                        whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1,
                       }}>
-                        {pt.label}
+                        {fmtBarDate(pt.date)}
                       </span>
-                      {/* Bar */}
-                      <div style={{ flex: 1, height: h }}>
+                      {/* Bar — square, graduated opacity */}
+                      <div style={{ flex: 1, height: bH, position: 'relative' }}>
                         <div style={{
-                          width: `${pct}%`,
-                          height: '100%',
-                          background: isLatest ? acHex : ac.barInactive,
-                          borderRadius: 999,
-                          boxShadow: isLatest ? `0 2px 8px ${acHex}55` : 'none',
-                          minWidth: 3,
+                          position: 'absolute', top: 0, left: 0,
+                          width: `${pct}%`, height: '100%',
+                          background: getBarBg(i),
+                          borderRadius: 0,
+                          boxShadow: isLatest ? `0 2px 6px ${acHex}55` : 'none',
+                          minWidth: 2,
                         }} />
                       </div>
-                      {/* Weight label */}
+                      {/* Weight — right-aligned for clean column */}
                       <span style={{
                         width: 26, fontSize: isLatest ? 8 : 7,
                         fontWeight: isLatest ? 700 : 400,
                         color: isLatest ? '#F0F0F0' : '#C4C4C4',
-                        whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1,
+                        textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1,
                       }}>
                         {pt.est1rm}
                       </span>
                     </div>
                   )
                 })}
+
+                {/* Overflow */}
+                {rm1Over > 0 && (
+                  <p style={{ fontSize: 6, color: '#666', lineHeight: 1.3, textShadow: 'none', flexShrink: 0, paddingBottom: 2 }}>
+                    +{rm1Over} more in app
+                  </p>
+                )}
               </div>
 
-              {/* Overflow indicator */}
-              {rm1Over > 0 && (
-                <p style={{ fontSize: 6.5, color: '#666', marginTop: 7, lineHeight: 1.3 }}>
-                  +{rm1Over} more in app
-                </p>
-              )}
-
-              {/* Spacer pushes watermark to bottom */}
-              <div style={{ flex: 1 }} />
-
-              {/* Watermark */}
-              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4, textShadow: 'none' }}>
+              {/* Watermark — anchored to bottom of column */}
+              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.25)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
                 Made with LIFTSNAP
               </p>
             </div>
