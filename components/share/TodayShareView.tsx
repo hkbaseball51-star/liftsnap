@@ -104,6 +104,9 @@ function estimateH(data: TodayData): number {
 }
 
 async function generateCard(data: TodayData, theme: Theme, accent: Accent): Promise<Blob> {
+  // Wait for fonts before any measureText / fillText to avoid metric drift
+  await document.fonts.ready
+
   const W = 1080
   const H = estimateH(data)
   const cv = document.createElement('canvas')
@@ -181,18 +184,20 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   sh()
   ctx.fillStyle = acHex; ctx.font = f(112, 700)
   ctx.fillText(vs, 80, cy)
+  const vsW = ctx.measureText(vs).width  // measure while font is still 112px bold
   ctx.fillStyle = 'rgba(255,255,255,0.68)'; ctx.font = f(44, 500)
-  ctx.fillText(' kg', 80 + ctx.measureText(vs).width, cy - 8)
+  ctx.fillText(' kg', 80 + vsW, cy - 8)
   cy += 122; ns()
 
   const g1rm = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
   ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.font = f(32, 700)
   ctx.fillText(`${data.setsCount}`, 80, cy)
-  const sw0 = ctx.measureText(`${data.setsCount}`).width
+  const numW = ctx.measureText(`${data.setsCount}`).width  // measure with bold font
   ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(32)
-  ctx.fillText(' SETS', 80 + sw0, cy)
+  ctx.fillText(' SETS', 80 + numW, cy)
   if (g1rm > 0) {
-    const sfw = ctx.measureText(`${data.setsCount} SETS`).width
+    const setsTextW = ctx.measureText(' SETS').width          // regular font width
+    const sfw = numW + setsTextW                              // accurate total
     const sep = '  ·  '
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = f(32)
     ctx.fillText(sep, 80 + sfw, cy)
@@ -200,8 +205,9 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
     ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(32)
     const lbl = 'BEST 1RM  '
     ctx.fillText(lbl, 80 + sfw + sepW, cy)
+    const lblW = ctx.measureText(lbl).width
     ctx.fillStyle = acHex; ctx.font = f(32, 700)
-    ctx.fillText(`${Math.round(g1rm)}kg`, 80 + sfw + sepW + ctx.measureText(lbl).width, cy)
+    ctx.fillText(`${Math.round(g1rm)}kg`, 80 + sfw + sepW + lblW, cy)
   }
   cy += 46
 
@@ -234,8 +240,9 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
       ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = f(28)
       const lbl = 'est. 1RM  '
       ctx.fillText(lbl, 80 + slw + spw, cy)
+      const lblW = ctx.measureText(lbl).width  // measure while font is still f(28)
       ctx.fillStyle = acHex; ctx.font = f(28, 700)
-      ctx.fillText(`${Math.round(ex.best1RM)}kg`, 80 + slw + spw + ctx.measureText(lbl).width, cy)
+      ctx.fillText(`${Math.round(ex.best1RM)}kg`, 80 + slw + spw + lblW, cy)
     }
     cy += 44
 
@@ -245,8 +252,9 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
       const kg = s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'
       ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = f(38, 500)
       ctx.fillText(kg, 80, cy)
+      const kgW = ctx.measureText(kg).width  // measure while font is still f(38,500)
       ctx.fillStyle = 'rgba(255,255,255,0.50)'; ctx.font = f(38)
-      ctx.fillText(` × ${s.reps}`, 80 + ctx.measureText(kg).width, cy)
+      ctx.fillText(` × ${s.reps}`, 80 + kgW, cy)
       cy += 48
     })
 
