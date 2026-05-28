@@ -24,11 +24,23 @@ type Accent = 'orange' | 'purple' | 'dark'
 
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
-  cardBorder: string; topLine: string
+  cardBorder: string; topLine: string; exCardBg: string; exCardBorder: string
 }> = {
-  orange: { hex: '#ff6b00', badgeBg: '#ff6b00', badgeBorder: 'transparent', badgeText: '#ffffff', cardBorder: 'rgba(255,107,0,0.35)', topLine: '#ff6b00' },
-  purple: { hex: '#a855f7', badgeBg: '#a855f7', badgeBorder: 'transparent', badgeText: '#ffffff', cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7' },
-  dark:   { hex: 'rgba(255,255,255,0.7)', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.65)', cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.18)' },
+  orange: {
+    hex: '#ff6b00', badgeBg: '#ff6b00', badgeBorder: 'transparent', badgeText: '#ffffff',
+    cardBorder: 'rgba(255,107,0,0.35)', topLine: '#ff6b00',
+    exCardBg: 'rgba(255,255,255,0.045)', exCardBorder: 'rgba(255,255,255,0.09)',
+  },
+  purple: {
+    hex: '#a855f7', badgeBg: '#a855f7', badgeBorder: 'transparent', badgeText: '#ffffff',
+    cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7',
+    exCardBg: 'rgba(255,255,255,0.045)', exCardBorder: 'rgba(255,255,255,0.09)',
+  },
+  dark: {
+    hex: 'rgba(255,255,255,0.7)', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)',
+    badgeText: 'rgba(255,255,255,0.65)', cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.18)',
+    exCardBg: 'rgba(255,255,255,0.04)', exCardBorder: 'rgba(255,255,255,0.08)',
+  },
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -77,20 +89,18 @@ function fmtDate(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${D[d.getDay()]}`
 }
 
-// Canvas height = content-based (always full detail, no clip)
 function estimateH(data: TodayData): number {
   let cy = 172
-  cy += 38 + 50         // label + date
-  cy += 84 + 84 + 30    // title worst-case 2 lines
-  cy += 24 + 48         // gap + divider
-  cy += 32 + 122 + 46   // stats
-  cy += 20 + 44         // gap + divider
-  cy += 36              // EXERCISES header
+  cy += 38 + 50        // label + date
+  cy += 84 + 84 + 30   // title worst-case 2 lines
+  cy += 24 + 48        // gap + divider
+  cy += 32 + 122 + 46  // stats
+  cy += 20 + 44        // gap + divider
+  cy += 36             // EXERCISES header
   data.exercises.forEach((ex, i) => {
-    cy += 48
-    cy += ex.setList.filter(s => s.weight > 0 || s.reps > 0).length * 40
-    if (ex.best1RM > 0) cy += 30
-    if (i < data.exercises.length - 1) cy += 18
+    const vis = ex.setList.filter(s => s.weight > 0 || s.reps > 0).length
+    cy += 24 + 56 + vis * 44 + (ex.best1RM > 0 ? 36 : 0) + 24
+    if (i < data.exercises.length - 1) cy += 14
   })
   if (data.muscleFocus) cy += 70
   cy += 140
@@ -186,29 +196,60 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(22, 500)
   ctx.fillText('EXERCISES', 80, cy); cy += 36
 
+  // ── Exercise cards ──────────────────────────────────
   data.exercises.forEach((ex, i) => {
+    const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
+    const cardH = 24 + 56 + visibleSets.length * 44 + (ex.best1RM > 0 ? 36 : 0) + 24
+
+    if (cy > H - 120) return
+
+    // Card background + border
+    ctx.fillStyle = 'rgba(255,255,255,0.04)'
+    rr(ctx, 80, cy, W - 160, cardH, 16); ctx.fill()
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 1.5
+    rr(ctx, 80, cy, W - 160, cardH, 16); ctx.stroke()
+
+    cy += 24
+
+    // Exercise name (left)
     sh()
     ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = f(40, 700)
-    ctx.fillText(tname(ex.name), 80, cy); cy += 48; ns()
+    ctx.fillText(tname(ex.name), 114, cy)
+    ns()
 
-    ex.setList.forEach(s => {
-      if (s.weight === 0 && s.reps === 0) return
+    // Set count (right)
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(30)
+    ctx.textAlign = 'right'
+    ctx.fillText(`${ex.setCount} sets`, W - 114, cy)
+    ctx.textAlign = 'left'
+
+    cy += 56
+
+    visibleSets.forEach(s => {
+      if (cy > H - 120) return
       const kg = s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'
       ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = f(34)
-      ctx.fillText(kg, 80, cy)
+      ctx.fillText(kg, 114, cy)
       ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(34)
-      ctx.fillText(` × ${s.reps}`, 80 + ctx.measureText(kg).width, cy)
-      cy += 40
+      ctx.fillText(` × ${s.reps}`, 114 + ctx.measureText(kg).width, cy)
+      cy += 44
     })
 
     if (ex.best1RM > 0) {
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(26)
-      ctx.fillText('Best 1RM ', 80, cy)
-      ctx.fillStyle = acHex; ctx.font = f(26, 700)
-      ctx.fillText(`${Math.round(ex.best1RM)}kg`, 80 + ctx.measureText('Best 1RM ').width, cy)
-      cy += 30
+      const val = `${Math.round(ex.best1RM)}kg`
+      const lbl = 'Best 1RM  '
+      ctx.fillStyle = acHex; ctx.font = f(28, 700)
+      ctx.textAlign = 'right'
+      ctx.fillText(val, W - 114, cy)
+      const valW = ctx.measureText(val).width
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(28)
+      ctx.fillText(lbl, W - 114 - valW, cy)
+      ctx.textAlign = 'left'
+      cy += 36
     }
-    if (i < data.exercises.length - 1) cy += 18
+
+    cy += 24
+    if (i < data.exercises.length - 1) cy += 14
   })
 
   if (data.muscleFocus) {
@@ -266,12 +307,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-14 pb-4">
-        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
-          <ArrowLeft size={18} style={{ color: '#888' }} />
+      {/* Header — compact */}
+      <div className="flex items-center gap-2 px-4 pt-12 pb-3">
+        <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
+          <ArrowLeft size={16} style={{ color: '#777' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
+        <h1 className="text-sm font-black tracking-widest text-white">Share Story</h1>
       </div>
 
       {/* ── Story preview ────────────────────────── */}
@@ -289,7 +330,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             {/* Sticky top accent stripe */}
             <div style={{ position: 'sticky', top: 0, left: 0, right: 0, height: 2, background: ac.topLine, zIndex: 2 }} />
 
-            <div style={{ padding: '12px 14px 12px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column' }}>
 
               {/* Badge */}
               <div style={{ display: 'inline-flex', marginBottom: 8 }}>
@@ -305,11 +346,11 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 TODAY&apos;S WORKOUT
               </p>
               <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: '0 0 3px' }}>{fmtDate(data.date)}</p>
-              <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 8px' }}>
+              <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 10px' }}>
                 {data.title}
               </p>
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 7px' }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 8px' }} />
 
               {/* Stats */}
               <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 2px' }}>TOTAL VOLUME</p>
@@ -317,7 +358,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.38)' }}>kg</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px' }}>
                 <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>{data.setsCount} SETS</span>
                 {g1rm > 0 && (
                   <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
@@ -326,39 +367,58 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 )}
               </div>
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 7px' }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 8px' }} />
 
               {/* Exercises */}
-              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 6px' }}>EXERCISES</p>
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 7px' }}>EXERCISES</p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {data.exercises.map(ex => (
-                  <div key={ex.name}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.2, margin: '0 0 3px' }}>
-                      {tname(ex.name)}
-                    </p>
-                    {ex.setList.filter(s => s.weight > 0 || s.reps > 0).map((s, si) => (
-                      <p key={si} style={{ fontSize: 11.5, lineHeight: 1.55, margin: 0 }}>
-                        <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
-                          {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {data.exercises.map(ex => {
+                  const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
+                  return (
+                    <div key={ex.name} style={{
+                      background: ac.exCardBg,
+                      border: `1px solid ${ac.exCardBorder}`,
+                      borderRadius: 10,
+                      padding: '9px 12px 8px',
+                    }}>
+                      {/* Card header: name + set count */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <p style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.9)', margin: 0, letterSpacing: '0.01em' }}>
+                          {tname(ex.name)}
+                        </p>
+                        <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>
+                          {ex.setCount} sets
                         </span>
-                        <span style={{ color: 'rgba(255,255,255,0.35)' }}> × {s.reps}</span>
-                      </p>
-                    ))}
-                    {ex.best1RM > 0 && (
-                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>
-                        Best 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
-                      </p>
-                    )}
-                  </div>
-                ))}
+                      </div>
+
+                      {/* Set rows */}
+                      {visibleSets.map((s, si) => (
+                        <p key={si} style={{ fontSize: 11, lineHeight: 1.6, margin: 0 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
+                            {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
+                          </span>
+                          <span style={{ color: 'rgba(255,255,255,0.32)' }}> × {s.reps}</span>
+                        </p>
+                      ))}
+
+                      {/* Best 1RM — right-aligned footer */}
+                      {ex.best1RM > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 5 }}>
+                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)' }}>Best 1RM&nbsp;</span>
+                          <span style={{ fontSize: 9, color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
 
               {/* Muscle chip */}
               {data.muscleFocus && (
                 <span style={{
                   alignSelf: 'flex-start', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
-                  padding: '3px 8px', borderRadius: 99, marginTop: 8,
+                  padding: '3px 8px', borderRadius: 99, marginTop: 10,
                   background: `${acHex}18`, border: `1px solid ${acHex}44`, color: acHex,
                   textTransform: 'uppercase',
                 }}>
@@ -366,7 +426,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 </span>
               )}
 
-              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.1)', marginTop: 8 }}>Made with LIFTSNAP · liftsnap.app</p>
+              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.1)', marginTop: 10 }}>Made with LIFTSNAP · liftsnap.app</p>
             </div>
           </div>
         </div>
