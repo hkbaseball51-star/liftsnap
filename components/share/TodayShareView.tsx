@@ -19,7 +19,6 @@ export type TodayData = {
   muscleFocus: string | null
 }
 
-type Mode   = 'standard' | 'long'
 type Theme  = 'dark' | 'transparent'
 type Accent = 'orange' | 'purple' | 'dark'
 
@@ -78,7 +77,7 @@ function fmtDate(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${D[d.getDay()]}`
 }
 
-// Conservative height estimate for Long Detail canvas
+// Canvas height = content-based (always full detail, no clip)
 function estimateH(data: TodayData): number {
   let cy = 172
   cy += 38 + 50         // label + date
@@ -94,13 +93,13 @@ function estimateH(data: TodayData): number {
     if (i < data.exercises.length - 1) cy += 18
   })
   if (data.muscleFocus) cy += 70
-  cy += 140  // bottom safety
+  cy += 140
   return Math.max(1920, cy + 60)
 }
 
-async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLong: boolean): Promise<Blob> {
+async function generateCard(data: TodayData, theme: Theme, accent: Accent): Promise<Blob> {
   const W = 1080
-  const H = isLong ? estimateH(data) : 1920
+  const H = estimateH(data)
   const cv = document.createElement('canvas')
   cv.width = W; cv.height = H
   const ctx = cv.getContext('2d')!
@@ -170,8 +169,7 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLon
   ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
   ctx.fillText(' SETS', 80 + sw, cy)
   if (g1rm > 0) {
-    const fullSets = `${data.setsCount} SETS`
-    const sfw = ctx.measureText(fullSets).width
+    const sfw = ctx.measureText(`${data.setsCount} SETS`).width
     const sep = '  ·  '
     ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = f(32)
     ctx.fillText(sep, 80 + sfw, cy)
@@ -179,9 +177,8 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLon
     ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
     const lbl = 'BEST 1RM  '
     ctx.fillText(lbl, 80 + sfw + sepW, cy)
-    const lblW = ctx.measureText(lbl).width
     ctx.fillStyle = acHex; ctx.font = f(32, 700)
-    ctx.fillText(`${Math.round(g1rm)}kg`, 80 + sfw + sepW + lblW, cy)
+    ctx.fillText(`${Math.round(g1rm)}kg`, 80 + sfw + sepW + ctx.measureText(lbl).width, cy)
   }
   cy += 46
   cy += 20; hr(cy); cy += 44
@@ -190,13 +187,12 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLon
   ctx.fillText('EXERCISES', 80, cy); cy += 36
 
   data.exercises.forEach((ex, i) => {
-    if (cy > H - 120) return
     sh()
     ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = f(40, 700)
     ctx.fillText(tname(ex.name), 80, cy); cy += 48; ns()
 
     ex.setList.forEach(s => {
-      if (cy > H - 120 || (s.weight === 0 && s.reps === 0)) return
+      if (s.weight === 0 && s.reps === 0) return
       const kg = s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'
       ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = f(34)
       ctx.fillText(kg, 80, cy)
@@ -205,7 +201,7 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLon
       cy += 40
     })
 
-    if (ex.best1RM > 0 && cy <= H - 120) {
+    if (ex.best1RM > 0) {
       ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(26)
       ctx.fillText('Best 1RM ', 80, cy)
       ctx.fillStyle = acHex; ctx.font = f(26, 700)
@@ -215,7 +211,7 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLon
     if (i < data.exercises.length - 1) cy += 18
   })
 
-  if (data.muscleFocus && cy <= H - 120) {
+  if (data.muscleFocus) {
     cy += 22
     const lbl = data.muscleFocus.toUpperCase()
     ctx.font = f(24, 700)
@@ -235,8 +231,6 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent, isLon
 
 export default function TodayShareView({ data }: { data: TodayData }) {
   const router  = useRouter()
-  const shouldLong = data.setsCount >= 10 || data.exercises.length >= 4
-  const [mode,    setMode]    = useState<Mode>(shouldLong ? 'long' : 'standard')
   const [theme,   setTheme]   = useState<Theme>('dark')
   const [accent,  setAccent]  = useState<Accent>('orange')
   const [sharing, setSharing] = useState(false)
@@ -245,7 +239,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const handleShare = async () => {
     setSharing(true); setStatus('Generating card...')
     try {
-      const blob = await generateCard(data, theme, accent, mode === 'long')
+      const blob = await generateCard(data, theme, accent)
       const file = new File([blob], 'liftsnap-today.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
@@ -269,175 +263,116 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const volStr = fmtVol(data.volume)
   const g1rm   = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
-  const cardBg = theme === 'dark' ? '#0a0a0a' : `${CHECKER} #1a1a1a`
-
-  // ── Card preview content (used in both Standard and Long Detail) ──────────
-  const cardContent = (
-    <div style={{
-      padding: '12px 14px 10px',
-      display: 'flex',
-      flexDirection: 'column',
-      ...(mode === 'standard' ? { height: '100%' } : {}),
-    }}>
-
-      {/* Badge */}
-      <div style={{ display: 'inline-flex', marginBottom: 8 }}>
-        <span style={{
-          fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 8,
-          background: ac.badgeBg, color: ac.badgeText,
-          border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
-        }}>LIFTSNAP</span>
-      </div>
-
-      {/* TODAY'S WORKOUT + Date + Title */}
-      <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em', margin: '0 0 2px' }}>
-        TODAY&apos;S WORKOUT
-      </p>
-      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: '0 0 3px' }}>{fmtDate(data.date)}</p>
-      <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 7px' }}>
-        {data.title}
-      </p>
-
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 6px' }} />
-
-      {/* Stats */}
-      <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 2px' }}>TOTAL VOLUME</p>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, margin: '0 0 2px' }}>
-        <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.38)' }}>kg</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 7px' }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>{data.setsCount} SETS</span>
-        {g1rm > 0 && (
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
-            · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(g1rm)}kg</span>
-          </span>
-        )}
-      </div>
-
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 6px' }} />
-
-      {/* Exercises header */}
-      <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 5px' }}>EXERCISES</p>
-
-      {/* Exercise list */}
-      <div style={{
-        ...(mode === 'standard' ? { flex: 1, overflow: 'hidden' } : {}),
-        display: 'flex', flexDirection: 'column', gap: 7,
-      }}>
-        {data.exercises.map(ex => (
-          <div key={ex.name}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.2, margin: '0 0 2px' }}>
-              {tname(ex.name)}
-            </p>
-            {ex.setList.filter(s => s.weight > 0 || s.reps > 0).map((s, si) => (
-              <p key={si} style={{ fontSize: 11.5, lineHeight: 1.5, margin: 0 }}>
-                <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
-                  {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.35)' }}> × {s.reps}</span>
-              </p>
-            ))}
-            {ex.best1RM > 0 && (
-              <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>
-                Best 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Muscle chip */}
-      {data.muscleFocus && (
-        <span style={{
-          alignSelf: 'flex-start', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
-          padding: '3px 8px', borderRadius: 99, marginTop: 6,
-          background: `${acHex}18`, border: `1px solid ${acHex}44`, color: acHex,
-          textTransform: 'uppercase',
-        }}>
-          {data.muscleFocus}
-        </span>
-      )}
-
-      {mode === 'standard' && <div style={{ flex: 1 }} />}
-      <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.1)', marginTop: 6 }}>Made with LIFTSNAP · liftsnap.app</p>
-    </div>
-  )
-
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-14 pb-3">
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4">
         <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={18} style={{ color: '#888' }} />
         </button>
         <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
       </div>
 
-      {/* ── Card preview ────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 20px' }}>
+      {/* ── Story preview ────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 16px' }}>
         <div style={{ width: 'min(94vw, 420px)' }}>
+          <div style={{
+            maxHeight: '76vh',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            borderRadius: 24,
+            position: 'relative',
+            background: theme === 'dark' ? '#0a0a0a' : `${CHECKER} #1a1a1a`,
+            border: `1px solid ${ac.cardBorder}`,
+          }}>
+            {/* Sticky top accent stripe */}
+            <div style={{ position: 'sticky', top: 0, left: 0, right: 0, height: 2, background: ac.topLine, zIndex: 2 }} />
 
-          {/* Standard mode: fixed 9:16 */}
-          {mode === 'standard' && (
-            <div style={{
-              aspectRatio: '9/16',
-              overflow: 'hidden',
-              borderRadius: 24,
-              position: 'relative',
-              background: cardBg,
-              border: `1px solid ${ac.cardBorder}`,
-            }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: ac.topLine }} />
-              {cardContent}
-            </div>
-          )}
+            <div style={{ padding: '12px 14px 12px', display: 'flex', flexDirection: 'column' }}>
 
-          {/* Long Detail mode: scrollable, height grows with content */}
-          {mode === 'long' && (
-            <div style={{
-              maxHeight: '76vh',
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              borderRadius: 24,
-              position: 'relative',
-              background: cardBg,
-              border: `1px solid ${ac.cardBorder}`,
-            }}>
-              <div style={{ position: 'sticky', top: 0, left: 0, right: 0, height: 2, background: ac.topLine, zIndex: 2 }} />
-              {cardContent}
+              {/* Badge */}
+              <div style={{ display: 'inline-flex', marginBottom: 8 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 8,
+                  background: ac.badgeBg, color: ac.badgeText,
+                  border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
+                }}>LIFTSNAP</span>
+              </div>
+
+              {/* Header text */}
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em', margin: '0 0 2px' }}>
+                TODAY&apos;S WORKOUT
+              </p>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: '0 0 3px' }}>{fmtDate(data.date)}</p>
+              <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 8px' }}>
+                {data.title}
+              </p>
+
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 7px' }} />
+
+              {/* Stats */}
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 2px' }}>TOTAL VOLUME</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, margin: '0 0 3px' }}>
+                <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.38)' }}>kg</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 8px' }}>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>{data.setsCount} SETS</span>
+                {g1rm > 0 && (
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)' }}>
+                    · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(g1rm)}kg</span>
+                  </span>
+                )}
+              </div>
+
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 7px' }} />
+
+              {/* Exercises */}
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 6px' }}>EXERCISES</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {data.exercises.map(ex => (
+                  <div key={ex.name}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.2, margin: '0 0 3px' }}>
+                      {tname(ex.name)}
+                    </p>
+                    {ex.setList.filter(s => s.weight > 0 || s.reps > 0).map((s, si) => (
+                      <p key={si} style={{ fontSize: 11.5, lineHeight: 1.55, margin: 0 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
+                          {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
+                        </span>
+                        <span style={{ color: 'rgba(255,255,255,0.35)' }}> × {s.reps}</span>
+                      </p>
+                    ))}
+                    {ex.best1RM > 0 && (
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>
+                        Best 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Muscle chip */}
+              {data.muscleFocus && (
+                <span style={{
+                  alignSelf: 'flex-start', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
+                  padding: '3px 8px', borderRadius: 99, marginTop: 8,
+                  background: `${acHex}18`, border: `1px solid ${acHex}44`, color: acHex,
+                  textTransform: 'uppercase',
+                }}>
+                  {data.muscleFocus}
+                </span>
+              )}
+
+              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.1)', marginTop: 8 }}>Made with LIFTSNAP · liftsnap.app</p>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* ── Options ──────────────────────────────── */}
-
-      {/* Mode */}
-      <div className="px-4 mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold" style={{ color: '#555', letterSpacing: '0.08em' }}>Mode</p>
-          {shouldLong && (
-            <p className="text-[9px] font-bold" style={{ color: acHex }}>
-              Long Detail recommended
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {(['standard', 'long'] as Mode[]).map(m => (
-            <button key={m} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{
-                background: mode === m ? '#ff6b00' : '#1a1a1a',
-                color: mode === m ? '#fff' : '#666',
-                border: `1px solid ${mode === m ? '#ff6b00' : '#2a2a2a'}`,
-              }}
-              onClick={() => setMode(m)}>
-              {m === 'standard' ? 'Standard' : 'Long Detail'}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Background */}
       <div className="px-4 mb-3">
