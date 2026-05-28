@@ -26,37 +26,43 @@ const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
   cardBorder: string; topLine: string
 }> = {
-  orange: { hex: '#ff6b00', badgeBg: '#ff6b00', badgeBorder: 'transparent', badgeText: '#ffffff', cardBorder: 'rgba(255,107,0,0.35)', topLine: '#ff6b00' },
-  purple: { hex: '#a855f7', badgeBg: '#a855f7', badgeBorder: 'transparent', badgeText: '#ffffff', cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7' },
-  dark:   { hex: 'rgba(255,255,255,0.85)', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)', cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)' },
+  orange: { hex: '#ff6b00', badgeBg: '#ff6b00', badgeBorder: 'transparent',          badgeText: '#ffffff',              cardBorder: 'rgba(255,107,0,0.35)',   topLine: '#ff6b00'                  },
+  purple: { hex: '#a855f7', badgeBg: '#a855f7', badgeBorder: 'transparent',          badgeText: '#ffffff',              cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7'                  },
+  dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)', cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)' },
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
 
 const JA_EN: Record<string, string> = {
-  'デッドリフト': 'Deadlift', 'ベントオーバーロウ': 'Bent Over Row', 'ベントオーバーロー': 'Bent Over Row',
-  'ラットプルダウン': 'Lat Pulldown', 'チンニング': 'Chin-up', 'チンアップ': 'Chin-up',
-  'プルアップ': 'Pull-up', '懸垂': 'Pull-up', 'ベンチプレス': 'Bench Press',
-  'インクラインベンチプレス': 'Incline Bench Press', 'ダンベルベンチプレス': 'DB Bench Press',
-  'インクラインダンベルプレス': 'Incline DB Press', 'フラットダンベルプレス': 'Flat DB Press',
-  'ショルダープレス': 'Shoulder Press', 'オーバーヘッドプレス': 'Overhead Press',
-  'ダンベルショルダープレス': 'DB Shoulder Press', 'スクワット': 'Squat',
-  'バーベルスクワット': 'Barbell Squat', 'フロントスクワット': 'Front Squat',
-  'レッグプレス': 'Leg Press', 'レッグカール': 'Leg Curl', 'レッグエクステンション': 'Leg Extension',
-  'ルーマニアンデッドリフト': 'Romanian Deadlift', 'アームカール': 'Arm Curl',
-  'バーベルカール': 'Barbell Curl', 'ダンベルカール': 'DB Curl', 'ハンマーカール': 'Hammer Curl',
-  'トライセプスエクステンション': 'Tricep Extension', 'トライセプスプッシュダウン': 'Tricep Pushdown',
-  'プッシュダウン': 'Pushdown', 'サイドレイズ': 'Lateral Raise', 'リアレイズ': 'Rear Delt Raise',
-  'フロントレイズ': 'Front Raise', 'ダンベルロウ': 'DB Row', 'ワンハンドロウ': 'One-Arm Row',
-  'ケーブルロウ': 'Cable Row', 'シーテッドロウ': 'Seated Row', 'プランク': 'Plank',
-  'ディップス': 'Dips', 'プッシュアップ': 'Push-up', 'チェストフライ': 'Chest Fly',
-  'ペックデック': 'Pec Deck', 'ケーブルクロスオーバー': 'Cable Crossover',
-  'カーフレイズ': 'Calf Raise', 'ヒップスラスト': 'Hip Thrust', 'グッドモーニング': 'Good Morning',
-  'バーベルロウ': 'Barbell Row', 'ケーブルカール': 'Cable Curl', 'フェイスプル': 'Face Pull',
-  'シュラッグ': 'Shrug', 'ランジ': 'Lunge', 'ブルガリアンスクワット': 'Bulgarian Split Squat',
-  'ケーブルフライ': 'Cable Fly', 'インクラインカール': 'Incline Curl', 'ステップアップ': 'Step Up',
+  'デッドリフト': 'Deadlift',                   'ベントオーバーロウ': 'Bent Over Row',
+  'ベントオーバーロー': 'Bent Over Row',          'ラットプルダウン': 'Lat Pulldown',
+  'チンニング': 'Chin-up',                        'チンアップ': 'Chin-up',
+  'プルアップ': 'Pull-up',                        '懸垂': 'Pull-up',
+  'ベンチプレス': 'Bench Press',                  'インクラインベンチプレス': 'Incline Bench Press',
+  'ダンベルベンチプレス': 'DB Bench Press',       'インクラインダンベルプレス': 'Incline DB Press',
+  'フラットダンベルプレス': 'Flat DB Press',      'ショルダープレス': 'Shoulder Press',
+  'オーバーヘッドプレス': 'Overhead Press',       'ダンベルショルダープレス': 'DB Shoulder Press',
+  'スクワット': 'Squat',                          'バーベルスクワット': 'Barbell Squat',
+  'フロントスクワット': 'Front Squat',            'レッグプレス': 'Leg Press',
+  'レッグカール': 'Leg Curl',                     'レッグエクステンション': 'Leg Extension',
+  'ルーマニアンデッドリフト': 'Romanian Deadlift','アームカール': 'Arm Curl',
+  'バーベルカール': 'Barbell Curl',               'ダンベルカール': 'DB Curl',
+  'ハンマーカール': 'Hammer Curl',                'トライセプスエクステンション': 'Tricep Extension',
+  'トライセプスプッシュダウン': 'Tricep Pushdown','プッシュダウン': 'Pushdown',
+  'サイドレイズ': 'Lateral Raise',               'リアレイズ': 'Rear Delt Raise',
+  'フロントレイズ': 'Front Raise',                'ダンベルロウ': 'DB Row',
+  'ワンハンドロウ': 'One-Arm Row',                'ケーブルロウ': 'Cable Row',
+  'シーテッドロウ': 'Seated Row',                 'プランク': 'Plank',
+  'ディップス': 'Dips',                           'プッシュアップ': 'Push-up',
+  'チェストフライ': 'Chest Fly',                  'ペックデック': 'Pec Deck',
+  'ケーブルクロスオーバー': 'Cable Crossover',    'カーフレイズ': 'Calf Raise',
+  'ヒップスラスト': 'Hip Thrust',                 'グッドモーニング': 'Good Morning',
+  'バーベルロウ': 'Barbell Row',                  'ケーブルカール': 'Cable Curl',
+  'フェイスプル': 'Face Pull',                    'シュラッグ': 'Shrug',
+  'ランジ': 'Lunge',                              'ブルガリアンスクワット': 'Bulgarian Split Squat',
+  'ケーブルフライ': 'Cable Fly',                  'インクラインカール': 'Incline Curl',
+  'ステップアップ': 'Step Up',
 }
-
 const tname = (n: string) => JA_EN[n] ?? n
 
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -87,8 +93,10 @@ function estimateH(data: TodayData): number {
   cy += 36             // EXERCISES header
   data.exercises.forEach((ex, i) => {
     const vis = ex.setList.filter(s => s.weight > 0 || s.reps > 0).length
-    cy += 24 + 56 + vis * 44 + (ex.best1RM > 0 ? 36 : 0) + 24
-    if (i < data.exercises.length - 1) cy += 14
+    cy += 54             // exercise name
+    cy += 44             // meta row (sets · est.1RM)
+    cy += vis * 48       // set rows
+    if (i < data.exercises.length - 1) cy += 42  // gap + divider + gap
   })
   if (data.muscleFocus) cy += 70
   cy += 140
@@ -103,37 +111,40 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   const ctx = cv.getContext('2d')!
   const ac = AC[accent]
   const acHex = accent === 'dark' ? '#ffffff' : ac.hex
-  const isTransparent = theme === 'transparent'
+  const isT = theme === 'transparent'
 
-  if (!isTransparent) { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H) }
+  if (!isT) { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H) }
   ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 6)
 
-  // sh() = big title shadow; ns() = restore base shadow (8px in transparent, 0 in dark)
-  const sh = () => { ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 2 }
-  const ns = () => {
-    if (isTransparent) { ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.shadowBlur = 9; ctx.shadowOffsetY = 1 }
-    else { ctx.shadowBlur = 0; ctx.shadowOffsetY = 0 }
-  }
-  const hr = (y: number) => {
-    ctx.shadowBlur = 0
-    ctx.strokeStyle = isTransparent ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.12)'
-    ctx.lineWidth = 1.5
-    ctx.beginPath(); ctx.moveTo(80, y); ctx.lineTo(W-80, y); ctx.stroke()
-    ns()
-  }
-  const f = (sz: number, w: 400|500|700 = 400) =>
+  const f  = (sz: number, w: 400|500|700 = 400) =>
     `${w === 700 ? 'bold ' : w === 500 ? '500 ' : ''}${sz}px system-ui,-apple-system,sans-serif`
 
-  // Start with base shadow in transparent mode
+  // sh = strong shadow for headlines; ns = base shadow (always on in transparent)
+  const sh = () => { ctx.shadowColor = 'rgba(0,0,0,0.92)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 2 }
+  const ns = () => {
+    if (isT) { ctx.shadowColor = 'rgba(0,0,0,0.96)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 1 }
+    else     { ctx.shadowBlur = 0; ctx.shadowOffsetY = 0 }
+  }
+  const divLine = (x1: number, x2: number, y: number, alpha: number) => {
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
+    ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = 1.5
+    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke()
+    ns()
+  }
+
   ns()
 
-  // Badge
+  // ── Badge ──────────────────────────────────────────
   ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
   ctx.fillStyle = ac.badgeBg
   rr(ctx, 80, 90, 268, 62, 12); ctx.fill()
-  if (accent === 'dark') { ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5; rr(ctx, 80, 90, 268, 62, 12); ctx.stroke() }
+  if (accent === 'dark') {
+    ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5
+    rr(ctx, 80, 90, 268, 62, 12); ctx.stroke()
+  }
   ns()
-  ctx.fillStyle = ac.badgeText; ctx.font = f(28, 700); ctx.fillText('LIFTSNAP', 110, 132)
+  ctx.fillStyle = ac.badgeText; ctx.font = f(28, 700)
+  ctx.fillText('LIFTSNAP', 110, 132)
 
   let cy = 174
 
@@ -144,8 +155,8 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   ctx.fillText(fmtDate(data.date), 80, cy); cy += 50
 
   // Title
-  const tu = data.title.toUpperCase()
   ctx.fillStyle = '#ffffff'; ctx.font = f(76, 700)
+  const tu = data.title.toUpperCase()
   if (ctx.measureText(tu).width > W - 160) {
     const words = tu.split(' ')
     let l1 = '', i2 = 0
@@ -160,7 +171,7 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   }
   ns()
 
-  cy += 24; hr(cy); cy += 48
+  cy += 24; divLine(80, W - 80, cy, isT ? 0.22 : 0.12); cy += 48
 
   // TOTAL VOLUME
   ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(22, 500)
@@ -174,17 +185,16 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   ctx.fillText(' kg', 80 + ctx.measureText(vs).width, cy - 8)
   cy += 122; ns()
 
-  // Stats row
   const g1rm = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
   ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.font = f(32, 700)
   ctx.fillText(`${data.setsCount}`, 80, cy)
-  const sw = ctx.measureText(`${data.setsCount}`).width
+  const sw0 = ctx.measureText(`${data.setsCount}`).width
   ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(32)
-  ctx.fillText(' SETS', 80 + sw, cy)
+  ctx.fillText(' SETS', 80 + sw0, cy)
   if (g1rm > 0) {
     const sfw = ctx.measureText(`${data.setsCount} SETS`).width
     const sep = '  ·  '
-    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = f(32)
     ctx.fillText(sep, 80 + sfw, cy)
     const sepW = ctx.measureText(sep).width
     ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(32)
@@ -194,69 +204,58 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
     ctx.fillText(`${Math.round(g1rm)}kg`, 80 + sfw + sepW + ctx.measureText(lbl).width, cy)
   }
   cy += 46
-  cy += 20; hr(cy); cy += 44
+
+  cy += 20; divLine(80, W - 80, cy, isT ? 0.22 : 0.12); cy += 44
 
   // EXERCISES header
   ctx.fillStyle = 'rgba(255,255,255,0.62)'; ctx.font = f(22, 500)
   ctx.fillText('EXERCISES', 80, cy); cy += 36
 
-  // ── Exercise cards ──────────────────────────────────
+  // ── Exercise list (no card backgrounds) ────────────
   data.exercises.forEach((ex, i) => {
     const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
-    const cardH = 24 + 56 + visibleSets.length * 44 + (ex.best1RM > 0 ? 36 : 0) + 24
-
     if (cy > H - 120) return
 
-    // Card background + border (darker in transparent for readability)
-    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
-    ctx.fillStyle = isTransparent ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.04)'
-    rr(ctx, 80, cy, W - 160, cardH, 16); ctx.fill()
-    ctx.strokeStyle = isTransparent ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'
-    ctx.lineWidth = 1.5
-    rr(ctx, 80, cy, W - 160, cardH, 16); ctx.stroke()
-    ns()
-
-    cy += 24
-
-    // Exercise name (left)
+    // Name — large, prominent
     sh()
-    ctx.fillStyle = '#ffffff'; ctx.font = f(40, 700)
-    ctx.fillText(tname(ex.name), 114, cy)
-    ns()
+    ctx.fillStyle = '#ffffff'; ctx.font = f(46, 700)
+    ctx.fillText(tname(ex.name), 80, cy); cy += 54; ns()
 
-    // Set count (right)
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = f(30)
-    ctx.textAlign = 'right'
-    ctx.fillText(`${ex.setCount} sets`, W - 114, cy)
-    ctx.textAlign = 'left'
+    // Meta row: N sets · est. 1RM
+    ctx.fillStyle = 'rgba(255,255,255,0.58)'; ctx.font = f(28, 500)
+    const setsLbl = `${ex.setCount} sets`
+    ctx.fillText(setsLbl, 80, cy)
+    if (ex.best1RM > 0) {
+      const slw = ctx.measureText(setsLbl).width
+      const sep = '  ·  '
+      ctx.fillStyle = 'rgba(255,255,255,0.30)'; ctx.font = f(28)
+      ctx.fillText(sep, 80 + slw, cy)
+      const spw = ctx.measureText(sep).width
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = f(28)
+      const lbl = 'est. 1RM  '
+      ctx.fillText(lbl, 80 + slw + spw, cy)
+      ctx.fillStyle = acHex; ctx.font = f(28, 700)
+      ctx.fillText(`${Math.round(ex.best1RM)}kg`, 80 + slw + spw + ctx.measureText(lbl).width, cy)
+    }
+    cy += 44
 
-    cy += 56
-
+    // Set rows — hero data, readable
     visibleSets.forEach(s => {
       if (cy > H - 120) return
       const kg = s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'
-      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = f(34)
-      ctx.fillText(kg, 114, cy)
-      ctx.fillStyle = 'rgba(255,255,255,0.58)'; ctx.font = f(34)
-      ctx.fillText(` × ${s.reps}`, 114 + ctx.measureText(kg).width, cy)
-      cy += 44
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = f(38, 500)
+      ctx.fillText(kg, 80, cy)
+      ctx.fillStyle = 'rgba(255,255,255,0.50)'; ctx.font = f(38)
+      ctx.fillText(` × ${s.reps}`, 80 + ctx.measureText(kg).width, cy)
+      cy += 48
     })
 
-    if (ex.best1RM > 0) {
-      const val = `${Math.round(ex.best1RM)}kg`
-      const lbl = 'Best 1RM  '
-      ctx.fillStyle = acHex; ctx.font = f(28, 700)
-      ctx.textAlign = 'right'
-      ctx.fillText(val, W - 114, cy)
-      const valW = ctx.measureText(val).width
-      ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = f(28)
-      ctx.fillText(lbl, W - 114 - valW, cy)
-      ctx.textAlign = 'left'
-      cy += 36
+    // Thin separator between exercises
+    if (i < data.exercises.length - 1) {
+      cy += 16
+      divLine(80, W - 80, cy, isT ? 0.14 : 0.08)
+      cy += 26
     }
-
-    cy += 24
-    if (i < data.exercises.length - 1) cy += 14
   })
 
   if (data.muscleFocus) {
@@ -265,9 +264,9 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
     ctx.font = f(24, 700)
     const tw = ctx.measureText(lbl).width
-    ctx.fillStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.08)' : acHex}1a`
+    ctx.fillStyle = `${acHex}1a`
     rr(ctx, 80, cy - 32, tw + 44, 48, 24); ctx.fill()
-    ctx.strokeStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.15)' : acHex}44`; ctx.lineWidth = 1.5
+    ctx.strokeStyle = `${acHex}44`; ctx.lineWidth = 1.5
     rr(ctx, 80, cy - 32, tw + 44, 48, 24); ctx.stroke()
     ns()
     ctx.fillStyle = acHex; ctx.fillText(lbl, 102, cy)
@@ -313,21 +312,18 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const acHex = accent === 'dark' ? '#ffffff' : ac.hex
   const volStr = fmtVol(data.volume)
   const g1rm   = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
+  const isT    = theme === 'transparent'
 
-  // Transparent-mode derived values
-  const isTransparent = theme === 'transparent'
-  const dividerColor  = isTransparent ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.10)'
-  const exCardBg      = isTransparent ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.045)'
-  const exCardBorder  = isTransparent ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'
-  // text-shadow inherited by all children in transparent mode
-  const contentTsh    = isTransparent
-    ? '0 1px 6px rgba(0,0,0,0.98), 0 0 12px rgba(0,0,0,0.85)'
-    : undefined
+  const dividerColor = isT ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)'
+  // text-shadow inherited by all children; subtle glow in dark, strong in transparent
+  const tsh = isT
+    ? '0 1px 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,0.9)'
+    : '0 1px 4px rgba(0,0,0,0.7)'
 
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
-      {/* Header — compact */}
+      {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-12 pb-3">
         <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={16} style={{ color: '#777' }} />
@@ -339,22 +335,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 16px' }}>
         <div style={{ width: 'min(94vw, 420px)' }}>
           <div style={{
-            maxHeight: '76vh',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            borderRadius: 24,
-            position: 'relative',
-            // Transparent: dark gradient overlay simulates dark photo background
-            background: isTransparent
-              ? `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.50)), ${CHECKER} #1a1a1a`
+            maxHeight: '76vh', overflowY: 'auto', overflowX: 'hidden',
+            borderRadius: 24, position: 'relative',
+            background: isT
+              ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
               : '#0a0a0a',
             border: `1px solid ${ac.cardBorder}`,
           }}>
-            {/* Sticky top accent stripe */}
             <div style={{ position: 'sticky', top: 0, left: 0, right: 0, height: 2, background: ac.topLine, zIndex: 2 }} />
 
-            {/* textShadow is CSS-inherited — all text children get it in transparent mode */}
-            <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: contentTsh }}>
+            {/* textShadow cascades to all children */}
+            <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: tsh }}>
 
               {/* Badge */}
               <div style={{ display: 'inline-flex', marginBottom: 8 }}>
@@ -365,7 +356,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 }}>LIFTSNAP</span>
               </div>
 
-              {/* Header labels */}
               <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.58)', letterSpacing: '0.1em', margin: '0 0 2px' }}>
                 TODAY&apos;S WORKOUT
               </p>
@@ -376,7 +366,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
               <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
-              {/* Stats */}
               <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.08em', margin: '0 0 2px' }}>TOTAL VOLUME</p>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, margin: '0 0 3px' }}>
                 <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
@@ -393,56 +382,58 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
               <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
-              {/* Exercises */}
-              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.08em', margin: '0 0 7px' }}>EXERCISES</p>
+              <p style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.08em', margin: '0 0 10px' }}>EXERCISES</p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {data.exercises.map(ex => {
+              {/* ── Exercise list — flat, no card bg ── */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {data.exercises.map((ex, idx) => {
                   const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
                   return (
-                    <div key={ex.name} style={{
-                      background: exCardBg,
-                      border: `1px solid ${exCardBorder}`,
-                      borderRadius: 10,
-                      padding: '9px 12px 8px',
-                    }}>
-                      {/* Card header: name + set count */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <p style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '0.01em' }}>
-                          {tname(ex.name)}
-                        </p>
-                        <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
+                    <div key={ex.name}>
+                      {/* Exercise name — large */}
+                      <p style={{ fontSize: 14, fontWeight: 800, color: '#ffffff', margin: '0 0 2px', letterSpacing: '0.005em' }}>
+                        {tname(ex.name)}
+                      </p>
+
+                      {/* Meta row: N sets · est. 1RM — right under name */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, margin: '0 0 5px' }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.58)', fontWeight: 500 }}>
                           {ex.setCount} sets
                         </span>
+                        {ex.best1RM > 0 && (
+                          <>
+                            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)' }}>·</span>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
+                              est. 1RM&nbsp;
+                              <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
+                            </span>
+                          </>
+                        )}
                       </div>
 
-                      {/* Set rows */}
+                      {/* Set rows — hero data */}
                       {visibleSets.map((s, si) => (
-                        <p key={si} style={{ fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-                          <span style={{ color: 'rgba(255,255,255,0.90)', fontWeight: 600 }}>
+                        <p key={si} style={{ fontSize: 13, lineHeight: 1.65, margin: 0, fontWeight: 500 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.92)' }}>
                             {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
                           </span>
-                          <span style={{ color: 'rgba(255,255,255,0.55)' }}> × {s.reps}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.50)' }}> × {s.reps}</span>
                         </p>
                       ))}
 
-                      {/* Best 1RM — right-aligned footer */}
-                      {ex.best1RM > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 5 }}>
-                          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)' }}>Best 1RM&nbsp;</span>
-                          <span style={{ fontSize: 9, color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
-                        </div>
+                      {/* Thin divider between exercises — not after last */}
+                      {idx < data.exercises.length - 1 && (
+                        <div style={{ height: 1, background: isT ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)', margin: '10px 0' }} />
                       )}
                     </div>
                   )
                 })}
               </div>
 
-              {/* Muscle chip */}
               {data.muscleFocus && (
                 <span style={{
                   alignSelf: 'flex-start', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
-                  padding: '3px 8px', borderRadius: 99, marginTop: 10,
+                  padding: '3px 8px', borderRadius: 99, marginTop: 12,
                   background: `${acHex}18`, border: `1px solid ${acHex}44`, color: acHex,
                   textTransform: 'uppercase',
                 }}>
@@ -450,7 +441,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 </span>
               )}
 
-              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.18)', marginTop: 10, textShadow: 'none' }}>
+              <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.18)', marginTop: 12, textShadow: 'none' }}>
                 Made with LIFTSNAP · liftsnap.app
               </p>
             </div>
@@ -459,18 +450,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       </div>
 
       {/* ── Options ──────────────────────────────── */}
-
-      {/* Background */}
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Background</p>
         <div className="flex gap-2">
           {(['dark', 'transparent'] as Theme[]).map(t => (
             <button key={t} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{
-                background: theme === t ? '#ff6b00' : '#1a1a1a',
-                color: theme === t ? '#fff' : '#666',
-                border: `1px solid ${theme === t ? '#ff6b00' : '#2a2a2a'}`,
-              }}
+              style={{ background: theme === t ? '#ff6b00' : '#1a1a1a', color: theme === t ? '#fff' : '#666', border: `1px solid ${theme === t ? '#ff6b00' : '#2a2a2a'}` }}
               onClick={() => setTheme(t)}>
               {t === 'dark' ? 'Dark' : 'Transparent'}
             </button>
@@ -478,7 +463,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Color */}
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
         <div className="flex gap-2">
@@ -496,7 +480,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Share */}
       <div className="px-4 space-y-2 mb-4">
         {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
         <button
