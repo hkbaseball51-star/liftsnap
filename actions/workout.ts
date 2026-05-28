@@ -350,25 +350,33 @@ export async function getTodayWorkoutForShare(date: string) {
 
   const { data: sets } = await supabase
     .from('workout_sets')
-    .select('exercise_name, muscle_group, weight_kg, reps, is_completed')
+    .select('exercise_name, muscle_group, weight_kg, reps, is_completed, set_number')
     .eq('session_id', session.id)
     .eq('is_completed', true)
+    .order('set_number')
 
-  const exerciseMap = new Map<string, { muscle_group: string; sets: number; best1RM: number; bestWeight: number; bestReps: number }>()
+  const exerciseMap = new Map<string, { muscle_group: string; sets: { weight: number; reps: number }[]; best1RM: number }>()
   sets?.forEach(s => {
     if (!exerciseMap.has(s.exercise_name))
-      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: 0, best1RM: 0, bestWeight: 0, bestReps: 0 })
+      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: [], best1RM: 0 })
     const ex = exerciseMap.get(s.exercise_name)!
-    ex.sets++
     const w = s.weight_kg ?? 0
     const r = s.reps ?? 0
+    ex.sets.push({ weight: w, reps: r })
     const e1rm = w * (1 + r / 30)
-    if (e1rm > ex.best1RM) { ex.best1RM = e1rm; ex.bestWeight = w; ex.bestReps = r }
+    if (e1rm > ex.best1RM) ex.best1RM = e1rm
   })
 
   let bestLiftName = '', bestLift1RM = 0, bestLiftWeight = 0
   exerciseMap.forEach((v, k) => {
-    if (v.best1RM > bestLift1RM) { bestLift1RM = v.best1RM; bestLiftWeight = v.bestWeight; bestLiftName = k }
+    if (v.best1RM > bestLift1RM) {
+      bestLift1RM = v.best1RM
+      bestLiftName = k
+      bestLiftWeight = v.sets.reduce((best, s) => {
+        const e = s.weight * (1 + s.reps / 30)
+        return e > best.e ? { e, w: s.weight } : best
+      }, { e: 0, w: 0 }).w
+    }
   })
 
   const muscleCount = new Map<string, number>()
@@ -388,7 +396,10 @@ export async function getTodayWorkoutForShare(date: string) {
     volume: totalVolume,
     setsCount: sets?.length ?? 0,
     exercises: Array.from(exerciseMap.entries()).map(([name, d]) => ({
-      name, sets: d.sets, bestWeight: d.bestWeight, bestReps: d.bestReps,
+      name,
+      setList: d.sets,
+      setCount: d.sets.length,
+      best1RM: Math.round(d.best1RM * 10) / 10,
     })),
     bestLift: bestLiftName ? { name: bestLiftName, weight: bestLiftWeight } : null,
     muscleFocus: muscleFocus || null,

@@ -9,7 +9,12 @@ export type TodayData = {
   date: string
   volume: number
   setsCount: number
-  exercises: { name: string; sets: number; bestWeight: number; bestReps: number }[]
+  exercises: {
+    name: string
+    setList: { weight: number; reps: number }[]
+    setCount: number
+    best1RM: number
+  }[]
   bestLift: { name: string; weight: number } | null
   muscleFocus: string | null
 }
@@ -28,8 +33,67 @@ const AC: Record<Accent, {
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
 
-const MAX_EX_CANVAS = 5
-const MAX_EX_DOM    = 4
+const JA_EN: Record<string, string> = {
+  'デッドリフト': 'Deadlift',
+  'ベントオーバーロウ': 'Bent Over Row',
+  'ベントオーバーロー': 'Bent Over Row',
+  'ラットプルダウン': 'Lat Pulldown',
+  'チンニング': 'Chin-up',
+  'チンアップ': 'Chin-up',
+  'プルアップ': 'Pull-up',
+  '懸垂': 'Pull-up',
+  'ベンチプレス': 'Bench Press',
+  'インクラインベンチプレス': 'Incline Bench Press',
+  'ダンベルベンチプレス': 'DB Bench Press',
+  'インクラインダンベルプレス': 'Incline DB Press',
+  'フラットダンベルプレス': 'Flat DB Press',
+  'ショルダープレス': 'Shoulder Press',
+  'オーバーヘッドプレス': 'Overhead Press',
+  'ダンベルショルダープレス': 'DB Shoulder Press',
+  'スクワット': 'Squat',
+  'バーベルスクワット': 'Barbell Squat',
+  'フロントスクワット': 'Front Squat',
+  'レッグプレス': 'Leg Press',
+  'レッグカール': 'Leg Curl',
+  'レッグエクステンション': 'Leg Extension',
+  'ルーマニアンデッドリフト': 'Romanian Deadlift',
+  'アームカール': 'Arm Curl',
+  'バーベルカール': 'Barbell Curl',
+  'ダンベルカール': 'DB Curl',
+  'ハンマーカール': 'Hammer Curl',
+  'トライセプスエクステンション': 'Tricep Extension',
+  'トライセプスプッシュダウン': 'Tricep Pushdown',
+  'プッシュダウン': 'Pushdown',
+  'サイドレイズ': 'Lateral Raise',
+  'リアレイズ': 'Rear Delt Raise',
+  'フロントレイズ': 'Front Raise',
+  'ダンベルロウ': 'DB Row',
+  'ワンハンドロウ': 'One-Arm Row',
+  'ケーブルロウ': 'Cable Row',
+  'シーテッドロウ': 'Seated Row',
+  'プランク': 'Plank',
+  'ディップス': 'Dips',
+  'プッシュアップ': 'Push-up',
+  'チェストフライ': 'Chest Fly',
+  'ペックデック': 'Pec Deck',
+  'ケーブルクロスオーバー': 'Cable Crossover',
+  'カーフレイズ': 'Calf Raise',
+  'ヒップスラスト': 'Hip Thrust',
+  'グッドモーニング': 'Good Morning',
+  'バーベルロウ': 'Barbell Row',
+  'ケーブルカール': 'Cable Curl',
+  'フェイスプル': 'Face Pull',
+  'シュラッグ': 'Shrug',
+  'ランジ': 'Lunge',
+  'ブルガリアンスクワット': 'Bulgarian Split Squat',
+  'ケーブルフライ': 'Cable Fly',
+  'インクラインカール': 'Incline Curl',
+  'ステップアップ': 'Step Up',
+}
+
+function tname(name: string): string {
+  return JA_EN[name] ?? name
+}
 
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
@@ -41,7 +105,8 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 }
 
 function fmtVol(v: number): string {
-  return v >= 10000 ? `${(v/1000).toFixed(1)}k` : v.toLocaleString()
+  if (v >= 10000) return `${(v/1000).toFixed(1)}k`
+  return v.toLocaleString()
 }
 
 function fmtKg(v: number): string {
@@ -64,122 +129,142 @@ async function generateCard(data: TodayData, theme: Theme, accent: Accent): Prom
   const acHex = accent === 'dark' ? '#ffffff' : ac.hex
 
   if (theme === 'dark') { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, W, H) }
+  ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 6)
 
-  ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 7)
-
-  const sh  = () => { ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 20 }
-  const ns  = () => { ctx.shadowBlur = 0 }
-  const divLine = (y: number) => {
+  const sh = () => { ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 16 }
+  const ns = () => { ctx.shadowBlur = 0 }
+  const hr = (y: number) => {
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1.5
     ctx.beginPath(); ctx.moveTo(80, y); ctx.lineTo(W-80, y); ctx.stroke()
   }
-  const font = (size: number, w: 400|500|700 = 400) =>
+  const f = (size: number, w: 400|500|700 = 400) =>
     `${w === 700 ? 'bold ' : w === 500 ? '500 ' : ''}${size}px system-ui,-apple-system,sans-serif`
 
   // Badge
   ctx.fillStyle = ac.badgeBg
-  rr(ctx, 80, 100, 268, 70, 14); ctx.fill()
-  if (accent === 'dark') {
-    ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5
-    rr(ctx, 80, 100, 268, 70, 14); ctx.stroke()
-  }
-  ctx.fillStyle = ac.badgeText; ctx.font = font(30, 700)
-  ctx.fillText('LIFTSNAP', 112, 146)
+  rr(ctx, 80, 90, 268, 62, 12); ctx.fill()
+  if (accent === 'dark') { ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5; rr(ctx, 80, 90, 268, 62, 12); ctx.stroke() }
+  ctx.fillStyle = ac.badgeText; ctx.font = f(28, 700); ctx.fillText('LIFTSNAP', 110, 132)
 
-  let cy = 222
+  let cy = 172
 
-  // Date
+  // TODAY'S WORKOUT label + date
   sh()
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = font(34)
-  ctx.fillText(fmtDate(data.date), 80, cy); cy += 56
-
-  // Section label
-  ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.font = font(26, 500)
-  ctx.fillText("TODAY'S WORKOUT", 80, cy); cy += 52
+  ctx.fillStyle = 'rgba(255,255,255,0.32)'; ctx.font = f(22, 500)
+  ctx.fillText("TODAY'S WORKOUT", 80, cy); cy += 38
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = f(32)
+  ctx.fillText(fmtDate(data.date), 80, cy); cy += 50
 
   // Title
-  ctx.fillStyle = '#ffffff'; ctx.font = font(84, 700)
-  const titleUpper = data.title.toUpperCase()
-  if (ctx.measureText(titleUpper).width > W - 160) {
-    const mid = Math.ceil(titleUpper.length / 2)
-    ctx.fillText(titleUpper.slice(0, mid), 80, cy); cy += 96
-    ctx.fillText(titleUpper.slice(mid), 80, cy); cy += 40
+  ns()
+  ctx.fillStyle = '#ffffff'; ctx.font = f(76, 700)
+  const tu = data.title.toUpperCase()
+  if (ctx.measureText(tu).width > W - 160) {
+    const words = tu.split(' ')
+    let l1 = '', i = 0
+    while (i < words.length && ctx.measureText((l1 ? l1 + ' ' : '') + words[i]).width <= W - 160)
+      l1 = (l1 ? l1 + ' ' : '') + words[i++]
+    sh(); ctx.fillStyle = '#ffffff'; ctx.font = f(76, 700)
+    ctx.fillText(l1, 80, cy); cy += 84
+    ctx.fillText(words.slice(i).join(' '), 80, cy); cy += 30
   } else {
-    ctx.fillText(titleUpper, 80, cy); cy += 40
+    sh(); ctx.fillStyle = '#ffffff'; ctx.font = f(76, 700)
+    ctx.fillText(tu, 80, cy); cy += 30
   }
   ns()
 
-  cy += 30; divLine(cy); cy += 64
+  cy += 24; hr(cy); cy += 48
 
-  // Total Volume
-  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = font(28, 500)
-  ctx.fillText('TOTAL VOLUME', 80, cy); cy += 60
+  // ── STATS ───────────────────────────────────────
+  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(22, 500)
+  ctx.fillText('TOTAL VOLUME', 80, cy); cy += 32
+
+  const volStr = fmtVol(data.volume)
   sh()
-  ctx.fillStyle = acHex; ctx.font = font(148, 700)
-  ctx.fillText(fmtVol(data.volume), 80, cy)
-  const vw = ctx.measureText(fmtVol(data.volume)).width
-  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = font(52, 500)
-  ctx.fillText(' kg', 80 + vw, cy - 10)
-  cy += 76
+  ctx.fillStyle = acHex; ctx.font = f(112, 700)
+  ctx.fillText(volStr, 80, cy)
+  const vw = ctx.measureText(volStr).width
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = f(44, 500)
+  ctx.fillText(' kg', 80 + vw, cy - 8)
+  cy += 122
   ns()
 
-  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = font(36)
-  ctx.fillText(`${data.setsCount} SETS COMPLETED`, 80, cy); cy += 80
+  const globalBest1RM = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = f(32, 700)
+  ctx.fillText(`${data.setsCount}`, 80, cy)
+  const scW = ctx.measureText(`${data.setsCount}`).width
+  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
+  ctx.fillText(' SETS', 80 + scW, cy)
+  if (globalBest1RM > 0) {
+    const setsW = ctx.measureText(`${data.setsCount} SETS`).width
+    const sep = '  ·  '
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = f(32)
+    ctx.fillText(sep, 80 + setsW, cy)
+    const sepW = ctx.measureText(sep).width
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(32)
+    const label = 'BEST 1RM  '
+    ctx.fillText(label, 80 + setsW + sepW, cy)
+    const lw = ctx.measureText(label).width
+    ctx.fillStyle = acHex; ctx.font = f(32, 700)
+    ctx.fillText(`${Math.round(globalBest1RM)}kg`, 80 + setsW + sepW + lw, cy)
+  }
+  cy += 46
 
-  cy += 10; divLine(cy); cy += 64
+  cy += 20; hr(cy); cy += 44
 
-  // Exercises header
-  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = font(26, 500)
-  ctx.fillText('EXERCISES', 80, cy); cy += 56
+  // ── EXERCISES ─────────────────────────────────
+  ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(22, 500)
+  ctx.fillText('EXERCISES', 80, cy); cy += 36
 
-  const showEx = data.exercises.slice(0, MAX_EX_CANVAS)
-  const hiddenCount = Math.max(0, data.exercises.length - MAX_EX_CANVAS)
+  data.exercises.forEach((ex, i) => {
+    if (cy > H - 120) return  // safety: stop before canvas edge
+    const name = tname(ex.name)
 
-  sh()
-  showEx.forEach(ex => {
-    // Exercise name
-    ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.font = font(44)
-    ctx.fillText(ex.name, 80, cy); cy += 54
+    sh()
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = f(40, 700)
+    ctx.fillText(name, 80, cy); cy += 48
+    ns()
 
-    // Sub-line: "N sets  ·  Best Xkg × Y"
-    if (ex.bestWeight > 0 && ex.bestReps > 0) {
-      const prefix = `${ex.sets} sets  ·  Best `
-      const suffix = `${fmtKg(ex.bestWeight)}kg × ${ex.bestReps}`
-      ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.font = font(32)
-      ctx.fillText(prefix, 80, cy)
-      const pw = ctx.measureText(prefix).width
-      ctx.fillStyle = acHex; ctx.font = font(32, 700)
-      ctx.fillText(suffix, 80 + pw, cy)
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.font = font(32)
-      ctx.fillText(`${ex.sets} sets`, 80, cy)
+    ex.setList.forEach(s => {
+      if (cy > H - 120) return
+      if (s.weight === 0 && s.reps === 0) return
+      const kgPart = s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'
+      ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = f(34)
+      ctx.fillText(kgPart, 80, cy)
+      const kw2 = ctx.measureText(kgPart).width
+      ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = f(34)
+      ctx.fillText(` × ${s.reps}`, 80 + kw2, cy)
+      cy += 40
+    })
+
+    if (ex.best1RM > 0 && cy <= H - 120) {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = f(26)
+      ctx.fillText('Best 1RM ', 80, cy)
+      const b1w = ctx.measureText('Best 1RM ').width
+      ctx.fillStyle = acHex; ctx.font = f(26, 700)
+      ctx.fillText(`${Math.round(ex.best1RM)}kg`, 80 + b1w, cy)
+      cy += 30
     }
-    cy += 70
+
+    if (i < data.exercises.length - 1) cy += 18
   })
-  ns()
 
-  if (hiddenCount > 0) {
-    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.font = font(32)
-    ctx.fillText(`+${hiddenCount} more exercise${hiddenCount > 1 ? 's' : ''}`, 80, cy)
-    cy += 52
-  }
-
-  // Muscle focus chip
-  if (data.muscleFocus) {
-    cy += 40
+  // Muscle chip
+  if (data.muscleFocus && cy <= H - 120) {
+    cy += 22
     const label = data.muscleFocus.toUpperCase()
-    ctx.font = font(26, 700)
+    ctx.font = f(24, 700)
     const tw = ctx.measureText(label).width
-    const chipW = tw + 48, chipH = 52, chipR = 26
-    ctx.fillStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.08)' : acHex}22`
-    rr(ctx, 80, cy - 36, chipW, chipH, chipR); ctx.fill()
-    ctx.strokeStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.2)' : acHex}55`; ctx.lineWidth = 1.5
-    rr(ctx, 80, cy - 36, chipW, chipH, chipR); ctx.stroke()
-    ctx.fillStyle = acHex; ctx.fillText(label, 104, cy)
+    const chipW = tw + 44, chipH = 48, chipR = 24
+    ctx.fillStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.08)' : acHex}1a`
+    rr(ctx, 80, cy - 32, chipW, chipH, chipR); ctx.fill()
+    ctx.strokeStyle = `${acHex === '#ffffff' ? 'rgba(255,255,255,0.15)' : acHex}44`; ctx.lineWidth = 1.5
+    rr(ctx, 80, cy - 32, chipW, chipH, chipR); ctx.stroke()
+    ctx.fillStyle = acHex; ctx.fillText(label, 102, cy)
   }
 
-  // Watermark
-  ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.font = font(26)
+  // Watermark (always at bottom)
+  ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.font = f(26)
   ctx.fillText('Made with LIFTSNAP · liftsnap.app', 80, H - 80)
 
   return new Promise(resolve => cv.toBlob(b => resolve(b!), 'image/png'))
@@ -217,8 +302,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const ac = AC[accent]
   const acHex = accent === 'dark' ? '#ffffff' : ac.hex
   const volStr = fmtVol(data.volume)
-  const showEx = data.exercises.slice(0, MAX_EX_DOM)
-  const hiddenCount = Math.max(0, data.exercises.length - MAX_EX_DOM)
+  const globalBest1RM = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
@@ -240,64 +324,76 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             border: `1px solid ${ac.cardBorder}`,
           }}>
 
-          {/* Top stripe */}
           <div className="absolute top-0 inset-x-0" style={{ height: 2, background: ac.topLine }} />
 
-          <div className="relative flex flex-col h-full" style={{ padding: '12px 14px 10px' }}>
+          <div className="relative flex flex-col h-full" style={{ padding: '10px 12px 8px' }}>
 
             {/* Badge */}
-            <div className="inline-flex mb-2.5">
+            <div className="inline-flex mb-1.5">
               <span className="text-[10px] font-black px-2.5 py-1 rounded-lg"
                 style={{ background: ac.badgeBg, color: ac.badgeText, border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em' }}>
                 LIFTSNAP
               </span>
             </div>
 
-            {/* Date */}
-            <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', marginBottom: 1 }}>{fmtDate(data.date)}</p>
-            {/* Label */}
-            <p style={{ fontSize: 7, fontWeight: 600, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', marginBottom: 2 }}>TODAY&apos;S WORKOUT</p>
-            {/* Title */}
-            <p style={{ fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1.1, marginBottom: 5, textTransform: 'uppercase' }}>
+            {/* Label + Date + Title */}
+            <p style={{ fontSize: 6.5, fontWeight: 600, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em', margin: '0 0 1px' }}>
+              TODAY&apos;S WORKOUT
+            </p>
+            <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.55)', margin: '0 0 2px' }}>{fmtDate(data.date)}</p>
+            <p style={{ fontSize: 16, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 5px' }}>
               {data.title}
             </p>
 
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }} />
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 5px' }} />
 
-            {/* Volume */}
-            <p style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', marginBottom: 1 }}>TOTAL VOLUME</p>
-            <div className="flex items-baseline" style={{ gap: 2, marginBottom: 2 }}>
-              <span style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>kg</span>
+            {/* Stats */}
+            <p style={{ fontSize: 6.5, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 1px' }}>TOTAL VOLUME</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, margin: '0 0 1px' }}>
+              <span style={{ fontSize: 34, fontWeight: 900, lineHeight: 1, color: acHex }}>{volStr}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.38)' }}>kg</span>
             </div>
-            <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', marginBottom: 5 }}>{data.setsCount} SETS COMPLETED</p>
-
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }} />
-
-            {/* Exercises */}
-            <p style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', marginBottom: 4 }}>EXERCISES</p>
-            <div className="flex flex-col" style={{ gap: 5, marginBottom: 5 }}>
-              {showEx.map(ex => (
-                <div key={ex.name}>
-                  <p style={{ fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.85)', lineHeight: 1.2, margin: 0 }}>{ex.name}</p>
-                  <p style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3, marginTop: 1, marginBottom: 0 }}>
-                    {ex.sets} sets
-                    {ex.bestWeight > 0 && ex.bestReps > 0 && (
-                      <> · Best <span style={{ color: acHex, fontWeight: 700 }}>{fmtKg(ex.bestWeight)}kg × {ex.bestReps}</span></>
-                    )}
-                  </p>
-                </div>
-              ))}
-              {hiddenCount > 0 && (
-                <p style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', margin: 0 }}>+{hiddenCount} more</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 5px' }}>
+              <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.55)' }}>{data.setsCount} SETS</span>
+              {globalBest1RM > 0 && (
+                <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.38)' }}>
+                  · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(globalBest1RM)}kg</span>
+                </span>
               )}
             </div>
 
-            {/* Muscle focus chip */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 5px' }} />
+
+            {/* Exercises */}
+            <p style={{ fontSize: 6.5, fontWeight: 600, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', margin: '0 0 4px' }}>EXERCISES</p>
+
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {data.exercises.map(ex => (
+                <div key={ex.name}>
+                  <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.88)', lineHeight: 1.2, margin: '0 0 1.5px' }}>
+                    {tname(ex.name)}
+                  </p>
+                  {ex.setList.filter(s => s.weight > 0 || s.reps > 0).map((s, si) => (
+                    <p key={si} style={{ fontSize: 8, lineHeight: 1.4, margin: 0 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
+                        {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
+                      </span>
+                      <span style={{ color: 'rgba(255,255,255,0.35)' }}> × {s.reps}</span>
+                    </p>
+                  ))}
+                  {ex.best1RM > 0 && (
+                    <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', margin: '1.5px 0 0' }}>
+                      Best 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
             {data.muscleFocus && (
               <span style={{
-                alignSelf: 'flex-start', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.08em',
-                padding: '3px 8px', borderRadius: 99,
+                alignSelf: 'flex-start', fontSize: 7, fontWeight: 700, letterSpacing: '0.08em',
+                padding: '2px 7px', borderRadius: 99, marginTop: 4,
                 background: `${acHex}18`, border: `1px solid ${acHex}44`, color: acHex,
                 textTransform: 'uppercase',
               }}>
@@ -305,8 +401,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               </span>
             )}
 
-            <div style={{ flex: 1 }} />
-            <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.1)', margin: 0 }}>Made with LIFTSNAP · liftsnap.app</p>
+            <p style={{ fontSize: 6, color: 'rgba(255,255,255,0.1)', marginTop: 4 }}>Made with LIFTSNAP · liftsnap.app</p>
           </div>
         </div>
       </div>
@@ -325,7 +420,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Color selector */}
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
         <div className="flex gap-2">
@@ -343,7 +437,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Share button */}
       <div className="px-4 space-y-2 mb-4">
         {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
         <button
