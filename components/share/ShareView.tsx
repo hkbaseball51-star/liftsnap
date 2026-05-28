@@ -57,8 +57,9 @@ async function generateCard(data: CardData, theme: Theme, accent: Accent): Promi
 
   // Date
   const d = new Date(data.date + 'T00:00:00')
-  const days = ['日', '月', '火', '水', '木', '金', '土']
-  const dateStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} (${days[d.getDay()]})`
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const dateStr = `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${DAYS[d.getDay()]}`
   shadow()
   ctx.fillStyle = 'rgba(255,255,255,0.55)'
   ctx.font = '38px system-ui, -apple-system, sans-serif'
@@ -84,10 +85,10 @@ async function generateCard(data: CardData, theme: Theme, accent: Accent): Promi
   ctx.font = '30px system-ui, -apple-system, sans-serif'
   ctx.fillText('TOTAL VOLUME', 80, divY1 + 70)
 
-  // Volume number
-  const volStr = data.volume >= 1000
-    ? `${(data.volume / 1000).toFixed(1)}t`
-    : `${Math.round(data.volume)}`
+  // Volume number — show raw kg value (no "t" notation, always clear)
+  const volStr = data.volume >= 10000
+    ? `${(data.volume / 1000).toFixed(1)}k`
+    : data.volume.toLocaleString()
   ctx.fillStyle = accentColor
   ctx.font = 'bold 148px system-ui, -apple-system, sans-serif'
   ctx.fillText(volStr, 80, divY1 + 220)
@@ -150,26 +151,24 @@ export default function ShareView({ data }: { data: CardData }) {
 
   const handleShare = async () => {
     setSharing(true)
-    setStatus('カード生成中...')
+    setStatus('Generating card...')
     try {
       const blob = await generateCard(data, theme, accent)
       const file = new File([blob], 'liftsnap-workout.png', { type: 'image/png' })
 
       if (navigator.canShare?.({ files: [file] })) {
-        setStatus('シェア中...')
-        await navigator.share({ files: [file], title: 'LIFTSNAP ワークアウト' })
+        setStatus('Sharing...')
+        await navigator.share({ files: [file], title: 'LIFTSNAP Workout' })
         setStatus('')
       } else {
-        // Fallback: download
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url; a.download = 'liftsnap-workout.png'; a.click()
         URL.revokeObjectURL(url)
-        setStatus('ダウンロードしました')
-        setTimeout(() => setStatus(''), 2000)
+        setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
       }
     } catch (e: unknown) {
-      if (e instanceof Error && e.name !== 'AbortError') setStatus('エラーが発生しました')
+      if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
       else setStatus('')
     } finally {
       setSharing(false)
@@ -177,9 +176,10 @@ export default function ShareView({ data }: { data: CardData }) {
   }
 
   const d = new Date(data.date + 'T00:00:00')
-  const days = ['日', '月', '火', '水', '木', '金', '土']
-  const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} (${days[d.getDay()]})`
-  const volStr = data.volume >= 1000 ? `${(data.volume / 1000).toFixed(1)}t` : `${Math.round(data.volume)}`
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const dateLabel = `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${DAYS[d.getDay()]}`
+  const volStr = data.volume >= 10000 ? `${(data.volume / 1000).toFixed(1)}k` : data.volume.toLocaleString()
   const accentColor = ACCENT_COLOR[accent]
 
   return (
@@ -189,7 +189,7 @@ export default function ShareView({ data }: { data: CardData }) {
         <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={18} style={{ color: '#888' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest text-white">ストーリーを作る</h1>
+        <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
       </div>
 
       {/* Card preview */}
@@ -253,21 +253,21 @@ export default function ShareView({ data }: { data: CardData }) {
 
       {/* Theme options */}
       <div className="px-4 mb-3">
-        <p className="text-xs font-bold mb-2" style={{ color: '#888' }}>背景</p>
+        <p className="text-xs font-bold mb-2" style={{ color: '#888' }}>Background</p>
         <div className="flex gap-2">
           {(['dark', 'clear'] as Theme[]).map(t => (
             <button key={t}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
               style={{ background: theme === t ? '#ff6b00' : '#1a1a1a', color: theme === t ? '#fff' : '#888', border: '1px solid #2a2a2a' }}
               onClick={() => setTheme(t)}>
-              {t === 'dark' ? 'ダーク' : '透過'}
+              {t === 'dark' ? 'Dark' : 'Clear'}
             </button>
           ))}
         </div>
       </div>
 
       <div className="px-4 mb-5">
-        <p className="text-xs font-bold mb-2" style={{ color: '#888' }}>カラー</p>
+        <p className="text-xs font-bold mb-2" style={{ color: '#888' }}>Color</p>
         <div className="flex gap-2">
           {(['orange', 'purple'] as Accent[]).map(a => (
             <button key={a}
@@ -278,7 +278,7 @@ export default function ShareView({ data }: { data: CardData }) {
                 border: `1px solid ${accent === a ? ACCENT_COLOR[a] : '#2a2a2a'}`,
               }}
               onClick={() => setAccent(a)}>
-              {a === 'orange' ? 'オレンジ' : 'パープル'}
+              {a === 'orange' ? 'Orange' : 'Purple'}
             </button>
           ))}
         </div>
@@ -295,10 +295,10 @@ export default function ShareView({ data }: { data: CardData }) {
           disabled={sharing}
           onClick={handleShare}>
           <Share2 size={20} />
-          {sharing ? '生成中...' : 'インスタストーリーにシェア'}
+          {sharing ? 'Generating...' : 'Share to Instagram Story'}
         </button>
         <p className="text-center text-xs" style={{ color: '#444' }}>
-          スマホのみ対応 · PCの場合は画像がダウンロードされます
+          Mobile only · Downloads as PNG on desktop
         </p>
       </div>
     </div>
