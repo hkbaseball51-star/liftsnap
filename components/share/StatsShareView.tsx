@@ -48,8 +48,11 @@ function fmtXLabel(dateStr: string): string {
 }
 
 function fmtYLabel(v: number, isVolume: boolean): string {
-  if (isVolume && v >= 1000) return v >= 10000 ? `${Math.round(v/1000)}k` : `${(v/1000).toFixed(1)}k`
-  return String(Math.round(v * 10) / 10)
+  if (isVolume) {
+    if (v >= 10000) return `${Math.round(v/1000)}k`
+    if (v >= 1000)  return `${(v/1000).toFixed(1)}k`
+  }
+  return `${Math.round(v * 10) / 10}kg`
 }
 
 function niceYTicks(dataMin: number, dataMax: number, count = 4): number[] {
@@ -116,21 +119,21 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
     ctx.fillRect(bx, by, barW, bH)
 
     if (isLast) {
-      ctx.fillStyle = ac.barActive; ctx.font = f(26, 700); ctx.textAlign = 'center'
-      ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 44)
+      ctx.fillStyle = ac.barActive; ctx.font = f(34, 700); ctx.textAlign = 'center'
+      ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 58)
     } else if (i === 0 || i === Math.floor(n / 2)) {
-      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = f(22); ctx.textAlign = 'center'
-      ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 44)
+      ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = f(34); ctx.textAlign = 'center'
+      ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 58)
     }
   })
 
-  // Y-axis text labels (on top so they're readable)
-  ctx.textAlign = 'right'; ctx.font = f(22)
+  // Y-axis text labels
+  ctx.textAlign = 'right'; ctx.font = f(34)
   yTicks.forEach(tick => {
     const ty = max > 0 ? y + h - Math.round((tick / max) * h * 0.9) : y + h
     if (ty < y - 4) return
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'
-    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 8)
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'
+    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 10)
   })
   ctx.textAlign = 'left'
 }
@@ -187,20 +190,20 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
 
   // X labels: first, mid, last
   const show = [0, Math.floor((sub.length-1)/2), sub.length-1]
-  ctx.font = f(24); ctx.textAlign = 'center'
+  ctx.font = f(34); ctx.textAlign = 'center'
   show.forEach(i => {
-    ctx.fillStyle = i === sub.length-1 ? ac.barActive : 'rgba(255,255,255,0.22)'
-    ctx.fillText(sub[i].date ? fmtXLabel(sub[i].date) : '', px(i), y+h+46)
+    ctx.fillStyle = i === sub.length-1 ? ac.barActive : 'rgba(255,255,255,0.65)'
+    ctx.fillText(sub[i].date ? fmtXLabel(sub[i].date) : '', px(i), y+h+58)
   })
   ctx.textAlign = 'left'
 
   // Y-axis text labels
-  ctx.textAlign = 'right'; ctx.font = f(22)
+  ctx.textAlign = 'right'; ctx.font = f(34)
   yTicks.forEach(tick => {
     const ty = py(tick)
     if (ty < y - 4 || ty > y + h + 4) return
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'
-    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 8)
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'
+    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 10)
   })
   ctx.textAlign = 'left'
 }
@@ -322,11 +325,11 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
 
   // ── Chart: fills remaining space ──────────────────────────
   const chartTop    = cy
-  const chartBottom = H - 130          // leave room for date labels + watermark
+  const chartBottom = H - 170          // extra room for larger X-axis labels + watermark
   const chartH      = chartBottom - chartTop
 
   const isVol    = data.type === 'volume'
-  const chartX   = 172   // left pad for Y-axis labels
+  const chartX   = 200   // left pad for Y-axis labels (34px font needs ~120px)
   const chartW   = W - chartX - 80
   if (chartType === 'line') {
     canvasLine(ctx, chartData, chartX, chartTop, chartW, chartH, ac, accent, isVol)
@@ -560,9 +563,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               {/* Row: Y-labels + SVG */}
               <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 3 }}>
                 {/* Y-axis */}
-                <div style={{ width: 20, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 3, paddingTop: 1 }}>
+                <div style={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 3, paddingTop: 1 }}>
                   {[...yTicks].reverse().map((v, i) => (
-                    <span key={i} style={{ fontSize: 5, color: 'rgba(255,255,255,0.28)', textAlign: 'right', lineHeight: 1, display: 'block' }}>
+                    <span key={i} style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.65)', textAlign: 'right', lineHeight: 1, display: 'block' }}>
                       {fmtYLabel(v, data.type === 'volume')}
                     </span>
                   ))}
@@ -574,9 +577,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
               {/* X-axis labels */}
               {xLabels.length > 0 && (
-                <div style={{ height: 11, display: 'flex', justifyContent: 'space-between', paddingLeft: 23, marginTop: 2 }}>
+                <div style={{ height: 14, display: 'flex', justifyContent: 'space-between', paddingLeft: 35, marginTop: 3 }}>
                   {xLabels.map((lbl, i) => (
-                    <span key={i} style={{ fontSize: 5, color: 'rgba(255,255,255,0.28)', lineHeight: 1 }}>{lbl}</span>
+                    <span key={i} style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1 }}>{lbl}</span>
                   ))}
                 </div>
               )}
