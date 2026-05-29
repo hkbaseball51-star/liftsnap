@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, X, Plus } from 'lucide-react'
 import { createCustomExercise } from '@/actions/workout'
+import { createClient } from '@/lib/supabase/client'
 
 type Exercise = {
   id: string
@@ -13,15 +14,31 @@ type Exercise = {
 }
 
 type Props = {
-  exercises: Exercise[]
   onSelect: (exercise: Exercise) => void
   onClose: () => void
 }
 
 const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS']
 
-export default function ExercisePicker({ exercises: initialExercises, onSelect, onClose }: Props) {
-  const [exercises, setExercises] = useState(initialExercises)
+export default function ExercisePicker({ onSelect, onClose }: Props) {
+  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      supabase
+        .from('exercises')
+        .select('id, name, muscle_group, equipment, is_custom')
+        .or(user ? `user_id.is.null,user_id.eq.${user.id}` : 'user_id.is.null')
+        .order('name')
+        .then(({ data }) => {
+          setExercises(data ?? [])
+          setLoading(false)
+        })
+    })
+  }, [])
+
   const [query, setQuery] = useState('')
   const [activeGroup, setActiveGroup] = useState('ALL')
   const [showCreate, setShowCreate] = useState(false)
@@ -90,7 +107,12 @@ export default function ExercisePicker({ exercises: initialExercises, onSelect, 
 
       {/* Exercise list */}
       <div className="flex-1 overflow-y-auto px-4">
-        {filtered.length === 0 && (
+        {loading && (
+          <div className="py-12 text-center">
+            <p className="text-sm font-bold" style={{ color: '#444' }}>Loading...</p>
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
           <div className="py-12 text-center">
             <p className="text-sm font-bold" style={{ color: '#444' }}>No exercises found</p>
           </div>

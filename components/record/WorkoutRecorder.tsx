@@ -52,7 +52,6 @@ type InitialExercise = {
 }
 
 type Props = {
-  exercises: Exercise[]
   date: string                      // YYYY-MM-DD
   existingSessionId?: string
   existingExercises?: InitialExercise[]
@@ -294,7 +293,6 @@ const ExerciseCard = memo(function ExerciseCard({
 /* ─── Main component ──────────────────────────────────── */
 
 export default function WorkoutRecorder({
-  exercises: allExercises,
   date,
   existingSessionId,
   existingExercises,
@@ -568,7 +566,7 @@ export default function WorkoutRecorder({
 
       {/* ── Modals ── */}
       {showPicker && (
-        <ExercisePicker exercises={allExercises} onSelect={addExercise} onClose={() => setShowPicker(false)} />
+        <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />
       )}
 
       {numberTarget && (

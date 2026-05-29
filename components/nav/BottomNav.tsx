@@ -1,8 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useTransition } from 'react'
 import { Home, BarChart2, Plus, ShoppingBag, User } from 'lucide-react'
+
+function getTodayJST() {
+  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+}
 
 const tabs = [
   { href: '/home',      icon: Home,        label: 'HOME'    },
@@ -14,6 +19,12 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    router.prefetch('/record')
+  }, [router])
 
   return (
     <nav
@@ -30,9 +41,14 @@ export default function BottomNav() {
           const active = pathname.startsWith(href)
           if (primary) {
             return (
-              <Link key={href} href={href} className="flex flex-col items-center -mt-5">
+              <button
+                key={href}
+                className="flex flex-col items-center -mt-5"
+                style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 100ms' }}
+                onClick={() => startTransition(() => router.push(`/record?date=${getTodayJST()}`))}
+              >
                 <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                  className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                   style={{
                     background: '#ff6b00',
                     boxShadow: '0 4px 20px rgba(255,107,0,0.45)',
@@ -40,7 +56,7 @@ export default function BottomNav() {
                 >
                   <Icon size={26} color="#fff" strokeWidth={2.5} />
                 </div>
-              </Link>
+              </button>
             )
           }
           return (
