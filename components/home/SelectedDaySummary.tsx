@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSessionForDate } from '@/actions/workout'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
-import type { CalendarSession } from './TrainingCalendar'
+import type { DaySummary } from './CalendarWithSummary'
+import { formatVolume } from '@/lib/utils'
 
 function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -19,93 +19,41 @@ function formatDateLabel(dateStr: string): string {
   return `${months[m - 1]} ${d}`
 }
 
-type Summary = {
-  mainExercise: string
-  extraCount: number
-  totalSets: number
-  totalVolume: number
-  best1rm: number
-  muscleGroup: string
-}
-
 export default function SelectedDaySummary({
   selectedDate,
-  sessions,
+  summary,
 }: {
   selectedDate: string
-  sessions: CalendarSession[]
+  summary: DaySummary | null
 }) {
   const router = useRouter()
-  const [summary, setSummary] = useState<Summary | 'empty' | null>(null)
   const [visible, setVisible] = useState(false)
 
+  // Component remounts on key change; double rAF ensures transition fires after paint
   useEffect(() => {
-    setSummary(null)
-    setVisible(false)
-
-    getSessionForDate(selectedDate).then(session => {
-      if (!session || session.exercises.length === 0) {
-        setSummary('empty')
-      } else {
-        let totalSets = 0
-        let totalVolume = 0
-        let best1rm = 0
-        let mainExercise = ''
-        let mainVolume = -1
-
-        for (const ex of session.exercises) {
-          let exVol = 0
-          for (const set of ex.sets) {
-            const w = set.weight_kg ?? 0
-            const r = set.reps ?? 0
-            exVol += w * r
-            if (w > 0 && r > 0) {
-              const est = r === 1 ? w : Math.round(w * (1 + r / 30))
-              if (est > best1rm) best1rm = est
-            }
-          }
-          totalSets += ex.sets.length
-          totalVolume += exVol
-          if (exVol > mainVolume) {
-            mainVolume = exVol
-            mainExercise = ex.name
-          }
-        }
-
-        const calSession = sessions.find(s => s.date === selectedDate)
-        const muscleGroup = (calSession?.muscleGroup ?? session.exercises[0]?.muscle_group ?? 'full body').toLowerCase()
-
-        setSummary({ mainExercise, extraCount: session.exercises.length - 1, totalSets, totalVolume, best1rm, muscleGroup })
-      }
-
-      // Double rAF ensures CSS transition fires after paint
-      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)))
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => setVisible(true))
+      return () => cancelAnimationFrame(id2)
     })
-  }, [selectedDate, sessions])
+    return () => cancelAnimationFrame(id1)
+  }, [])
 
-  const calSession = sessions.find(s => s.date === selectedDate)
-  const allMuscles = (calSession?.allMuscleGroups && calSession.allMuscleGroups.length > 0
-    ? calSession.allMuscleGroups
-    : [calSession?.muscleGroup ?? '']
-  ).map(m => m.toLowerCase())
-  const ppl = getPPLDisplay(allMuscles)
+  const allMuscles = summary
+    ? (summary.allMuscleGroups.length > 0 ? summary.allMuscleGroups : [summary.muscleGroup])
+    : []
 
-  const baseColor = (summary && summary !== 'empty')
-    ? (MUSCLE_COLORS[summary.muscleGroup] ?? '#ff6b00')
-    : '#ff6b00'
+  const ppl = allMuscles.length > 0 ? getPPLDisplay(allMuscles) : null
+  const baseColor = summary ? (MUSCLE_COLORS[summary.muscleGroup] ?? '#ff6b00') : '#ff6b00'
   const accentColor = ppl?.color ?? baseColor
   const accentRgb = hexToRgb(accentColor)
+  const badgeLabel = summary ? (ppl?.label ?? summary.muscleGroup.toUpperCase()) : null
   const dateLabel = formatDateLabel(selectedDate)
 
-  const badgeLabel = (summary && summary !== 'empty')
-    ? (ppl?.label ?? summary.muscleGroup.toUpperCase())
-    : null
-
-  const cardStyle = {
-    background: '#181818',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 18,
-    padding: '14px 16px',
+  const cardBase = {
+    background: '#151515',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: 20,
+    padding: '16px 18px',
     textAlign: 'left' as const,
     width: '100%',
   }
@@ -113,81 +61,95 @@ export default function SelectedDaySummary({
   return (
     <div style={{
       opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(8px)',
-      transition: 'opacity 220ms ease-out, transform 220ms ease-out',
+      transform: visible ? 'translateY(0)' : 'translateY(-8px)',
+      transition: 'opacity 180ms ease-out, transform 180ms ease-out',
     }}>
-      {/* Loading skeleton */}
-      {!summary && (
-        <div style={{ ...cardStyle, minHeight: 88 }} />
-      )}
-
-      {/* No workout */}
-      {summary === 'empty' && (
+      {summary === null ? (
+        /* ── No workout ── */
         <button
-          className="active:opacity-75 transition-opacity"
-          style={cardStyle}
+          className="active:opacity-70 transition-opacity"
+          style={cardBase}
           onClick={() => router.push(`/record?date=${selectedDate}`)}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.38)', marginBottom: 8 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
             {dateLabel}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.28)' }}>
-              No workout logged
-            </p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.22)', marginBottom: 14 }}>
+            No workout logged
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#ff6b00' }}>
               Log Workout →
             </span>
           </div>
         </button>
-      )}
-
-      {/* Has workout */}
-      {summary && summary !== 'empty' && (
+      ) : (
+        /* ── Has workout ── */
         <button
-          className="active:opacity-75 transition-opacity"
-          style={cardStyle}
+          className="active:opacity-70 transition-opacity"
+          style={cardBase}
           onClick={() => router.push(`/record?date=${selectedDate}`)}>
-          {/* Date + muscle badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.38)' }}>
-              {dateLabel}
-            </span>
-            {badgeLabel && (
-              <span style={{
-                fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
-                padding: '2px 8px', borderRadius: 20,
-                background: `rgba(${accentRgb}, 0.15)`,
-                color: accentColor,
-              }}>
-                {badgeLabel}
-              </span>
-            )}
-          </div>
 
-          {/* Exercise name */}
-          <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 7, lineHeight: 1.3 }}>
-            {summary.mainExercise}
-            {summary.extraCount > 0 && (
-              <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.32)', marginLeft: 6 }}>
-                +{summary.extraCount} exercise{summary.extraCount > 1 ? 's' : ''}
+          {/* Row 1: date + muscle badge + View → */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.36)' }}>
+                {dateLabel}
               </span>
-            )}
-          </p>
-
-          {/* Stats + CTA */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>
-              {summary.totalSets} sets
-              {' · '}
-              {summary.totalVolume >= 1000
-                ? `${(summary.totalVolume / 1000).toFixed(1)}t`
-                : `${Math.round(summary.totalVolume)}kg`}
-              {summary.best1rm > 0 && ` · 1RM ${summary.best1rm}kg`}
-            </p>
+              {badgeLabel && (
+                <span style={{
+                  fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
+                  padding: '2px 8px', borderRadius: 20,
+                  background: `rgba(${accentRgb}, 0.15)`,
+                  color: accentColor,
+                }}>
+                  {badgeLabel}
+                </span>
+              )}
+            </div>
             <span style={{ fontSize: 11, fontWeight: 700, color: accentColor }}>
               View →
             </span>
           </div>
+
+          {/* Row 2: stats summary */}
+          <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.42)', marginBottom: 10 }}>
+            {summary.totalSets} sets
+            {' · '}
+            {formatVolume(summary.totalVolume)}
+            {summary.best1rm > 0 && ` · Best 1RM ${summary.best1rm}kg`}
+          </p>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.055)', marginBottom: 10 }} />
+
+          {/* Row 3: main exercise + best set */}
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3, lineHeight: 1.3 }}>
+            {summary.mainExercise}
+          </p>
+          {summary.mainExerciseBestWeight > 0 && summary.mainExerciseBestReps > 0 && (
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>
+              Best set&nbsp; {summary.mainExerciseBestWeight}kg × {summary.mainExerciseBestReps}
+            </p>
+          )}
+
+          {/* Row 4: extra exercises */}
+          {summary.extraCount > 0 && (
+            <div style={{ marginTop: 7, display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}>
+              {summary.secondExercise && (
+                <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.36)' }}>
+                  {summary.secondExercise}
+                </span>
+              )}
+              {(() => {
+                const hidden = summary.extraCount - (summary.secondExercise ? 1 : 0)
+                return hidden > 0 ? (
+                  <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.22)' }}>
+                    +{hidden} exercise{hidden > 1 ? 's' : ''}
+                  </span>
+                ) : null
+              })()}
+            </div>
+          )}
         </button>
       )}
     </div>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Zap, Share2 } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
+import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 
 export default async function HomePage() {
@@ -34,7 +35,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('workout_sessions')
-      .select('id, trained_at, workout_sets(session_id, muscle_group)')
+      .select('id, trained_at, workout_sets(exercise_name, muscle_group, weight_kg, reps)')
       .eq('user_id', user.id)
       .gte('trained_at', ninetyDaysAgoStr)
       .not('completed_at', 'is', null),
@@ -67,21 +68,71 @@ export default async function HomePage() {
       .maybeSingle(),
   ])
 
-  /* ── Calendar sessions (muscle data embedded in initial query) ── */
-  type SessionRow = { id: string; trained_at: string; workout_sets: { session_id: string; muscle_group: string }[] }
-  const calendarSessions: CalendarSession[] = (calendarSessionsRes.data as SessionRow[] ?? []).map(session => {
+  /* ── Calendar sessions + day summaries (all from embedded query) ── */
+  type SetRow = { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null }
+  type SessionRow = { id: string; trained_at: string; workout_sets: SetRow[] }
+
+  const calendarSessions: CalendarSession[] = []
+  const daySummaries: Record<string, DaySummary> = {}
+
+  for (const session of (calendarSessionsRes.data as SessionRow[] ?? [])) {
+    const sets = session.workout_sets ?? []
+
+    // Muscle group counts for calendar dot + badge
     const mgMap = new Map<string, number>()
-    for (const s of session.workout_sets ?? []) {
-      if (s.muscle_group) mgMap.set(s.muscle_group, (mgMap.get(s.muscle_group) ?? 0) + 1)
+    for (const s of sets) {
+      const mg = s.muscle_group?.toLowerCase()
+      if (mg) mgMap.set(mg, (mgMap.get(mg) ?? 0) + 1)
     }
-    if (mgMap.size === 0) return { date: session.trained_at, muscleGroup: 'full body', allMuscleGroups: [] }
-    const sorted = [...mgMap.entries()].sort((a, b) => b[1] - a[1])
-    return {
+    const sortedMg = mgMap.size > 0 ? [...mgMap.entries()].sort((a, b) => b[1] - a[1]) : null
+    const topMuscle = sortedMg ? sortedMg[0][0] : 'full body'
+    const allMuscleGroups = sortedMg ? sortedMg.map(([mg]) => mg) : []
+
+    calendarSessions.push({ date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups })
+
+    // Per-exercise stats for summary card
+    const exMap = new Map<string, { volume: number; bestEst1rm: number; bestWeight: number; bestReps: number }>()
+    let totalSets = 0
+    let totalVolume = 0
+    let best1rm = 0
+
+    for (const s of sets) {
+      const w = s.weight_kg ?? 0
+      const r = s.reps ?? 0
+      totalSets++
+      totalVolume += w * r
+      const est = w > 0 && r > 0 ? (r === 1 ? w : Math.round(w * (1 + r / 30))) : 0
+      if (est > best1rm) best1rm = est
+
+      const ex = exMap.get(s.exercise_name) ?? { volume: 0, bestEst1rm: 0, bestWeight: 0, bestReps: 0 }
+      const isBetter = est > ex.bestEst1rm
+      exMap.set(s.exercise_name, {
+        volume: ex.volume + w * r,
+        bestEst1rm: isBetter ? est : ex.bestEst1rm,
+        bestWeight: isBetter ? w : ex.bestWeight,
+        bestReps: isBetter ? r : ex.bestReps,
+      })
+    }
+
+    // Top 2 exercises by volume
+    const sortedEx = [...exMap.entries()].sort((a, b) => b[1].volume - a[1].volume)
+    const main = sortedEx[0]
+    const second = sortedEx[1]
+
+    daySummaries[session.trained_at] = {
       date: session.trained_at,
-      muscleGroup: sorted[0][0],
-      allMuscleGroups: sorted.map(([mg]) => mg),
+      muscleGroup: topMuscle,
+      allMuscleGroups,
+      totalSets,
+      totalVolume: Math.round(totalVolume),
+      best1rm,
+      mainExercise: main ? main[0] : '',
+      mainExerciseBestWeight: main ? main[1].bestWeight : 0,
+      mainExerciseBestReps: main ? main[1].bestReps : 0,
+      secondExercise: second ? second[0] : null,
+      extraCount: Math.max(0, exMap.size - 1),
     }
-  })
+  }
 
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
@@ -189,7 +240,7 @@ export default async function HomePage() {
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
       <div className="px-4 mb-5">
-        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} />
+        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} />
       </div>
 
       {/* ── WEEKLY EFFORT ── */}
