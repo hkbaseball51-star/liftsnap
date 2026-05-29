@@ -11,9 +11,7 @@ import {
   getShareCount,
   type NextRewardResult,
 } from '@/lib/unlocks'
-
-type Exercise = { name: string; logCount: number }
-type Props    = { totalSessions: number; exercises: Exercise[] }
+import { getRewardsData } from '@/actions/rewards'
 
 const ALWAYS_SHOW = ['ベンチプレス', 'スクワット', 'デッドリフト']
 
@@ -42,9 +40,31 @@ const THEME_DOT: Record<string, string> = {
   black:  '#e0e0e0',
 }
 
-export default function RewardsView({ totalSessions, exercises }: Props) {
-  const [shareCount, setShareCount] = useState(0)
-  useEffect(() => { setShareCount(getShareCount()) }, [])
+export default function RewardsView() {
+  const [totalSessions, setTotalSessions] = useState(0)
+  const [exercises, setExercises]         = useState<{ name: string; logCount: number }[]>([])
+  const [shareCount, setShareCount]       = useState(0)
+  const [dataLoaded, setDataLoaded]       = useState(false)
+
+  // localStorage is client-only — read after mount
+  useEffect(() => {
+    setShareCount(getShareCount())
+  }, [])
+
+  // Fetch rewards data client-side so the page renders immediately on navigation
+  useEffect(() => {
+    console.time('[Rewards] total')
+    getRewardsData()
+      .then(d => {
+        setTotalSessions(d.totalSessions)
+        setExercises(d.exercises)
+      })
+      .catch(err => console.error('[Rewards] fetch failed', err))
+      .finally(() => {
+        setDataLoaded(true)
+        console.timeEnd('[Rewards] total')
+      })
+  }, [])
 
   const trainingUnlocks = useMemo(() => getTrainingUnlocks(totalSessions), [totalSessions])
   const shareThemes     = useMemo(() => getShareThemeUnlocks(shareCount), [shareCount])
@@ -71,7 +91,7 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
 
-      {/* ── Header ──────────────────────────────────────────── */}
+      {/* ── Header — renders immediately ────────────────────── */}
       <div className="px-4 pt-14 pb-4">
         <div className="flex items-center gap-2.5 mb-1">
           <Trophy size={16} strokeWidth={2} style={{ color: '#ff6b00' }} />
@@ -83,28 +103,40 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
       </div>
 
       {/* ── Next Reward Card ────────────────────────────────── */}
-      <NextRewardCard result={nextReward} />
+      {dataLoaded
+        ? <NextRewardCard result={nextReward} />
+        : <NextRewardSkeleton />
+      }
 
       {/* ── Summary row ─────────────────────────────────────── */}
       <div className="px-4 mb-6 grid grid-cols-3 gap-2">
         <SummaryCard
           label="ANALYTICS"
-          value={nextMilestone ? `${totalSessions}/${nextMilestone.requiredSessions}` : String(totalSessions)}
-          sub={nextMilestone ? `Next: ${nextMilestone.label}` : 'All unlocked'}
+          value={dataLoaded
+            ? (nextMilestone ? `${totalSessions}/${nextMilestone.requiredSessions}` : String(totalSessions))
+            : '—'}
+          sub={dataLoaded
+            ? (nextMilestone ? `Next: ${nextMilestone.label}` : 'All unlocked')
+            : ''}
+          loading={!dataLoaded}
         />
         <SummaryCard
           label="GRAPH SHARE"
-          value={String(unlockedExercises.length)}
-          sub={unlockedExercises.length > 0 ? toEn(unlockedExercises[0].name) : '10 logs each'}
+          value={dataLoaded ? String(unlockedExercises.length) : '—'}
+          sub={dataLoaded
+            ? (unlockedExercises.length > 0 ? toEn(unlockedExercises[0].name) : '10 logs each')
+            : ''}
+          loading={!dataLoaded}
         />
         <SummaryCard
           label="THEMES"
-          value={`${unlockedThemes.length}/4`}
-          sub={`${4 - unlockedThemes.length} locked`}
+          value={dataLoaded ? `${unlockedThemes.length}/4` : '—'}
+          sub={dataLoaded ? `${4 - unlockedThemes.length} locked` : ''}
+          loading={!dataLoaded}
         />
       </div>
 
-      {/* ── Training Milestones ──────────────────────────────── */}
+      {/* ── Training Milestones — static structure, live progress ── */}
       <RewardSection title="TRAINING MILESTONES" sub="Log sessions to unlock analytics features">
         {trainingUnlocks.map((m, i) => {
           const isNext = !m.unlocked && (i === 0 || trainingUnlocks[i - 1].unlocked)
@@ -123,7 +155,7 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
         })}
       </RewardSection>
 
-      {/* ── Exercise Graphs ──────────────────────────────────── */}
+      {/* ── Exercise Graphs — ALWAYS_SHOW renders immediately ── */}
       <RewardSection title="EXERCISE GRAPHS" sub="Log 10 sessions per exercise to unlock graph sharing">
         {allExercises.map((ex, i) => (
           <ExerciseRow
@@ -135,7 +167,7 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
         ))}
       </RewardSection>
 
-      {/* ── Share Themes ─────────────────────────────────────── */}
+      {/* ── Share Themes — static structure, live progress ──── */}
       <RewardSection title="SHARE THEMES" sub="Export Story cards to unlock color themes">
         {shareThemes.map((theme, i) => (
           <ThemeRow
@@ -151,6 +183,28 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
         ))}
       </RewardSection>
 
+    </div>
+  )
+}
+
+/* ── Next Reward Skeleton ───────────────────────────────────── */
+
+function NextRewardSkeleton() {
+  return (
+    <div className="px-4 mb-4">
+      <div style={{
+        background: '#161616',
+        border: '1px solid rgba(255,106,0,0.12)',
+        borderRadius: 24,
+        padding: '20px',
+      }}>
+        <div className="h-2 w-20 rounded-full mb-4" style={{ background: '#252525' }} />
+        <div className="h-6 w-40 rounded-lg mb-3" style={{ background: '#1e1e1e' }} />
+        <div className="h-3 w-24 rounded-full mb-2" style={{ background: '#1a1a1a' }} />
+        <div className="h-3 w-52 rounded-full mb-5" style={{ background: '#191919' }} />
+        <div className="h-1.5 rounded-full mb-5" style={{ background: '#1e1e1e' }} />
+        <div className="h-9 w-28 rounded-full" style={{ background: '#1e1e1e' }} />
+      </div>
     </div>
   )
 }
@@ -191,7 +245,6 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
     )
   }
 
-  // ── Compute display values per type ─────────────────────────
   let title: string
   let current: number
   let required: number
@@ -225,7 +278,6 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
     ctaLabel = `Log ${name}`
     ctaHref  = '/record'
   } else {
-    // share_theme
     const t   = result.theme
     const rem = t.requiredShares - result.current
     title        = `${t.label} Theme`
@@ -251,27 +303,22 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
         boxShadow: '0 0 28px rgba(255,106,0,0.06)',
       }}>
 
-        {/* Label */}
         <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.13em', color: '#ff6b00', marginBottom: 14 }}>
           NEXT REWARD
         </p>
 
-        {/* Title */}
         <p style={{ fontSize: 22, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, marginBottom: 6 }}>
           {title}
         </p>
 
-        {/* Progress count */}
         <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
           {current} / {required} {progressUnit}
         </p>
 
-        {/* Description */}
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 16 }}>
           {description}
         </p>
 
-        {/* Progress bar */}
         <div style={{
           height: 6, borderRadius: 999,
           background: 'rgba(255,255,255,0.08)',
@@ -287,7 +334,6 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
           }} />
         </div>
 
-        {/* CTA */}
         <Link
           href={ctaHref}
           className="inline-flex items-center active:opacity-60 transition-opacity"
@@ -312,16 +358,16 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
 
 /* ── Sub-components ─────────────────────────────────────────── */
 
-function SummaryCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+function SummaryCard({ label, value, sub, loading }: { label: string; value: string; sub: string; loading: boolean }) {
   return (
     <div className="rounded-2xl p-3" style={{ background: '#111', border: '1px solid rgba(255,255,255,0.06)' }}>
       <p className="text-[8px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.28)' }}>
         {label}
       </p>
-      <p className="text-lg font-black text-white leading-none mb-1.5">
+      <p className="text-lg font-black text-white leading-none mb-1.5" style={{ opacity: loading ? 0.3 : 1, transition: 'opacity 200ms' }}>
         {value}
       </p>
-      <p className="text-[9px] leading-snug" style={{ color: 'rgba(255,255,255,0.28)' }}>
+      <p className="text-[9px] leading-snug" style={{ color: 'rgba(255,255,255,0.28)', minHeight: 12 }}>
         {sub}
       </p>
     </div>
