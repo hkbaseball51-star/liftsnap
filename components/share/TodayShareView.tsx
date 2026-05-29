@@ -170,7 +170,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
   const volStr       = fmtVol(data.volume)
   const g1rm         = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
-  const dividerColor = 'rgba(255,255,255,0.12)'
+  const dividerColor = 'rgba(255,255,255,0.22)'
   // text-shadow cascades to all children; natural shadow keeps white readable over photos
   const tsh = '0 2px 8px rgba(0,0,0,0.75)'
   // Preview background (checker for transparent to indicate alpha)
@@ -200,7 +200,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           <div style={{
             maxHeight: '76vh', overflowY: 'auto', overflowX: 'hidden',
             borderRadius: 24, position: 'relative',
-            border: `1px solid ${ac.cardBorder}`,
           }}>
             {/*
               captureRef: this is the element html-to-image captures.
@@ -225,10 +224,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 </div>
 
                 {/* Header labels */}
-                <p style={{ fontSize: 8, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.1em', margin: '0 0 2px', lineHeight: 1.2 }}>
+                <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', margin: '0 0 2px', lineHeight: 1.2 }}>
                   TODAY&apos;S WORKOUT
                 </p>
-                <p style={{ fontSize: 10, color: '#C8C8C8', margin: '0 0 3px', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 10, color: '#F2F2F2', margin: '0 0 3px', lineHeight: 1.4 }}>
                   {fmtDate(data.date)}
                 </p>
                 <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 10px' }}>
@@ -238,18 +237,18 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
                 {/* TOTAL VOLUME */}
-                <p style={{ fontSize: 8, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.08em', margin: '0 0 2px', lineHeight: 1.2 }}>
+                <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 2px', lineHeight: 1.2 }}>
                   TOTAL VOLUME
                 </p>
                 {/* flex keeps the number and unit on the same line — no absolute positioning */}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, margin: '0 0 3px', lineHeight: 1 }}>
                   <span style={{ fontSize: 42, fontWeight: 900, color: acHex, lineHeight: 1 }}>{volStr}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 2 }}>kg</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#F2F2F2', lineHeight: 1, paddingBottom: 2 }}>kg</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px', flexWrap: 'nowrap' }}>
-                  <span style={{ fontSize: 9, color: '#C8C8C8', lineHeight: 1.4, whiteSpace: 'nowrap' }}>{data.setsCount} SETS</span>
+                  <span style={{ fontSize: 9, color: '#F2F2F2', lineHeight: 1.4, whiteSpace: 'nowrap' }}>{data.setsCount} SETS</span>
                   {g1rm > 0 && (
-                    <span style={{ fontSize: 9, color: '#B8B8B8', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 9, color: '#EDEDED', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
                       · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(g1rm)}kg</span>
                     </span>
                   )}
@@ -258,7 +257,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
                 {/* Exercises */}
-                <p style={{ fontSize: 8, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.08em', margin: '0 0 10px', lineHeight: 1.2 }}>
+                <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 10px', lineHeight: 1.2 }}>
                   EXERCISES
                 </p>
 
@@ -274,13 +273,13 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
                         {/* Meta row: N sets · est. 1RM — single line, no wrap */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 12px', flexWrap: 'nowrap', lineHeight: 1.1 }}>
-                          <span style={{ fontSize: 10, color: '#B8B8B8', fontWeight: 500, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 10, color: '#EDEDED', fontWeight: 500, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                             {ex.setCount} sets
                           </span>
                           {ex.best1RM > 0 && (
                             <>
-                              <span style={{ fontSize: 9, color: '#707070', lineHeight: 1.1 }}>·</span>
-                              <span style={{ fontSize: 10, color: '#AFAFAF', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 9, color: '#EDEDED', lineHeight: 1.1 }}>·</span>
+                              <span style={{ fontSize: 10, color: '#F2F2F2', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                                 est. 1RM&nbsp;
                                 <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
                               </span>
@@ -295,14 +294,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                               <span style={{ color: '#F0F0F0' }}>
                                 {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
                               </span>
-                              <span style={{ color: '#C4C4C4' }}> × {s.reps}</span>
+                              <span style={{ color: '#F2F2F2' }}> × {s.reps}</span>
                             </p>
                           ))}
                         </div>
 
                         {/* Thin divider between exercises, not after last */}
                         {idx < data.exercises.length - 1 && (
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 0' }} />
+                          <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '10px 0' }} />
                         )}
                       </div>
                     )
@@ -322,7 +321,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 )}
 
                 {/* Watermark — opt-out of inherited text-shadow to keep it subtle */}
-                <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.30)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
+                <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.50)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
                   Made with LIFTSNAP · liftsnap.app
                 </p>
 

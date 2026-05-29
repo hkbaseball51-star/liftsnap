@@ -144,7 +144,7 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
       ctx.fillStyle = ac.barActive; ctx.font = f(34, 700); ctx.textAlign = 'center'
       ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 58)
     } else if (i === 0 || i === Math.floor(n / 2)) {
-      ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = f(34); ctx.textAlign = 'center'
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = f(34); ctx.textAlign = 'center'
       ctx.fillText(pt.date ? fmtXLabel(pt.date) : '', bx + barW / 2, y + h + 58)
     }
   })
@@ -153,7 +153,7 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
   yTicks.forEach(tick => {
     const ty = max > 0 ? y + h - Math.round((tick / max) * h * 0.9) : y + h
     if (ty < y - 4) return
-    ctx.fillStyle = 'rgba(255,255,255,0.65)'
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'
     ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 10)
   })
   ctx.textAlign = 'left'
@@ -208,7 +208,7 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
   const show = [0, Math.floor((sub.length-1)/2), sub.length-1]
   ctx.font = f(34); ctx.textAlign = 'center'
   show.forEach(i => {
-    ctx.fillStyle = i === sub.length-1 ? ac.barActive : 'rgba(255,255,255,0.65)'
+    ctx.fillStyle = i === sub.length-1 ? ac.barActive : 'rgba(255,255,255,0.85)'
     ctx.fillText(sub[i].date ? fmtXLabel(sub[i].date) : '', px(i), y+h+58)
   })
   ctx.textAlign = 'left'
@@ -217,7 +217,7 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
   yTicks.forEach(tick => {
     const ty = py(tick)
     if (ty < y - 4 || ty > y + h + 4) return
-    ctx.fillStyle = 'rgba(255,255,255,0.65)'
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'
     ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 10)
   })
   ctx.textAlign = 'left'
@@ -256,7 +256,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   let heroStr: string
   let supp1: string | null = null
   let supp2: string | null = null
-  let supp2Color = 'rgba(255,255,255,0.5)'
+  let supp2Color = 'rgba(255,255,255,0.75)'
   let chartData: ChartPt[] = []
 
   if (data.type === 'volume') {
@@ -264,7 +264,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
     heroStr = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
     supp1 = `${data.totalVolume >= 10000 ? `${(data.totalVolume/1000).toFixed(1)}k` : data.totalVolume.toLocaleString()} kg accumulated`
-    supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.4)'
+    supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
     chartData = data.history.map(d => ({ date: d.date, value: d.volume }))
   } else {
     // bodyweight
@@ -273,13 +273,13 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     if (bw.change !== 0) supp1 = `${bw.change > 0 ? '+' : ''}${bw.change} kg since start`
     if (bw.history.length >= 2) {
       supp2 = `${bw.history[0].weight} kg → ${bw.currentWeight} kg`
-      supp2Color = 'rgba(255,255,255,0.35)'
+      supp2Color = 'rgba(255,255,255,0.65)'
     }
     chartData = bw.history.map(d => ({ date: d.date, value: d.weight }))
   }
 
   let cy = 202
-  ctx.fillStyle = 'rgba(255,255,255,0.36)'; ctx.font = f(32, 500)
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = f(32, 500)
   ctx.fillText(metricLabel, 80, cy); cy += 78
 
   if (exerciseName) {
@@ -294,12 +294,12 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   cy += 106
   ctx.fillStyle = heroColor; ctx.font = f(152, 700); ctx.fillText(heroStr, 80, cy)
   const hw = ctx.measureText(heroStr).width
-  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = f(56, 500)
+  ctx.fillStyle = 'rgba(255,255,255,0.70)'; ctx.font = f(56, 500)
   ctx.fillText(' kg', 80 + hw + 10, cy - 12)
   cy += 72
 
   if (supp1) {
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = f(34)
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = f(34)
     ctx.fillText(supp1, 80, cy)
   }
   cy += 58
@@ -311,7 +311,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   cy += 58
 
   cy += 26; divider(cy); cy += 46
-  ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.font = f(24, 500)
+  ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = f(24, 500)
   ctx.fillText('PROGRESSION', 80, cy); cy += 38
 
   const chartTop    = cy
@@ -327,7 +327,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     canvasBar(ctx, chartData, chartX, chartTop, chartW, chartH, ac, isVol)
   }
 
-  ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.font = f(26)
+  ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = f(26)
   ctx.fillText('Made with LIFTSNAP · liftsnap.app', 80, H - 56)
 
   return new Promise(resolve => cv.toBlob(b => resolve(b!), 'image/png'))
@@ -523,7 +523,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   let heroNum = ''
   let supp1: string | null = null
   let supp2: string | null = null
-  let supp2Color = 'rgba(255,255,255,0.5)'
+  let supp2Color = 'rgba(255,255,255,0.75)'
   let chartData: ChartPt[] = []
 
   if (data.type === 'volume') {
@@ -531,14 +531,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
     heroNum = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
     supp1 = `${data.totalVolume >= 10000 ? `${(data.totalVolume/1000).toFixed(1)}k` : data.totalVolume.toLocaleString()} kg total`
-    supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.4)'
+    supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
     chartData = data.history.map(d => ({ date: d.date, value: d.volume }))
   } else if (data.type === 'bodyweight') {
     metricLabel = 'BODY WEIGHT'; heroNum = String(data.currentWeight)
     if (data.change !== 0) supp1 = `${data.change > 0 ? '+' : ''}${data.change} kg since start`
     if (data.history.length >= 2) {
       supp2 = `${data.history[0].weight} kg → ${data.currentWeight} kg`
-      supp2Color = 'rgba(255,255,255,0.35)'
+      supp2Color = 'rgba(255,255,255,0.65)'
     }
     chartData = data.history.map(d => ({ date: d.date, value: d.weight }))
   }
@@ -574,7 +574,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             aspectRatio: '9/16', width: '100%',
             background: cardBg,
             borderRadius: 24, overflow: 'hidden',
-            border: `1px solid ${ac.cardBorder}`,
             position: 'relative',
           }}>
             {/* Accent stripe */}
@@ -610,7 +609,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </p>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '0 0 9px', flexShrink: 0 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.22)', margin: '0 0 9px', flexShrink: 0 }} />
 
               {/* Growth hero — same scale as "5,790kg TOTAL VOLUME" in TodayShareView */}
               <div style={{ flexShrink: 0, margin: '0 0 9px' }}>
@@ -618,9 +617,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <>
                     {/* START row — subtle */}
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, margin: '0 0 3px', flexWrap: 'nowrap' }}>
-                      <span style={{ fontSize: 7, fontWeight: 700, color: '#777', letterSpacing: '0.1em' }}>START</span>
-                      <span style={{ fontSize: 17, fontWeight: 700, color: '#C4C4C4', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                        {rm1FirstVal}<span style={{ fontSize: 9, fontWeight: 500, color: '#888' }}>kg</span>
+                      <span style={{ fontSize: 7, fontWeight: 700, color: '#EDEDED', letterSpacing: '0.1em' }}>START</span>
+                      <span style={{ fontSize: 17, fontWeight: 700, color: '#F2F2F2', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                        {rm1FirstVal}<span style={{ fontSize: 9, fontWeight: 500, color: '#D0D0D0' }}>kg</span>
                       </span>
                     </div>
                     {/* NOW row — hero number */}
@@ -629,7 +628,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95, whiteSpace: 'nowrap' }}>
                         {bestRM}
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: '#C4C4C4', lineHeight: 1, paddingBottom: 5 }}>kg</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', lineHeight: 1, paddingBottom: 5 }}>kg</span>
                     </div>
                     {/* GAIN row */}
                     {rm1Growth !== null && (
@@ -641,16 +640,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
                     <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95 }}>{bestRM}</span>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#C4C4C4', paddingBottom: 5 }}>kg</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', paddingBottom: 5 }}>kg</span>
                   </div>
                 )}
               </div>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 0 5px', flexShrink: 0 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '0 0 5px', flexShrink: 0 }} />
 
               {/* PROGRESSION label */}
-              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#666', letterSpacing: '0.1em', margin: '0 0 4px', lineHeight: 1.2, flexShrink: 0 }}>
+              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', margin: '0 0 4px', lineHeight: 1.2, flexShrink: 0 }}>
                 PROGRESSION
               </p>
 
@@ -676,17 +675,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                         {/* NOW/START label + date for first/last, date-only for middle */}
                         {isLatest || isFirstRecord ? (
                           <div style={{ width: 24, flexShrink: 0 }}>
-                            <div style={{ fontSize: 4.5, fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1.3, color: isLatest ? acHex : '#888' }}>
+                            <div style={{ fontSize: 4.5, fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1.3, color: isLatest ? acHex : '#EDEDED' }}>
                               {isLatest ? 'NOW' : 'START'}
                             </div>
-                            <div style={{ fontSize: 5.5, fontWeight: isLatest ? 700 : 400, lineHeight: 1.2, color: isLatest ? acHex : '#999' }}>
+                            <div style={{ fontSize: 5.5, fontWeight: isLatest ? 700 : 400, lineHeight: 1.2, color: isLatest ? acHex : '#E0E0E0' }}>
                               {fmtShort(pt.date)}
                             </div>
                           </div>
                         ) : (
                           <span style={{
                             width: 24, flexShrink: 0, fontSize: 5.5, lineHeight: 1.2, whiteSpace: 'nowrap',
-                            color: '#666', fontWeight: 400,
+                            color: '#C8C8C8', fontWeight: 400,
                           }}>
                             {fmtShort(pt.date)}
                           </span>
@@ -707,7 +706,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                           width: 20, flexShrink: 0,
                           fontSize: isLatest ? 8 : isFirstRecord ? 7 : 6,
                           fontWeight: isLatest ? 800 : isFirstRecord ? 600 : 400,
-                          color: isLatest ? '#FFFFFF' : isFirstRecord ? '#D4D4D4' : '#909090',
+                          color: isLatest ? '#FFFFFF' : '#F0F0F0',
                           textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1,
                         }}>
                           {pt.est1rm}
@@ -719,7 +718,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
 
               {/* Watermark */}
-              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.18)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
+              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
                 LIFTSNAP
               </p>
             </div>
@@ -732,7 +731,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             style={{
               aspectRatio: '9/16',
               background: cardBg,
-              border: `1px solid ${ac.cardBorder}`,
             }}>
 
             <div className="absolute top-0 inset-x-0" style={{ height: 2, background: ac.topLine }} />
@@ -746,7 +744,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </span>
               </div>
 
-              <p style={{ fontSize: 9, fontWeight: 600, color: '#B8B8B8', letterSpacing: '0.1em', marginBottom: 2 }}>
+              <p style={{ fontSize: 9, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', marginBottom: 2 }}>
                 {metricLabel}
               </p>
               {exerciseName && (
@@ -755,21 +753,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </p>
               )}
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginTop: 7, marginBottom: 7 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.20)', marginTop: 7, marginBottom: 7 }} />
 
               <div className="flex items-baseline" style={{ gap: 3, marginBottom: 1 }}>
                 <span style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: acHex }}>
                   {heroNum}
                 </span>
-                <span style={{ fontSize: 15, fontWeight: 500, color: '#C4C4C4' }}>kg</span>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#F2F2F2' }}>kg</span>
               </div>
 
-              {supp1 && <p style={{ fontSize: 9.5, color: '#B8B8B8', marginBottom: 1.5 }}>{supp1}</p>}
+              {supp1 && <p style={{ fontSize: 9.5, color: '#EDEDED', marginBottom: 1.5 }}>{supp1}</p>}
               {supp2 && <p style={{ fontSize: 9.5, color: supp2Color, marginBottom: 0 }}>{supp2}</p>}
 
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginTop: 7, marginBottom: 5 }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.20)', marginTop: 7, marginBottom: 5 }} />
 
-              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#888', letterSpacing: '0.1em', marginBottom: 5 }}>
+              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', marginBottom: 5 }}>
                 PROGRESSION
               </p>
 
@@ -777,7 +775,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 3 }}>
                   <div style={{ width: 32, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 3, paddingTop: 1 }}>
                     {[...yTicks].reverse().map((v, i) => (
-                      <span key={i} style={{ fontSize: 7.5, color: '#B8B8B8', textAlign: 'right', lineHeight: 1, display: 'block' }}>
+                      <span key={i} style={{ fontSize: 7.5, color: '#EDEDED', textAlign: 'right', lineHeight: 1, display: 'block' }}>
                         {fmtYLabel(v, data.type === 'volume')}
                       </span>
                     ))}
@@ -789,13 +787,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {xLabels.length > 0 && (
                   <div style={{ height: 14, display: 'flex', justifyContent: 'space-between', paddingLeft: 35, marginTop: 3 }}>
                     {xLabels.map((lbl, i) => (
-                      <span key={i} style={{ fontSize: 7.5, color: '#B8B8B8', lineHeight: 1 }}>{lbl}</span>
+                      <span key={i} style={{ fontSize: 7.5, color: '#EDEDED', lineHeight: 1 }}>{lbl}</span>
                     ))}
                   </div>
                 )}
               </div>
 
-              <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.20)', marginTop: 5 }}>
+              <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.45)', marginTop: 5 }}>
                 Made with LIFTSNAP · liftsnap.app
               </p>
             </div>
