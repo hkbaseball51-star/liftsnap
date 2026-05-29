@@ -51,6 +51,14 @@ function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/** "#rrggbb" → "r, g, b" for use in rgba() */
+function hexToRgb(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `${r}, ${g}, ${b}`
+}
+
 export default function TrainingCalendar({
   sessions,
   todayStr,
@@ -174,21 +182,25 @@ export default function TrainingCalendar({
             let shadow: string
             let textColor: string
 
+            // Selected ring follows the day's muscle color; fallback to brand orange
+            const accentColor = color ?? '#ff6b00'
+            const accentRgb = hexToRgb(accentColor)
+
             if (isSelected && isToday) {
-              bg = '#ff6b00'
-              border = '2.5px solid rgba(255,255,255,0.55)'
-              shadow = '0 0 20px rgba(255,107,0,0.6)'
+              bg = `rgba(${accentRgb}, 0.22)`
+              border = `2.5px solid ${accentColor}`
+              shadow = `0 0 20px rgba(${accentRgb}, 0.55)`
               textColor = '#ffffff'
             } else if (isSelected) {
-              bg = '#ff6b00'
-              border = '1.5px solid rgba(255,255,255,0.2)'
-              shadow = '0 0 12px rgba(255,107,0,0.35)'
+              bg = `rgba(${accentRgb}, 0.18)`
+              border = `2px solid ${accentColor}`
+              shadow = `0 0 12px rgba(${accentRgb}, 0.35)`
               textColor = '#ffffff'
             } else if (isToday) {
-              bg = muscle ? 'rgba(255,107,0,0.22)' : 'rgba(255,107,0,0.1)'
-              border = '2.5px solid #ff6b00'
-              shadow = '0 0 16px rgba(255,107,0,0.45)'
-              textColor = '#ff6b00'
+              bg = color ? `rgba(${hexToRgb(color)}, 0.18)` : 'rgba(255,107,0,0.1)'
+              border = `2.5px solid ${color ?? '#ff6b00'}`
+              shadow = `0 0 16px rgba(${color ? hexToRgb(color) : '255,107,0'}, 0.45)`
+              textColor = color ?? '#ff6b00'
             } else if (muscle) {
               bg = `${color!}2e`
               border = '1px solid transparent'
@@ -236,7 +248,7 @@ export default function TrainingCalendar({
                       fontWeight: 900,
                       lineHeight: 1,
                       marginTop: 2,
-                      color: isSelected ? '#ff6b00' : color!,
+                      color: color!,
                     }}>
                     {abbrev}
                   </span>
