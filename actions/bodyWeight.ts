@@ -1,15 +1,12 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getJstDateString } from '@/lib/date'
 
 export type WeightPoint = {
   date: string
   label: string
   weight: number
-}
-
-export function getJstDateString(): string {
-  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
 }
 
 function labelFromDate(dateStr: string): string {
