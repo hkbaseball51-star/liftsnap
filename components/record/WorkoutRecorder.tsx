@@ -323,6 +323,7 @@ export default function WorkoutRecorder({
   const [numberTarget, setNumberTarget] = useState<NumberTarget | null>(null)
   const [saving, setSaving] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const listEndRef = useRef<HTMLDivElement>(null)
 
   // Fetch PR data for pre-loaded exercises
@@ -382,6 +383,7 @@ export default function WorkoutRecorder({
         }],
       }
     }))
+    setIsDirty(true)
   }, [])
 
   const removeSet = useCallback((exerciseId: string, setId: string) => {
@@ -392,16 +394,21 @@ export default function WorkoutRecorder({
       if (newSets.length === 0) return []
       return [{ ...ex, sets: newSets }]
     }))
+    setIsDirty(true)
   }, [])
 
-  const removeExercise = useCallback((id: string) =>
-    setExerciseList(prev => prev.filter(ex => ex.id !== id)), [])
+  const removeExercise = useCallback((id: string) => {
+    setExerciseList(prev => prev.filter(ex => ex.id !== id))
+    setIsDirty(true)
+  }, [])
 
-  const updateSet = useCallback((exerciseId: string, setId: string, field: 'weight_kg' | 'reps', value: number) =>
+  const updateSet = useCallback((exerciseId: string, setId: string, field: 'weight_kg' | 'reps', value: number) => {
     setExerciseList(prev => prev.map(ex =>
       ex.id !== exerciseId ? ex :
       { ...ex, sets: ex.sets.map(s => s.id === setId ? { ...s, [field]: value } : s) }
-    )), [])
+    ))
+    setIsDirty(true)
+  }, [])
 
   const handleSetTarget = useCallback((target: NumberTarget) => setNumberTarget(target), [])
 
@@ -416,6 +423,7 @@ export default function WorkoutRecorder({
       allTimePR: null,
       sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null }],
     }])
+    setIsDirty(true)
     setShowPicker(false)
     setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
 
@@ -452,6 +460,7 @@ export default function WorkoutRecorder({
           }))
       )
       await saveFullSession(sid, title, setsToSave)
+      setIsDirty(false)
       router.push('/home')
     } finally {
       setSaving(false)
@@ -467,7 +476,9 @@ export default function WorkoutRecorder({
 
         {/* Date label */}
         <div className="flex items-center justify-between pb-1">
-          <button onClick={() => setShowCancelConfirm(true)} className="p-1.5 -ml-1.5">
+          <button
+            className="p-1.5 -ml-1.5"
+            onClick={() => isDirty ? setShowCancelConfirm(true) : router.push('/home')}>
             <X size={20} style={{ color: '#666' }} />
           </button>
           <div className="flex flex-col items-center">
@@ -486,7 +497,7 @@ export default function WorkoutRecorder({
         <div className="flex justify-center pb-2">
           {editingTitle ? (
             <input autoFocus value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
               onBlur={() => setEditingTitle(false)}
               onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
               className="text-center text-base font-black text-white bg-transparent outline-none"
@@ -595,7 +606,7 @@ export default function WorkoutRecorder({
                 onClick={() => setShowCancelConfirm(false)}>KEEP GOING</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
-                onClick={() => router.push('/home')}>LEAVE</button>
+                onClick={() => { setShowCancelConfirm(false); router.push('/home') }}>LEAVE</button>
             </div>
           </div>
         </div>
