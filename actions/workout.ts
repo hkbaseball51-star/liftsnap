@@ -331,6 +331,46 @@ export async function getLastSessionSets(sessionTitle: string) {
   return sets ?? []
 }
 
+export async function getExerciseUsageCounts(): Promise<Record<string, number>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {}
+
+  const { data: sessions } = await supabase
+    .from('workout_sessions')
+    .select('id')
+    .eq('user_id', user.id)
+    .not('completed_at', 'is', null)
+
+  if (!sessions?.length) return {}
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('exercise_name')
+    .in('session_id', sessions.map(s => s.id))
+
+  const counts: Record<string, number> = {}
+  for (const s of sets ?? []) {
+    counts[s.exercise_name] = (counts[s.exercise_name] ?? 0) + 1
+  }
+  return counts
+}
+
+export async function deleteCustomExercise(exerciseId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { error } = await supabase
+    .from('exercises')
+    .delete()
+    .eq('id', exerciseId)
+    .eq('user_id', user.id)
+    .eq('is_custom', true)
+
+  if (error) throw new Error(error.message)
+}
+
 export async function getTodayWorkoutForShare(date: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
