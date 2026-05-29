@@ -29,23 +29,22 @@ function getRankInfo(vol: number) {
   }
 }
 
-/* ── Helpers ─────────────────────────────────────────── */
 function fmtLargeVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)}M`
   if (kg >= 1_000)     return `${(kg / 1_000).toFixed(1)}K`
   return String(Math.round(kg))
 }
 
-function fmtPR(kg: number | null): string {
-  return kg != null ? `${kg}kg` : '—'
+function topMuscle(groups: { muscle_group: string | null }[]): string | null {
+  const c: Record<string, number> = {}
+  for (const g of groups) {
+    if (g.muscle_group) c[g.muscle_group] = (c[g.muscle_group] ?? 0) + 1
+  }
+  return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
 }
 
 function primaryMuscle(sets: { muscle_group: string | null }[]): string | null {
-  const c: Record<string, number> = {}
-  for (const s of sets) {
-    if (s.muscle_group) c[s.muscle_group] = (c[s.muscle_group] ?? 0) + 1
-  }
-  return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  return topMuscle(sets)
 }
 
 function actDate(d: string): string {
@@ -73,24 +72,28 @@ export default async function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen pb-nav flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
-        <p className="text-4xl mb-4">👤</p>
-        <p className="text-lg font-black text-white mb-2 tracking-widest">NO ACCOUNT</p>
-        <p className="text-sm text-center mb-8" style={{ color: '#555' }}>
-          Create an account to save your data and sync across devices
+        <p className="text-5xl mb-4">🏋️</p>
+        <p className="text-lg font-black text-white mb-2 tracking-widest">YOUR PROFILE</p>
+        <p className="text-sm text-center mb-8 leading-relaxed" style={{ color: '#3a3a3a' }}>
+          Create an account to track your progress and build your lifting profile.
         </p>
         <Link href="/signup"
           className="w-full max-w-xs py-4 rounded-2xl text-center text-sm font-black text-white block tracking-widest"
           style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.35)' }}>
           CREATE ACCOUNT
         </Link>
-        <Link href="/login" className="mt-4 text-sm font-bold" style={{ color: '#444' }}>
+        <Link href="/login" className="mt-4 text-sm font-bold" style={{ color: '#333' }}>
           Already have an account? Sign in →
         </Link>
       </div>
     )
   }
 
-  const [profileRes, sessionsRes, recentRes, benchRes, squatRes, deadliftRes] = await Promise.all([
+  const [
+    profileRes, sessionsRes, recentRes,
+    benchRes, squatRes, deadliftRes,
+    bestLiftRes, muscleGroupsRes,
+  ] = await Promise.all([
     supabase.from('profiles').select('display_name, plan').eq('id', user.id).single(),
     supabase.from('workout_sessions')
       .select('total_volume_kg')
@@ -111,13 +114,21 @@ export default async function ProfilePage() {
     supabase.from('workout_sets').select('weight_kg')
       .ilike('exercise_name', '%deadlift%').eq('is_completed', true)
       .not('weight_kg', 'is', null).order('weight_kg', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('workout_sets').select('exercise_name, weight_kg')
+      .eq('is_completed', true)
+      .not('weight_kg', 'is', null)
+      .order('weight_kg', { ascending: false })
+      .limit(1).maybeSingle(),
+    supabase.from('workout_sets').select('muscle_group')
+      .eq('is_completed', true)
+      .not('muscle_group', 'is', null),
   ])
 
   const profile     = profileRes.data
   const displayName = (profile?.display_name as string | null) ?? 'USER'
   const username    = usernameHandle(user.email ?? 'user')
 
-  const allSessions = sessionsRes.data ?? []
+  const allSessions  = sessionsRes.data ?? []
   const sessionCount = allSessions.length
   const totalVolume  = allSessions.reduce((sum, s) => sum + (s.total_volume_kg ?? 0), 0)
   const rankInfo     = getRankInfo(totalVolume)
@@ -127,14 +138,17 @@ export default async function ProfilePage() {
   const squatPR    = squatRes.data?.weight_kg   ?? null
   const deadliftPR = deadliftRes.data?.weight_kg ?? null
 
+  const bestLift  = bestLiftRes.data as { exercise_name: string; weight_kg: number } | null
+  const mainMuscle = topMuscle((muscleGroupsRes.data ?? []) as { muscle_group: string | null }[])
+
   const card = {
-    background: '#151515',
+    background: '#161616',
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 20,
   } as const
 
-  const sectionLabel = (text: string) => (
-    <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: '#444' }}>{text}</p>
+  const sec = (text: string) => (
+    <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: 'rgba(255,255,255,0.38)' }}>{text}</p>
   )
 
   return (
@@ -153,121 +167,169 @@ export default async function ProfilePage() {
       </div>
 
       {/* ── 2. Profile Hero ───────────────────────────── */}
-      <div className="flex flex-col items-center px-4 pt-2 pb-6">
-        {/* Avatar */}
+      <div className="flex flex-col items-center px-4 pt-2 pb-7">
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black text-white mb-3"
+          className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white mb-4"
           style={{
             background: 'linear-gradient(135deg, #ff6b00 0%, #7c3aed 100%)',
-            boxShadow: '0 0 24px rgba(255,107,0,0.15)',
+            boxShadow: '0 0 36px rgba(255,107,0,0.18)',
           }}>
           {displayName[0].toUpperCase()}
         </div>
 
-        {/* Name */}
-        <p className="text-xl font-black text-white tracking-widest">{displayName}</p>
+        <p className="text-2xl font-black text-white tracking-tight leading-none">{displayName}</p>
 
-        {/* Username */}
-        <p className="text-xs mt-0.5" style={{ color: '#3a3a3a', fontFamily: 'var(--font-mono)' }}>
+        <p className="text-xs mt-2" style={{ color: '#3a3a3a', fontFamily: 'var(--font-mono)' }}>
           {username}
         </p>
 
-        {/* Bio — empty state: visible but subtle */}
-        <button className="mt-3 text-sm text-center" style={{ color: '#2a2a2a' }}>
-          Add a goal or bio...
-        </button>
+        <p className="text-sm text-center mt-4 px-8 leading-relaxed" style={{ color: '#282828' }}>
+          Set your lifting goal.
+        </p>
 
-        {/* Visibility badge */}
-        <div className="flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full"
-          style={{ background: '#111', border: '1px solid #1a1a1a' }}>
-          <Lock size={9} style={{ color: '#333' }} />
-          <span className="text-[9px] font-black tracking-widest" style={{ color: '#333' }}>PRIVATE PROFILE</span>
+        <div className="flex items-center gap-1.5 mt-5 px-3 py-1.5 rounded-full"
+          style={{ background: '#0e0e0e', border: '1px solid #171717' }}>
+          <Lock size={9} style={{ color: '#2a2a2a' }} />
+          <span className="text-[9px] font-black tracking-widest" style={{ color: '#282828' }}>PRIVATE PROFILE</span>
         </div>
       </div>
 
       {/* ── 3. Quick Stats ────────────────────────────── */}
-      <div className="mx-4 grid grid-cols-3 gap-2 mb-4">
-        <div className="rounded-2xl p-3.5 text-center" style={card}>
-          <p className="text-2xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-            {sessionCount}
+      <div className="mx-4 grid grid-cols-3 gap-2 mb-5">
+
+        <div className="rounded-2xl px-2 py-4 text-center" style={card}>
+          <p className="text-2xl font-black leading-none"
+            style={{ color: sessionCount > 0 ? '#f5f5f5' : 'rgba(255,255,255,0.16)', fontFamily: 'var(--font-mono)' }}>
+            {sessionCount > 0 ? sessionCount : '—'}
           </p>
-          <p className="text-[9px] font-black tracking-widest mt-1" style={{ color: '#444' }}>SESSIONS</p>
+          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: 'rgba(255,255,255,0.28)' }}>SESSIONS</p>
         </div>
 
-        <div className="rounded-2xl p-3.5 text-center" style={card}>
-          <p className="text-xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-            {fmtLargeVolume(totalVolume)}
-          </p>
-          <p className="text-[9px] font-black tracking-widest mt-1" style={{ color: '#444' }}>VOLUME</p>
+        <div className="rounded-2xl px-2 py-4 text-center" style={card}>
+          {totalVolume > 0 ? (
+            <div className="leading-none">
+              <span className="text-xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
+                {fmtLargeVolume(totalVolume)}
+              </span>
+              <span className="text-[10px] font-bold ml-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>kg</span>
+            </div>
+          ) : (
+            <p className="text-2xl font-black leading-none" style={{ color: 'rgba(255,255,255,0.16)', fontFamily: 'var(--font-mono)' }}>—</p>
+          )}
+          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: 'rgba(255,255,255,0.28)' }}>VOLUME</p>
         </div>
 
-        <div className="rounded-2xl p-3.5 text-center flex flex-col items-center justify-center" style={card}>
-          <p className="text-lg leading-none">{rankInfo.current.emoji}</p>
-          <p className="text-[10px] font-black tracking-wide mt-1" style={{ color: rankInfo.current.color }}>
+        <div className="rounded-2xl px-2 py-4 text-center flex flex-col items-center" style={card}>
+          <p className="text-xl leading-none">{rankInfo.current.emoji}</p>
+          <p className="text-[10px] font-black tracking-wide mt-1.5 leading-none" style={{ color: rankInfo.current.color }}>
             {rankInfo.current.name}
           </p>
-          <p className="text-[9px] font-black tracking-widest mt-1" style={{ color: '#444' }}>RANK</p>
+          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: 'rgba(255,255,255,0.28)' }}>RANK</p>
         </div>
+
       </div>
 
       {/* ── 4. Personal Bests ─────────────────────────── */}
-      <div className="mx-4 mb-4">
-        {sectionLabel('PERSONAL BESTS')}
-        <div style={card}>
-          {[
-            { label: 'Bench Press', pr: benchPR },
-            { label: 'Squat',       pr: squatPR },
-            { label: 'Deadlift',    pr: deadliftPR },
-          ].map(({ label, pr }, i) => (
-            <div key={label}
-              className="flex items-center justify-between px-4 py-3.5"
-              style={{ borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-              <p className="text-sm font-bold text-white">{label}</p>
-              <p className="text-sm font-black" style={{
-                fontFamily: 'var(--font-mono)',
-                color: pr != null ? '#ff6b00' : '#2a2a2a',
-              }}>
-                {fmtPR(pr)}
+      <div className="mx-4 mb-5">
+        {sec('PERSONAL BESTS')}
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { label: 'BENCH', pr: benchPR },
+            { label: 'SQUAT', pr: squatPR },
+            { label: 'DEAD',  pr: deadliftPR },
+          ] as const).map(({ label, pr }) => (
+            <div key={label} className="rounded-2xl p-4 flex flex-col items-center" style={card}>
+              <p className="text-[8px] font-black tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                {label}
               </p>
+              {pr != null ? (
+                <>
+                  <p className="text-xl font-black leading-none" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
+                    {pr}
+                  </p>
+                  <p className="text-[9px] font-bold mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>kg</p>
+                </>
+              ) : (
+                <p className="text-xl font-black leading-none" style={{ color: 'rgba(255,255,255,0.14)', fontFamily: 'var(--font-mono)' }}>—</p>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── 5. Current Rank ───────────────────────────── */}
-      <div className="mx-4 mb-4">
-        {sectionLabel('CURRENT RANK')}
+      {/* ── 5. Strength Summary ───────────────────────── */}
+      <div className="mx-4 mb-5">
+        {sec('STRENGTH SUMMARY')}
+        <div className="overflow-hidden" style={card}>
+
+          <div className="flex items-center justify-between px-4 py-3.5"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              BEST LIFT
+            </p>
+            {bestLift ? (
+              <p className="text-sm font-bold text-right ml-3">
+                <span className="text-white">{bestLift.exercise_name} </span>
+                <span className="font-black" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
+                  {bestLift.weight_kg}kg
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.20)' }}>Not logged yet</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              MOST TRAINED
+            </p>
+            {mainMuscle ? (
+              <p className="text-sm font-black text-white capitalize">{mainMuscle}</p>
+            ) : (
+              <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.20)' }}>Not set</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              SPLIT
+            </p>
+            <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.20)' }}>—</p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ── 6. Current Rank ───────────────────────────── */}
+      <div className="mx-4 mb-5">
+        {sec('CURRENT RANK')}
         <div className="p-4 relative overflow-hidden" style={card}>
           <div className="absolute top-0 inset-x-0 h-px"
-            style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}60, transparent 60%)` }} />
+            style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}55, transparent 65%)` }} />
 
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <p className="text-2xl font-black" style={{ color: rankInfo.current.color }}>
-                {rankInfo.current.emoji} {rankInfo.current.name}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] font-black tracking-widest mb-0.5" style={{ color: '#333' }}>TOTAL VOLUME</p>
-              <p className="text-base font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
-                {fmtLargeVolume(totalVolume)}
-                <span className="text-[10px] font-bold ml-1" style={{ color: '#444' }}>kg</span>
-              </p>
-            </div>
+          <div className="mb-4">
+            <p className="text-2xl font-black" style={{ color: rankInfo.current.color }}>
+              {rankInfo.current.emoji} {rankInfo.current.name}
+            </p>
+            <p className="text-xs mt-1 font-bold" style={{ color: 'rgba(255,255,255,0.32)' }}>
+              {totalVolume > 0 ? `${fmtLargeVolume(totalVolume)}kg total volume` : 'Start logging to rank up'}
+            </p>
           </div>
 
           {rankInfo.next ? (
             <>
-              <div className="h-1.5 rounded-full mb-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div className="h-1.5 rounded-full mb-2.5" style={{ background: 'rgba(255,255,255,0.07)' }}>
                 <div
                   className="h-full rounded-full"
                   style={{
                     width: `${Math.round(rankInfo.progress * 100)}%`,
                     background: `linear-gradient(90deg, ${rankInfo.current.color}, ${rankInfo.next.color})`,
+                    minWidth: totalVolume > 0 ? 4 : 0,
                   }}
                 />
               </div>
-              <p className="text-[10px] font-bold" style={{ color: '#444' }}>
+              <p className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.38)' }}>
                 {fmtLargeVolume(rankInfo.remaining)}kg to {rankInfo.next.name}
               </p>
             </>
@@ -279,15 +341,18 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* ── 6. Recent Activity ────────────────────────── */}
+      {/* ── 7. Recent Activity ────────────────────────── */}
       <div className="mx-4 mb-10">
-        {sectionLabel('RECENT ACTIVITY')}
+        {sec('RECENT ACTIVITY')}
         {recentSessions.length === 0 ? (
-          <div className="px-4 py-8 text-center" style={card}>
-            <p className="text-sm font-bold" style={{ color: '#2a2a2a' }}>No workouts logged yet</p>
+          <div className="px-4 py-9 text-center rounded-2xl" style={card}>
+            <p className="text-sm font-black mb-2" style={{ color: 'rgba(255,255,255,0.22)' }}>No workouts yet.</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.14)' }}>
+              Log your first session to build your lifting profile.
+            </p>
           </div>
         ) : (
-          <div style={card}>
+          <div className="overflow-hidden" style={card}>
             {recentSessions.map((s, i) => {
               const muscle   = primaryMuscle(s.workout_sets)
               const setCount = s.workout_sets.length
@@ -295,24 +360,31 @@ export default async function ProfilePage() {
                 <Link
                   key={s.id}
                   href={`/record?date=${s.trained_at}`}
-                  className="flex items-center justify-between px-4 py-3.5 active:opacity-70 transition-opacity"
+                  className="flex items-center gap-3 px-4 py-4 active:opacity-70 transition-opacity"
                   style={{
                     borderBottom: i < recentSessions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                     display: 'flex',
                   }}>
-                  <div>
-                    <p className="text-sm font-black text-white">
-                      {actDate(s.trained_at)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <p className="text-sm font-black text-white">{actDate(s.trained_at)}</p>
                       {muscle && (
-                        <span style={{ color: '#555', fontWeight: 600 }}> · {muscle}</span>
+                        <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full"
+                          style={{
+                            background: 'rgba(255,255,255,0.06)',
+                            color: 'rgba(255,255,255,0.42)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                          }}>
+                          {muscle.toUpperCase()}
+                        </span>
                       )}
-                    </p>
-                    <p className="text-[10px] font-bold mt-0.5" style={{ color: '#444' }}>
+                    </div>
+                    <p className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.35)' }}>
                       {s.total_volume_kg != null ? formatVolume(s.total_volume_kg) : '—'}
-                      {' · '}{setCount} sets
+                      {' · '}{setCount} {setCount === 1 ? 'set' : 'sets'}
                     </p>
                   </div>
-                  <ChevronRight size={13} style={{ color: '#2e2e2e' }} />
+                  <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.20)' }} />
                 </Link>
               )
             })}
