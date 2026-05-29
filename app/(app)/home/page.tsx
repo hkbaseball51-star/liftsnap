@@ -291,9 +291,9 @@ export default async function HomePage() {
         <Link href={todayWorked ? `/share?type=today&date=${todayStr}` : `/record?date=${todayStr}`}>
           <div className="rounded-2xl overflow-hidden relative active:opacity-75 transition-opacity"
             style={{
-              background: '#0d0d0d',
-              border: `1px solid ${todayWorked ? 'rgba(255,107,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
-              boxShadow: todayWorked ? '0 0 48px rgba(255,107,0,0.07)' : 'none',
+              background: '#131313',
+              border: `1px solid ${todayWorked ? 'rgba(255,107,0,0.2)' : 'rgba(255,255,255,0.09)'}`,
+              boxShadow: todayWorked ? '0 0 32px rgba(255,107,0,0.05)' : 'none',
             }}>
             {/* Subtle top line */}
             {todayWorked && (

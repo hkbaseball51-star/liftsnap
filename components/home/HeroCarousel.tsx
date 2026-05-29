@@ -33,9 +33,8 @@ export type HeroData = {
 
 /* ── Design tokens ────────────────────────────────────────── */
 const CARD = {
-  background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
-  border: '1px solid rgba(255,107,0,0.22)',
-  boxShadow: '0 0 30px rgba(255,107,0,0.04)',
+  background: '#131313',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 18,
   padding: 20,
   display: 'flex' as const,
@@ -123,7 +122,7 @@ function BestLiftSlide({
       </div>
 
       <div className="flex items-center gap-3 mb-4"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
+        style={{ borderTop: '1px solid rgba(255,255,255,0.09)', paddingTop: 10 }}>
         <div className="flex items-center gap-1.5">
           <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)' }}>
             EST. 1RM
