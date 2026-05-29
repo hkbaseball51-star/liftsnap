@@ -322,22 +322,22 @@ export default async function ProfilePage() {
       <div className="mx-4 mb-4">
         {sectionLabel('PROFILE SETTINGS')}
         <div className="overflow-hidden" style={card}>
-          {([
-            { label: 'Edit Profile',   icon: User },
-            { label: 'Privacy',        icon: Shield },
-            { label: 'Notifications',  icon: Bell },
-            { label: 'Help & Support', icon: HelpCircle },
-          ] as const).map(({ label, icon: Icon }, i, arr) => (
-            <button key={label}
-              className="w-full flex items-center gap-3 px-4 py-4 active:opacity-70"
-              style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+          {[
+            { href: '/profile/edit',          label: 'Edit Profile',   icon: User,        extra: null },
+            { href: '/profile/privacy',       label: 'Privacy',        icon: Shield,      extra: 'PRIVATE' },
+            { href: '/profile/notifications', label: 'Notifications',  icon: Bell,        extra: null },
+            { href: '/profile/support',       label: 'Help & Support', icon: HelpCircle,  extra: null },
+          ].map(({ href, label, icon: Icon, extra }, i, arr) => (
+            <Link key={href} href={href}
+              className="flex items-center gap-3 px-4 py-4 active:opacity-70 transition-opacity"
+              style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', display: 'flex' }}>
               <Icon size={16} style={{ color: '#444' }} />
-              <span className="flex-1 text-sm font-bold text-white text-left">{label}</span>
-              {label === 'Privacy' && (
-                <span className="text-[9px] font-black tracking-widest mr-1.5" style={{ color: '#333' }}>PRIVATE</span>
+              <span className="flex-1 text-sm font-bold text-white">{label}</span>
+              {extra && (
+                <span className="text-[9px] font-black tracking-widest mr-1.5" style={{ color: '#333' }}>{extra}</span>
               )}
               <ChevronRight size={14} style={{ color: '#2e2e2e' }} />
-            </button>
+            </Link>
           ))}
         </div>
       </div>
