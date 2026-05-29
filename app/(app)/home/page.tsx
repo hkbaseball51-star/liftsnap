@@ -249,7 +249,7 @@ export default async function HomePage() {
   const displayName = profileRes.data?.display_name as string | null
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-14 pb-2">
@@ -291,9 +291,8 @@ export default async function HomePage() {
         <Link href={todayWorked ? `/share?type=today&date=${todayStr}` : `/record?date=${todayStr}`}>
           <div className="rounded-2xl overflow-hidden relative active:opacity-75 transition-opacity"
             style={{
-              background: '#131313',
-              border: `1px solid ${todayWorked ? 'rgba(255,107,0,0.2)' : 'rgba(255,255,255,0.09)'}`,
-              boxShadow: todayWorked ? '0 0 32px rgba(255,107,0,0.05)' : 'none',
+              background: '#181818',
+              border: '1px solid rgba(255,255,255,0.1)',
             }}>
             {/* Subtle top line */}
             {todayWorked && (

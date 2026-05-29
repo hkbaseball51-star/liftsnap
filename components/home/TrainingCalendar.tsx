@@ -110,7 +110,7 @@ export default function TrainingCalendar({
   while (cells.length % 7 !== 0) cells.push(null)
 
   return (
-    <div className="premium-card rounded-2xl overflow-hidden" style={{ background: '#131313' }}>
+    <div className="premium-card rounded-2xl overflow-hidden" style={{ background: '#181818' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>

@@ -33,8 +33,8 @@ export type HeroData = {
 
 /* ── Design tokens ────────────────────────────────────────── */
 const CARD = {
-  background: '#131313',
-  border: '1px solid rgba(255,255,255,0.09)',
+  background: '#181818',
+  border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 18,
   padding: 20,
   display: 'flex' as const,
