@@ -60,15 +60,12 @@ export default function TrainingCalendar({
 }) {
   const router = useRouter()
 
-  // Compute today client-side (not UTC-based server prop)
   const clientToday = useMemo(() => localDateStr(new Date()), [])
 
-  // Initial month from client date to avoid server-timezone mismatch
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  // Debug logging
   useEffect(() => {
     console.log('[TrainingCalendar] today (client):', clientToday)
     console.log('[TrainingCalendar] todayStr (server prop):', todayStr)
@@ -107,13 +104,13 @@ export default function TrainingCalendar({
   return (
     <div className="premium-card rounded-2xl overflow-hidden" style={{ background: '#111' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>
-          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#444' }}>TRAINING LOG</p>
+          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#777' }}>TRAINING LOG</p>
           <div className="flex items-baseline gap-2">
             <p className="text-xl font-black text-white tracking-wider">
               {MONTH_NAMES[month]}
-              <span className="text-lg font-bold ml-2" style={{ color: '#444' }}>{year}</span>
+              <span className="text-lg font-bold ml-2" style={{ color: '#666' }}>{year}</span>
             </p>
             {thisMonthCount > 0 && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -123,26 +120,33 @@ export default function TrainingCalendar({
             )}
           </div>
         </div>
+        {/* Month nav — lighter buttons */}
         <div className="flex items-center gap-1.5">
           <button onClick={prevMonth}
-            className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-60"
-            style={{ background: '#1a1a1a' }}>
-            <ChevronLeft size={16} style={{ color: '#555' }} />
+            className="w-8 h-8 rounded-lg flex items-center justify-center active:opacity-80"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.09)',
+            }}>
+            <ChevronLeft size={15} style={{ color: '#cfcfcf' }} />
           </button>
           <button onClick={nextMonth}
-            className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-60"
-            style={{ background: '#1a1a1a' }}>
-            <ChevronRight size={16} style={{ color: '#555' }} />
+            className="w-8 h-8 rounded-lg flex items-center justify-center active:opacity-80"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.09)',
+            }}>
+            <ChevronRight size={15} style={{ color: '#cfcfcf' }} />
           </button>
         </div>
       </div>
 
-      <div className="px-3 pb-4">
+      <div className="px-3 pb-3">
         {/* Day labels */}
         <div className="grid grid-cols-7 mb-1">
           {DAY_NAMES.map(d => (
-            <div key={d} className="text-center py-1.5">
-              <span className="text-[9px] font-black tracking-wider" style={{ color: '#4a4a4a' }}>{d}</span>
+            <div key={d} className="text-center py-1">
+              <span className="text-[9px] font-black tracking-wider" style={{ color: '#666' }}>{d}</span>
             </div>
           ))}
         </div>
@@ -151,12 +155,12 @@ export default function TrainingCalendar({
         <div className="grid grid-cols-7">
           {cells.map((day, idx) => {
             if (day === null) {
-              return <div key={`e-${idx}`} className="h-12" />
+              return <div key={`e-${idx}`} style={{ height: 46 }} />
             }
 
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const muscle = sessionMap.get(dateStr)
-            const isToday = dateStr === clientToday      // client-local today
+            const isToday = dateStr === clientToday
             const isSelected = dateStr === selectedDate
             const isFuture = dateStr > clientToday
             const color = muscle ? (COLORS[muscle] ?? '#ff6b00') : null
@@ -171,61 +175,73 @@ export default function TrainingCalendar({
             let textColor: string
 
             if (isSelected && isToday) {
-              // Strongest: solid orange + white ring glow
               bg = '#ff6b00'
               border = '2.5px solid rgba(255,255,255,0.55)'
               shadow = '0 0 20px rgba(255,107,0,0.6)'
               textColor = '#ffffff'
             } else if (isSelected) {
-              // Selected (not today): solid orange fill
               bg = '#ff6b00'
               border = '1.5px solid rgba(255,255,255,0.2)'
               shadow = '0 0 12px rgba(255,107,0,0.35)'
               textColor = '#ffffff'
             } else if (isToday) {
-              // Today (not selected): ring + tinted bg
               bg = muscle ? 'rgba(255,107,0,0.22)' : 'rgba(255,107,0,0.1)'
               border = '2.5px solid #ff6b00'
               shadow = '0 0 16px rgba(255,107,0,0.45)'
               textColor = '#ff6b00'
             } else if (muscle) {
-              // Trained day: muscle-color tint
               bg = `${color!}2e`
               border = '1px solid transparent'
               shadow = 'none'
               textColor = color!
             } else {
-              // Normal / future
               bg = 'transparent'
               border = '1px solid transparent'
               shadow = 'none'
               textColor = isFuture ? '#2a2a2a' : '#5a5a5a'
             }
 
+            // Date font size by state
+            const dateFontSize = isSelected || isToday ? 15 : muscle ? 14 : 13
+
             return (
-              <div key={dateStr} className="flex flex-col items-center h-12 justify-start pt-0.5">
+              <div key={dateStr} className="flex flex-col items-center justify-start"
+                style={{ height: 46, paddingTop: 2 }}>
                 <button
-                  className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-                  style={{ background: bg, border, boxShadow: shadow, cursor: isFuture ? 'default' : 'pointer' }}
+                  className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                  style={{
+                    width: 34, height: 34,
+                    background: bg, border, boxShadow: shadow,
+                    cursor: isFuture ? 'default' : 'pointer',
+                    flexShrink: 0,
+                  }}
                   onClick={() => {
                     if (isFuture) return
                     setSelectedDate(dateStr)
                     router.push(`/record?date=${dateStr}`)
                   }}>
-                  <span
-                    className="text-xs"
-                    style={{ color: textColor, fontWeight: isToday || muscle || isSelected ? 900 : 600 }}>
+                  <span style={{
+                    color: textColor,
+                    fontSize: dateFontSize,
+                    fontWeight: isToday || muscle || isSelected ? 900 : 600,
+                    lineHeight: 1,
+                  }}>
                     {day}
                   </span>
                 </button>
                 {abbrev ? (
                   <span
-                    className="text-[9px] font-black leading-none mt-0.5"
-                    style={{ color: isSelected ? '#ff6b00' : color! }}>
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 900,
+                      lineHeight: 1,
+                      marginTop: 2,
+                      color: isSelected ? '#ff6b00' : color!,
+                    }}>
                     {abbrev}
                   </span>
                 ) : (
-                  <div className="h-3" />
+                  <div style={{ height: 12 }} />
                 )}
               </div>
             )
@@ -233,12 +249,12 @@ export default function TrainingCalendar({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 pt-3"
-          style={{ borderTop: '1px solid #1a1a1a' }}>
+        <div className="flex flex-wrap gap-y-1.5 mt-2 pt-2"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.07)', gap: '6px 14px' }}>
           {Object.entries(COLORS).slice(0, 6).map(([muscle, color]) => (
-            <div key={muscle} className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-              <span className="text-[9px] font-black tracking-wide uppercase" style={{ color: '#484848' }}>
+            <div key={muscle} className="flex items-center" style={{ gap: 5 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#c0c0c0', textTransform: 'uppercase' }}>
                 {muscle}
               </span>
             </div>
