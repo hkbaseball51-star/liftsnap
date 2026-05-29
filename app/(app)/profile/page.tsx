@@ -145,9 +145,13 @@ export default async function ProfilePage() {
       {/* ── 1. Header ─────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 pt-14 pb-4">
         <h1 className="text-xl font-black tracking-widest text-white">PROFILE</h1>
-        <button className="p-2 rounded-xl" style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-          <Settings size={18} style={{ color: '#555' }} />
-        </button>
+        <Link
+          href="/profile/settings"
+          aria-label="Open settings"
+          className="p-2 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
+          style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+          <Settings size={18} style={{ color: 'rgba(255,255,255,0.55)' }} />
+        </Link>
       </div>
 
       {/* ── 2. Profile Hero ───────────────────────────── */}
