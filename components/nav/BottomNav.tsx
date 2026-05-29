@@ -46,6 +46,10 @@ export default function BottomNav() {
           const active = pathname.startsWith(href)
 
           if (primary) {
+            // Hide FAB on record page — the page has its own "+ Exercise" CTA
+            if (pathname.startsWith('/record')) {
+              return <div key={href} style={{ width: 56 }} />
+            }
             return (
               <button
                 key={href}

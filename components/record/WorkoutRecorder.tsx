@@ -251,30 +251,18 @@ const ExerciseCard = memo(function ExerciseCard({
         )
       })}
 
-      {/* Stats summary */}
+      {/* Stats summary — single line */}
       {stats && (
-        <div style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 4 }}>
-            <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>VOL</span>
-            <span style={{ color: '#ff6b00', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-              {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
+        <div style={{ padding: '5px 14px 9px' }}>
+          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
+            <span style={{ color: '#ff6b00', fontWeight: 700 }}>
+              {stats.volume >= 1000 ? `${(stats.volume / 1000).toFixed(1)}t` : `${stats.volume}kg`}
             </span>
-            <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>
-              {stats.volume >= 1000 ? 't' : 'kg'}
-            </span>
-            <span style={{ color: '#3a3a3a', fontSize: 11, fontWeight: 700, marginLeft: 3, marginRight: 3 }}>·</span>
-            <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>1RM</span>
-            <span style={{ color: '#c09bff', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-              {stats.est1rm}
-            </span>
-            <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>kg</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-            <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>BEST SET</span>
-            <span style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
-              {stats.bestWeight} × {stats.bestReps}
-            </span>
-          </div>
+            {' vol · '}
+            <span style={{ color: '#c09bff', fontWeight: 700 }}>{stats.est1rm}kg</span>
+            {' 1RM · Best '}
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{stats.bestWeight}×{stats.bestReps}</span>
+          </p>
         </div>
       )}
 
@@ -366,6 +354,13 @@ export default function WorkoutRecorder({
     const s = ex?.sets.find(s => s.id === numberTarget.setId)
     return s?.[numberTarget.field] ?? null
   }, [numberTarget, exerciseList])
+
+  const saveStatusDisplay = useMemo(() => {
+    if (saving) return { text: 'Saving...', color: '#888' }
+    if (isDirty) return { text: 'Unsaved changes', color: '#ff9500' }
+    if (isEditing || sessionId) return { text: 'Saved', color: '#22c55e' }
+    return null
+  }, [saving, isDirty, isEditing, sessionId])
 
   /* ── Stable callbacks (useCallback so React.memo on ExerciseCard works) ── */
 
@@ -474,50 +469,50 @@ export default function WorkoutRecorder({
       <div className="sticky top-0 z-20 px-4 pt-14"
         style={{ background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
 
-        {/* Date label */}
-        <div className="flex items-center justify-between pb-1">
+        {/* Row 1: X | date · title | spacer */}
+        <div className="flex items-center justify-between pb-1.5">
           <button
-            className="p-1.5 -ml-1.5"
+            className="p-1 -ml-1 flex-shrink-0"
             onClick={() => isDirty ? setShowCancelConfirm(true) : router.push('/home')}>
-            <X size={20} style={{ color: '#666' }} />
+            <X size={18} style={{ color: '#555' }} />
           </button>
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] font-black tracking-widest"
-              style={{ color: isEditing ? '#22c55e' : isToday ? '#ff6b00' : '#999' }}>
-              {isEditing ? 'EDITING SESSION' : isToday ? 'TODAY' : 'PAST SESSION'}
-            </span>
-            <span className="text-[11px] font-black tracking-wider" style={{ color: '#888' }}>
+          <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
               {formatDateLabel(date)}
             </span>
+            <span style={{ color: '#333', flexShrink: 0 }}>·</span>
+            {editingTitle ? (
+              <input autoFocus value={title}
+                onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
+                onBlur={() => setEditingTitle(false)}
+                onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
+                className="text-sm font-black text-white bg-transparent outline-none min-w-0"
+                style={{ borderBottom: '1px solid #ff6b00', maxWidth: 160 }}
+              />
+            ) : (
+              <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1 min-w-0">
+                <span className="text-sm font-black text-white truncate" style={{ maxWidth: 150 }}>{title}</span>
+                <Pencil size={9} style={{ color: '#444', flexShrink: 0 }} />
+              </button>
+            )}
           </div>
-          <div className="w-10" />
+          <div className="flex-shrink-0 w-9" />
         </div>
 
-        {/* Session title */}
-        <div className="flex justify-center pb-2">
-          {editingTitle ? (
-            <input autoFocus value={title}
-              onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
-              onBlur={() => setEditingTitle(false)}
-              onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
-              className="text-center text-base font-black text-white bg-transparent outline-none"
-              style={{ borderBottom: '2px solid #ff6b00', maxWidth: 220 }}
-            />
-          ) : (
-            <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1.5">
-              <span className="text-base font-black text-white tracking-wide">{title}</span>
-              <Pencil size={11} style={{ color: '#666' }} />
-            </button>
+        {/* Row 2: stats summary + save status */}
+        <div className="flex items-center justify-between pb-2">
+          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.32)' }}>
+            {[
+              displayVolume > 0 ? formatVolume(displayVolume) : null,
+              displaySetsCount > 0 ? `${displaySetsCount} sets` : null,
+              bestSessionEst1rm > 0 ? `1RM ${bestSessionEst1rm}kg` : null,
+            ].filter(Boolean).join(' · ') || '—'}
+          </p>
+          {saveStatusDisplay && (
+            <p style={{ fontSize: 10, fontWeight: 600, color: saveStatusDisplay.color, flexShrink: 0, marginLeft: 8 }}>
+              {saveStatusDisplay.text}
+            </p>
           )}
-        </div>
-
-        {/* Header stats */}
-        <div className="flex items-stretch pb-2.5">
-          <HeaderStat label="VOL"      value={displayVolume > 0 ? formatVolume(displayVolume) : '—'} active={displayVolume > 0} accent />
-          <div className="w-px self-stretch" style={{ background: 'rgba(255,255,255,0.12)' }} />
-          <HeaderStat label="SETS"     value={displaySetsCount > 0 ? String(displaySetsCount) : '—'} active={displaySetsCount > 0} />
-          <div className="w-px self-stretch" style={{ background: 'rgba(255,255,255,0.12)' }} />
-          <HeaderStat label="BEST 1RM" value={bestSessionEst1rm > 0 ? `${bestSessionEst1rm}kg` : '—'} active={bestSessionEst1rm > 0} purple />
         </div>
       </div>
 
@@ -557,19 +552,24 @@ export default function WorkoutRecorder({
         }}>
         <div className="flex gap-2.5">
           <button
-            className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2 tracking-widest"
-            style={{ background: 'rgba(255,106,0,0.05)', color: '#ff6a00', border: '1px solid rgba(255,106,0,0.45)' }}
+            className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
+            style={{ background: 'rgba(255,106,0,0.06)', color: '#ff6a00', border: '1px solid rgba(255,106,0,0.4)' }}
             onClick={() => setShowPicker(true)}>
-            <Plus size={16} strokeWidth={2.5} />
-            EXERCISE
+            <Plus size={15} strokeWidth={2.5} />
+            Exercise
           </button>
           {displaySetsCount > 0 && (
             <button
-              className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white tracking-widest"
-              style={{ background: saving ? '#333' : '#ff6b00', boxShadow: saving ? 'none' : '0 4px 20px rgba(255,107,0,0.35)' }}
+              className="flex-1 py-3.5 rounded-2xl text-sm font-black"
+              style={{
+                background: saving ? '#222' : isDirty ? '#ff6b00' : '#1e1e1e',
+                color: saving ? '#666' : isDirty ? '#fff' : '#888',
+                boxShadow: isDirty && !saving ? '0 4px 20px rgba(255,107,0,0.3)' : 'none',
+                border: isDirty ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              }}
               disabled={saving}
               onClick={handleFinish}>
-              {saving ? 'SAVING...' : isEditing ? `UPDATE ${displaySetsCount} SETS` : `FINISH ${displaySetsCount} SETS`}
+              {saving ? 'Saving...' : isEditing ? 'Update' : 'Finish'}
             </button>
           )}
         </div>
@@ -615,16 +615,3 @@ export default function WorkoutRecorder({
   )
 }
 
-/* ─── Sub-components ──────────────────────────────────── */
-
-function HeaderStat({ label, value, active, accent, purple }: {
-  label: string; value: string; active: boolean; accent?: boolean; purple?: boolean
-}) {
-  const color = !active ? '#555' : accent ? '#ff6b00' : purple ? '#c09bff' : '#fff'
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center py-1">
-      <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: '#aaa' }}>{label}</p>
-      <p className="text-2xl font-black" style={{ color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{value}</p>
-    </div>
-  )
-}
