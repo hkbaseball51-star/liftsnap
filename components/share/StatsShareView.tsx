@@ -496,11 +496,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const n      = rm1DisplayData.length
   const rm1Max = n ? Math.max(...rm1DisplayData.map(d => d.est1rm)) : 0
 
-  // Dynamic bar sizing: fewer bars → thicker, more bars → thinner; always fill chart area
-  const barGap = n <= 5 ? 12 : n <= 8 ? 8 : n <= 12 ? 6 : 4
-  const bH_raw = n > 0 ? (280 - barGap * Math.max(0, n - 1)) / (n + 0.15) : 36
-  const chartBarH = Math.max(8, Math.min(36, Math.round(bH_raw)))
-  const chartLatH = Math.min(Math.round(chartBarH * 1.15), 42)
+  // Dense bar layout: flex-start + explicit gap (no space-between stretching)
+  const barGap    = n <= 4 ? 14 : n <= 10 ? 10 : n <= 20 ? 7 : n <= 35 ? 4 : 3
+  const chartBarH = n <= 4 ? 30 : n <= 10 ? 24 : n <= 20 ? 18 : n <= 35 ? 12 : 7
+  const chartLatH = Math.round(chartBarH * 1.2)
 
   // Graduated opacity: latest = full, first = slightly elevated, middle = faded
   const getBarBg = (idx: number): string => {
@@ -655,13 +654,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 PROGRESSION
               </p>
 
-              {/* Chart: space-between for ≥6 bars (fills height), flex-start+gap for fewer */}
+              {/* Chart: always flex-start + explicit gap for dense packing */}
               <div style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: n >= 6 ? 'space-between' : 'flex-start',
-                gap: n < 6 ? barGap : 0,
+                justifyContent: 'flex-start',
+                gap: barGap,
                 minHeight: 0,
               }}>
                 {n === 0 ? (
