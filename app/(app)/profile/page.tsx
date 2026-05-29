@@ -27,22 +27,15 @@ export default async function ProfilePage() {
     )
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, plan')
-    .eq('id', user.id)
-    .single()
+  const [profileRes, badgesRes, sessionCountRes] = await Promise.all([
+    supabase.from('profiles').select('display_name, plan').eq('id', user.id).single(),
+    supabase.from('user_badges').select('badge_key').eq('user_id', user.id),
+    supabase.from('workout_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).not('completed_at', 'is', null),
+  ])
 
-  const { data: badges } = await supabase
-    .from('user_badges')
-    .select('badge_key')
-    .eq('user_id', user.id)
-
-  const { count: sessionCount } = await supabase
-    .from('workout_sessions')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .not('completed_at', 'is', null)
+  const profile = profileRes.data
+  const badges = badgesRes.data
+  const sessionCount = sessionCountRes.count
 
   const displayName = (profile?.display_name as string | null) ?? 'USER'
 

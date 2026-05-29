@@ -34,7 +34,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('workout_sessions')
-      .select('id, trained_at')
+      .select('id, trained_at, workout_sets(session_id, muscle_group)')
       .eq('user_id', user.id)
       .gte('trained_at', ninetyDaysAgoStr)
       .not('completed_at', 'is', null),
@@ -67,39 +67,21 @@ export default async function HomePage() {
       .maybeSingle(),
   ])
 
-  /* ── Calendar sessions ───────────────────────────────────── */
-  let calendarSessions: CalendarSession[] = []
-  if (calendarSessionsRes.data && calendarSessionsRes.data.length > 0) {
-    const sessionIds = calendarSessionsRes.data.map(s => s.id)
-    const { data: setMuscleData } = await supabase
-      .from('workout_sets')
-      .select('session_id, muscle_group')
-      .in('session_id', sessionIds)
-      .eq('is_completed', true)
-
-    if (setMuscleData) {
-      const sessionMuscleCount = new Map<string, Map<string, number>>()
-      setMuscleData.forEach(s => {
-        if (!sessionMuscleCount.has(s.session_id)) {
-          sessionMuscleCount.set(s.session_id, new Map())
-        }
-        const mgMap = sessionMuscleCount.get(s.session_id)!
-        mgMap.set(s.muscle_group, (mgMap.get(s.muscle_group) ?? 0) + 1)
-      })
-
-      calendarSessions = calendarSessionsRes.data.map(session => {
-        const mgMap = sessionMuscleCount.get(session.id)
-        let topMuscle = 'full body'
-        let allMuscleGroups: string[] = []
-        if (mgMap && mgMap.size > 0) {
-          const sorted = [...mgMap.entries()].sort((a, b) => b[1] - a[1])
-          topMuscle = sorted[0][0]
-          allMuscleGroups = sorted.map(([mg]) => mg)
-        }
-        return { date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups }
-      })
+  /* ── Calendar sessions (muscle data embedded in initial query) ── */
+  type SessionRow = { id: string; trained_at: string; workout_sets: { session_id: string; muscle_group: string }[] }
+  const calendarSessions: CalendarSession[] = (calendarSessionsRes.data as SessionRow[] ?? []).map(session => {
+    const mgMap = new Map<string, number>()
+    for (const s of session.workout_sets ?? []) {
+      if (s.muscle_group) mgMap.set(s.muscle_group, (mgMap.get(s.muscle_group) ?? 0) + 1)
     }
-  }
+    if (mgMap.size === 0) return { date: session.trained_at, muscleGroup: 'full body', allMuscleGroups: [] }
+    const sorted = [...mgMap.entries()].sort((a, b) => b[1] - a[1])
+    return {
+      date: session.trained_at,
+      muscleGroup: sorted[0][0],
+      allMuscleGroups: sorted.map(([mg]) => mg),
+    }
+  })
 
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []

@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useTransition } from 'react'
 import { Home, BarChart2, Plus, ShoppingBag, User } from 'lucide-react'
@@ -17,14 +16,20 @@ const tabs = [
   { href: '/profile',   icon: User,        label: 'ME'      },
 ]
 
+const PREFETCH_ROUTES = ['/home', '/analytics', '/record', '/shop', '/profile']
+
 export default function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
-    router.prefetch('/record')
+    PREFETCH_ROUTES.forEach(r => router.prefetch(r))
   }, [router])
+
+  const navigate = (href: string) => {
+    startTransition(() => router.push(href))
+  }
 
   return (
     <nav
@@ -39,13 +44,14 @@ export default function BottomNav() {
       <div className="flex items-center justify-around h-16">
         {tabs.map(({ href, icon: Icon, label, primary }) => {
           const active = pathname.startsWith(href)
+
           if (primary) {
             return (
               <button
                 key={href}
                 className="flex flex-col items-center -mt-5"
                 style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 100ms' }}
-                onClick={() => startTransition(() => router.push(`/record?date=${getTodayJST()}`))}
+                onClick={() => navigate(`/record?date=${getTodayJST()}`)}
               >
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
@@ -59,11 +65,12 @@ export default function BottomNav() {
               </button>
             )
           }
+
           return (
-            <Link
+            <button
               key={href}
-              href={href}
-              className="flex flex-col items-center gap-0.5 py-1 px-3"
+              className="flex flex-col items-center gap-0.5 py-1 px-3 active:opacity-60 transition-opacity"
+              onClick={() => navigate(href)}
             >
               <Icon
                 size={22}
@@ -78,7 +85,7 @@ export default function BottomNav() {
                   {label}
                 </span>
               )}
-            </Link>
+            </button>
           )
         })}
       </div>
