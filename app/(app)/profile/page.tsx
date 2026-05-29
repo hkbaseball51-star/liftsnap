@@ -5,9 +5,9 @@ import { formatVolume } from '@/lib/utils'
 
 /* ── Rank tiers ─────────────────────────────────────── */
 const RANKS = [
-  { name: 'ROOKIE',   threshold: 0,          emoji: '🌱', color: '#555' },
-  { name: 'GRINDER',  threshold: 10_000,     emoji: '💪', color: '#888' },
-  { name: 'SOLID',    threshold: 50_000,     emoji: '🔩', color: '#aaa' },
+  { name: 'ROOKIE',   threshold: 0,          emoji: '🌱', color: '#7ED957' },
+  { name: 'GRINDER',  threshold: 10_000,     emoji: '💪', color: '#a0a0a0' },
+  { name: 'SOLID',    threshold: 50_000,     emoji: '🔩', color: '#c0c0c0' },
   { name: 'ADVANCED', threshold: 150_000,    emoji: '⚡', color: '#60a5fa' },
   { name: 'ELITE',    threshold: 500_000,    emoji: '🎯', color: '#a78bfa' },
   { name: 'BEAST',    threshold: 1_000_000,  emoji: '🔥', color: '#ff6b00' },
@@ -64,6 +64,21 @@ type RecentSession = {
   workout_sets: { muscle_group: string | null }[]
 }
 
+/* ── Design tokens ───────────────────────────────────── */
+const T = {
+  main:      '#f5f5f5',
+  secondary: 'rgba(255,255,255,0.65)',
+  muted:     'rgba(255,255,255,0.48)',
+  empty:     'rgba(255,255,255,0.42)',
+  label:     'rgba(255,255,255,0.58)',
+  divider:   'rgba(255,255,255,0.08)',
+  card: {
+    background: '#181818',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 20,
+  } as const,
+}
+
 /* ── Page ────────────────────────────────────────────── */
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -74,7 +89,7 @@ export default async function ProfilePage() {
       <div className="min-h-screen pb-nav flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
         <p className="text-5xl mb-4">🏋️</p>
         <p className="text-lg font-black text-white mb-2 tracking-widest">YOUR PROFILE</p>
-        <p className="text-sm text-center mb-8 leading-relaxed" style={{ color: '#3a3a3a' }}>
+        <p className="text-sm text-center mb-8 leading-relaxed" style={{ color: T.muted }}>
           Create an account to track your progress and build your lifting profile.
         </p>
         <Link href="/signup"
@@ -82,7 +97,7 @@ export default async function ProfilePage() {
           style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.35)' }}>
           CREATE ACCOUNT
         </Link>
-        <Link href="/login" className="mt-4 text-sm font-bold" style={{ color: '#333' }}>
+        <Link href="/login" className="mt-4 text-sm font-bold" style={{ color: T.muted }}>
           Already have an account? Sign in →
         </Link>
       </div>
@@ -138,17 +153,11 @@ export default async function ProfilePage() {
   const squatPR    = squatRes.data?.weight_kg   ?? null
   const deadliftPR = deadliftRes.data?.weight_kg ?? null
 
-  const bestLift  = bestLiftRes.data as { exercise_name: string; weight_kg: number } | null
+  const bestLift   = bestLiftRes.data as { exercise_name: string; weight_kg: number } | null
   const mainMuscle = topMuscle((muscleGroupsRes.data ?? []) as { muscle_group: string | null }[])
 
-  const card = {
-    background: '#161616',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 20,
-  } as const
-
   const sec = (text: string) => (
-    <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: 'rgba(255,255,255,0.38)' }}>{text}</p>
+    <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: T.label }}>{text}</p>
   )
 
   return (
@@ -161,8 +170,8 @@ export default async function ProfilePage() {
           href="/profile/settings"
           aria-label="Open settings"
           className="p-2 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
-          style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-          <Settings size={18} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          style={{ background: '#161616', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <Settings size={18} style={{ color: T.secondary }} />
         </Link>
       </div>
 
@@ -179,52 +188,52 @@ export default async function ProfilePage() {
 
         <p className="text-2xl font-black text-white tracking-tight leading-none">{displayName}</p>
 
-        <p className="text-xs mt-2" style={{ color: '#3a3a3a', fontFamily: 'var(--font-mono)' }}>
+        <p className="text-xs mt-2" style={{ color: T.secondary, fontFamily: 'var(--font-mono)' }}>
           {username}
         </p>
 
-        <p className="text-sm text-center mt-4 px-8 leading-relaxed" style={{ color: '#282828' }}>
+        <p className="text-sm text-center mt-4 px-8 leading-relaxed" style={{ color: T.secondary }}>
           Set your lifting goal.
         </p>
 
         <div className="flex items-center gap-1.5 mt-5 px-3 py-1.5 rounded-full"
-          style={{ background: '#0e0e0e', border: '1px solid #171717' }}>
-          <Lock size={9} style={{ color: '#2a2a2a' }} />
-          <span className="text-[9px] font-black tracking-widest" style={{ color: '#282828' }}>PRIVATE PROFILE</span>
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <Lock size={9} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          <span className="text-[9px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>PRIVATE PROFILE</span>
         </div>
       </div>
 
       {/* ── 3. Quick Stats ────────────────────────────── */}
       <div className="mx-4 grid grid-cols-3 gap-2 mb-5">
 
-        <div className="rounded-2xl px-2 py-4 text-center" style={card}>
+        <div className="rounded-2xl px-2 py-4 text-center" style={T.card}>
           <p className="text-2xl font-black leading-none"
-            style={{ color: sessionCount > 0 ? '#f5f5f5' : 'rgba(255,255,255,0.16)', fontFamily: 'var(--font-mono)' }}>
+            style={{ color: sessionCount > 0 ? T.main : T.empty, fontFamily: 'var(--font-mono)' }}>
             {sessionCount > 0 ? sessionCount : '—'}
           </p>
-          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: 'rgba(255,255,255,0.28)' }}>SESSIONS</p>
+          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: T.label }}>SESSIONS</p>
         </div>
 
-        <div className="rounded-2xl px-2 py-4 text-center" style={card}>
+        <div className="rounded-2xl px-2 py-4 text-center" style={T.card}>
           {totalVolume > 0 ? (
             <div className="leading-none">
-              <span className="text-xl font-black text-white" style={{ fontFamily: 'var(--font-mono)' }}>
+              <span className="text-xl font-black" style={{ color: T.main, fontFamily: 'var(--font-mono)' }}>
                 {fmtLargeVolume(totalVolume)}
               </span>
-              <span className="text-[10px] font-bold ml-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>kg</span>
+              <span className="text-[10px] font-bold ml-0.5" style={{ color: T.muted }}>kg</span>
             </div>
           ) : (
-            <p className="text-2xl font-black leading-none" style={{ color: 'rgba(255,255,255,0.16)', fontFamily: 'var(--font-mono)' }}>—</p>
+            <p className="text-2xl font-black leading-none" style={{ color: T.empty, fontFamily: 'var(--font-mono)' }}>—</p>
           )}
-          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: 'rgba(255,255,255,0.28)' }}>VOLUME</p>
+          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: T.label }}>VOLUME</p>
         </div>
 
-        <div className="rounded-2xl px-2 py-4 text-center flex flex-col items-center" style={card}>
+        <div className="rounded-2xl px-2 py-4 text-center flex flex-col items-center" style={T.card}>
           <p className="text-xl leading-none">{rankInfo.current.emoji}</p>
           <p className="text-[10px] font-black tracking-wide mt-1.5 leading-none" style={{ color: rankInfo.current.color }}>
             {rankInfo.current.name}
           </p>
-          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: 'rgba(255,255,255,0.28)' }}>RANK</p>
+          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: T.label }}>RANK</p>
         </div>
 
       </div>
@@ -238,8 +247,9 @@ export default async function ProfilePage() {
             { label: 'SQUAT', pr: squatPR },
             { label: 'DEAD',  pr: deadliftPR },
           ] as const).map(({ label, pr }) => (
-            <div key={label} className="rounded-2xl p-4 flex flex-col items-center" style={card}>
-              <p className="text-[8px] font-black tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.28)' }}>
+            <div key={label} className="rounded-2xl p-4 flex flex-col items-center"
+              style={{ background: '#171717', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20 }}>
+              <p className="text-[9px] font-black tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.60)' }}>
                 {label}
               </p>
               {pr != null ? (
@@ -247,10 +257,10 @@ export default async function ProfilePage() {
                   <p className="text-xl font-black leading-none" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
                     {pr}
                   </p>
-                  <p className="text-[9px] font-bold mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>kg</p>
+                  <p className="text-[9px] font-bold mt-1" style={{ color: T.muted }}>kg</p>
                 </>
               ) : (
-                <p className="text-xl font-black leading-none" style={{ color: 'rgba(255,255,255,0.14)', fontFamily: 'var(--font-mono)' }}>—</p>
+                <p className="text-xl font-black leading-none" style={{ color: T.empty, fontFamily: 'var(--font-mono)' }}>—</p>
               )}
             </div>
           ))}
@@ -260,42 +270,42 @@ export default async function ProfilePage() {
       {/* ── 5. Strength Summary ───────────────────────── */}
       <div className="mx-4 mb-5">
         {sec('STRENGTH SUMMARY')}
-        <div className="overflow-hidden" style={card}>
+        <div className="overflow-hidden" style={T.card}>
 
           <div className="flex items-center justify-between px-4 py-3.5"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            style={{ borderBottom: `1px solid ${T.divider}` }}>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>
               BEST LIFT
             </p>
             {bestLift ? (
               <p className="text-sm font-bold text-right ml-3">
-                <span className="text-white">{bestLift.exercise_name} </span>
+                <span style={{ color: T.secondary }}>{bestLift.exercise_name} </span>
                 <span className="font-black" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
                   {bestLift.weight_kg}kg
                 </span>
               </p>
             ) : (
-              <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.20)' }}>Not logged yet</p>
+              <p className="text-sm font-bold" style={{ color: T.empty }}>Not logged yet</p>
             )}
           </div>
 
           <div className="flex items-center justify-between px-4 py-3.5"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            style={{ borderBottom: `1px solid ${T.divider}` }}>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>
               MOST TRAINED
             </p>
             {mainMuscle ? (
-              <p className="text-sm font-black text-white capitalize">{mainMuscle}</p>
+              <p className="text-sm font-black capitalize" style={{ color: T.secondary }}>{mainMuscle}</p>
             ) : (
-              <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.20)' }}>Not set</p>
+              <p className="text-sm font-bold" style={{ color: T.empty }}>Not set</p>
             )}
           </div>
 
           <div className="flex items-center justify-between px-4 py-3.5">
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>
               SPLIT
             </p>
-            <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.20)' }}>—</p>
+            <p className="text-sm font-bold" style={{ color: T.empty }}>—</p>
           </div>
 
         </div>
@@ -304,22 +314,22 @@ export default async function ProfilePage() {
       {/* ── 6. Current Rank ───────────────────────────── */}
       <div className="mx-4 mb-5">
         {sec('CURRENT RANK')}
-        <div className="p-4 relative overflow-hidden" style={card}>
+        <div className="p-4 relative overflow-hidden" style={T.card}>
           <div className="absolute top-0 inset-x-0 h-px"
-            style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}55, transparent 65%)` }} />
+            style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}60, transparent 65%)` }} />
 
           <div className="mb-4">
             <p className="text-2xl font-black" style={{ color: rankInfo.current.color }}>
               {rankInfo.current.emoji} {rankInfo.current.name}
             </p>
-            <p className="text-xs mt-1 font-bold" style={{ color: 'rgba(255,255,255,0.32)' }}>
+            <p className="text-xs mt-1 font-bold" style={{ color: T.muted }}>
               {totalVolume > 0 ? `${fmtLargeVolume(totalVolume)}kg total volume` : 'Start logging to rank up'}
             </p>
           </div>
 
           {rankInfo.next ? (
             <>
-              <div className="h-1.5 rounded-full mb-2.5" style={{ background: 'rgba(255,255,255,0.07)' }}>
+              <div className="h-1.5 rounded-full mb-2.5" style={{ background: 'rgba(255,255,255,0.10)' }}>
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -329,7 +339,7 @@ export default async function ProfilePage() {
                   }}
                 />
               </div>
-              <p className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.38)' }}>
+              <p className="text-[11px] font-bold" style={{ color: T.muted }}>
                 {fmtLargeVolume(rankInfo.remaining)}kg to {rankInfo.next.name}
               </p>
             </>
@@ -345,14 +355,14 @@ export default async function ProfilePage() {
       <div className="mx-4 mb-10">
         {sec('RECENT ACTIVITY')}
         {recentSessions.length === 0 ? (
-          <div className="px-4 py-9 text-center rounded-2xl" style={card}>
-            <p className="text-sm font-black mb-2" style={{ color: 'rgba(255,255,255,0.22)' }}>No workouts yet.</p>
-            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.14)' }}>
+          <div className="px-4 py-9 text-center rounded-2xl" style={T.card}>
+            <p className="text-sm font-black mb-2" style={{ color: 'rgba(255,255,255,0.72)' }}>No workouts yet.</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
               Log your first session to build your lifting profile.
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden" style={card}>
+          <div className="overflow-hidden" style={T.card}>
             {recentSessions.map((s, i) => {
               const muscle   = primaryMuscle(s.workout_sets)
               const setCount = s.workout_sets.length
@@ -362,7 +372,7 @@ export default async function ProfilePage() {
                   href={`/record?date=${s.trained_at}`}
                   className="flex items-center gap-3 px-4 py-4 active:opacity-70 transition-opacity"
                   style={{
-                    borderBottom: i < recentSessions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    borderBottom: i < recentSessions.length - 1 ? `1px solid ${T.divider}` : 'none',
                     display: 'flex',
                   }}>
                   <div className="flex-1 min-w-0">
@@ -371,20 +381,20 @@ export default async function ProfilePage() {
                       {muscle && (
                         <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full"
                           style={{
-                            background: 'rgba(255,255,255,0.06)',
-                            color: 'rgba(255,255,255,0.42)',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            background: 'rgba(255,255,255,0.07)',
+                            color: T.secondary,
+                            border: '1px solid rgba(255,255,255,0.12)',
                           }}>
                           {muscle.toUpperCase()}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-[11px] font-bold" style={{ color: T.muted }}>
                       {s.total_volume_kg != null ? formatVolume(s.total_volume_kg) : '—'}
                       {' · '}{setCount} {setCount === 1 ? 'set' : 'sets'}
                     </p>
                   </div>
-                  <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.20)' }} />
+                  <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.30)' }} />
                 </Link>
               )
             })}
