@@ -414,7 +414,7 @@ export default function WorkoutRecorder({
 
                     {/* KG input */}
                     <button
-                      className={`col-span-4 ${isCompact ? 'py-1' : 'py-1.5'} rounded-lg text-center font-black active:scale-95 transition-transform`}
+                      className="col-span-4 py-1 rounded-lg text-center font-black active:scale-95 transition-transform"
                       style={{
                         background: '#1e1e1e',
                         border: '1px solid rgba(255,255,255,0.11)',
@@ -428,7 +428,7 @@ export default function WorkoutRecorder({
 
                     {/* REPS input */}
                     <button
-                      className={`col-span-3 ${isCompact ? 'py-1' : 'py-1.5'} rounded-lg text-center font-black active:scale-95 transition-transform`}
+                      className="col-span-3 py-1 rounded-lg text-center font-black active:scale-95 transition-transform"
                       style={{
                         background: '#1e1e1e',
                         border: '1px solid rgba(255,255,255,0.11)',
