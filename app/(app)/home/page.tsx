@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Zap, Share2 } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
+import StreakCard from '@/components/home/StreakCard'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 
@@ -27,6 +28,7 @@ export default async function HomePage() {
   const [
     thisWeekRes, calendarSessionsRes, profileRes,
     lastWeekRes, todayWeightRes, atbRes,
+    streakSessionsRes,
   ] = await Promise.all([
     supabase.from('workout_sessions')
       .select('id, trained_at, total_volume_kg')
@@ -66,6 +68,12 @@ export default async function HomePage() {
       .order('weight_kg', { ascending: false })
       .limit(1)
       .maybeSingle(),
+
+    supabase.from('workout_sessions')
+      .select('trained_at')
+      .eq('user_id', user.id)
+      .not('completed_at', 'is', null)
+      .gte('trained_at', getStreakWindowStart()),
   ])
 
   /* ── Calendar sessions + day summaries (all from embedded query) ── */
@@ -155,6 +163,9 @@ export default async function HomePage() {
     : null
   const club = allTimeEst1rm ? getNextClub(allTimeEst1rm) : null
 
+  const streakDates = (streakSessionsRes.data ?? []).map((s: { trained_at: string }) => s.trained_at)
+  const { streak: weekStreak, thisWeekDone } = calcWeekStreak(streakDates, todayStr)
+
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
 
@@ -191,6 +202,11 @@ export default async function HomePage() {
             No session today — let&apos;s change that.
           </p>
         )}
+      </div>
+
+      {/* ── WEEKLY STREAK ── */}
+      <div className="px-4 mb-4">
+        <StreakCard streak={weekStreak} thisWeekDone={thisWeekDone} />
       </div>
 
       {/* ── SHARE TODAY'S WORKOUT CTA ── */}
@@ -424,4 +440,37 @@ function getGreeting() {
   if (h < 12) return 'GOOD MORNING'
   if (h < 17) return 'GOOD AFTERNOON'
   return 'GOOD EVENING'
+}
+
+function getStreakWindowStart(): string {
+  const d = new Date(jstDate() + 'T00:00:00')
+  d.setDate(d.getDate() - 7 * 52)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function getMondayOfWeek(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function subtractWeek(mondayStr: string): string {
+  const d = new Date(mondayStr + 'T00:00:00')
+  d.setDate(d.getDate() - 7)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function calcWeekStreak(dates: string[], todayStr: string): { streak: number; thisWeekDone: boolean } {
+  if (dates.length === 0) return { streak: 0, thisWeekDone: false }
+  const weekSet = new Set(dates.map(d => getMondayOfWeek(d)))
+  const thisMonday = getMondayOfWeek(todayStr)
+  const thisWeekDone = weekSet.has(thisMonday)
+  let streak = 0
+  let cur = thisWeekDone ? thisMonday : subtractWeek(thisMonday)
+  while (weekSet.has(cur)) {
+    streak++
+    cur = subtractWeek(cur)
+  }
+  return { streak, thisWeekDone }
 }
