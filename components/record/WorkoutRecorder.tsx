@@ -264,23 +264,23 @@ export default function WorkoutRecorder({
   })()
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
 
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-20 px-4 pt-14"
-        style={{ background: '#0a0a0a', borderBottom: '1px solid #111' }}>
+        style={{ background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
 
         {/* Date label */}
         <div className="flex items-center justify-between pb-1">
           <button onClick={() => setShowCancelConfirm(true)} className="p-1.5 -ml-1.5">
-            <X size={20} style={{ color: '#444' }} />
+            <X size={20} style={{ color: '#666' }} />
           </button>
           <div className="flex flex-col items-center">
             <span className="text-[9px] font-black tracking-widest"
-              style={{ color: isEditing ? '#22c55e' : isToday ? '#ff6b00' : '#555' }}>
+              style={{ color: isEditing ? '#22c55e' : isToday ? '#ff6b00' : '#999' }}>
               {isEditing ? 'EDITING SESSION' : isToday ? 'TODAY' : 'PAST SESSION'}
             </span>
-            <span className="text-[11px] font-black tracking-wider" style={{ color: '#444' }}>
+            <span className="text-[11px] font-black tracking-wider" style={{ color: '#888' }}>
               {formatDateLabel(date)}
             </span>
           </div>
@@ -300,17 +300,17 @@ export default function WorkoutRecorder({
           ) : (
             <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1.5">
               <span className="text-base font-black text-white tracking-wide">{title}</span>
-              <Pencil size={11} style={{ color: '#444' }} />
+              <Pencil size={11} style={{ color: '#666' }} />
             </button>
           )}
         </div>
 
         {/* Header stats */}
-        <div className="flex items-center pb-2.5">
+        <div className="flex items-stretch pb-2.5">
           <HeaderStat label="VOL"      value={displayVolume > 0 ? formatVolume(displayVolume) : '—'} active={displayVolume > 0} accent />
-          <div className="w-px h-9 mx-5" style={{ background: '#1e1e1e' }} />
+          <div className="w-px self-stretch" style={{ background: 'rgba(255,255,255,0.12)' }} />
           <HeaderStat label="SETS"     value={displaySetsCount > 0 ? String(displaySetsCount) : '—'} active={displaySetsCount > 0} />
-          <div className="w-px h-9 mx-5" style={{ background: '#1e1e1e' }} />
+          <div className="w-px self-stretch" style={{ background: 'rgba(255,255,255,0.12)' }} />
           <HeaderStat label="BEST 1RM" value={bestSessionEst1rm > 0 ? `${bestSessionEst1rm}kg` : '—'} active={bestSessionEst1rm > 0} purple />
         </div>
       </div>
@@ -325,7 +325,7 @@ export default function WorkoutRecorder({
             <p className="text-base font-black text-white mb-2 tracking-wide">
               {isEditing ? 'EDIT TODAY\'S SESSION' : 'BUILD TODAY\'S EFFORT'}
             </p>
-            <p className="text-xs font-bold" style={{ color: '#444' }}>Tap + Add Exercise to get started</p>
+            <p className="text-xs font-bold" style={{ color: '#777' }}>Tap + Add Exercise to get started</p>
           </div>
         )}
 
@@ -333,19 +333,20 @@ export default function WorkoutRecorder({
           const stats = calcExerciseStats(ex)
           const prStatus = stats ? calcPRStatus(stats.maxWeightToday, ex.allTimePR) : null
           const isNewPR = prStatus?.type === 'new_pr'
+          const isCompact = ex.sets.length >= 5
 
           return (
             <div key={ex.id} className="rounded-2xl overflow-hidden"
               style={{
-                background: '#111',
-                border: isNewPR ? '1px solid rgba(255,107,0,0.4)' : '1px solid #1e1e1e',
-                boxShadow: isNewPR ? '0 0 18px rgba(255,107,0,0.08)' : 'none',
+                background: '#131313',
+                border: isNewPR ? '1px solid rgba(255,107,0,0.40)' : '1px solid rgba(255,255,255,0.13)',
+                boxShadow: isNewPR ? '0 0 18px rgba(255,107,0,0.10)' : 'none',
               }}>
 
               {/* Exercise header */}
-              <div className="flex items-center gap-2.5 px-3 py-2.5">
+              <div className="flex items-center gap-2.5 px-3 py-2">
                 <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
-                  style={{ background: isNewPR ? '#ff6b00' : '#2a2a2a' }} />
+                  style={{ background: isNewPR ? '#ff6b00' : '#3a3a3a' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-white leading-tight truncate">{ex.name}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -353,7 +354,7 @@ export default function WorkoutRecorder({
                       {ex.muscle_group}
                     </span>
                     {ex.allTimePR !== null ? (
-                      <span className="text-[10px] font-bold" style={{ color: '#3a3a3a' }}>
+                      <span className="text-[10px] font-bold" style={{ color: '#888' }}>
                         · PR {ex.allTimePR}kg
                       </span>
                     ) : (
@@ -365,17 +366,17 @@ export default function WorkoutRecorder({
                   </div>
                 </div>
                 <button onClick={() => removeExercise(ex.id)} className="p-1 flex-shrink-0">
-                  <X size={14} style={{ color: '#2a2a2a' }} />
+                  <X size={14} style={{ color: '#555' }} />
                 </button>
               </div>
 
               {/* Column labels: # | KG | REPS | 1RM */}
-              <div className="grid grid-cols-12 gap-1.5 px-3 pt-1.5 pb-1"
-                style={{ borderTop: '1px solid #1a1a1a' }}>
-                <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>#</span>
-                <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>KG</span>
-                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>REPS</span>
-                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>1RM</span>
+              <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.09)' }}>
+                <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>#</span>
+                <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>KG</span>
+                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>REPS</span>
+                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>1RM</span>
               </div>
 
               {/* Set rows */}
@@ -386,25 +387,25 @@ export default function WorkoutRecorder({
                 const canDelete = ex.sets.length > 1
 
                 return (
-                  <div key={set.id} className="grid grid-cols-12 gap-1.5 items-center px-3 py-1.5">
+                  <div key={set.id} className={`grid grid-cols-12 gap-1.5 items-center px-3 ${isCompact ? 'py-0.5' : 'py-1'}`}>
                     {/* Set number + delete */}
                     <div className="col-span-2 flex items-center justify-center gap-1">
                       {canDelete ? (
                         <button
                           className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}
+                          style={{ background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,80,80,0.28)' }}
                           onClick={() => removeSet(ex.id, set.id)}>
-                          <Minus size={8} style={{ color: '#ef4444' }} />
+                          <Minus size={8} style={{ color: 'rgba(255,100,100,0.9)' }} />
                         </button>
                       ) : (
                         <div className="w-5 h-5 flex-shrink-0" />
                       )}
                       <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
                         style={{
-                          background: isBestSet ? 'rgba(255,107,0,0.15)' : '#181818',
-                          color: isBestSet ? '#ff6b00' : '#444',
+                          background: isBestSet ? 'rgba(255,107,0,0.15)' : '#222',
+                          color: isBestSet ? '#ff7a1a' : '#888',
                           fontFamily: 'var(--font-mono)',
-                          border: isBestSet ? '1px solid rgba(255,107,0,0.3)' : '1px solid transparent',
+                          border: isBestSet ? '1px solid rgba(255,106,0,0.55)' : '1px solid rgba(255,255,255,0.08)',
                           flexShrink: 0,
                         }}>
                         {set.set_number}
@@ -413,10 +414,11 @@ export default function WorkoutRecorder({
 
                     {/* KG input */}
                     <button
-                      className="col-span-4 py-3 rounded-lg text-center font-black active:scale-95 transition-transform"
+                      className={`col-span-4 ${isCompact ? 'py-1' : 'py-1.5'} rounded-lg text-center font-black active:scale-95 transition-transform`}
                       style={{
-                        background: '#1a1a1a',
-                        color: set.weight_kg !== null ? '#fff' : '#3a3a3a',
+                        background: '#1e1e1e',
+                        border: '1px solid rgba(255,255,255,0.11)',
+                        color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
                         fontSize: 17,
                         fontFamily: 'var(--font-mono)',
                       }}
@@ -426,10 +428,11 @@ export default function WorkoutRecorder({
 
                     {/* REPS input */}
                     <button
-                      className="col-span-3 py-3 rounded-lg text-center font-black active:scale-95 transition-transform"
+                      className={`col-span-3 ${isCompact ? 'py-1' : 'py-1.5'} rounded-lg text-center font-black active:scale-95 transition-transform`}
                       style={{
-                        background: '#1a1a1a',
-                        color: set.reps !== null ? '#fff' : '#3a3a3a',
+                        background: '#1e1e1e',
+                        border: '1px solid rgba(255,255,255,0.11)',
+                        color: set.reps !== null ? '#fff' : '#6a6a6a',
                         fontSize: 17,
                         fontFamily: 'var(--font-mono)',
                       }}
@@ -438,16 +441,13 @@ export default function WorkoutRecorder({
                     </button>
 
                     {/* SET 1RM */}
-                    <div className="col-span-3 flex flex-col items-center justify-center" style={{ minHeight: 38 }}>
+                    <div className="col-span-3 flex items-center justify-center">
                       {setEst1rm !== null ? (
-                        <>
-                          <span style={{ color: '#555', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1.3 }}>1RM</span>
-                          <span style={{ color: isBestSet ? '#a78bfa' : '#888', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1.1 }}>
-                            {setEst1rm}<span style={{ fontSize: 8, fontWeight: 700, color: '#777' }}>kg</span>
-                          </span>
-                        </>
+                        <span style={{ color: isBestSet ? '#c09bff' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                          {setEst1rm}kg
+                        </span>
                       ) : (
-                        <span style={{ color: '#333', fontSize: 14, fontWeight: 900 }}>—</span>
+                        <span style={{ color: '#666', fontSize: 14, fontWeight: 900 }}>—</span>
                       )}
                     </div>
                   </div>
@@ -456,34 +456,29 @@ export default function WorkoutRecorder({
 
               {/* Stats card */}
               {stats && (
-                <div className="mx-3 mb-2.5 rounded-xl overflow-hidden"
-                  style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', marginTop: 6 }}>
-                  <div className="grid grid-cols-2" style={{ borderBottom: '1px solid #1a1a1a' }}>
-                    <div className="px-3 py-2.5" style={{ borderRight: '1px solid #1a1a1a' }}>
-                      <p style={{ color: '#666', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3 }}>VOLUME</p>
-                      <div className="flex items-baseline gap-0.5">
-                        <span style={{ color: '#ff6b00', fontSize: 22, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                          {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
-                        </span>
-                        <span style={{ color: '#777', fontSize: 12, fontWeight: 700, marginLeft: 2 }}>
-                          {stats.volume >= 1000 ? 't' : 'kg'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="px-3 py-2.5">
-                      <p style={{ color: '#666', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3 }}>BEST 1RM</p>
-                      <div className="flex items-baseline gap-0.5">
-                        <span style={{ color: '#a78bfa', fontSize: 22, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                          {stats.est1rm}
-                        </span>
-                        <span style={{ color: '#777', fontSize: 12, fontWeight: 700, marginLeft: 2 }}>kg</span>
-                      </div>
-                    </div>
+                <div className="ml-3 mb-2 rounded-xl overflow-hidden"
+                  style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.13)', marginTop: 4, width: '68%', maxWidth: 260 }}>
+                  {/* Row 1: VOL · 1RM inline */}
+                  <div className="flex items-baseline gap-2 px-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+                    <span style={{ color: '#aaa', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>VOL</span>
+                    <span style={{ color: '#ff6b00', fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                      {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
+                    </span>
+                    <span style={{ color: '#aaa', fontSize: 10, fontWeight: 700 }}>
+                      {stats.volume >= 1000 ? 't' : 'kg'}
+                    </span>
+                    <span style={{ color: '#555', fontSize: 12, fontWeight: 700, marginLeft: 2, marginRight: 2 }}>·</span>
+                    <span style={{ color: '#aaa', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>1RM</span>
+                    <span style={{ color: '#c09bff', fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                      {stats.est1rm}
+                    </span>
+                    <span style={{ color: '#aaa', fontSize: 10, fontWeight: 700 }}>kg</span>
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2">
+                  {/* Row 2: BEST SET + PRPill */}
+                  <div className="flex items-center justify-between px-3 py-1.5">
                     <div className="flex items-baseline gap-2">
-                      <span style={{ color: '#666', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>BEST SET</span>
-                      <span style={{ color: '#e0e0e0', fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: '#aaa', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>BEST</span>
+                      <span style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
                         {stats.bestWeight} × {stats.bestReps}
                       </span>
                     </div>
@@ -494,8 +489,8 @@ export default function WorkoutRecorder({
 
               {/* + SET */}
               <button
-                className="w-full py-2 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
-                style={{ color: '#ff6b00', borderTop: '1px solid #1a1a1a' }}
+                className="w-full py-1.5 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
+                style={{ color: '#ff6b00', borderTop: '1px solid rgba(255,255,255,0.09)' }}
                 onClick={() => addSet(ex.id)}>
                 <Plus size={10} strokeWidth={3} />
                 SET
@@ -511,12 +506,12 @@ export default function WorkoutRecorder({
       <div className="fixed inset-x-0 z-10 px-4 pb-3 pt-2"
         style={{
           bottom: 'calc(4rem + env(safe-area-inset-bottom))',
-          background: 'linear-gradient(to top, #0a0a0a 65%, transparent)',
+          background: 'linear-gradient(to top, #080808 65%, transparent)',
         }}>
         <div className="flex gap-2.5">
           <button
             className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2 tracking-widest"
-            style={{ background: '#111', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.35)' }}
+            style={{ background: 'rgba(255,106,0,0.05)', color: '#ff6a00', border: '1px solid rgba(255,106,0,0.45)' }}
             onClick={() => setShowPicker(true)}>
             <Plus size={16} strokeWidth={2.5} />
             EXERCISE
@@ -553,14 +548,14 @@ export default function WorkoutRecorder({
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.92)' }}>
-          <div className="w-full rounded-3xl p-6" style={{ background: '#111', border: '1px solid #222' }}>
+          <div className="w-full rounded-3xl p-6" style={{ background: '#131313', border: '1px solid rgba(255,255,255,0.14)' }}>
             <p className="text-xl font-black text-white text-center mb-1 tracking-wide">LEAVE?</p>
-            <p className="text-xs text-center mb-6 font-bold" style={{ color: '#555' }}>
+            <p className="text-xs text-center mb-6 font-bold" style={{ color: '#aaa' }}>
               {isEditing ? 'Changes will not be saved' : 'Your entries will not be saved'}
             </p>
             <div className="flex gap-3">
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
-                style={{ background: '#1a1a1a', color: '#666', border: '1px solid #1e1e1e' }}
+                style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.12)' }}
                 onClick={() => setShowCancelConfirm(false)}>KEEP GOING</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
@@ -578,10 +573,10 @@ export default function WorkoutRecorder({
 function HeaderStat({ label, value, active, accent, purple }: {
   label: string; value: string; active: boolean; accent?: boolean; purple?: boolean
 }) {
-  const color = !active ? '#333' : accent ? '#ff6b00' : purple ? '#a78bfa' : '#fff'
+  const color = !active ? '#555' : accent ? '#ff6b00' : purple ? '#c09bff' : '#fff'
   return (
-    <div>
-      <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: '#666' }}>{label}</p>
+    <div className="flex-1 flex flex-col items-center justify-center py-1">
+      <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: '#aaa' }}>{label}</p>
       <p className="text-2xl font-black" style={{ color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{value}</p>
     </div>
   )
