@@ -7,6 +7,20 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 export type CalendarSession = {
   date: string       // YYYY-MM-DD
   muscleGroup: string
+  allMuscleGroups?: string[]
+}
+
+/* ── PPL classification ───────────────────────────────────── */
+const PUSH_SET = new Set(['chest', 'shoulders', 'triceps', 'chest & triceps'])
+const PULL_SET = new Set(['back', 'biceps', 'back & biceps', 'rear delts'])
+const LEG_SET  = new Set(['legs', 'quads', 'hamstrings', 'glutes', 'calves', 'lower body'])
+
+export function getPPLDisplay(muscles: string[]): { label: string; color: string } | null {
+  if (muscles.length < 2) return null
+  if (muscles.every(m => PUSH_SET.has(m))) return { label: 'PSH', color: '#ff6b00' }
+  if (muscles.every(m => PULL_SET.has(m))) return { label: 'PUL', color: '#3b82f6' }
+  if (muscles.every(m => LEG_SET.has(m)))  return { label: 'LEG', color: '#22c55e' }
+  return null
 }
 
 const ABBREV: Record<string, string> = {
@@ -94,11 +108,19 @@ export default function TrainingCalendar({
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
   const activeSessions = sessions.length > 0 ? sessions : SAMPLE_SESSIONS
-  const sessionMap = new Map<string, string>()
-  activeSessions.forEach(s => sessionMap.set(s.date, s.muscleGroup.toLowerCase()))
+  type SessionInfo = { muscle: string; allMuscles: string[] }
+  const sessionMap = new Map<string, SessionInfo>()
+  activeSessions.forEach(s => {
+    const muscle = s.muscleGroup.toLowerCase()
+    const allMuscles = (s.allMuscleGroups && s.allMuscleGroups.length > 0
+      ? s.allMuscleGroups
+      : [s.muscleGroup]
+    ).map(m => m.toLowerCase())
+    sessionMap.set(s.date, { muscle, allMuscles })
+  })
 
-  const thisMonthCount = [...sessionMap.keys()].filter(d => {
-    const [y, m] = d.split('-').map(Number)
+  const thisMonthCount = [...sessionMap.keys()].filter(dateKey => {
+    const [y, m] = dateKey.split('-').map(Number)
     return y === year && m - 1 === month
   }).length
 
@@ -166,14 +188,16 @@ export default function TrainingCalendar({
             }
 
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            const muscle = sessionMap.get(dateStr)
+            const sessionData = sessionMap.get(dateStr)
+            const muscle = sessionData?.muscle ?? null
             const isToday = dateStr === clientToday
             const isSelected = dateStr === selectedDate
             const isFuture = dateStr > clientToday
-            const color = muscle ? (MUSCLE_COLORS[muscle] ?? '#ff6b00') : null
-            const abbrev = muscle
-              ? (ABBREV[muscle] ?? muscle.charAt(0).toUpperCase())
-              : null
+
+            // PPL takes priority for multi-muscle days
+            const ppl = sessionData ? getPPLDisplay(sessionData.allMuscles) : null
+            const color = ppl?.color ?? (muscle ? (MUSCLE_COLORS[muscle] ?? '#ff6b00') : null)
+            const abbrev = ppl?.label ?? (muscle ? (ABBREV[muscle] ?? muscle.charAt(0).toUpperCase()) : null)
 
             // ── Visual state matrix ──────────────────────────
             let bg: string
@@ -272,16 +296,31 @@ export default function TrainingCalendar({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-y-1.5 mt-2 pt-2"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.07)', gap: '6px 14px' }}>
-          {Object.entries(MUSCLE_COLORS).slice(0, 6).map(([muscle, color]) => (
-            <div key={muscle} className="flex items-center" style={{ gap: 5 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#c0c0c0', textTransform: 'uppercase' }}>
-                {muscle}
-              </span>
-            </div>
-          ))}
+        <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          {/* Muscle group dots */}
+          <div className="flex flex-wrap" style={{ gap: '5px 14px', marginBottom: 6 }}>
+            {Object.entries(MUSCLE_COLORS).slice(0, 6).map(([m, c]) => (
+              <div key={m} className="flex items-center" style={{ gap: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', color: '#999', textTransform: 'uppercase' }}>
+                  {m}
+                </span>
+              </div>
+            ))}
+          </div>
+          {/* PPL labels */}
+          <div className="flex items-center" style={{ gap: 14 }}>
+            {([
+              { label: 'PSH', name: 'Push',  color: '#ff6b00' },
+              { label: 'PUL', name: 'Pull',  color: '#3b82f6' },
+              { label: 'LEG', name: 'Legs',  color: '#22c55e' },
+            ] as const).map(({ label, name, color }) => (
+              <div key={label} className="flex items-center" style={{ gap: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.07em', color }}>{label}</span>
+                <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.04em', color: '#777' }}>{name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

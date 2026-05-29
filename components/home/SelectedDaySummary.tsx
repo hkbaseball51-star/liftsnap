@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSessionForDate } from '@/actions/workout'
-import { MUSCLE_COLORS } from './TrainingCalendar'
+import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { CalendarSession } from './TrainingCalendar'
 
 function hexToRgb(hex: string): string {
@@ -83,11 +83,23 @@ export default function SelectedDaySummary({
     })
   }, [selectedDate, sessions])
 
-  const accentColor = (summary && summary !== 'empty')
+  const calSession = sessions.find(s => s.date === selectedDate)
+  const allMuscles = (calSession?.allMuscleGroups && calSession.allMuscleGroups.length > 0
+    ? calSession.allMuscleGroups
+    : [calSession?.muscleGroup ?? '']
+  ).map(m => m.toLowerCase())
+  const ppl = getPPLDisplay(allMuscles)
+
+  const baseColor = (summary && summary !== 'empty')
     ? (MUSCLE_COLORS[summary.muscleGroup] ?? '#ff6b00')
     : '#ff6b00'
+  const accentColor = ppl?.color ?? baseColor
   const accentRgb = hexToRgb(accentColor)
   const dateLabel = formatDateLabel(selectedDate)
+
+  const badgeLabel = (summary && summary !== 'empty')
+    ? (ppl?.label ?? summary.muscleGroup.toUpperCase())
+    : null
 
   const cardStyle = {
     background: '#181818',
@@ -140,14 +152,16 @@ export default function SelectedDaySummary({
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.38)' }}>
               {dateLabel}
             </span>
-            <span style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
-              padding: '2px 8px', borderRadius: 20,
-              background: `rgba(${accentRgb}, 0.15)`,
-              color: accentColor,
-            }}>
-              {summary.muscleGroup.toUpperCase()}
-            </span>
+            {badgeLabel && (
+              <span style={{
+                fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
+                padding: '2px 8px', borderRadius: 20,
+                background: `rgba(${accentRgb}, 0.15)`,
+                color: accentColor,
+              }}>
+                {badgeLabel}
+              </span>
+            )}
           </div>
 
           {/* Exercise name */}

@@ -90,10 +90,13 @@ export default async function HomePage() {
       calendarSessions = calendarSessionsRes.data.map(session => {
         const mgMap = sessionMuscleCount.get(session.id)
         let topMuscle = 'full body'
+        let allMuscleGroups: string[] = []
         if (mgMap && mgMap.size > 0) {
-          topMuscle = [...mgMap.entries()].sort((a, b) => b[1] - a[1])[0][0]
+          const sorted = [...mgMap.entries()].sort((a, b) => b[1] - a[1])
+          topMuscle = sorted[0][0]
+          allMuscleGroups = sorted.map(([mg]) => mg)
         }
-        return { date: session.trained_at, muscleGroup: topMuscle }
+        return { date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups }
       })
     }
   }
