@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Zap, Share2 } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
-import TrainingCalendar, { type CalendarSession } from '@/components/home/TrainingCalendar'
+import CalendarWithSummary from '@/components/home/CalendarWithSummary'
+import type { CalendarSession } from '@/components/home/TrainingCalendar'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -201,9 +202,9 @@ export default async function HomePage() {
         </Link>
       </div>
 
-      {/* ── MONTHLY TRAINING CALENDAR ── */}
+      {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
       <div className="px-4 mb-5">
-        <TrainingCalendar sessions={calendarSessions} todayStr={todayStr} />
+        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} />
       </div>
 
       {/* ── WEEKLY EFFORT ── */}

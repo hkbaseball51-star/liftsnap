@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -16,7 +16,7 @@ const ABBREV: Record<string, string> = {
   'chest & triceps': 'C', 'back & biceps': 'B', 'lower body': 'L',
 }
 
-const COLORS: Record<string, string> = {
+export const MUSCLE_COLORS: Record<string, string> = {
   chest: '#ff6b00',
   back: '#3b82f6',
   legs: '#22c55e',
@@ -62,25 +62,24 @@ function hexToRgb(hex: string): string {
 export default function TrainingCalendar({
   sessions,
   todayStr,
+  selectedDate: controlledSelectedDate,
+  onSelectDate,
+  onNavigate,
 }: {
   sessions: CalendarSession[]
   todayStr: string
+  selectedDate?: string | null
+  onSelectDate?: (date: string) => void
+  onNavigate?: (date: string) => void
 }) {
   const router = useRouter()
-
   const clientToday = useMemo(() => localDateStr(new Date()), [])
-
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [internalSelectedDate, setInternalSelectedDate] = useState<string | null>(null)
 
-  useEffect(() => {
-    console.log('[TrainingCalendar] today (client):', clientToday)
-    console.log('[TrainingCalendar] todayStr (server prop):', todayStr)
-    console.log('[TrainingCalendar] selectedDate:', selectedDate)
-    console.log('[TrainingCalendar] currentMonth:', `${year}-${String(month + 1).padStart(2, '0')}`)
-    console.log('[TrainingCalendar] sessions (trained_at):', sessions.slice(0, 10).map(s => s.date))
-  }, [clientToday, todayStr, selectedDate, year, month, sessions])
+  const isControlled = controlledSelectedDate !== undefined
+  const selectedDate = isControlled ? controlledSelectedDate : internalSelectedDate
 
   const prevMonth = () => {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -171,7 +170,7 @@ export default function TrainingCalendar({
             const isToday = dateStr === clientToday
             const isSelected = dateStr === selectedDate
             const isFuture = dateStr > clientToday
-            const color = muscle ? (COLORS[muscle] ?? '#ff6b00') : null
+            const color = muscle ? (MUSCLE_COLORS[muscle] ?? '#ff6b00') : null
             const abbrev = muscle
               ? (ABBREV[muscle] ?? muscle.charAt(0).toUpperCase())
               : null
@@ -229,8 +228,20 @@ export default function TrainingCalendar({
                   }}
                   onClick={() => {
                     if (isFuture) return
-                    setSelectedDate(dateStr)
-                    router.push(`/record?date=${dateStr}`)
+                    if (isControlled) {
+                      if (dateStr === selectedDate) {
+                        // Second tap → navigate
+                        if (onNavigate) onNavigate(dateStr)
+                        else router.push(`/record?date=${dateStr}`)
+                      } else {
+                        // First tap → select only
+                        onSelectDate?.(dateStr)
+                      }
+                    } else {
+                      // Standalone mode: original behavior
+                      setInternalSelectedDate(dateStr)
+                      router.push(`/record?date=${dateStr}`)
+                    }
                   }}>
                   <span style={{
                     color: textColor,
@@ -263,7 +274,7 @@ export default function TrainingCalendar({
         {/* Legend */}
         <div className="flex flex-wrap gap-y-1.5 mt-2 pt-2"
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)', gap: '6px 14px' }}>
-          {Object.entries(COLORS).slice(0, 6).map(([muscle, color]) => (
+          {Object.entries(MUSCLE_COLORS).slice(0, 6).map(([muscle, color]) => (
             <div key={muscle} className="flex items-center" style={{ gap: 5 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#c0c0c0', textTransform: 'uppercase' }}>
