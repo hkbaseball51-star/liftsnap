@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Zap, Share2 } from 'lucide-react'
+import { formatVolume } from '@/lib/utils'
 import TrainingCalendar, { type CalendarSession } from '@/components/home/TrainingCalendar'
 
 export default async function HomePage() {
@@ -21,9 +22,12 @@ export default async function HomePage() {
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   const ninetyDaysAgoStr = `${ninetyDaysAgo.getFullYear()}-${String(ninetyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(ninetyDaysAgo.getDate()).padStart(2, '0')}`
 
-  const [thisWeekRes, calendarSessionsRes, profileRes] = await Promise.all([
+  const [
+    thisWeekRes, calendarSessionsRes, profileRes,
+    lastWeekRes, todayWeightRes, atbRes,
+  ] = await Promise.all([
     supabase.from('workout_sessions')
-      .select('id, trained_at')
+      .select('id, trained_at, total_volume_kg')
       .eq('user_id', user.id)
       .gte('trained_at', getWeekStart())
       .not('completed_at', 'is', null),
@@ -38,6 +42,28 @@ export default async function HomePage() {
       .select('display_name')
       .eq('id', user.id)
       .single(),
+
+    supabase.from('workout_sessions')
+      .select('total_volume_kg')
+      .eq('user_id', user.id)
+      .gte('trained_at', getLastWeekStart())
+      .lt('trained_at', getWeekStart())
+      .not('completed_at', 'is', null),
+
+    supabase.from('body_weights')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .eq('recorded_at', todayStr)
+      .maybeSingle(),
+
+    supabase.from('workout_sets')
+      .select('weight_kg, reps')
+      .eq('is_completed', true)
+      .not('weight_kg', 'is', null)
+      .gt('weight_kg', 0)
+      .order('weight_kg', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   /* ── Calendar sessions ───────────────────────────────────── */
@@ -71,10 +97,26 @@ export default async function HomePage() {
     }
   }
 
+  /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessionsRes.data?.length ?? 0
   const todayWorked = thisWeekSessions.some(s => s.trained_at === todayStr)
   const displayName = profileRes.data?.display_name as string | null
+
+  const thisWeekVolume = thisWeekSessions.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0)
+  const lastWeekVolume = (lastWeekRes.data ?? []).reduce(
+    (s: number, r: { total_volume_kg: number | null }) => s + (r.total_volume_kg ?? 0), 0
+  )
+  const volumeDiff = lastWeekVolume > 0
+    ? Math.round(((thisWeekVolume - lastWeekVolume) / lastWeekVolume) * 100)
+    : null
+  const todayWeight = todayWeightRes.data?.weight_kg ?? null
+
+  const allTimeBest = atbRes.data as { weight_kg: number; reps: number } | null
+  const allTimeEst1rm = allTimeBest
+    ? allTimeBest.reps === 1 ? allTimeBest.weight_kg : Math.round(allTimeBest.weight_kg * (1 + allTimeBest.reps / 30))
+    : null
+  const club = allTimeEst1rm ? getNextClub(allTimeEst1rm) : null
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
@@ -164,11 +206,162 @@ export default async function HomePage() {
         <TrainingCalendar sessions={calendarSessions} todayStr={todayStr} />
       </div>
 
+      {/* ── WEEKLY EFFORT ── */}
+      <div className="px-4 mb-4">
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
+          WEEKLY EFFORT
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            {
+              label: 'VOLUME',
+              value: thisWeekVolume > 0 ? formatVolume(thisWeekVolume) : '—',
+              sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}%` : null,
+              subColor: volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined,
+              active: thisWeekVolume > 0,
+            },
+            {
+              label: 'SESSIONS',
+              value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
+              sub: 'goal: 3×',
+              subColor: 'rgba(255,255,255,0.32)' as string,
+              active: thisWeekSessions.length > 0,
+            },
+            {
+              label: 'BEST 1RM',
+              value: allTimeEst1rm ? `${allTimeEst1rm}` : '—',
+              unit: allTimeEst1rm ? 'kg' : undefined,
+              sub: null,
+              subColor: undefined,
+              active: allTimeEst1rm !== null,
+            },
+          ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
+            <div key={label} className="premium-card rounded-xl p-3">
+              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', marginBottom: 8 }}>
+                {label}
+              </p>
+              <div className="flex items-baseline gap-0.5">
+                <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? '#fff' : 'rgba(255,255,255,0.1)' }}>
+                  {value}
+                </p>
+                {'unit' in rest && rest.unit && (
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginLeft: 1 }}>
+                    {rest.unit}
+                  </span>
+                )}
+              </div>
+              {sub && (
+                <p style={{ fontSize: 9, fontWeight: 500, marginTop: 5, color: subColor ?? 'rgba(255,255,255,0.2)' }}>
+                  {sub}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── STRENGTH CLUB ── */}
+      <div className="px-4 mb-4">
+        <ClubCard club={club} allTimeEst1rm={allTimeEst1rm} />
+      </div>
+
+      {/* ── BODY WEIGHT ── */}
+      <div className="px-4 mb-4">
+        <div className="premium-card rounded-xl px-4 py-3 flex items-center justify-between">
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 5 }}>
+              BODY WEIGHT
+            </p>
+            {todayWeight ? (
+              <div className="flex items-baseline gap-1">
+                <p style={{ fontSize: 22, fontWeight: 600, color: '#fff' }}>{todayWeight}</p>
+                <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+              </div>
+            ) : (
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.32)' }}>Not logged</p>
+            )}
+          </div>
+          <Link href="/analytics"
+            className="rounded-xl"
+            style={{
+              padding: '7px 14px',
+              background: todayWeight ? 'rgba(255,255,255,0.04)' : '#ff6b00',
+              border: todayWeight ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              color: todayWeight ? 'rgba(255,255,255,0.4)' : '#fff',
+              fontSize: 11,
+              fontWeight: 500,
+            }}>
+            {todayWeight ? 'View →' : 'Log +'}
+          </Link>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+/* ─── Sub-components ──────────────────────────────────────── */
+
+type ClubInfo = { name: string; target: number; gap: number; progress: number; prev: number }
+
+function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1rm: number | null }) {
+  if (!club || !allTimeEst1rm) {
+    return (
+      <div className="premium-card rounded-xl px-4 py-3">
+        <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+          STRENGTH CLUB
+        </p>
+        <div className="flex items-center gap-3 mb-3">
+          <span style={{ fontSize: 16 }}>🏅</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>100KG Club</p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>
+              Log your first lift to track progress
+            </p>
+          </div>
+        </div>
+        <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }} />
+      </div>
+    )
+  }
+
+  const current = Math.min(allTimeEst1rm, club.target)
+  const pct = club.progress
+
+  return (
+    <div className="premium-card rounded-xl px-4 py-3">
+      <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+        STRENGTH CLUB
+      </p>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <span style={{ fontSize: 16 }}>🏅</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{club.name}</p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: '#22c55e' }}>+{club.gap} kg to go</p>
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>{current}</span>
+          <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>/ {club.target} kg</span>
+        </div>
+      </div>
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#ff6b00' }} />
+      </div>
     </div>
   )
 }
 
 /* ─── Pure functions ──────────────────────────────────────── */
+
+function getNextClub(oneRM: number): ClubInfo {
+  const milestones = [60, 80, 100, 120, 150, 200]
+  const target = milestones.find(m => m > oneRM) ?? 250
+  const prev = milestones[milestones.indexOf(target) - 1] ?? 0
+  const progress = Math.min(99, Math.round(((oneRM - prev) / (target - prev)) * 100))
+  return { name: `${target}KG CLUB`, target, gap: Math.max(1, Math.round(target - oneRM)), progress, prev }
+}
 
 /** YYYY-MM-DD in JST — avoids UTC-off-by-one for Japan users */
 function jstDate(d: Date = new Date()): string {
@@ -180,6 +373,12 @@ function today() { return jstDate() }
 function getWeekStart() {
   const d = new Date(jstDate() + 'T00:00:00')
   d.setDate(d.getDate() + (d.getDay() === 0 ? -6 : 1 - d.getDay()))
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function getLastWeekStart() {
+  const d = new Date(getWeekStart() + 'T00:00:00')
+  d.setDate(d.getDate() - 7)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
