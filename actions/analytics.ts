@@ -51,21 +51,22 @@ export async function getBodyWeightData(days = 90) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - days)
+  const cutoff = new Date(Date.now() + 9 * 3600 * 1000)
+  cutoff.setDate(cutoff.getDate() - days)
+  const startDate = cutoff.toISOString().split('T')[0]
 
   const { data } = await supabase
     .from('body_weights')
     .select('weight_kg, recorded_at')
     .eq('user_id', user.id)
-    .gte('recorded_at', startDate.toISOString().split('T')[0])
+    .gte('recorded_at', startDate)
     .order('recorded_at')
 
   return (data ?? []).map(r => {
-    const d = new Date(r.recorded_at)
+    const [, mm, dd] = r.recorded_at.split('-')
     return {
       date: r.recorded_at,
-      label: `${d.getMonth() + 1}/${d.getDate()}`,
+      label: `${parseInt(mm)}/${parseInt(dd)}`,
       weight: r.weight_kg,
     }
   })
@@ -144,7 +145,7 @@ export async function saveBodyWeight(weightKg: number) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
   await supabase.from('body_weights').upsert({
     user_id: user.id,
     weight_kg: weightKg,

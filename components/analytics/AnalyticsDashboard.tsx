@@ -7,7 +7,8 @@ import {
 } from 'recharts'
 import Link from 'next/link'
 import { Share2, Lock } from 'lucide-react'
-import { getExercise1RMData, getExerciseDailyVolumeData, saveBodyWeight } from '@/actions/analytics'
+import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analytics'
+import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
 type WeightPoint = { date: string; label: string; weight: number }
@@ -66,9 +67,14 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const [volData, setVolData] = useState<VolPoint[]>([])
   const [volLoading, startVolTransition] = useTransition()
 
-  const [bwInput, setBwInput] = useState('')
-  const [bwSaving, startBwTransition] = useTransition()
-  const [bwData, setBwData] = useState(bodyWeightData)
+  const [bwData, setBwData]   = useState(bodyWeightData)
+  const [bwInput, setBwInput] = useState(() => {
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+    const entry = bodyWeightData.find(p => p.date === today)
+    return entry ? String(entry.weight) : ''
+  })
+  const [bwSaving, setBwSaving] = useState(false)
+  const [bwToast, setBwToast]   = useState<{ msg: string; ok: boolean } | null>(null)
 
   const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
@@ -99,24 +105,36 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     }
   }
 
-  const saveBW = () => {
-    const v = parseFloat(bwInput)
-    if (isNaN(v) || v <= 0) return
-    startBwTransition(async () => {
-      await saveBodyWeight(v)
-      const today = new Date()
-      const date = today.toISOString().split('T')[0]
-      const d = today
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-      const label = `${months[d.getMonth()]} ${d.getDate()}`
-      setBwData(prev => {
-        const filtered = prev.filter(p => p.date !== date)
-        return [...filtered, { date, label, weight: v }].sort((a, b) => a.date.localeCompare(b.date))
-      })
-      setBwInput('')
-    })
+  const showBwToast = (msg: string, ok: boolean) => {
+    setBwToast({ msg, ok })
+    setTimeout(() => setBwToast(null), 2500)
   }
 
+  const saveBW = async () => {
+    const v = parseFloat(bwInput)
+    if (isNaN(v) || v < 20 || v > 300) return
+    if (bwSaving) return
+    setBwSaving(true)
+    try {
+      await upsertBodyWeight(v)
+      const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+      const [, mm, dd] = today.split('-')
+      const label = `${parseInt(mm)}/${parseInt(dd)}`
+      setBwData(prev => {
+        const filtered = prev.filter(p => p.date !== today)
+        return [...filtered, { date: today, label, weight: v }].sort((a, b) => a.date.localeCompare(b.date))
+      })
+      showBwToast('Weight logged', true)
+    } catch {
+      showBwToast('Could not save weight', false)
+    } finally {
+      setBwSaving(false)
+    }
+  }
+
+  const todayJST     = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+  const todaySaved   = bwData.some(p => p.date === todayJST)
+  const bwInputValid = bwInput !== '' && !isNaN(parseFloat(bwInput)) && parseFloat(bwInput) >= 20 && parseFloat(bwInput) <= 300
   const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
@@ -424,9 +442,36 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       {/* BODY WEIGHT Tab */}
       {tab === 'BODY WEIGHT' && (
         <div>
+          {/* Toast */}
+          {bwToast && (
+            <div style={{
+              position: 'fixed',
+              bottom: 88,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: bwToast.ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+              border: `1px solid ${bwToast.ok ? '#22c55e' : '#ef4444'}`,
+              borderRadius: 999,
+              padding: '8px 20px',
+              fontSize: 12,
+              fontWeight: 700,
+              color: bwToast.ok ? '#22c55e' : '#ef4444',
+              zIndex: 999,
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+            }}>
+              {bwToast.msg}
+            </div>
+          )}
+
           <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={CARD}>
             <div className="flex-1">
-              <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>TODAY'S WEIGHT</p>
+              <div className="flex items-center gap-2 mb-1.5">
+                <p className="text-[10px] font-black tracking-widest" style={{ color: '#FF6B00' }}>TODAY&apos;S WEIGHT</p>
+                {todaySaved && (
+                  <span className="text-[9px] font-black tracking-wider" style={{ color: '#22c55e' }}>SAVED</span>
+                )}
+              </div>
               <div className="flex items-baseline gap-1.5">
                 <input
                   type="number"
@@ -439,15 +484,19 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 />
                 <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>kg</span>
               </div>
+              {bwInput && !bwInputValid && (
+                <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>Enter 20–300 kg</p>
+              )}
             </div>
             <button
-              className="px-5 py-3 rounded-xl text-xs font-black tracking-widest"
+              className="px-5 py-3 rounded-xl text-xs font-black tracking-widest transition-opacity"
               style={{
-                background: bwInput ? '#ff6b00' : 'rgba(255,255,255,0.04)',
-                color: bwInput ? '#fff' : '#444',
-                border: bwInput ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                background: bwInputValid ? '#ff6b00' : 'rgba(255,255,255,0.04)',
+                color: bwInputValid ? '#fff' : '#444',
+                border: bwInputValid ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                opacity: bwSaving ? 0.6 : 1,
               }}
-              disabled={!bwInput || bwSaving}
+              disabled={!bwInputValid || bwSaving}
               onClick={saveBW}>
               {bwSaving ? '...' : 'LOG'}
             </button>
