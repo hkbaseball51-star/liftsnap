@@ -237,8 +237,6 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     ctx.fillRect(0, 0, W, H)
   }
 
-  ctx.fillStyle = ac.topLine; ctx.fillRect(0, 0, W, 7)
-
   ctx.fillStyle = ac.badgeBg; rr(ctx, 80, 100, 268, 68, 14); ctx.fill()
   if (accent === 'dark') {
     ctx.strokeStyle = ac.badgeBorder; ctx.lineWidth = 1.5
@@ -570,14 +568,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             borderRadius: 24, overflow: 'hidden',
             position: 'relative',
           }}>
-            {/* Accent stripe */}
-            <div style={{ height: 2, background: ac.topLine }} />
-
             {/* Left content column — right 66% stays clear for background photo */}
             <div style={{
               width: '37%',
               padding: '10px 0 8px 12px',
-              height: 'calc(100% - 2px)',
+              height: '100%',
               display: 'flex',
               flexDirection: 'column',
               textShadow: tsh,
@@ -727,7 +722,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               background: cardBg,
             }}>
 
-            <div className="absolute top-0 inset-x-0" style={{ height: 2, background: ac.topLine }} />
 
             <div className="relative flex flex-col h-full" style={{ padding: '14px 16px 10px', paddingTop: 16 }}>
 

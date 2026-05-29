@@ -208,9 +208,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             */}
             <div ref={captureRef} style={{ background: previewBg }}>
 
-              {/* Accent stripe — static, first child (shows in both preview and export) */}
-              <div style={{ height: 2, background: ac.topLine }} />
-
               {/* All card content — textShadow inherited by every child */}
               <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: tsh }}>
 
