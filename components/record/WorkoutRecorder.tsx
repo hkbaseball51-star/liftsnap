@@ -308,9 +308,9 @@ export default function WorkoutRecorder({
         {/* Header stats */}
         <div className="flex items-center pb-2.5">
           <HeaderStat label="VOL"      value={displayVolume > 0 ? formatVolume(displayVolume) : '—'} active={displayVolume > 0} accent />
-          <div className="w-px h-8 mx-5" style={{ background: '#1e1e1e' }} />
+          <div className="w-px h-9 mx-5" style={{ background: '#1e1e1e' }} />
           <HeaderStat label="SETS"     value={displaySetsCount > 0 ? String(displaySetsCount) : '—'} active={displaySetsCount > 0} />
-          <div className="w-px h-8 mx-5" style={{ background: '#1e1e1e' }} />
+          <div className="w-px h-9 mx-5" style={{ background: '#1e1e1e' }} />
           <HeaderStat label="BEST 1RM" value={bestSessionEst1rm > 0 ? `${bestSessionEst1rm}kg` : '—'} active={bestSessionEst1rm > 0} purple />
         </div>
       </div>
@@ -372,10 +372,10 @@ export default function WorkoutRecorder({
               {/* Column labels: # | KG | REPS | 1RM */}
               <div className="grid grid-cols-12 gap-1.5 px-3 pt-1.5 pb-1"
                 style={{ borderTop: '1px solid #1a1a1a' }}>
-                <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#2a2a2a' }}>#</span>
-                <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#2a2a2a' }}>KG</span>
-                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#2a2a2a' }}>REPS</span>
-                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#2a2a2a' }}>1RM</span>
+                <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>#</span>
+                <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>KG</span>
+                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>REPS</span>
+                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#555' }}>1RM</span>
               </div>
 
               {/* Set rows */}
@@ -413,12 +413,12 @@ export default function WorkoutRecorder({
 
                     {/* KG input */}
                     <button
-                      className="col-span-4 py-2.5 rounded-lg text-center font-black active:scale-95 transition-transform"
+                      className="col-span-4 py-3 rounded-lg text-center font-black active:scale-95 transition-transform"
                       style={{
                         background: '#1a1a1a',
-                        color: set.weight_kg !== null ? '#fff' : '#2a2a2a',
-                        fontSize: set.weight_kg !== null ? 17 : 14,
-                        fontFamily: set.weight_kg !== null ? 'var(--font-mono)' : 'inherit',
+                        color: set.weight_kg !== null ? '#fff' : '#3a3a3a',
+                        fontSize: 17,
+                        fontFamily: 'var(--font-mono)',
                       }}
                       onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
                       {set.weight_kg ?? '—'}
@@ -426,12 +426,12 @@ export default function WorkoutRecorder({
 
                     {/* REPS input */}
                     <button
-                      className="col-span-3 py-2.5 rounded-lg text-center font-black active:scale-95 transition-transform"
+                      className="col-span-3 py-3 rounded-lg text-center font-black active:scale-95 transition-transform"
                       style={{
                         background: '#1a1a1a',
-                        color: set.reps !== null ? '#fff' : '#2a2a2a',
-                        fontSize: set.reps !== null ? 17 : 14,
-                        fontFamily: set.reps !== null ? 'var(--font-mono)' : 'inherit',
+                        color: set.reps !== null ? '#fff' : '#3a3a3a',
+                        fontSize: 17,
+                        fontFamily: 'var(--font-mono)',
                       }}
                       onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
                       {set.reps ?? '—'}
@@ -441,14 +441,13 @@ export default function WorkoutRecorder({
                     <div className="col-span-3 flex flex-col items-center justify-center" style={{ minHeight: 38 }}>
                       {setEst1rm !== null ? (
                         <>
-                          <span style={{ color: '#333', fontSize: 7, fontWeight: 900, letterSpacing: '0.06em', lineHeight: 1.2 }}>1RM</span>
-                          <span style={{ color: isBestSet ? '#a78bfa' : '#666', fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1.1 }}>
-                            {setEst1rm}
+                          <span style={{ color: '#555', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.05em', lineHeight: 1.3 }}>1RM</span>
+                          <span style={{ color: isBestSet ? '#a78bfa' : '#888', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1.1 }}>
+                            {setEst1rm}<span style={{ fontSize: 8, fontWeight: 700, color: '#777' }}>kg</span>
                           </span>
-                          <span style={{ color: '#2a2a2a', fontSize: 8, fontWeight: 700, lineHeight: 1 }}>kg</span>
                         </>
                       ) : (
-                        <span style={{ color: '#222', fontSize: 14, fontWeight: 900 }}>—</span>
+                        <span style={{ color: '#333', fontSize: 14, fontWeight: 900 }}>—</span>
                       )}
                     </div>
                   </div>
@@ -461,29 +460,29 @@ export default function WorkoutRecorder({
                   style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', marginTop: 6 }}>
                   <div className="grid grid-cols-2" style={{ borderBottom: '1px solid #1a1a1a' }}>
                     <div className="px-3 py-2.5" style={{ borderRight: '1px solid #1a1a1a' }}>
-                      <p style={{ color: '#3a3a3a', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 3 }}>VOLUME</p>
+                      <p style={{ color: '#666', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3 }}>VOLUME</p>
                       <div className="flex items-baseline gap-0.5">
                         <span style={{ color: '#ff6b00', fontSize: 22, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
                           {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
                         </span>
-                        <span style={{ color: '#555', fontSize: 12, fontWeight: 700, marginLeft: 2 }}>
+                        <span style={{ color: '#777', fontSize: 12, fontWeight: 700, marginLeft: 2 }}>
                           {stats.volume >= 1000 ? 't' : 'kg'}
                         </span>
                       </div>
                     </div>
                     <div className="px-3 py-2.5">
-                      <p style={{ color: '#3a3a3a', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', marginBottom: 3 }}>BEST 1RM</p>
+                      <p style={{ color: '#666', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3 }}>BEST 1RM</p>
                       <div className="flex items-baseline gap-0.5">
                         <span style={{ color: '#a78bfa', fontSize: 22, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
                           {stats.est1rm}
                         </span>
-                        <span style={{ color: '#555', fontSize: 12, fontWeight: 700, marginLeft: 2 }}>kg</span>
+                        <span style={{ color: '#777', fontSize: 12, fontWeight: 700, marginLeft: 2 }}>kg</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-baseline gap-2">
-                      <span style={{ color: '#3a3a3a', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em' }}>BEST SET</span>
+                      <span style={{ color: '#666', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>BEST SET</span>
                       <span style={{ color: '#e0e0e0', fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
                         {stats.bestWeight} × {stats.bestReps}
                       </span>
@@ -499,7 +498,7 @@ export default function WorkoutRecorder({
                 style={{ color: '#ff6b00', borderTop: '1px solid #1a1a1a' }}
                 onClick={() => addSet(ex.id)}>
                 <Plus size={10} strokeWidth={3} />
-                + SET
+                SET
               </button>
             </div>
           )
@@ -520,7 +519,7 @@ export default function WorkoutRecorder({
             style={{ background: '#111', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.35)' }}
             onClick={() => setShowPicker(true)}>
             <Plus size={16} strokeWidth={2.5} />
-            ADD
+            EXERCISE
           </button>
           {displaySetsCount > 0 && (
             <button
@@ -528,7 +527,7 @@ export default function WorkoutRecorder({
               style={{ background: saving ? '#333' : '#ff6b00', boxShadow: saving ? 'none' : '0 4px 20px rgba(255,107,0,0.35)' }}
               disabled={saving}
               onClick={handleFinish}>
-              {saving ? 'SAVING...' : isEditing ? `UPDATE · ${displaySetsCount}` : `FINISH · ${displaySetsCount}`}
+              {saving ? 'SAVING...' : isEditing ? `UPDATE ${displaySetsCount} SETS` : `FINISH ${displaySetsCount} SETS`}
             </button>
           )}
         </div>
@@ -579,11 +578,11 @@ export default function WorkoutRecorder({
 function HeaderStat({ label, value, active, accent, purple }: {
   label: string; value: string; active: boolean; accent?: boolean; purple?: boolean
 }) {
-  const color = !active ? '#2a2a2a' : accent ? '#ff6b00' : purple ? '#a78bfa' : '#fff'
+  const color = !active ? '#333' : accent ? '#ff6b00' : purple ? '#a78bfa' : '#fff'
   return (
     <div>
-      <p className="text-[11px] font-black tracking-widest mb-1" style={{ color: '#444' }}>{label}</p>
-      <p className="text-xl font-bold" style={{ color, fontFamily: 'var(--font-mono)' }}>{value}</p>
+      <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: '#666' }}>{label}</p>
+      <p className="text-2xl font-black" style={{ color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{value}</p>
     </div>
   )
 }
