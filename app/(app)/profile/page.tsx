@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/actions/auth'
 import Link from 'next/link'
-import { Settings, ChevronRight, Lock, Bell, User, HelpCircle, Shield } from 'lucide-react'
+import { Settings, ChevronRight, Lock } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 
 /* ── Rank tiers ─────────────────────────────────────── */
@@ -116,7 +115,6 @@ export default async function ProfilePage() {
 
   const profile     = profileRes.data
   const displayName = (profile?.display_name as string | null) ?? 'USER'
-  const isPro       = profile?.plan === 'pro'
   const username    = usernameHandle(user.email ?? 'user')
 
   const allSessions = sessionsRes.data ?? []
@@ -282,7 +280,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* ── 6. Recent Activity ────────────────────────── */}
-      <div className="mx-4 mb-4">
+      <div className="mx-4 mb-10">
         {sectionLabel('RECENT ACTIVITY')}
         {recentSessions.length === 0 ? (
           <div className="px-4 py-8 text-center" style={card}>
@@ -321,69 +319,6 @@ export default async function ProfilePage() {
           </div>
         )}
       </div>
-
-      {/* ── 7. Profile Settings ───────────────────────── */}
-      <div className="mx-4 mb-4">
-        {sectionLabel('PROFILE SETTINGS')}
-        <div className="overflow-hidden" style={card}>
-          {[
-            { href: '/profile/edit',          label: 'Edit Profile',   icon: User,        extra: null },
-            { href: '/profile/privacy',       label: 'Privacy',        icon: Shield,      extra: 'PRIVATE' },
-            { href: '/profile/notifications', label: 'Notifications',  icon: Bell,        extra: null },
-            { href: '/profile/support',       label: 'Help & Support', icon: HelpCircle,  extra: null },
-          ].map(({ href, label, icon: Icon, extra }, i, arr) => (
-            <Link key={href} href={href}
-              className="flex items-center gap-3 px-4 py-4 active:opacity-70 transition-opacity"
-              style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', display: 'flex' }}>
-              <Icon size={16} style={{ color: '#444' }} />
-              <span className="flex-1 text-sm font-bold text-white">{label}</span>
-              {extra && (
-                <span className="text-[9px] font-black tracking-widest mr-1.5" style={{ color: '#333' }}>{extra}</span>
-              )}
-              <ChevronRight size={14} style={{ color: '#2e2e2e' }} />
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* ── 8. Upgrade to Pro ─────────────────────────── */}
-      {!isPro && (
-        <div className="mx-4 mb-5">
-          <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid rgba(255,107,0,0.18)' }}>
-            <div className="flex items-start gap-3 mb-3">
-              <div className="flex-1">
-                <p className="text-sm font-black text-white">Upgrade to Pro</p>
-                <p className="text-xs mt-0.5" style={{ color: '#555' }}>
-                  No watermark · Custom themes · Detailed analytics
-                </p>
-              </div>
-              <span className="text-[9px] font-black px-2 py-1 rounded-full shrink-0 mt-0.5"
-                style={{ background: 'rgba(255,107,0,0.1)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.2)' }}>
-                PRO
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <button className="flex-1 py-2.5 rounded-xl text-xs font-black"
-                style={{ background: '#1a1a1a', color: '#555', border: '1px solid #222' }}>
-                ¥480 / mo
-              </button>
-              <button className="flex-1 py-2.5 rounded-xl text-xs font-black text-white"
-                style={{ background: '#ff6b00' }}>
-                ¥2,980 / yr ★
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Sign Out ──────────────────────────────────── */}
-      <form action={logout} className="mx-4 mb-10">
-        <button type="submit"
-          className="w-full py-4 rounded-2xl text-sm font-black tracking-widest"
-          style={{ background: 'rgba(239,68,68,0.05)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.1)' }}>
-          SIGN OUT
-        </button>
-      </form>
 
     </div>
   )

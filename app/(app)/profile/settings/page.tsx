@@ -1,5 +1,14 @@
+import { createClient } from '@/lib/supabase/server'
+import { logout } from '@/actions/auth'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, User, Shield, Bell, Ruler, Palette, Globe, HelpCircle, FileText, UserX } from 'lucide-react'
+import {
+  ChevronLeft, ChevronRight,
+  User, Shield, Bell,
+  Ruler, Palette, Globe,
+  Crown, CreditCard,
+  HelpCircle, FileText, UserX,
+  LogOut,
+} from 'lucide-react'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
@@ -16,10 +25,10 @@ const T = {
 }
 
 type LiveRow = {
-  label:  string
-  sub?:   string
-  icon:   React.ComponentType<{ size: number; style: React.CSSProperties }>
-  href:   string
+  label:   string
+  sub?:    string
+  icon:    React.ComponentType<{ size: number; style: React.CSSProperties }>
+  href:    string
   danger?: boolean
 }
 
@@ -36,8 +45,7 @@ const SectionLabel = ({ text }: { text: string }) => (
 function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
   const Icon = row.icon
   return (
-    <Link
-      href={row.href}
+    <Link href={row.href}
       className="flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity"
       style={{ borderBottom: last ? 'none' : T.divider, display: 'flex' }}>
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
@@ -60,16 +68,14 @@ function SoonRowEl({ row, last }: { row: SoonRow; last: boolean }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3.5"
       style={{ borderBottom: last ? 'none' : T.divider }}>
-      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-        style={T.iconWrap}>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={T.iconWrap}>
         <Icon size={14} style={{ color: T.dim }} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>{row.label}</p>
         <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>{row.sub}</p>
       </div>
-      <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full shrink-0"
-        style={T.soon}>
+      <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full shrink-0" style={T.soon}>
         SOON
       </span>
     </div>
@@ -78,26 +84,33 @@ function SoonRowEl({ row, last }: { row: SoonRow; last: boolean }) {
 
 /* ── Row definitions ─────────────────────────────────── */
 const ACCOUNT_ROWS: LiveRow[] = [
-  { label: 'Edit Profile',   sub: 'Name, bio, training style',  icon: User,    href: '/profile/edit' },
-  { label: 'Privacy',        sub: 'Profile visibility & data',   icon: Shield,  href: '/profile/privacy' },
-  { label: 'Notifications',  sub: 'Push and in-app alerts',      icon: Bell,    href: '/profile/notifications' },
+  { label: 'Edit Profile',  sub: 'Name, bio, training style', icon: User,   href: '/profile/edit' },
+  { label: 'Privacy',       sub: 'Profile visibility & data',  icon: Shield, href: '/profile/privacy' },
+  { label: 'Notifications', sub: 'Push and in-app alerts',     icon: Bell,   href: '/profile/notifications' },
 ]
 
 const APP_ROWS: SoonRow[] = [
-  { label: 'Units',    sub: 'kg / lb toggle coming soon',             icon: Ruler },
-  { label: 'Theme',    sub: 'Custom color themes coming soon',         icon: Palette },
-  { label: 'Language', sub: 'English / Japanese support coming soon',  icon: Globe },
+  { label: 'Units',    sub: 'kg / lb toggle coming soon',              icon: Ruler },
+  { label: 'Theme',    sub: 'Custom color themes coming soon',          icon: Palette },
+  { label: 'Language', sub: 'English / Japanese support coming soon',   icon: Globe },
 ]
 
 const SUPPORT_ROWS: LiveRow[] = [
-  { label: 'Help & Support',  sub: 'FAQ and contact',          icon: HelpCircle, href: '/profile/support' },
-  { label: 'Terms of Service', sub: 'Usage terms & conditions', icon: FileText,   href: '/profile/support' },
-  { label: 'Privacy Policy',  sub: 'How we handle your data',  icon: Shield,     href: '/profile/support' },
-  { label: 'Delete Account',  sub: 'Permanently remove account & data', icon: UserX, href: '/profile/support', danger: true },
+  { label: 'Help & Support',   sub: 'FAQ and contact',           icon: HelpCircle, href: '/profile/support' },
+  { label: 'Terms of Service', sub: 'Usage terms & conditions',  icon: FileText,   href: '/profile/support' },
+  { label: 'Privacy Policy',   sub: 'How we handle your data',   icon: Shield,     href: '/profile/support' },
+  { label: 'Delete Account',   sub: 'Permanently remove account & data', icon: UserX, href: '/profile/support', danger: true },
 ]
 
 /* ── Page ────────────────────────────────────────────── */
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('plan').eq('id', user.id).single()
+    : { data: null }
+  const isPro = profile?.plan === 'pro'
+
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
 
@@ -129,13 +142,88 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* PLAN */}
+      <div className="mx-4 mb-4">
+        <SectionLabel text="PLAN" />
+        {isPro ? (
+          <div style={T.card}>
+            {/* Pro active status */}
+            <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(255,107,0,0.10)', border: '1px solid rgba(255,107,0,0.20)' }}>
+                <Crown size={14} style={{ color: '#ff6b00' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
+                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>Your plan is active</p>
+              </div>
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(255,107,0,0.10)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.20)' }}>
+                ACTIVE
+              </span>
+            </div>
+            <SoonRowEl row={{ label: 'Manage Subscription', sub: 'Subscription management coming soon', icon: CreditCard }} last={true} />
+          </div>
+        ) : (
+          <>
+            {/* Upgrade card */}
+            <div className="rounded-2xl p-4 mb-2"
+              style={{ background: '#161616', border: '1px solid rgba(255,107,0,0.20)' }}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <p className="text-sm font-black" style={{ color: T.main }}>Upgrade to Pro</p>
+                  <p className="text-xs mt-0.5" style={{ color: T.secondary }}>
+                    No watermark · Custom themes · Detailed analytics
+                  </p>
+                </div>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5"
+                  style={{ background: 'rgba(255,107,0,0.10)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.20)' }}>
+                  PRO
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button className="flex-1 py-2.5 rounded-xl text-xs font-black"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: T.secondary, border: '1px solid rgba(255,255,255,0.09)' }}>
+                  ¥480 / mo
+                </button>
+                <button className="flex-1 py-2.5 rounded-xl text-xs font-black text-white"
+                  style={{ background: '#ff6b00' }}>
+                  ¥2,980 / yr ★
+                </button>
+              </div>
+            </div>
+            {/* Manage Subscription */}
+            <div style={T.card}>
+              <SoonRowEl row={{ label: 'Manage Subscription', sub: 'Subscription management coming soon', icon: CreditCard }} last={true} />
+            </div>
+          </>
+        )}
+      </div>
+
       {/* SUPPORT */}
-      <div className="mx-4 mb-8">
+      <div className="mx-4 mb-4">
         <SectionLabel text="SUPPORT" />
         <div style={T.card}>
           {SUPPORT_ROWS.map((row, i) => (
             <LiveRowEl key={row.label} row={row} last={i === SUPPORT_ROWS.length - 1} />
           ))}
+        </div>
+      </div>
+
+      {/* SESSION */}
+      <div className="mx-4 mb-10">
+        <SectionLabel text="SESSION" />
+        <div style={T.card}>
+          <form action={logout}>
+            <button type="submit"
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity text-left">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}>
+                <LogOut size={14} style={{ color: '#f87171' }} />
+              </div>
+              <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>Sign Out</span>
+            </button>
+          </form>
         </div>
       </div>
 
