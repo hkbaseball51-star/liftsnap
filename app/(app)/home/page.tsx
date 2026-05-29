@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Zap, Share2 } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
-import StreakCard from '@/components/home/StreakCard'
+import StreakBadge from '@/components/home/StreakBadge'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 
@@ -185,14 +185,19 @@ export default async function HomePage() {
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
           {getGreeting()}
         </p>
-        <p style={{ fontSize: 30, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-          Welcome back{displayName ? ',' : '.'}
-        </p>
-        {displayName && (
-          <p style={{ fontSize: 30, fontWeight: 600, color: '#FF6B00', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-            {displayName}.
-          </p>
-        )}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <p style={{ fontSize: 30, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              Welcome back{displayName ? ',' : '.'}
+            </p>
+            {displayName && (
+              <p style={{ fontSize: 30, fontWeight: 600, color: '#FF6B00', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+                {displayName}.
+              </p>
+            )}
+          </div>
+          <StreakBadge streak={weekStreak} thisWeekDone={thisWeekDone} />
+        </div>
         {todayWorked ? (
           <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
             Great work today.
@@ -202,11 +207,6 @@ export default async function HomePage() {
             No session today — let&apos;s change that.
           </p>
         )}
-      </div>
-
-      {/* ── WEEKLY STREAK ── */}
-      <div className="px-4 mb-4">
-        <StreakCard streak={weekStreak} thisWeekDone={thisWeekDone} />
       </div>
 
       {/* ── SHARE TODAY'S WORKOUT CTA ── */}
