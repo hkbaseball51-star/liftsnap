@@ -558,14 +558,13 @@ export default function WorkoutRecorder({
             <Plus size={15} strokeWidth={2.5} />
             Exercise
           </button>
-          {displaySetsCount > 0 && (
+          {isDirty && displaySetsCount > 0 && (
             <button
               className="flex-1 py-3.5 rounded-2xl text-sm font-black"
               style={{
-                background: saving ? '#222' : isDirty ? '#ff6b00' : '#1e1e1e',
-                color: saving ? '#666' : isDirty ? '#fff' : '#888',
-                boxShadow: isDirty && !saving ? '0 4px 20px rgba(255,107,0,0.3)' : 'none',
-                border: isDirty ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                background: saving ? '#222' : '#ff6b00',
+                color: saving ? '#666' : '#fff',
+                boxShadow: saving ? 'none' : '0 4px 20px rgba(255,107,0,0.3)',
               }}
               disabled={saving}
               onClick={handleFinish}>
