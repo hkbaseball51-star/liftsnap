@@ -501,18 +501,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const chartBarH = n <= 4 ? 30 : n <= 10 ? 24 : n <= 20 ? 18 : n <= 35 ? 12 : 7
   const chartLatH = Math.round(chartBarH * 1.2)
 
-  // Graduated opacity: latest = full, first = slightly elevated, middle = faded
+  // Bar opacity: latest=1.0, recent=0.92→oldest=0.65 — all clearly visible on photo backgrounds
   const getBarBg = (idx: number): string => {
     if (idx === 0) return acHex
-    if (idx === n - 1) {
-      const op = 0.42
-      if (accent === 'orange') return `rgba(255,107,0,${op})`
-      if (accent === 'purple') return `rgba(168,85,247,${op})`
-      return `rgba(255,255,255,${op})`
-    }
     const t  = idx / Math.max(n - 1, 1)
-    const op = Math.max(0.20, 0.48 - t * 0.25)
-    if (accent === 'orange') return `rgba(255,107,0,${op.toFixed(2)})`
+    const op = Math.max(0.65, 0.92 - t * 0.27)
+    if (accent === 'orange') return `rgba(255,106,0,${op.toFixed(2)})`
     if (accent === 'purple') return `rgba(168,85,247,${op.toFixed(2)})`
     return `rgba(255,255,255,${op.toFixed(2)})`
   }
@@ -697,7 +691,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                             width: `${pct}%`, height: '100%',
                             background: getBarBg(i),
                             borderRadius: 0,
-                            boxShadow: isLatest ? `0 2px 8px rgba(255,106,0,0.35)` : 'none',
+                            boxShadow: isLatest ? `0 3px 12px rgba(255,106,0,0.45)` : `0 1px 6px rgba(255,106,0,0.20)`,
                             minWidth: 2,
                           }} />
                         </div>
