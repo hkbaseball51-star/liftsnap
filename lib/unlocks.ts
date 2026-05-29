@@ -82,6 +82,41 @@ export function getShareThemeUnlocks(shareCount: number) {
   }))
 }
 
+// ─── Next Reward ─────────────────────────────────────────────
+export type NextRewardResult =
+  | { type: 'complete' }
+  | { type: 'training';       milestone: TrainingMilestone; current: number }
+  | { type: 'exercise_graph'; exerciseName: string;         current: number }
+  | { type: 'share_theme';    theme: ShareTheme;            current: number }
+
+export function getNextReward(
+  totalSessions: number,
+  exerciseLogCounts: { name: string; logCount: number }[],
+  shareCount: number,
+): NextRewardResult {
+  // 1. Training Milestone — highest priority
+  const nextMilestone = TRAINING_MILESTONES.find(m => totalSessions < m.requiredSessions)
+  if (nextMilestone) {
+    return { type: 'training', milestone: nextMilestone, current: totalSessions }
+  }
+
+  // 2. Exercise Graph — closest to unlock (highest logCount below required)
+  const closest = [...exerciseLogCounts]
+    .filter(e => e.logCount < EXERCISE_GRAPH_REQUIRED)
+    .sort((a, b) => b.logCount - a.logCount)[0]
+  if (closest) {
+    return { type: 'exercise_graph', exerciseName: closest.name, current: closest.logCount }
+  }
+
+  // 3. Share Theme
+  const nextTheme = SHARE_THEMES.find(t => t.requiredShares > 0 && shareCount < t.requiredShares)
+  if (nextTheme) {
+    return { type: 'share_theme', theme: nextTheme, current: shareCount }
+  }
+
+  return { type: 'complete' }
+}
+
 // ─── Share count — localStorage (client-only) ─────────────────
 const SHARE_COUNT_KEY = 'liftsnap_share_count'
 

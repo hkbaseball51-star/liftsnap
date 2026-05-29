@@ -1,18 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { Trophy, Check } from 'lucide-react'
 import {
   getTrainingUnlocks,
   getShareThemeUnlocks,
+  getNextReward,
   EXERCISE_GRAPH_REQUIRED,
   getShareCount,
+  type NextRewardResult,
 } from '@/lib/unlocks'
 
 type Exercise = { name: string; logCount: number }
 type Props    = { totalSessions: number; exercises: Exercise[] }
 
-// Always show these exercises even if the user hasn't logged them
 const ALWAYS_SHOW = ['ベンチプレス', 'スクワット', 'デッドリフト']
 
 const JA_EN: Record<string, string> = {
@@ -61,41 +63,44 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
       })
   }, [exercises])
 
+  const nextReward        = useMemo(() => getNextReward(totalSessions, allExercises, shareCount), [totalSessions, allExercises, shareCount])
   const unlockedExercises = allExercises.filter(e => e.logCount >= EXERCISE_GRAPH_REQUIRED)
   const unlockedThemes    = shareThemes.filter(t => t.unlocked)
   const nextMilestone     = trainingUnlocks.find(m => !m.unlocked)
-  const nextTheme         = shareThemes.find(t => !t.unlocked)
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
 
       {/* ── Header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-14 pb-5">
+      <div className="px-4 pt-14 pb-4">
         <div className="flex items-center gap-2.5 mb-1">
           <Trophy size={16} strokeWidth={2} style={{ color: '#ff6b00' }} />
           <h1 className="text-xl font-black tracking-widest text-white">REWARDS</h1>
         </div>
         <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
-          Unlock analytics and themes as you train
+          Train more. Unlock more.
         </p>
       </div>
 
-      {/* ── Summary Cards ───────────────────────────────────── */}
+      {/* ── Next Reward Card ────────────────────────────────── */}
+      <NextRewardCard result={nextReward} />
+
+      {/* ── Summary row ─────────────────────────────────────── */}
       <div className="px-4 mb-6 grid grid-cols-3 gap-2">
         <SummaryCard
-          label="SESSIONS"
+          label="ANALYTICS"
           value={nextMilestone ? `${totalSessions}/${nextMilestone.requiredSessions}` : String(totalSessions)}
           sub={nextMilestone ? `Next: ${nextMilestone.label}` : 'All unlocked'}
         />
         <SummaryCard
-          label="GRAPHS"
+          label="GRAPH SHARE"
           value={String(unlockedExercises.length)}
           sub={unlockedExercises.length > 0 ? toEn(unlockedExercises[0].name) : '10 logs each'}
         />
         <SummaryCard
           label="THEMES"
           value={`${unlockedThemes.length}/4`}
-          sub={nextTheme ? `Next: ${nextTheme.label}` : 'All unlocked'}
+          sub={`${4 - unlockedThemes.length} locked`}
         />
       </div>
 
@@ -150,18 +155,173 @@ export default function RewardsView({ totalSessions, exercises }: Props) {
   )
 }
 
+/* ── Next Reward Card ───────────────────────────────────────── */
+
+function NextRewardCard({ result }: { result: NextRewardResult }) {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const animStyle: React.CSSProperties = {
+    opacity:    visible ? 1 : 0,
+    transform:  visible ? 'translateY(0px)' : 'translateY(6px)',
+    transition: 'opacity 210ms ease, transform 210ms ease',
+  }
+
+  if (result.type === 'complete') {
+    return (
+      <div className="px-4 mb-4" style={animStyle}>
+        <div style={{
+          background: '#151515', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 24, padding: '20px',
+        }}>
+          <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.13em', color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
+            NEXT REWARD
+          </p>
+          <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
+            All rewards unlocked
+          </p>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', lineHeight: 1.55 }}>
+            You&apos;ve unlocked everything available. More rewards coming soon.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Compute display values per type ─────────────────────────
+  let title: string
+  let current: number
+  let required: number
+  let progressUnit: string
+  let description: string
+  let ctaLabel: string
+  let ctaHref: string
+
+  if (result.type === 'training') {
+    const m   = result.milestone
+    const rem = m.requiredSessions - result.current
+    title        = m.label
+    current      = result.current
+    required     = m.requiredSessions
+    progressUnit = required === 1 ? 'session' : 'sessions'
+    description  = rem === 1
+      ? `1 more session to unlock ${m.description.toLowerCase()}.`
+      : `${rem} more sessions to unlock ${m.description.toLowerCase()}.`
+    ctaLabel = 'Log Workout'
+    ctaHref  = '/record'
+  } else if (result.type === 'exercise_graph') {
+    const name = toEn(result.exerciseName)
+    const rem  = EXERCISE_GRAPH_REQUIRED - result.current
+    title        = `${name} Graph Share`
+    current      = result.current
+    required     = EXERCISE_GRAPH_REQUIRED
+    progressUnit = 'logs'
+    description  = rem === 1
+      ? `1 more ${name} log to unlock graph sharing.`
+      : `${rem} more ${name} logs to unlock graph sharing.`
+    ctaLabel = `Log ${name}`
+    ctaHref  = '/record'
+  } else {
+    // share_theme
+    const t   = result.theme
+    const rem = t.requiredShares - result.current
+    title        = `${t.label} Theme`
+    current      = result.current
+    required     = t.requiredShares
+    progressUnit = 'exports'
+    description  = rem === 1
+      ? `1 more story export to unlock this theme.`
+      : `${rem} more story exports to unlock this theme.`
+    ctaLabel = 'Create Story'
+    ctaHref  = '/home'
+  }
+
+  const pct = required > 0 ? Math.min((current / required) * 100, 100) : 0
+
+  return (
+    <div className="px-4 mb-4" style={animStyle}>
+      <div style={{
+        background: '#161616',
+        border: '1px solid rgba(255,106,0,0.28)',
+        borderRadius: 24,
+        padding: '20px',
+        boxShadow: '0 0 28px rgba(255,106,0,0.06)',
+      }}>
+
+        {/* Label */}
+        <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.13em', color: '#ff6b00', marginBottom: 14 }}>
+          NEXT REWARD
+        </p>
+
+        {/* Title */}
+        <p style={{ fontSize: 22, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, marginBottom: 6 }}>
+          {title}
+        </p>
+
+        {/* Progress count */}
+        <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
+          {current} / {required} {progressUnit}
+        </p>
+
+        {/* Description */}
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 16 }}>
+          {description}
+        </p>
+
+        {/* Progress bar */}
+        <div style={{
+          height: 6, borderRadius: 999,
+          background: 'rgba(255,255,255,0.08)',
+          marginBottom: 18,
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${Math.max(pct, pct > 0 ? 2 : 0)}%`,
+            height: '100%',
+            borderRadius: 999,
+            background: '#ff6b00',
+            transition: 'width 0.45s ease',
+          }} />
+        </div>
+
+        {/* CTA */}
+        <Link
+          href={ctaHref}
+          className="inline-flex items-center active:opacity-60 transition-opacity"
+          style={{
+            padding: '9px 22px',
+            borderRadius: 999,
+            background: '#ff6b00',
+            color: '#ffffff',
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: '0.02em',
+            textDecoration: 'none',
+          }}
+        >
+          {ctaLabel}
+        </Link>
+
+      </div>
+    </div>
+  )
+}
+
 /* ── Sub-components ─────────────────────────────────────────── */
 
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-2xl p-3" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <p className="text-[8px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+    <div className="rounded-2xl p-3" style={{ background: '#111', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <p className="text-[8px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.28)' }}>
         {label}
       </p>
-      <p className="text-xl font-black text-white leading-none mb-1.5">
+      <p className="text-lg font-black text-white leading-none mb-1.5">
         {value}
       </p>
-      <p className="text-[9px] leading-snug" style={{ color: 'rgba(255,255,255,0.32)' }}>
+      <p className="text-[9px] leading-snug" style={{ color: 'rgba(255,255,255,0.28)' }}>
         {sub}
       </p>
     </div>
