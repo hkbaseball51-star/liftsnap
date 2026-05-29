@@ -57,6 +57,28 @@ function usernameHandle(email: string): string {
   return '@' + email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()
 }
 
+function getMondayOfWeek(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function calcBestWeekStreak(dates: string[]): number {
+  if (dates.length === 0) return 0
+  const weeks = [...new Set(dates.map(getMondayOfWeek))].sort()
+  let best = 1, cur = 1
+  for (let i = 1; i < weeks.length; i++) {
+    const diffDays = Math.round(
+      (new Date(weeks[i] + 'T00:00:00').getTime() - new Date(weeks[i - 1] + 'T00:00:00').getTime())
+      / 86_400_000
+    )
+    if (diffDays === 7) { cur++; if (cur > best) best = cur }
+    else cur = 1
+  }
+  return best
+}
+
 type RecentSession = {
   id: string
   trained_at: string
@@ -111,7 +133,7 @@ export default async function ProfilePage() {
   ] = await Promise.all([
     supabase.from('profiles').select('display_name, plan').eq('id', user.id).single(),
     supabase.from('workout_sessions')
-      .select('total_volume_kg')
+      .select('total_volume_kg, trained_at')
       .eq('user_id', user.id)
       .not('completed_at', 'is', null),
     supabase.from('workout_sessions')
@@ -155,6 +177,7 @@ export default async function ProfilePage() {
 
   const bestLift   = bestLiftRes.data as { exercise_name: string; weight_kg: number } | null
   const mainMuscle = topMuscle((muscleGroupsRes.data ?? []) as { muscle_group: string | null }[])
+  const bestStreak = calcBestWeekStreak(allSessions.map(s => (s as { trained_at: string }).trained_at))
 
   const sec = (text: string) => (
     <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: T.label }}>{text}</p>
@@ -316,6 +339,18 @@ export default async function ProfilePage() {
               <p className="text-sm font-black capitalize" style={{ color: T.secondary }}>{mainMuscle}</p>
             ) : (
               <p className="text-sm font-bold" style={{ color: T.empty }}>Not set</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5"
+            style={{ borderBottom: `1px solid ${T.divider}` }}>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>BEST STREAK</p>
+            {bestStreak > 0 ? (
+              <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                🔥 {bestStreak} {bestStreak === 1 ? 'week' : 'weeks'}
+              </p>
+            ) : (
+              <p className="text-sm font-bold" style={{ color: T.empty }}>Not started</p>
             )}
           </div>
 
