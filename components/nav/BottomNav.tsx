@@ -2,21 +2,21 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useTransition } from 'react'
-import { Home, BarChart2, Plus, ShoppingBag, User } from 'lucide-react'
+import { Home, BarChart2, Plus, Trophy, User } from 'lucide-react'
 
 function getTodayJST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
 }
 
 const tabs = [
-  { href: '/home',      icon: Home,        label: 'HOME'    },
-  { href: '/analytics', icon: BarChart2,   label: 'STATS'   },
-  { href: '/record',    icon: Plus,        label: '',        primary: true },
-  { href: '/shop',      icon: ShoppingBag, label: 'SHOP'    },
-  { href: '/profile',   icon: User,        label: 'ME'      },
+  { href: '/home',      icon: Home,     label: 'HOME'    },
+  { href: '/analytics', icon: BarChart2, label: 'STATS'  },
+  { href: '/record',    icon: Plus,     label: '',        primary: true },
+  { href: '/rewards',   icon: Trophy,   label: 'REWARDS' },
+  { href: '/profile',   icon: User,     label: 'ME'      },
 ]
 
-const PREFETCH_ROUTES = ['/home', '/analytics', '/record', '/shop', '/profile']
+const PREFETCH_ROUTES = ['/home', '/analytics', '/record', '/rewards', '/profile']
 
 export default function BottomNav() {
   const pathname = usePathname()
