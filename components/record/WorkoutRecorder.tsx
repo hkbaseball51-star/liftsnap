@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, X, Pencil, Minus } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
@@ -110,6 +110,187 @@ async function ensureAuth() {
   }
 }
 
+/* ─── ExerciseCard (memoized) ─────────────────────────── */
+
+type ExerciseCardProps = {
+  ex: ExerciseEntry
+  onAddSet: (exerciseId: string) => void
+  onRemoveExercise: (exerciseId: string) => void
+  onRemoveSet: (exerciseId: string, setId: string) => void
+  onSetTarget: (target: NumberTarget) => void
+}
+
+const ExerciseCard = memo(function ExerciseCard({
+  ex, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget,
+}: ExerciseCardProps) {
+  const stats = useMemo(() => calcExerciseStats(ex), [ex])
+  const prStatus = useMemo(
+    () => stats ? calcPRStatus(stats.maxWeightToday, ex.allTimePR) : null,
+    [stats, ex.allTimePR]
+  )
+  const isNewPR = prStatus?.type === 'new_pr'
+
+  return (
+    <div className="rounded-2xl overflow-hidden"
+      style={{
+        background: '#131313',
+        border: isNewPR ? '1px solid rgba(255,107,0,0.40)' : '1px solid rgba(255,255,255,0.13)',
+        boxShadow: isNewPR ? '0 0 18px rgba(255,107,0,0.10)' : 'none',
+      }}>
+
+      {/* Exercise header */}
+      <div className="flex items-center gap-2.5 px-3 py-2">
+        <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
+          style={{ background: isNewPR ? '#ff6b00' : '#3a3a3a' }} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-black text-white leading-tight truncate">{ex.name}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[10px] font-black tracking-wider" style={{ color: '#ff6b00' }}>
+              {ex.muscle_group}
+            </span>
+            {ex.allTimePR !== null ? (
+              <span className="text-[10px] font-bold" style={{ color: '#888' }}>
+                · PR {ex.allTimePR}kg
+              </span>
+            ) : (
+              <span className="px-1.5 py-px rounded-full text-[8px] font-black tracking-widest"
+                style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
+                FIRST LOG
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={() => onRemoveExercise(ex.id)} className="p-1 flex-shrink-0">
+          <X size={14} style={{ color: '#555' }} />
+        </button>
+      </div>
+
+      {/* Column labels */}
+      <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.09)' }}>
+        <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>#</span>
+        <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>KG</span>
+        <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>REPS</span>
+        <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>1RM</span>
+      </div>
+
+      {/* Set rows */}
+      {ex.sets.map(set => {
+        const setEst1rm = set.weight_kg !== null && set.reps !== null
+          ? est1rmOf(set.weight_kg, set.reps) : null
+        const isBestSet = stats !== null && setEst1rm !== null && setEst1rm === stats.est1rm
+        const canDelete = ex.sets.length > 1
+
+        return (
+          <div key={set.id} className="grid grid-cols-12 items-center px-3"
+            style={{ gap: 6, paddingTop: 5, paddingBottom: 5 }}>
+            {/* Set number + delete */}
+            <div className="col-span-2 flex items-center justify-center gap-1">
+              {canDelete ? (
+                <button
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,80,80,0.28)' }}
+                  onClick={() => onRemoveSet(ex.id, set.id)}>
+                  <Minus size={8} style={{ color: 'rgba(255,100,100,0.9)' }} />
+                </button>
+              ) : (
+                <div className="w-5 h-5 flex-shrink-0" />
+              )}
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
+                style={{
+                  background: isBestSet ? 'rgba(255,107,0,0.15)' : '#222',
+                  color: isBestSet ? '#ff7a1a' : '#888',
+                  fontFamily: 'var(--font-mono)',
+                  border: isBestSet ? '1px solid rgba(255,106,0,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                  flexShrink: 0,
+                }}>
+                {set.set_number}
+              </span>
+            </div>
+
+            {/* KG input */}
+            <button
+              className="col-span-4 active:scale-95 transition-transform"
+              style={{
+                height: 44, borderRadius: 10,
+                background: '#1e1e1e',
+                border: '1px solid rgba(255,255,255,0.11)',
+                color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
+                fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-mono)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
+              {set.weight_kg ?? '—'}
+            </button>
+
+            {/* REPS input */}
+            <button
+              className="col-span-3 active:scale-95 transition-transform"
+              style={{
+                height: 44, borderRadius: 10,
+                background: '#1e1e1e',
+                border: '1px solid rgba(255,255,255,0.11)',
+                color: set.reps !== null ? '#fff' : '#6a6a6a',
+                fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-mono)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
+              {set.reps ?? '—'}
+            </button>
+
+            {/* Set 1RM */}
+            <div className="col-span-3 flex items-center justify-center">
+              {setEst1rm !== null ? (
+                <span style={{ color: isBestSet ? '#c09bff' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                  {setEst1rm}kg
+                </span>
+              ) : (
+                <span style={{ color: '#666', fontSize: 14, fontWeight: 900 }}>—</span>
+              )}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Stats summary */}
+      {stats && (
+        <div style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 4 }}>
+            <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>VOL</span>
+            <span style={{ color: '#ff6b00', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+              {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
+            </span>
+            <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>
+              {stats.volume >= 1000 ? 't' : 'kg'}
+            </span>
+            <span style={{ color: '#3a3a3a', fontSize: 11, fontWeight: 700, marginLeft: 3, marginRight: 3 }}>·</span>
+            <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>1RM</span>
+            <span style={{ color: '#c09bff', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+              {stats.est1rm}
+            </span>
+            <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>kg</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>BEST SET</span>
+            <span style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+              {stats.bestWeight} × {stats.bestReps}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* + SET */}
+      <button
+        className="w-full py-1.5 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
+        style={{ color: '#ff6b00', borderTop: '1px solid rgba(255,255,255,0.09)' }}
+        onClick={() => onAddSet(ex.id)}>
+        <Plus size={10} strokeWidth={3} />
+        SET
+      </button>
+    </div>
+  )
+})
+
 /* ─── Main component ──────────────────────────────────── */
 
 export default function WorkoutRecorder({
@@ -160,41 +341,36 @@ export default function WorkoutRecorder({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const displayVolume = Math.round(exerciseList.reduce((sum, ex) =>
-    sum + ex.sets.reduce((s, set) =>
-      s + (set.weight_kg !== null && set.reps !== null ? set.weight_kg * set.reps : 0), 0), 0))
-  const displaySetsCount = exerciseList.reduce((sum, ex) =>
-    sum + ex.sets.filter(s => s.weight_kg !== null && s.reps !== null).length, 0)
-  const bestSessionEst1rm = exerciseList.reduce((best, ex) => {
-    const s = calcExerciseStats(ex)
-    return (s?.est1rm ?? 0) > best ? s!.est1rm : best
-  }, 0)
+  /* ── Memoized derived values ── */
 
-  const addExercise = async (exercise: Exercise) => {
-    if (!sessionId) {
-      await ensureAuth()
-      const id = await createSessionForDate(date, title)
-      setSessionId(id)
-    }
-    setExerciseList(prev => [...prev, {
-      id: uid(),
-      name: exercise.name,
-      muscle_group: exercise.muscle_group,
-      allTimePR: null,
-      sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null }],
-    }])
-    setShowPicker(false)
-    getExercisePR(exercise.name).then(pr => {
-      if (pr !== null) {
-        setExerciseList(prev => prev.map(ex =>
-          ex.name === exercise.name && ex.allTimePR === null ? { ...ex, allTimePR: pr } : ex
-        ))
-      }
-    })
-    setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
-  }
+  const displayVolume = useMemo(() =>
+    Math.round(exerciseList.reduce((sum, ex) =>
+      sum + ex.sets.reduce((s, set) =>
+        s + (set.weight_kg !== null && set.reps !== null ? set.weight_kg * set.reps : 0), 0), 0)),
+    [exerciseList])
 
-  const addSet = (exerciseId: string) => {
+  const displaySetsCount = useMemo(() =>
+    exerciseList.reduce((sum, ex) =>
+      sum + ex.sets.filter(s => s.weight_kg !== null && s.reps !== null).length, 0),
+    [exerciseList])
+
+  const bestSessionEst1rm = useMemo(() =>
+    exerciseList.reduce((best, ex) => {
+      const s = calcExerciseStats(ex)
+      return (s?.est1rm ?? 0) > best ? s!.est1rm : best
+    }, 0),
+    [exerciseList])
+
+  const currentTarget = useMemo(() => {
+    if (!numberTarget) return null
+    const ex = exerciseList.find(e => e.id === numberTarget.exerciseId)
+    const s = ex?.sets.find(s => s.id === numberTarget.setId)
+    return s?.[numberTarget.field] ?? null
+  }, [numberTarget, exerciseList])
+
+  /* ── Stable callbacks (useCallback so React.memo on ExerciseCard works) ── */
+
+  const addSet = useCallback((exerciseId: string) => {
     setExerciseList(prev => prev.map(ex => {
       if (ex.id !== exerciseId) return ex
       const last = [...ex.sets].reverse().find(s => s.weight_kg !== null && s.reps !== null)
@@ -208,26 +384,54 @@ export default function WorkoutRecorder({
         }],
       }
     }))
-  }
+  }, [])
 
-  const removeSet = (exerciseId: string, setId: string) => {
+  const removeSet = useCallback((exerciseId: string, setId: string) => {
     setExerciseList(prev => prev.flatMap(ex => {
       if (ex.id !== exerciseId) return [ex]
       const newSets = ex.sets.filter(s => s.id !== setId)
         .map((s, i) => ({ ...s, set_number: i + 1 }))
-      if (newSets.length === 0) return []     // remove exercise if no sets left
+      if (newSets.length === 0) return []
       return [{ ...ex, sets: newSets }]
     }))
-  }
+  }, [])
 
-  const removeExercise = (id: string) =>
-    setExerciseList(prev => prev.filter(ex => ex.id !== id))
+  const removeExercise = useCallback((id: string) =>
+    setExerciseList(prev => prev.filter(ex => ex.id !== id)), [])
 
-  const updateSet = (exerciseId: string, setId: string, field: 'weight_kg' | 'reps', value: number) =>
+  const updateSet = useCallback((exerciseId: string, setId: string, field: 'weight_kg' | 'reps', value: number) =>
     setExerciseList(prev => prev.map(ex =>
       ex.id !== exerciseId ? ex :
       { ...ex, sets: ex.sets.map(s => s.id === setId ? { ...s, [field]: value } : s) }
-    ))
+    )), [])
+
+  const handleSetTarget = useCallback((target: NumberTarget) => setNumberTarget(target), [])
+
+  /* ── Exercise addition: optimistic (instant UI, session creation in background) ── */
+
+  const addExercise = (exercise: Exercise) => {
+    // Update UI immediately — no await
+    setExerciseList(prev => [...prev, {
+      id: uid(),
+      name: exercise.name,
+      muscle_group: exercise.muscle_group,
+      allTimePR: null,
+      sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null }],
+    }])
+    setShowPicker(false)
+    setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+
+    // Fetch PR in background — does not block UI
+    getExercisePR(exercise.name).then(pr => {
+      if (pr !== null) {
+        setExerciseList(prev => prev.map(ex =>
+          ex.name === exercise.name && ex.allTimePR === null ? { ...ex, allTimePR: pr } : ex
+        ))
+      }
+    })
+  }
+
+  /* ── Finish / save ── */
 
   const handleFinish = async () => {
     setSaving(true)
@@ -255,13 +459,6 @@ export default function WorkoutRecorder({
       setSaving(false)
     }
   }
-
-  const currentTarget = (() => {
-    if (!numberTarget) return null
-    const ex = exerciseList.find(e => e.id === numberTarget.exerciseId)
-    const s = ex?.sets.find(s => s.id === numberTarget.setId)
-    return s?.[numberTarget.field] ?? null
-  })()
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
@@ -329,184 +526,16 @@ export default function WorkoutRecorder({
           </div>
         )}
 
-        {exerciseList.map(ex => {
-          const stats = calcExerciseStats(ex)
-          const prStatus = stats ? calcPRStatus(stats.maxWeightToday, ex.allTimePR) : null
-          const isNewPR = prStatus?.type === 'new_pr'
-          const isCompact = ex.sets.length >= 5
-
-          return (
-            <div key={ex.id} className="rounded-2xl overflow-hidden"
-              style={{
-                background: '#131313',
-                border: isNewPR ? '1px solid rgba(255,107,0,0.40)' : '1px solid rgba(255,255,255,0.13)',
-                boxShadow: isNewPR ? '0 0 18px rgba(255,107,0,0.10)' : 'none',
-              }}>
-
-              {/* Exercise header */}
-              <div className="flex items-center gap-2.5 px-3 py-2">
-                <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
-                  style={{ background: isNewPR ? '#ff6b00' : '#3a3a3a' }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-white leading-tight truncate">{ex.name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] font-black tracking-wider" style={{ color: '#ff6b00' }}>
-                      {ex.muscle_group}
-                    </span>
-                    {ex.allTimePR !== null ? (
-                      <span className="text-[10px] font-bold" style={{ color: '#888' }}>
-                        · PR {ex.allTimePR}kg
-                      </span>
-                    ) : (
-                      <span className="px-1.5 py-px rounded-full text-[8px] font-black tracking-widest"
-                        style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
-                        FIRST LOG
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button onClick={() => removeExercise(ex.id)} className="p-1 flex-shrink-0">
-                  <X size={14} style={{ color: '#555' }} />
-                </button>
-              </div>
-
-              {/* Column labels: # | KG | REPS | 1RM */}
-              <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
-                style={{ borderTop: '1px solid rgba(255,255,255,0.09)' }}>
-                <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>#</span>
-                <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>KG</span>
-                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>REPS</span>
-                <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>1RM</span>
-              </div>
-
-              {/* Set rows */}
-              {ex.sets.map(set => {
-                const setEst1rm = set.weight_kg !== null && set.reps !== null
-                  ? est1rmOf(set.weight_kg, set.reps) : null
-                const isBestSet = stats !== null && setEst1rm !== null && setEst1rm === stats.est1rm
-                const canDelete = ex.sets.length > 1
-
-                return (
-                  <div key={set.id} className="grid grid-cols-12 items-center px-3"
-                    style={{ gap: 6, paddingTop: 5, paddingBottom: 5 }}>
-                    {/* Set number + delete */}
-                    <div className="col-span-2 flex items-center justify-center gap-1">
-                      {canDelete ? (
-                        <button
-                          className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,80,80,0.28)' }}
-                          onClick={() => removeSet(ex.id, set.id)}>
-                          <Minus size={8} style={{ color: 'rgba(255,100,100,0.9)' }} />
-                        </button>
-                      ) : (
-                        <div className="w-5 h-5 flex-shrink-0" />
-                      )}
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
-                        style={{
-                          background: isBestSet ? 'rgba(255,107,0,0.15)' : '#222',
-                          color: isBestSet ? '#ff7a1a' : '#888',
-                          fontFamily: 'var(--font-mono)',
-                          border: isBestSet ? '1px solid rgba(255,106,0,0.55)' : '1px solid rgba(255,255,255,0.08)',
-                          flexShrink: 0,
-                        }}>
-                        {set.set_number}
-                      </span>
-                    </div>
-
-                    {/* KG input */}
-                    <button
-                      className="col-span-4 active:scale-95 transition-transform"
-                      style={{
-                        height: 44,
-                        borderRadius: 10,
-                        background: '#1e1e1e',
-                        border: '1px solid rgba(255,255,255,0.11)',
-                        color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
-                        fontSize: 20,
-                        fontWeight: 900,
-                        fontFamily: 'var(--font-mono)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
-                      {set.weight_kg ?? '—'}
-                    </button>
-
-                    {/* REPS input */}
-                    <button
-                      className="col-span-3 active:scale-95 transition-transform"
-                      style={{
-                        height: 44,
-                        borderRadius: 10,
-                        background: '#1e1e1e',
-                        border: '1px solid rgba(255,255,255,0.11)',
-                        color: set.reps !== null ? '#fff' : '#6a6a6a',
-                        fontSize: 20,
-                        fontWeight: 900,
-                        fontFamily: 'var(--font-mono)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
-                      {set.reps ?? '—'}
-                    </button>
-
-                    {/* SET 1RM */}
-                    <div className="col-span-3 flex items-center justify-center">
-                      {setEst1rm !== null ? (
-                        <span style={{ color: isBestSet ? '#c09bff' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
-                          {setEst1rm}kg
-                        </span>
-                      ) : (
-                        <span style={{ color: '#666', fontSize: 14, fontWeight: 900 }}>—</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* Stats summary — flat 2-line, no card */}
-              {stats && (
-                <div style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 10 }}>
-                  {/* Line 1: VOL · 1RM */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 4 }}>
-                    <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>VOL</span>
-                    <span style={{ color: '#ff6b00', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                      {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
-                    </span>
-                    <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>
-                      {stats.volume >= 1000 ? 't' : 'kg'}
-                    </span>
-                    <span style={{ color: '#3a3a3a', fontSize: 11, fontWeight: 700, marginLeft: 3, marginRight: 3 }}>·</span>
-                    <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>1RM</span>
-                    <span style={{ color: '#c09bff', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                      {stats.est1rm}
-                    </span>
-                    <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>kg</span>
-                  </div>
-                  {/* Line 2: BEST SET */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                    <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>BEST SET</span>
-                    <span style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
-                      {stats.bestWeight} × {stats.bestReps}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* + SET */}
-              <button
-                className="w-full py-1.5 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
-                style={{ color: '#ff6b00', borderTop: '1px solid rgba(255,255,255,0.09)' }}
-                onClick={() => addSet(ex.id)}>
-                <Plus size={10} strokeWidth={3} />
-                SET
-              </button>
-            </div>
-          )
-        })}
+        {exerciseList.map(ex => (
+          <ExerciseCard
+            key={ex.id}
+            ex={ex}
+            onAddSet={addSet}
+            onRemoveExercise={removeExercise}
+            onRemoveSet={removeSet}
+            onSetTarget={handleSetTarget}
+          />
+        ))}
 
         <div ref={listEndRef} />
       </div>
@@ -588,30 +617,5 @@ function HeaderStat({ label, value, active, accent, purple }: {
       <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: '#aaa' }}>{label}</p>
       <p className="text-2xl font-black" style={{ color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{value}</p>
     </div>
-  )
-}
-
-function PRPill({ status }: { status: PRStatus }) {
-  if (status.type === 'first') {
-    return (
-      <span className="px-2 py-1 rounded-full text-[9px] font-black tracking-widest"
-        style={{ background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.25)' }}>
-        FIRST LOG
-      </span>
-    )
-  }
-  if (status.type === 'new_pr') {
-    return (
-      <span className="px-2.5 py-1 rounded-full text-[10px] font-black"
-        style={{ background: 'rgba(255,107,0,0.15)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.4)', boxShadow: '0 0 10px rgba(255,107,0,0.18)' }}>
-        🔥 NEW PR +{status.gap}kg
-      </span>
-    )
-  }
-  return (
-    <span className="px-2 py-1 rounded-full text-[9px] font-black tracking-widest"
-      style={{ background: '#161616', color: '#444', border: '1px solid #222' }}>
-      -{status.gap}kg
-    </span>
   )
 }
