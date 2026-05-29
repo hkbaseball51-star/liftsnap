@@ -271,13 +271,13 @@ export default async function ProfilePage() {
 
           <div className="w-px my-4" style={{ background: T.divider }} />
 
-          {/* Rank */}
-          <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
-            <p className="text-xl leading-none">{rankInfo.current.emoji}</p>
-            <p className="text-[10px] font-black tracking-wide leading-none" style={{ color: rankInfo.current.color }}>
-              {rankInfo.current.name}
+          {/* Best Streak */}
+          <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1.5">
+            <p className="text-2xl font-black leading-none"
+              style={{ color: bestStreak > 0 ? T.main : T.empty, fontFamily: 'var(--font-mono)' }}>
+              {bestStreak > 0 ? `${bestStreak}W` : '—'}
             </p>
-            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>RANK</p>
+            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>BEST STREAK</p>
           </div>
 
         </div>
@@ -342,18 +342,6 @@ export default async function ProfilePage() {
             )}
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3.5"
-            style={{ borderBottom: `1px solid ${T.divider}` }}>
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>BEST STREAK</p>
-            {bestStreak > 0 ? (
-              <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.72)' }}>
-                🔥 {bestStreak} {bestStreak === 1 ? 'week' : 'weeks'}
-              </p>
-            ) : (
-              <p className="text-sm font-bold" style={{ color: T.empty }}>Not started</p>
-            )}
-          </div>
-
           <div className="flex items-center justify-between px-4 py-3.5">
             <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>SPLIT</p>
             <p className="text-sm font-bold" style={{ color: T.empty }}>—</p>
@@ -369,28 +357,27 @@ export default async function ProfilePage() {
           <div className="absolute top-0 inset-x-0 h-px"
             style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}55, transparent 65%)` }} />
 
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-2xl font-black" style={{ color: rankInfo.current.color }}>
-                {rankInfo.current.emoji} {rankInfo.current.name}
-              </p>
-              <p className="text-xs mt-0.5 font-bold" style={{ color: T.muted }}>
-                {totalVolume > 0 ? `${fmtLargeVolume(totalVolume)}kg total volume` : 'Start logging to rank up'}
-              </p>
-            </div>
-            {rankInfo.next && (
-              <div className="text-right">
-                <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: T.label }}>NEXT RANK</p>
-                <p className="text-sm font-black" style={{ color: rankInfo.next.color }}>
-                  {rankInfo.next.emoji} {rankInfo.next.name}
-                </p>
-              </div>
-            )}
-          </div>
-
           {rankInfo.next ? (
             <>
-              <div className="h-1.5 rounded-full mb-2.5" style={{ background: 'rgba(255,255,255,0.10)' }}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: T.label }}>NEXT RANK</p>
+                  <p className="text-xl font-black" style={{ color: rankInfo.next.color }}>
+                    {rankInfo.next.emoji} {rankInfo.next.name}
+                  </p>
+                  <p className="text-xs font-bold mt-1" style={{ color: T.muted }}>
+                    {fmtLargeVolume(rankInfo.remaining)}kg to go
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: T.label }}>TOTAL VOLUME</p>
+                  <p className="text-sm font-black"
+                    style={{ color: totalVolume > 0 ? T.main : T.empty, fontFamily: 'var(--font-mono)' }}>
+                    {totalVolume > 0 ? `${fmtLargeVolume(totalVolume)}kg` : '0kg'}
+                  </p>
+                </div>
+              </div>
+              <div className="h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }}>
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -400,9 +387,6 @@ export default async function ProfilePage() {
                   }}
                 />
               </div>
-              <p className="text-[11px] font-bold" style={{ color: T.muted }}>
-                {fmtLargeVolume(rankInfo.remaining)}kg to {rankInfo.next.name}
-              </p>
             </>
           ) : (
             <p className="text-[10px] font-black tracking-widest" style={{ color: rankInfo.current.color }}>

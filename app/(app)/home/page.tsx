@@ -25,11 +25,7 @@ export default async function HomePage() {
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   const ninetyDaysAgoStr = `${ninetyDaysAgo.getFullYear()}-${String(ninetyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(ninetyDaysAgo.getDate()).padStart(2, '0')}`
 
-  const [
-    thisWeekRes, calendarSessionsRes, profileRes,
-    lastWeekRes, todayWeightRes, atbRes,
-    streakSessionsRes,
-  ] = await Promise.all([
+  const rawResults = await Promise.allSettled([
     supabase.from('workout_sessions')
       .select('id, trained_at, total_volume_kg')
       .eq('user_id', user.id)
@@ -75,6 +71,11 @@ export default async function HomePage() {
       .not('completed_at', 'is', null)
       .gte('trained_at', getStreakWindowStart()),
   ])
+  const [
+    thisWeekRes, calendarSessionsRes, profileRes,
+    lastWeekRes, todayWeightRes, atbRes,
+    streakSessionsRes,
+  ] = rawResults.map(settled)
 
   /* ── Calendar sessions + day summaries (all from embedded query) ── */
   type SetRow = { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null }
@@ -145,10 +146,10 @@ export default async function HomePage() {
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessionsRes.data?.length ?? 0
-  const todayWorked = thisWeekSessions.some(s => s.trained_at === todayStr)
+  const todayWorked = thisWeekSessions.some((s: { trained_at: string }) => s.trained_at === todayStr)
   const displayName = profileRes.data?.display_name as string | null
 
-  const thisWeekVolume = thisWeekSessions.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0)
+  const thisWeekVolume = thisWeekSessions.reduce((s: number, r: { total_volume_kg: number | null }) => s + (r.total_volume_kg ?? 0), 0)
   const lastWeekVolume = (lastWeekRes.data ?? []).reduce(
     (s: number, r: { total_volume_kg: number | null }) => s + (r.total_volume_kg ?? 0), 0
   )
@@ -459,6 +460,11 @@ function subtractWeek(mondayStr: string): string {
   const d = new Date(mondayStr + 'T00:00:00')
   d.setDate(d.getDate() - 7)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function settled(r: PromiseSettledResult<any>): { data: any; error: any } {
+  return r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
 }
 
 function calcWeekStreak(dates: string[], todayStr: string): { streak: number; thisWeekDone: boolean } {
