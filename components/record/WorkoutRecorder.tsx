@@ -387,7 +387,8 @@ export default function WorkoutRecorder({
                 const canDelete = ex.sets.length > 1
 
                 return (
-                  <div key={set.id} className={`grid grid-cols-12 gap-1.5 items-center px-3 ${isCompact ? 'py-0.5' : 'py-1'}`}>
+                  <div key={set.id} className="grid grid-cols-12 items-center px-3"
+                    style={{ gap: 6, paddingTop: 5, paddingBottom: 5 }}>
                     {/* Set number + delete */}
                     <div className="col-span-2 flex items-center justify-center gap-1">
                       {canDelete ? (
@@ -414,13 +415,19 @@ export default function WorkoutRecorder({
 
                     {/* KG input */}
                     <button
-                      className="col-span-4 py-1 rounded-lg text-center font-black active:scale-95 transition-transform"
+                      className="col-span-4 active:scale-95 transition-transform"
                       style={{
+                        height: 44,
+                        borderRadius: 10,
                         background: '#1e1e1e',
                         border: '1px solid rgba(255,255,255,0.11)',
                         color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
-                        fontSize: 17,
+                        fontSize: 20,
+                        fontWeight: 900,
                         fontFamily: 'var(--font-mono)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
                       {set.weight_kg ?? '—'}
@@ -428,13 +435,19 @@ export default function WorkoutRecorder({
 
                     {/* REPS input */}
                     <button
-                      className="col-span-3 py-1 rounded-lg text-center font-black active:scale-95 transition-transform"
+                      className="col-span-3 active:scale-95 transition-transform"
                       style={{
+                        height: 44,
+                        borderRadius: 10,
                         background: '#1e1e1e',
                         border: '1px solid rgba(255,255,255,0.11)',
                         color: set.reps !== null ? '#fff' : '#6a6a6a',
-                        fontSize: 17,
+                        fontSize: 20,
+                        fontWeight: 900,
                         fontFamily: 'var(--font-mono)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                       onClick={() => setNumberTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
                       {set.reps ?? '—'}
@@ -454,35 +467,31 @@ export default function WorkoutRecorder({
                 )
               })}
 
-              {/* Stats card */}
+              {/* Stats summary — flat 2-line, no card */}
               {stats && (
-                <div className="ml-3 mb-2 rounded-xl overflow-hidden"
-                  style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.13)', marginTop: 4, width: '68%', maxWidth: 260 }}>
-                  {/* Row 1: VOL · 1RM inline */}
-                  <div className="flex items-baseline gap-2 px-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
-                    <span style={{ color: '#aaa', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>VOL</span>
-                    <span style={{ color: '#ff6b00', fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                <div style={{ paddingLeft: 14, paddingRight: 14, paddingTop: 8, paddingBottom: 10 }}>
+                  {/* Line 1: VOL · 1RM */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 4 }}>
+                    <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>VOL</span>
+                    <span style={{ color: '#ff6b00', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
                       {stats.volume >= 1000 ? (stats.volume / 1000).toFixed(1) : stats.volume}
                     </span>
-                    <span style={{ color: '#aaa', fontSize: 10, fontWeight: 700 }}>
+                    <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>
                       {stats.volume >= 1000 ? 't' : 'kg'}
                     </span>
-                    <span style={{ color: '#555', fontSize: 12, fontWeight: 700, marginLeft: 2, marginRight: 2 }}>·</span>
-                    <span style={{ color: '#aaa', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>1RM</span>
-                    <span style={{ color: '#c09bff', fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                    <span style={{ color: '#3a3a3a', fontSize: 11, fontWeight: 700, marginLeft: 3, marginRight: 3 }}>·</span>
+                    <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>1RM</span>
+                    <span style={{ color: '#c09bff', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
                       {stats.est1rm}
                     </span>
-                    <span style={{ color: '#aaa', fontSize: 10, fontWeight: 700 }}>kg</span>
+                    <span style={{ color: '#888', fontSize: 10, fontWeight: 700 }}>kg</span>
                   </div>
-                  {/* Row 2: BEST SET + PRPill */}
-                  <div className="flex items-center justify-between px-3 py-1.5">
-                    <div className="flex items-baseline gap-2">
-                      <span style={{ color: '#aaa', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em' }}>BEST</span>
-                      <span style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
-                        {stats.bestWeight} × {stats.bestReps}
-                      </span>
-                    </div>
-                    {prStatus && <PRPill status={prStatus} />}
+                  {/* Line 2: BEST SET */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ color: '#999', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>BEST SET</span>
+                    <span style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                      {stats.bestWeight} × {stats.bestReps}
+                    </span>
                   </div>
                 </div>
               )}
