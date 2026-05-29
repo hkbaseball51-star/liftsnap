@@ -303,6 +303,19 @@ export async function saveFullSession(
     .eq('user_id', user.id)
 
   revalidatePath('/home')
+  return { sessionVolume: totalVolume }
+}
+
+export async function getLifterTotalVolume(): Promise<number> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+  const { data } = await supabase
+    .from('workout_sessions')
+    .select('total_volume_kg')
+    .eq('user_id', user.id)
+    .not('completed_at', 'is', null)
+  return (data ?? []).reduce((sum, s) => sum + (s.total_volume_kg ?? 0), 0)
 }
 
 export async function getLastSessionSets(sessionTitle: string) {

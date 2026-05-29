@@ -1,8 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
+import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -14,7 +15,7 @@ export type StatsData =
   | { type: 'bodyweight'; currentWeight: number; change: number; history: BWPoint[] }
 
 type Theme     = 'dark' | 'transparent'
-type Accent    = 'orange' | 'purple' | 'dark'
+type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
 
 const AC: Record<Accent, {
@@ -22,15 +23,17 @@ const AC: Record<Accent, {
   cardBorder: string; topLine: string
   barActive: string; barInactive: string; barTrack: string
 }> = {
-  orange: { hex:'#ff6b00', badgeBg:'rgba(255,107,0,0.14)', badgeBorder:'rgba(255,107,0,0.3)',  badgeText:'#ff6b00', cardBorder:'rgba(255,107,0,0.35)',  topLine:'#ff6b00', barActive:'#ff6b00', barInactive:'rgba(255,107,0,0.32)',  barTrack:'rgba(255,107,0,0.06)' },
-  purple: { hex:'#a855f7', badgeBg:'rgba(168,85,247,0.14)', badgeBorder:'rgba(168,85,247,0.3)', badgeText:'#a855f7', cardBorder:'rgba(168,85,247,0.35)', topLine:'#a855f7', barActive:'#a855f7', barInactive:'rgba(168,85,247,0.32)', barTrack:'rgba(168,85,247,0.06)' },
+  orange: { hex:'#ff6b00', badgeBg:'rgba(255,107,0,0.14)',   badgeBorder:'rgba(255,107,0,0.3)',   badgeText:'#ff6b00',              cardBorder:'rgba(255,107,0,0.35)',  topLine:'#ff6b00',                barActive:'#ff6b00',               barInactive:'rgba(255,107,0,0.32)',  barTrack:'rgba(255,107,0,0.06)'  },
+  purple: { hex:'#a855f7', badgeBg:'rgba(168,85,247,0.14)',  badgeBorder:'rgba(168,85,247,0.3)',  badgeText:'#a855f7',              cardBorder:'rgba(168,85,247,0.35)', topLine:'#a855f7',                barActive:'#a855f7',               barInactive:'rgba(168,85,247,0.32)', barTrack:'rgba(168,85,247,0.06)' },
   dark:   { hex:'rgba(255,255,255,0.7)', badgeBg:'rgba(255,255,255,0.06)', badgeBorder:'rgba(255,255,255,0.18)', badgeText:'rgba(255,255,255,0.6)', cardBorder:'rgba(255,255,255,0.1)', topLine:'rgba(255,255,255,0.18)', barActive:'rgba(255,255,255,0.6)', barInactive:'rgba(255,255,255,0.18)', barTrack:'rgba(255,255,255,0.04)' },
+  black:  { hex:'#ffffff', badgeBg:'transparent',             badgeBorder:'rgba(255,255,255,0.28)',badgeText:'#ffffff',              cardBorder:'rgba(255,255,255,0.04)', topLine:'rgba(255,255,255,0.08)', barActive:'rgba(255,255,255,0.85)', barInactive:'rgba(255,255,255,0.15)', barTrack:'rgba(255,255,255,0.03)' },
 }
 
 const AREA_FILL: Record<Accent, string> = {
   orange: 'rgba(255,107,0,0.1)',
   purple: 'rgba(168,85,247,0.1)',
   dark:   'rgba(255,255,255,0.05)',
+  black:  'rgba(255,255,255,0.03)',
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -230,7 +233,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   cv.width = W; cv.height = H
   const ctx = cv.getContext('2d')!
   const ac = AC[accent]
-  const heroColor = accent === 'dark' ? '#ffffff' : ac.hex
+  const heroColor = ac.hex
 
   if (theme === 'dark') {
     ctx.fillStyle = '#0a0a0a'
@@ -421,11 +424,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const router     = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
 
-  const [theme,     setTheme]     = useState<Theme>('dark')
-  const [accent,    setAccent]    = useState<Accent>('orange')
-  const [chartType, setChartType] = useState<ChartType>(data.type === 'volume' ? 'bar' : 'line')
-  const [sharing,   setSharing]   = useState(false)
-  const [status,    setStatus]    = useState('')
+  const [theme,      setTheme]      = useState<Theme>('dark')
+  const [accent,     setAccent]     = useState<Accent>('dark')
+  const [chartType,  setChartType]  = useState<ChartType>(data.type === 'volume' ? 'bar' : 'line')
+  const [sharing,    setSharing]    = useState(false)
+  const [status,     setStatus]     = useState('')
+  const [shareCount, setShareCount] = useState(0)
+
+  useEffect(() => { setShareCount(getShareCount()) }, [])
 
   const handleShare = async () => {
     setSharing(true); setStatus('Generating card...')
@@ -440,12 +446,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
         await navigator.share({ files: [file], title: 'LIFTSNAP Stats' })
+        const next = incrementShareCount(); setShareCount(next)
         setStatus('')
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url; a.download = 'liftsnap-stats.png'; a.click()
         URL.revokeObjectURL(url)
+        const next = incrementShareCount(); setShareCount(next)
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
       }
     } catch (e: unknown) {
@@ -455,7 +463,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   }
 
   const ac       = AC[accent]
-  const acHex    = accent === 'dark' ? '#ffffff' : ac.hex
+  const acHex    = ac.hex
   const isMax1RM = data.type === 'max1rm'
   const tsh      = '0 2px 8px rgba(0,0,0,0.75)'
 
@@ -577,13 +585,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               flexDirection: 'column',
               textShadow: tsh,
             }}>
-              {/* LIFTSNAP badge — same scale as TodayShareView */}
+              {/* LIFTSNAP badge */}
               <div style={{ display: 'inline-flex', marginBottom: 7, flexShrink: 0 }}>
                 <span style={{
                   fontSize: 10, fontWeight: 900, padding: '3px 10px', borderRadius: 7,
                   background: ac.badgeBg, color: ac.badgeText,
                   border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
-                  whiteSpace: 'nowrap',
                 }}>LIFTSNAP</span>
               </div>
 
@@ -810,17 +817,24 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
         <div className="flex gap-2">
-          {(['orange', 'purple', 'dark'] as Accent[]).map(a => {
-            const sel = accent === a
-            const bg  = sel ? (a === 'orange' ? '#ff6b00' : a === 'purple' ? '#a855f7' : '#3a3a3a') : '#1a1a1a'
-            return (
-              <button key={a} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{ background: bg, color: '#fff', border: `1px solid ${sel ? bg : '#2a2a2a'}` }}
-                onClick={() => setAccent(a)}>
-                {a.charAt(0).toUpperCase() + a.slice(1)}
-              </button>
-            )
-          })}
+          {(() => {
+            const shareThemes = getShareThemeUnlocks(shareCount)
+            return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
+              const info     = shareThemes.find(t => t.accent === a)!
+              const unlocked = info.unlocked
+              const sel      = accent === a
+              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#a855f7' : a === 'black' ? '#050505' : '#3a3a3a'
+              const bg       = sel ? selBg : '#1a1a1a'
+              return (
+                <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
+                  style={{ background: bg, color: unlocked ? '#fff' : '#444', border: `1px solid ${sel ? selBg : '#2a2a2a'}`, opacity: unlocked ? 1 : 0.55, minHeight: 44 }}
+                  onClick={() => unlocked && setAccent(a)}>
+                  <span>{info.label}</span>
+                  {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
+                </button>
+              )
+            })
+          })()}
         </div>
       </div>
 

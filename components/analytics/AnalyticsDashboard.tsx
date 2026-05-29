@@ -6,17 +6,19 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
 import Link from 'next/link'
-import { Share2 } from 'lucide-react'
+import { Share2, Lock } from 'lucide-react'
 import { getExercise1RMData, getExerciseDailyVolumeData, saveBodyWeight } from '@/actions/analytics'
+import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
 type WeightPoint = { date: string; label: string; weight: number }
-type Exercise = { name: string; muscle_group: string }
+type Exercise = { name: string; muscle_group: string; logCount: number }
 type RMPoint = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
 
 type Props = {
   bodyWeightData: WeightPoint[]
   exercises: Exercise[]
+  totalSessions: number
 }
 
 const TABS = ['MAX 1RM', 'DAILY VOLUME', 'BODY WEIGHT'] as const
@@ -53,7 +55,7 @@ const tooltipStyle = {
   cursor: { stroke: '#1a1a1a' },
 }
 
-export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props) {
+export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
   const [tab, setTab] = useState<Tab>('MAX 1RM')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
@@ -119,6 +121,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
   const showExerciseSelector = tab !== 'BODY WEIGHT' && exercises.length > 0
+
+  const exerciseLogCount      = exercises.find(e => e.name === selectedExercise)?.logCount ?? 0
+  const exerciseShareUnlocked = exerciseLogCount >= EXERCISE_GRAPH_REQUIRED
+  const lineChartUnlocked     = isTrainingFeatureUnlocked('basic_chart', totalSessions)
+  const exerciseProgressUnlocked = isTrainingFeatureUnlocked('exercise_progress', totalSessions)
 
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
@@ -187,7 +194,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
       {/* MAX 1RM Tab */}
       {tab === 'MAX 1RM' && (
         <div>
-          {exercises.length === 0 ? (
+          {!exerciseProgressUnlocked ? (
+            !lineChartUnlocked
+              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} />
+              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} />
+          ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
             <NoGroupData />
@@ -256,20 +267,35 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
                       </div>
                     ))}
                   </div>
-                  <Link
-                    href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
-                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                    style={{
-                      padding: '12px 16px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      color: 'rgba(255,255,255,0.4)',
-                      fontSize: 13,
-                      fontWeight: 500,
-                    }}>
-                    <Share2 size={14} strokeWidth={1.5} />
-                    Share Story
-                  </Link>
+                  {exerciseShareUnlocked ? (
+                    <Link
+                      href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
+                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        color: 'rgba(255,255,255,0.4)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}>
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share Story
+                    </Link>
+                  ) : (
+                    <div className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.04)',
+                        color: '#333',
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}>
+                      <Lock size={13} strokeWidth={1.5} />
+                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} logs
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -280,7 +306,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
       {/* DAILY VOLUME Tab */}
       {tab === 'DAILY VOLUME' && (
         <div>
-          {exercises.length === 0 ? (
+          {!exerciseProgressUnlocked ? (
+            !lineChartUnlocked
+              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} />
+              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} />
+          ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
             <NoGroupData />
@@ -355,20 +385,35 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises }: Props)
                       </div>
                     ))}
                   </div>
-                  <Link
-                    href={`/share?type=stats&metric=volume&exercise=${encodeURIComponent(selectedExercise)}`}
-                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                    style={{
-                      padding: '12px 16px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      color: 'rgba(255,255,255,0.4)',
-                      fontSize: 13,
-                      fontWeight: 500,
-                    }}>
-                    <Share2 size={14} strokeWidth={1.5} />
-                    Share Story
-                  </Link>
+                  {exerciseShareUnlocked ? (
+                    <Link
+                      href={`/share?type=stats&metric=volume&exercise=${encodeURIComponent(selectedExercise)}`}
+                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        color: 'rgba(255,255,255,0.4)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}>
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share Story
+                    </Link>
+                  ) : (
+                    <div className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.04)',
+                        color: '#333',
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}>
+                      <Lock size={13} strokeWidth={1.5} />
+                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} logs
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -517,6 +562,27 @@ function ChartEmpty() {
     <div className="h-48 flex items-center justify-center flex-col gap-2">
       <p className="text-sm font-bold" style={{ color: '#444' }}>No data yet</p>
       <p className="text-xs font-bold" style={{ color: '#2a2a2a' }}>Log your first set to unlock stats</p>
+    </div>
+  )
+}
+
+function MilestoneLock({ label, current, required }: { label: string; current: number; required: number }) {
+  const pct       = Math.min((current / required) * 100, 100)
+  const remaining = Math.max(required - current, 0)
+  return (
+    <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Lock size={13} strokeWidth={1.5} style={{ color: '#444' }} />
+        <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>{label}</p>
+      </div>
+      <p className="text-sm font-bold mb-1" style={{ color: '#777' }}>Unlock at {required} sessions</p>
+      <p className="text-xs mb-4" style={{ color: '#444' }}>
+        {remaining} more session{remaining !== 1 ? 's' : ''} to go
+      </p>
+      <div className="h-1 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: 'rgba(255,107,0,0.55)', transition: 'width 0.4s ease' }} />
+      </div>
+      <p className="text-[10px] text-right" style={{ color: '#3a3a3a' }}>{current} / {required}</p>
     </div>
   )
 }

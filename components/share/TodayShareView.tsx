@@ -1,8 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
+import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 
 export type TodayData = {
   title: string
@@ -20,15 +21,16 @@ export type TodayData = {
 }
 
 type Theme  = 'dark' | 'transparent'
-type Accent = 'orange' | 'purple' | 'dark'
+type Accent = 'orange' | 'purple' | 'dark' | 'black'
 
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
   cardBorder: string; topLine: string
 }> = {
-  orange: { hex: '#ff6b00', badgeBg: '#ff6b00',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(255,107,0,0.35)',  topLine: '#ff6b00'                  },
-  purple: { hex: '#a855f7', badgeBg: '#a855f7',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7'                  },
-  dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)',cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)'  },
+  orange: { hex: '#ff6b00', badgeBg: '#ff6b00',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(255,107,0,0.35)',  topLine: '#ff6b00'                   },
+  purple: { hex: '#a855f7', badgeBg: '#a855f7',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7'                   },
+  dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)',cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)'   },
+  black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff',              cardBorder: 'rgba(255,255,255,0.04)', topLine: 'rgba(255,255,255,0.08)'   },
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -136,10 +138,13 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const router     = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
 
-  const [theme,   setTheme]   = useState<Theme>('dark')
-  const [accent,  setAccent]  = useState<Accent>('orange')
-  const [sharing, setSharing] = useState(false)
-  const [status,  setStatus]  = useState('')
+  const [theme,      setTheme]      = useState<Theme>('dark')
+  const [accent,     setAccent]     = useState<Accent>('dark')
+  const [sharing,    setSharing]    = useState(false)
+  const [status,     setStatus]     = useState('')
+  const [shareCount, setShareCount] = useState(0)
+
+  useEffect(() => { setShareCount(getShareCount()) }, [])
 
   const handleShare = async () => {
     if (!captureRef.current) return
@@ -150,12 +155,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
         await navigator.share({ files: [file], title: "LIFTSNAP Today's Workout" })
+        const next = incrementShareCount(); setShareCount(next)
         setStatus('')
       } else {
         const url = URL.createObjectURL(blob)
         const a   = document.createElement('a')
         a.href = url; a.download = 'liftsnap-today.png'; a.click()
         URL.revokeObjectURL(url)
+        const next = incrementShareCount(); setShareCount(next)
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
       }
     } catch (e: unknown) {
@@ -165,7 +172,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   }
 
   const ac    = AC[accent]
-  const acHex = accent === 'dark' ? '#ffffff' : ac.hex
+  const acHex = ac.hex
   const isT   = theme === 'transparent'
 
   const volStr       = fmtVol(data.volume)
@@ -345,17 +352,24 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
         <div className="flex gap-2">
-          {(['orange', 'purple', 'dark'] as Accent[]).map(a => {
-            const sel = accent === a
-            const bg  = sel ? (a === 'orange' ? '#ff6b00' : a === 'purple' ? '#a855f7' : '#3a3a3a') : '#1a1a1a'
-            return (
-              <button key={a} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{ background: bg, color: '#fff', border: `1px solid ${sel ? bg : '#2a2a2a'}` }}
-                onClick={() => setAccent(a)}>
-                {a.charAt(0).toUpperCase() + a.slice(1)}
-              </button>
-            )
-          })}
+          {(() => {
+            const shareThemes = getShareThemeUnlocks(shareCount)
+            return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
+              const info     = shareThemes.find(t => t.accent === a)!
+              const unlocked = info.unlocked
+              const sel      = accent === a
+              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#a855f7' : a === 'black' ? '#050505' : '#3a3a3a'
+              const bg       = sel ? selBg : '#1a1a1a'
+              return (
+                <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
+                  style={{ background: bg, color: unlocked ? '#fff' : '#444', border: `1px solid ${sel ? selBg : '#2a2a2a'}`, opacity: unlocked ? 1 : 0.55, minHeight: 44 }}
+                  onClick={() => unlocked && setAccent(a)}>
+                  <span>{info.label}</span>
+                  {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
+                </button>
+              )
+            })
+          })()}
         </div>
       </div>
 

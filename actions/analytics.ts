@@ -119,17 +119,24 @@ export async function getExercisesWithHistory() {
 
   const { data } = await supabase
     .from('workout_sets')
-    .select('exercise_name, muscle_group')
+    .select('exercise_name, muscle_group, session_id')
     .eq('is_completed', true)
 
   if (!data?.length) return []
 
-  const seen = new Map<string, string>()
+  const seen = new Map<string, { muscle_group: string; sessions: Set<string> }>()
   data.forEach(s => {
-    if (!seen.has(s.exercise_name)) seen.set(s.exercise_name, s.muscle_group ?? '')
+    if (!seen.has(s.exercise_name)) {
+      seen.set(s.exercise_name, { muscle_group: s.muscle_group ?? '', sessions: new Set() })
+    }
+    if (s.session_id) seen.get(s.exercise_name)!.sessions.add(String(s.session_id))
   })
 
-  return Array.from(seen.entries()).map(([name, mg]) => ({ name, muscle_group: mg }))
+  return Array.from(seen.entries()).map(([name, { muscle_group, sessions }]) => ({
+    name,
+    muscle_group,
+    logCount: sessions.size,
+  }))
 }
 
 export async function saveBodyWeight(weightKg: number) {
