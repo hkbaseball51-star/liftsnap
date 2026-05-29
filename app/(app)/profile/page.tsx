@@ -176,7 +176,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* ── 2. Profile Hero ───────────────────────────── */}
-      <div className="flex flex-col items-center px-4 pt-2 pb-7">
+      <div className="flex flex-col items-center px-4 pt-2 pb-6">
         <div
           className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white mb-4"
           style={{
@@ -192,50 +192,72 @@ export default async function ProfilePage() {
           {username}
         </p>
 
-        <p className="text-sm text-center mt-4 px-8 leading-relaxed" style={{ color: T.secondary }}>
-          Set your lifting goal.
-        </p>
+        <div className="flex items-center gap-2 mt-5">
+          {/* Rank badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{
+              background: `${rankInfo.current.color}18`,
+              border: `1px solid ${rankInfo.current.color}40`,
+            }}>
+            <span className="text-xs leading-none">{rankInfo.current.emoji}</span>
+            <span className="text-[10px] font-black tracking-wide" style={{ color: rankInfo.current.color }}>
+              {rankInfo.current.name}
+            </span>
+          </div>
 
-        <div className="flex items-center gap-1.5 mt-5 px-3 py-1.5 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
-          <Lock size={9} style={{ color: 'rgba(255,255,255,0.45)' }} />
-          <span className="text-[9px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>PRIVATE PROFILE</span>
+          {/* Private badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <Lock size={9} style={{ color: 'rgba(255,255,255,0.45)' }} />
+            <span className="text-[9px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              PRIVATE
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── 3. Quick Stats ────────────────────────────── */}
-      <div className="mx-4 grid grid-cols-3 gap-2 mb-5">
+      {/* ── 3. Stats Bar ──────────────────────────────── */}
+      <div className="mx-4 mb-5">
+        <div className="flex rounded-2xl overflow-hidden" style={T.card}>
 
-        <div className="rounded-2xl px-2 py-4 text-center" style={T.card}>
-          <p className="text-2xl font-black leading-none"
-            style={{ color: sessionCount > 0 ? T.main : T.empty, fontFamily: 'var(--font-mono)' }}>
-            {sessionCount > 0 ? sessionCount : '—'}
-          </p>
-          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: T.label }}>SESSIONS</p>
+          {/* Sessions */}
+          <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1.5">
+            <p className="text-2xl font-black leading-none"
+              style={{ color: sessionCount > 0 ? T.main : T.empty, fontFamily: 'var(--font-mono)' }}>
+              {sessionCount > 0 ? sessionCount : '—'}
+            </p>
+            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>SESSIONS</p>
+          </div>
+
+          <div className="w-px my-4" style={{ background: T.divider }} />
+
+          {/* Volume */}
+          <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1.5">
+            {totalVolume > 0 ? (
+              <div className="flex items-baseline gap-0.5 leading-none">
+                <p className="text-2xl font-black" style={{ color: T.main, fontFamily: 'var(--font-mono)' }}>
+                  {fmtLargeVolume(totalVolume)}
+                </p>
+                <p className="text-[10px] font-bold" style={{ color: T.muted }}>kg</p>
+              </div>
+            ) : (
+              <p className="text-2xl font-black leading-none" style={{ color: T.empty, fontFamily: 'var(--font-mono)' }}>—</p>
+            )}
+            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>VOLUME</p>
+          </div>
+
+          <div className="w-px my-4" style={{ background: T.divider }} />
+
+          {/* Rank */}
+          <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
+            <p className="text-xl leading-none">{rankInfo.current.emoji}</p>
+            <p className="text-[10px] font-black tracking-wide leading-none" style={{ color: rankInfo.current.color }}>
+              {rankInfo.current.name}
+            </p>
+            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>RANK</p>
+          </div>
+
         </div>
-
-        <div className="rounded-2xl px-2 py-4 text-center" style={T.card}>
-          {totalVolume > 0 ? (
-            <div className="leading-none">
-              <span className="text-xl font-black" style={{ color: T.main, fontFamily: 'var(--font-mono)' }}>
-                {fmtLargeVolume(totalVolume)}
-              </span>
-              <span className="text-[10px] font-bold ml-0.5" style={{ color: T.muted }}>kg</span>
-            </div>
-          ) : (
-            <p className="text-2xl font-black leading-none" style={{ color: T.empty, fontFamily: 'var(--font-mono)' }}>—</p>
-          )}
-          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: T.label }}>VOLUME</p>
-        </div>
-
-        <div className="rounded-2xl px-2 py-4 text-center flex flex-col items-center" style={T.card}>
-          <p className="text-xl leading-none">{rankInfo.current.emoji}</p>
-          <p className="text-[10px] font-black tracking-wide mt-1.5 leading-none" style={{ color: rankInfo.current.color }}>
-            {rankInfo.current.name}
-          </p>
-          <p className="text-[9px] font-black tracking-widest mt-2" style={{ color: T.label }}>RANK</p>
-        </div>
-
       </div>
 
       {/* ── 4. Personal Bests ─────────────────────────── */}
@@ -243,13 +265,13 @@ export default async function ProfilePage() {
         {sec('PERSONAL BESTS')}
         <div className="grid grid-cols-3 gap-2">
           {([
-            { label: 'BENCH', pr: benchPR },
-            { label: 'SQUAT', pr: squatPR },
-            { label: 'DEAD',  pr: deadliftPR },
+            { label: 'Bench',    pr: benchPR    },
+            { label: 'Squat',    pr: squatPR    },
+            { label: 'Deadlift', pr: deadliftPR },
           ] as const).map(({ label, pr }) => (
             <div key={label} className="rounded-2xl p-4 flex flex-col items-center"
-              style={{ background: '#171717', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20 }}>
-              <p className="text-[9px] font-black tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.60)' }}>
+              style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20 }}>
+              <p className="text-[10px] font-bold mb-3" style={{ color: T.secondary }}>
                 {label}
               </p>
               {pr != null ? (
@@ -267,16 +289,14 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* ── 5. Strength Summary ───────────────────────── */}
+      {/* ── 5. Lifter Summary ─────────────────────────── */}
       <div className="mx-4 mb-5">
-        {sec('STRENGTH SUMMARY')}
+        {sec('LIFTER SUMMARY')}
         <div className="overflow-hidden" style={T.card}>
 
           <div className="flex items-center justify-between px-4 py-3.5"
             style={{ borderBottom: `1px solid ${T.divider}` }}>
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>
-              BEST LIFT
-            </p>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>BEST LIFT</p>
             {bestLift ? (
               <p className="text-sm font-bold text-right ml-3">
                 <span style={{ color: T.secondary }}>{bestLift.exercise_name} </span>
@@ -291,9 +311,7 @@ export default async function ProfilePage() {
 
           <div className="flex items-center justify-between px-4 py-3.5"
             style={{ borderBottom: `1px solid ${T.divider}` }}>
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>
-              MOST TRAINED
-            </p>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>MOST TRAINED</p>
             {mainMuscle ? (
               <p className="text-sm font-black capitalize" style={{ color: T.secondary }}>{mainMuscle}</p>
             ) : (
@@ -302,29 +320,37 @@ export default async function ProfilePage() {
           </div>
 
           <div className="flex items-center justify-between px-4 py-3.5">
-            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>
-              SPLIT
-            </p>
+            <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>SPLIT</p>
             <p className="text-sm font-bold" style={{ color: T.empty }}>—</p>
           </div>
 
         </div>
       </div>
 
-      {/* ── 6. Current Rank ───────────────────────────── */}
+      {/* ── 6. Rank Progress ──────────────────────────── */}
       <div className="mx-4 mb-5">
-        {sec('CURRENT RANK')}
+        {sec('RANK PROGRESS')}
         <div className="p-4 relative overflow-hidden" style={T.card}>
           <div className="absolute top-0 inset-x-0 h-px"
-            style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}60, transparent 65%)` }} />
+            style={{ background: `linear-gradient(90deg, ${rankInfo.current.color}55, transparent 65%)` }} />
 
-          <div className="mb-4">
-            <p className="text-2xl font-black" style={{ color: rankInfo.current.color }}>
-              {rankInfo.current.emoji} {rankInfo.current.name}
-            </p>
-            <p className="text-xs mt-1 font-bold" style={{ color: T.muted }}>
-              {totalVolume > 0 ? `${fmtLargeVolume(totalVolume)}kg total volume` : 'Start logging to rank up'}
-            </p>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-2xl font-black" style={{ color: rankInfo.current.color }}>
+                {rankInfo.current.emoji} {rankInfo.current.name}
+              </p>
+              <p className="text-xs mt-0.5 font-bold" style={{ color: T.muted }}>
+                {totalVolume > 0 ? `${fmtLargeVolume(totalVolume)}kg total volume` : 'Start logging to rank up'}
+              </p>
+            </div>
+            {rankInfo.next && (
+              <div className="text-right">
+                <p className="text-[9px] font-black tracking-widest mb-1" style={{ color: T.label }}>NEXT RANK</p>
+                <p className="text-sm font-black" style={{ color: rankInfo.next.color }}>
+                  {rankInfo.next.emoji} {rankInfo.next.name}
+                </p>
+              </div>
+            )}
           </div>
 
           {rankInfo.next ? (
