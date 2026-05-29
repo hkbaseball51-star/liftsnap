@@ -286,11 +286,6 @@ export default async function HomePage() {
         )}
       </div>
 
-      {/* ── HERO CAROUSEL ── */}
-      <div className="px-4 mb-5">
-        <HeroCarousel data={heroData} />
-      </div>
-
       {/* ── SHARE TODAY'S WORKOUT CTA ── */}
       <div className="px-4 mb-5">
         <Link href={todayWorked ? `/share?type=today&date=${todayStr}` : `/record?date=${todayStr}`}>
@@ -341,6 +336,11 @@ export default async function HomePage() {
       {/* ── MONTHLY TRAINING CALENDAR ── */}
       <div className="px-4 mb-5">
         <TrainingCalendar sessions={calendarSessions} todayStr={todayStr} />
+      </div>
+
+      {/* ── HERO CAROUSEL ── */}
+      <div className="px-4 mb-5">
+        <HeroCarousel data={heroData} />
       </div>
 
       {/* ── START WORKOUT CTA ── */}
