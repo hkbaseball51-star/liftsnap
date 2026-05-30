@@ -7,6 +7,7 @@ import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
+import { getDisplayName } from '@/lib/exerciseNames'
 
 function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -137,7 +138,7 @@ export default function SelectedDaySummary({
 
           {/* Row 3: main exercise + best set */}
           <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3, lineHeight: 1.3 }}>
-            {summary.mainExercise}
+            {getDisplayName(summary.mainExercise, locale)}
           </p>
           {summary.mainExerciseBestWeight > 0 && summary.mainExerciseBestReps > 0 && (
             <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>
@@ -156,7 +157,7 @@ export default function SelectedDaySummary({
             <div style={{ marginTop: 7, display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}>
               {summary.secondExercise && (
                 <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.36)' }}>
-                  {summary.secondExercise}
+                  {getDisplayName(summary.secondExercise, locale)}
                 </span>
               )}
               {(() => {

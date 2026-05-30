@@ -169,6 +169,7 @@ const translations = {
       cancelSubEditing: 'Changes will not be saved',
       keepGoing: 'KEEP GOING',
       leave: 'LEAVE',
+      selectExercise: 'SELECT EXERCISE',
       searchExercises: 'Search exercises...',
       filterByBodyPart: '',
       categoryDescription: {
@@ -516,6 +517,7 @@ const translations = {
       cancelSubEditing: '変更内容は保存されません',
       keepGoing: '続ける',
       leave: '退出',
+      selectExercise: '種目を選択',
       searchExercises: '種目を検索...',
       filterByBodyPart: '部位で絞り込み：胸・背中・肩・腕・脚・腹筋',
       categoryDescription: {

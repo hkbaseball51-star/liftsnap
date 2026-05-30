@@ -6,6 +6,7 @@ import { createCustomExercise, getExerciseUsageCounts, deleteCustomExercise } fr
 import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
+import { JA_TO_EN, getDisplayName } from '@/lib/exerciseNames'
 
 const HIDDEN_KEY = 'liftsnap_hidden_exercises'
 
@@ -57,7 +58,9 @@ function getMuscleGroupKeywords(group: string): string[] {
 }
 
 function getExerciseSearchTexts(e: Exercise): string[] {
+  const nameEn = JA_TO_EN[e.name]
   const base = [e.name, e.muscle_group, ...getMuscleGroupKeywords(e.muscle_group)]
+  if (nameEn) base.push(nameEn)
   return base.map(normalizeSearchText).filter(s => s.length > 0)
 }
 
@@ -188,7 +191,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       <button
         className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity pr-2"
         onClick={() => onSelect(e)}>
-        <p className="text-sm font-black text-white line-clamp-2" style={{ lineHeight: 1.35 }}>{e.name}</p>
+        <p className="text-sm font-black text-white line-clamp-2" style={{ lineHeight: 1.35 }}>{getDisplayName(e.name, locale)}</p>
         <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#555' }}>
           {e.muscle_group}
           {e.is_custom ? ' · CUSTOM' : ''}
@@ -224,7 +227,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
         <button onClick={onClose}><X size={22} style={{ color: '#555' }} /></button>
-        <span className="text-base font-black text-white tracking-widest">SELECT EXERCISE</span>
+        <span className="text-base font-black text-white tracking-widest">{t(locale, 'record.selectExercise')}</span>
       </div>
 
       {/* Search */}
@@ -404,7 +407,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                   className="flex items-center py-3.5"
                   style={{ borderBottom: '1px solid #111' }}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black truncate text-white">{e.name}</p>
+                    <p className="text-sm font-black truncate text-white">{getDisplayName(e.name, locale)}</p>
                     <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#555' }}>
                       {e.muscle_group}
                     </p>

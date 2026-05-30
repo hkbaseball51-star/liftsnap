@@ -11,6 +11,7 @@ import NoteInputSheet from './NoteInputSheet'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
 import { t, type Locale } from '@/lib/i18n'
+import { getDisplayName } from '@/lib/exerciseNames'
 
 /* ─── Types ───────────────────────────────────────────── */
 
@@ -148,7 +149,7 @@ const ExerciseCard = memo(function ExerciseCard({
         <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
           style={{ background: isNewPR ? '#ff6b00' : '#3a3a3a' }} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-white leading-tight truncate">{ex.name}</p>
+          <p className="text-sm font-black text-white leading-tight truncate">{getDisplayName(ex.name, locale)}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[10px] font-black tracking-wider" style={{ color: '#ff6b00' }}>
               {ex.muscle_group}
