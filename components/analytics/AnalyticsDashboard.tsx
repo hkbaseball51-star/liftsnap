@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useRef, useTransition } from 'react'
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
@@ -14,7 +14,8 @@ import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
-import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
+import { EXERCISE_GRAPH_REQUIRED, EXERCISE_PROGRESS_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
+import { type Period, PERIODS, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
 
 type WeightPoint = { date: string; label: string; weight: number }
 type Exercise = { name: string; muscle_group: string; logCount: number }
@@ -61,6 +62,22 @@ const tooltipStyle = {
   cursor: { stroke: '#1a1a1a' },
 }
 
+// px per data point for scrollable chart
+const SCROLL_PX: Record<string, number> = { '90D': 20, '6M': 36, '1Y': 28, 'All': 40 }
+
+function scrollChartWidth(n: number, period: string): number {
+  const ppx = SCROLL_PX[period] ?? 20
+  return Math.max(400, n * ppx)
+}
+
+function xAxisInterval(n: number, period: string): number {
+  if (period === '30D') return Math.max(0, Math.floor(n / 6) - 1)
+  if (period === '90D') return 6   // weekly label ticks on daily data
+  if (period === '6M') return 0    // every weekly bucket
+  if (period === '1Y') return 1    // every other weekly bucket
+  return Math.max(0, Math.floor(n / 6) - 1) // All
+}
+
 export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
   const { locale } = useLocale()
   const { unit, mounted: unitMounted } = useWeightUnit()
@@ -68,6 +85,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const bwMin = unit === 'lbs' ? 44 : 20
   const bwMax = unit === 'lbs' ? 661 : 300
   const [tab, setTab] = useState<Tab>('MAX 1RM')
+  const [period, setPeriod] = useState<Period>('90D')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
 
@@ -76,6 +94,10 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const [volData, setVolData] = useState<VolPoint[]>([])
   const [volLoading, startVolTransition] = useTransition()
+
+  const rmScrollRef  = useRef<HTMLDivElement>(null)
+  const volScrollRef = useRef<HTMLDivElement>(null)
+  const bwScrollRef  = useRef<HTMLDivElement>(null)
 
   const [bwData, setBwData]   = useState(bodyWeightData)
   const [bwInput, setBwInput] = useState(() => {
@@ -88,24 +110,25 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
-  // Auto-load data when tab or selected exercise changes
+  // Auto-load data when tab, exercise, or period changes
   useEffect(() => {
     if (!selectedExercise) return
+    const startDate = getStartDate(period) ?? undefined
     if (tab === 'MAX 1RM') {
       setRmData([])
       startRmTransition(async () => {
-        const data = await getExercise1RMData(selectedExercise)
+        const data = await getExercise1RMData(selectedExercise, startDate)
         setRmData(data)
       })
     } else if (tab === 'DAILY VOLUME') {
       setVolData([])
       startVolTransition(async () => {
-        const data = await getExerciseDailyVolumeData(selectedExercise)
+        const data = await getExerciseDailyVolumeData(selectedExercise, startDate)
         setVolData(data)
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedExercise])
+  }, [tab, selectedExercise, period])
 
   // Re-initialize bwInput in display unit once unit resolves
   useEffect(() => {
@@ -117,6 +140,12 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitMounted])
+
+  // Scroll charts to show latest (rightmost) data on load or period change
+  useEffect(() => {
+    const refs = [rmScrollRef, volScrollRef, bwScrollRef]
+    refs.forEach(r => { if (r.current) r.current.scrollLeft = r.current.scrollWidth })
+  }, [period, rmData.length, volData.length, bwData.length])
 
   const handleMuscleFilter = (mg: MuscleGroup) => {
     setMuscleFilter(mg)
@@ -159,19 +188,35 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const bwParsed     = bwInput !== '' ? parseFlexibleNumber(bwInput) : null
   const bwInputValid = bwParsed !== null && bwParsed >= bwMin && bwParsed <= bwMax
   const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
-  const bwDataDisplay = bwData.map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
+
+  // Period-filtered + aggregated data
+  const periodStart = getStartDate(period)
+  const bwDataForPeriod = periodStart ? bwData.filter(p => p.date >= periodStart) : bwData
+  const bwDataAggregated = aggregateBodyWeight(bwDataForPeriod, period)
+  const bwDataDisplay = bwDataAggregated.map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
+
+  const rmDataAggregated = aggregate1RM(rmData, period)
+  const volDataAggregated = aggregateVolume(volData, period)
+
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
 
   // Display-unit converted data for charts
-  const rmDataDisplay = rmData.map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
-  const volDataDisplay = volData.map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
+  const rmDataDisplay = rmDataAggregated.map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
+  const volDataDisplay = volDataAggregated.map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
   const showExerciseSelector = tab !== 'BODY WEIGHT' && exercises.length > 0
 
   const exerciseLogCount      = exercises.find(e => e.name === selectedExercise)?.logCount ?? 0
   const exerciseShareUnlocked = exerciseLogCount >= EXERCISE_GRAPH_REQUIRED
+  const maxExerciseLogCount   = exercises.length > 0 ? Math.max(...exercises.map(e => e.logCount)) : 0
   const lineChartUnlocked     = isTrainingFeatureUnlocked('basic_chart', totalSessions)
-  const exerciseProgressUnlocked = isTrainingFeatureUnlocked('exercise_progress', totalSessions)
+  const exerciseProgressUnlocked = isTrainingFeatureUnlocked('exercise_progress', totalSessions, maxExerciseLogCount)
+
+  const isScrollable = period !== '30D'
+  const periodLabel  = { '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' }[period] ?? period
+  const rmXInterval  = xAxisInterval(rmDataDisplay.length, period)
+  const volXInterval = xAxisInterval(volDataDisplay.length, period)
+  const bwXInterval  = xAxisInterval(bwDataDisplay.length, period)
 
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
@@ -246,13 +291,28 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         </>
       )}
 
+      {/* Period filter */}
+      <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: '#111', border: '1px solid rgba(255,107,0,0.1)' }}>
+        {PERIODS.map(p => (
+          <button key={p}
+            className="flex-1 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all"
+            style={{
+              background: period === p ? '#ff6b00' : 'transparent',
+              color: period === p ? '#fff' : '#555',
+            }}
+            onClick={() => setPeriod(p)}>
+            {p}
+          </button>
+        ))}
+      </div>
+
       {/* MAX 1RM Tab */}
       {tab === 'MAX 1RM' && (
         <div>
           {!exerciseProgressUnlocked ? (
             !lineChartUnlocked
               ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} locale={locale} />
-              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} locale={locale} />
+              : <MilestoneLock label="EXERCISE PROGRESS" current={maxExerciseLogCount} required={EXERCISE_PROGRESS_REQUIRED} locale={locale} lockUnit="logs" />
           ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
@@ -289,11 +349,23 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   <LoadingChart />
                 ) : rmData.length === 0 ? (
                   <ChartEmpty />
+                ) : isScrollable ? (
+                  <div ref={rmScrollRef} className="overflow-x-auto no-scrollbar">
+                    <LineChart width={scrollChartWidth(rmDataDisplay.length, period)} height={200} data={rmDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={rmXInterval} />
+                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
+                      <Line type="monotone" dataKey="est1rm" stroke="#ff6b00" strokeWidth={2.5}
+                        dot={{ fill: '#ff6b00', r: 4, strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: '#ff6b00' }} />
+                    </LineChart>
+                  </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={rmDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={rmXInterval} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
                       <Line type="monotone" dataKey="est1rm" stroke="#ff6b00" strokeWidth={2.5}
@@ -367,7 +439,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
           {!exerciseProgressUnlocked ? (
             !lineChartUnlocked
               ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} locale={locale} />
-              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} locale={locale} />
+              : <MilestoneLock label="EXERCISE PROGRESS" current={maxExerciseLogCount} required={EXERCISE_PROGRESS_REQUIRED} locale={locale} lockUnit="logs" />
           ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
@@ -416,12 +488,22 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   <LoadingChart />
                 ) : volData.length === 0 ? (
                   <ChartEmpty />
+                ) : isScrollable ? (
+                  <div ref={volScrollRef} className="overflow-x-auto no-scrollbar">
+                    <BarChart width={scrollChartWidth(volDataDisplay.length, period)} height={200} data={volDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={volXInterval} />
+                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
+                        tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
+                      <Bar dataKey="volume" fill="#ff6b00" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                    </BarChart>
+                  </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={volDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false}
-                        interval={Math.max(0, Math.floor(volDataDisplay.length / 5) - 1)} />
+                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={volXInterval} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
                         tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                       <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
@@ -577,17 +659,29 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
           )}
 
           <div className="rounded-2xl p-4" style={CARD}>
-            <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>BODY WEIGHT (90 DAYS)</p>
-            {bwData.length < 2 ? (
+            <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>BODY WEIGHT · {periodLabel}</p>
+            {bwDataDisplay.length < 2 ? (
               <div className="h-48 flex items-center justify-center">
                 <p className="text-xs font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.bwChartEmpty')}</p>
+              </div>
+            ) : isScrollable ? (
+              <div ref={bwScrollRef} className="overflow-x-auto no-scrollbar">
+                <LineChart width={scrollChartWidth(bwDataDisplay.length, period)} height={200} data={bwDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                  <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={bwXInterval} />
+                  <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                  <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
+                  <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="#222" strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="weight" stroke="#9B72E8" strokeWidth={2.5}
+                    dot={{ fill: '#9B72E8', r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: '#9B72E8' }} />
+                </LineChart>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={bwDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-                  <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
-                    interval={Math.floor(bwDataDisplay.length / 6)} />
+                  <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={bwXInterval} />
                   <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
                   <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="#222" strokeDasharray="4 4" />
@@ -666,17 +760,21 @@ function ChartEmpty() {
   )
 }
 
-function MilestoneLock({ label, current, required, locale }: {
-  label: string; current: number; required: number; locale: Locale
+function MilestoneLock({ label, current, required, locale, lockUnit = 'sessions' }: {
+  label: string; current: number; required: number; locale: Locale; lockUnit?: 'sessions' | 'logs'
 }) {
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = Math.max(required - current, 0)
   const unlockText = locale === 'ja'
     ? `${required}${t(locale, 'analytics.lockSessions')}`
-    : `${t(locale, 'analytics.lockUnlockAt')} ${required} ${t(locale, 'analytics.lockSessions')}`
+    : lockUnit === 'logs'
+      ? `Log the same exercise ${required} times`
+      : `${t(locale, 'analytics.lockUnlockAt')} ${required} ${t(locale, 'analytics.lockSessions')}`
   const remainingText = locale === 'ja'
     ? `あと${remaining}${t(locale, 'analytics.lockRemaining')}`
-    : `${remaining} more session${remaining !== 1 ? 's' : ''} to go`
+    : lockUnit === 'logs'
+      ? `${remaining} more log${remaining !== 1 ? 's' : ''} to go`
+      : `${remaining} more session${remaining !== 1 ? 's' : ''} to go`
   return (
     <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-center gap-2 mb-3">

@@ -11,7 +11,7 @@ export default async function AnalyticsPage() {
   }
 
   const [bodyWeightData, exercises, { count }] = await Promise.all([
-    getBodyWeightData(90),
+    getBodyWeightData(), // fetch all time for client-side period filtering
     getExercisesWithHistory(),
     supabase
       .from('workout_sessions')

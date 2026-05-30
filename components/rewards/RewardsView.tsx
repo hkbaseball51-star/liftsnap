@@ -8,6 +8,7 @@ import {
   getShareThemeUnlocks,
   getNextReward,
   EXERCISE_GRAPH_REQUIRED,
+  EXERCISE_PROGRESS_REQUIRED,
   getShareCount,
   type NextRewardResult,
   type TrainingMilestoneId,
@@ -68,7 +69,6 @@ export default function RewardsView() {
       })
   }, [])
 
-  const trainingUnlocks = useMemo(() => getTrainingUnlocks(totalSessions), [totalSessions])
   const shareThemes     = useMemo(() => getShareThemeUnlocks(shareCount), [shareCount])
 
   const allExercises = useMemo(() => {
@@ -84,6 +84,9 @@ export default function RewardsView() {
         return b.logCount - a.logCount
       })
   }, [exercises])
+
+  const maxExerciseLogCount = useMemo(() => (allExercises.length > 0 ? Math.max(...allExercises.map(e => e.logCount)) : 0), [allExercises])
+  const trainingUnlocks = useMemo(() => getTrainingUnlocks(totalSessions, maxExerciseLogCount), [totalSessions, maxExerciseLogCount])
 
   const nextReward        = useMemo(() => getNextReward(totalSessions, allExercises, shareCount), [totalSessions, allExercises, shareCount])
   const unlockedExercises = allExercises.filter(e => e.logCount >= EXERCISE_GRAPH_REQUIRED)
@@ -412,7 +415,10 @@ function MilestoneRow({ id, label, current, required, unlocked, isNext, isLast, 
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = required - current
   const description = t(locale ?? 'en', `rewards.milestone.${id}`)
-  const reqLabel    = locale === 'ja' ? `${required}回` : `${required} sess`
+  const isExProgress = id === 'exercise_progress'
+  const reqLabel    = locale === 'ja'
+    ? `${required}回`
+    : isExProgress ? `${required} logs` : `${required} sess`
   return (
     <div className="px-4 py-3.5" style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-start justify-between">
@@ -451,7 +457,11 @@ function MilestoneRow({ id, label, current, required, unlocked, isNext, isLast, 
             {remaining > 0 && (
               <span className="text-[9px]"
                 style={{ color: isNext ? 'rgba(255,107,0,0.60)' : 'rgba(255,255,255,0.22)' }}>
-                {locale === 'ja' ? `あと${remaining}回` : `${remaining} more`}
+                {locale === 'ja'
+                  ? `あと${remaining}回`
+                  : isExProgress
+                    ? `${remaining} more log${remaining !== 1 ? 's' : ''}`
+                    : `${remaining} more`}
               </span>
             )}
           </div>

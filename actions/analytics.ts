@@ -46,21 +46,20 @@ export async function getWeeklyVolumeData(weeks = 12) {
   return result
 }
 
-export async function getBodyWeightData(days = 90) {
+export async function getBodyWeightData(startDate?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const cutoff = new Date(Date.now() + 9 * 3600 * 1000)
-  cutoff.setDate(cutoff.getDate() - days)
-  const startDate = cutoff.toISOString().split('T')[0]
-
-  const { data } = await supabase
+  let query = supabase
     .from('body_weights')
     .select('weight_kg, recorded_at')
     .eq('user_id', user.id)
-    .gte('recorded_at', startDate)
     .order('recorded_at')
+
+  if (startDate) query = query.gte('recorded_at', startDate) as typeof query
+
+  const { data } = await query
 
   return (data ?? []).map(r => {
     const [, mm, dd] = r.recorded_at.split('-')
@@ -153,17 +152,21 @@ export async function saveBodyWeight(weightKg: number) {
   }, { onConflict: 'user_id,recorded_at' })
 }
 
-export async function getExercise1RMData(exerciseName: string) {
+export async function getExercise1RMData(exerciseName: string, startDate?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data: sessions } = await supabase
+  let sessQuery = supabase
     .from('workout_sessions')
     .select('id, trained_at')
     .eq('user_id', user.id)
     .not('completed_at', 'is', null)
     .order('trained_at')
+
+  if (startDate) sessQuery = sessQuery.gte('trained_at', startDate) as typeof sessQuery
+
+  const { data: sessions } = await sessQuery
 
   if (!sessions?.length) return []
 
@@ -199,17 +202,21 @@ export async function getExercise1RMData(exerciseName: string) {
     })
 }
 
-export async function getExerciseDailyVolumeData(exerciseName: string) {
+export async function getExerciseDailyVolumeData(exerciseName: string, startDate?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data: sessions } = await supabase
+  let sessQuery = supabase
     .from('workout_sessions')
     .select('id, trained_at')
     .eq('user_id', user.id)
     .not('completed_at', 'is', null)
     .order('trained_at')
+
+  if (startDate) sessQuery = sessQuery.gte('trained_at', startDate) as typeof sessQuery
+
+  const { data: sessions } = await sessQuery
 
   if (!sessions?.length) return []
 
@@ -306,7 +313,8 @@ export async function getStatsForShare(metric: string, exercise?: string) {
   }
 
   if (metric === 'bodyweight') {
-    const bw = await getBodyWeightData(90)
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split('T')[0]
+    const bw = await getBodyWeightData(ninetyDaysAgo)
     if (!bw.length) return null
     const latest = bw[bw.length - 1].weight
     return {

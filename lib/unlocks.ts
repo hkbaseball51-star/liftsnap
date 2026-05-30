@@ -25,21 +25,33 @@ export const TRAINING_MILESTONES: TrainingMilestone[] = [
   { id: 'yearly_report',     label: 'Yearly Report',      requiredSessions: 100, description: 'Your annual training summary'      },
 ]
 
-export function getTrainingUnlocks(totalSessions: number) {
-  return TRAINING_MILESTONES.map(m => ({
-    ...m,
-    unlocked: totalSessions >= m.requiredSessions,
-    progress: Math.min(totalSessions, m.requiredSessions),
-  }))
+export function getTrainingUnlocks(totalSessions: number, maxExerciseLogCount = 0) {
+  return TRAINING_MILESTONES.map(m => {
+    if (m.id === 'exercise_progress') {
+      return {
+        ...m,
+        unlocked: maxExerciseLogCount >= EXERCISE_PROGRESS_REQUIRED,
+        progress: Math.min(maxExerciseLogCount, EXERCISE_PROGRESS_REQUIRED),
+      }
+    }
+    return {
+      ...m,
+      unlocked: totalSessions >= m.requiredSessions,
+      progress: Math.min(totalSessions, m.requiredSessions),
+    }
+  })
 }
 
-export function isTrainingFeatureUnlocked(id: TrainingMilestoneId, totalSessions: number): boolean {
+export function isTrainingFeatureUnlocked(id: TrainingMilestoneId, totalSessions: number, maxExerciseLogCount = 0): boolean {
   const m = TRAINING_MILESTONES.find(x => x.id === id)
-  return m ? totalSessions >= m.requiredSessions : true
+  if (!m) return true
+  if (id === 'exercise_progress') return maxExerciseLogCount >= EXERCISE_PROGRESS_REQUIRED
+  return totalSessions >= m.requiredSessions
 }
 
 // ─── Exercise Graph Share ─────────────────────────────────────
 export const EXERCISE_GRAPH_REQUIRED = 10
+export const EXERCISE_PROGRESS_REQUIRED = 10
 
 export type ExerciseGraphProgress = {
   unlocked: boolean
