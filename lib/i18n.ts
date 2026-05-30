@@ -44,7 +44,8 @@ const translations = {
     profile: {
       justGettingStarted: 'Just getting started',
       streakStart: 'START',
-      addPR: 'Add',
+      personalBestAuto: 'Auto',
+      personalBestAutoMessage: 'Your personal best updates automatically when you log workouts.',
       notLoggedYet: 'Not logged yet',
       notSet: 'Not set',
       noWorkoutsYet: 'No workouts yet.',
@@ -392,7 +393,8 @@ const translations = {
     profile: {
       justGettingStarted: '記録を始めるとプロフィールが育ちます',
       streakStart: '未開始',
-      addPR: '追加',
+      personalBestAuto: '自動反映',
+      personalBestAutoMessage: '記録すると自動的に最高記録が反映されます。',
       notLoggedYet: 'まだ記録がありません',
       notSet: 'まだデータがありません',
       noWorkoutsYet: 'まだ記録がありません。',

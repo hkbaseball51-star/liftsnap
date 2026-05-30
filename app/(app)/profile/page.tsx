@@ -5,6 +5,7 @@ import { Settings, ChevronRight, Lock } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import { RANKS, getRankInfo, fmtComma } from '@/lib/ranks'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
+import PersonalBests from '@/components/profile/PersonalBests'
 
 function fmtLargeVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)}M`
@@ -277,32 +278,7 @@ export default async function ProfilePage() {
       {/* ── 4. Personal Bests ─────────────────────────── */}
       <div className="mx-4 mb-5">
         {sec('PERSONAL BESTS')}
-        <div className="grid grid-cols-3 gap-2">
-          {([
-            { label: 'Bench',    pr: benchPR    },
-            { label: 'Squat',    pr: squatPR    },
-            { label: 'Deadlift', pr: deadliftPR },
-          ] as const).map(({ label, pr }) => (
-            <div key={label} className="rounded-2xl p-4 flex flex-col items-center"
-              style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20 }}>
-              <p className="text-[10px] font-bold mb-3" style={{ color: T.secondary }}>
-                {label}
-              </p>
-              {pr != null ? (
-                <>
-                  <p className="text-xl font-black leading-none" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
-                    {pr}
-                  </p>
-                  <p className="text-[9px] font-bold mt-1" style={{ color: T.muted }}>kg</p>
-                </>
-              ) : (
-                <p className="text-sm font-bold leading-none" style={{ color: 'rgba(255,107,0,0.55)' }}>
-                  {t(locale, 'profile.addPR')}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        <PersonalBests benchPR={benchPR} squatPR={squatPR} deadliftPR={deadliftPR} />
       </div>
 
       {/* ── 5. Lifter Summary ─────────────────────────── */}
