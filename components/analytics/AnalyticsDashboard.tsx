@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { Share2, Lock } from 'lucide-react'
 import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analytics'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
+import { parseFlexibleNumber } from '@/lib/number'
 import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
 type WeightPoint = { date: string; label: string; weight: number }
@@ -111,8 +112,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   }
 
   const saveBW = async () => {
-    const v = parseFloat(bwInput)
-    if (isNaN(v) || v < 20 || v > 300) return
+    const v = parseFlexibleNumber(bwInput)
+    if (v === null || v < 20 || v > 300) return
     if (bwSaving) return
     setBwSaving(true)
     try {
@@ -134,7 +135,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const todayJST     = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
   const todaySaved   = bwData.some(p => p.date === todayJST)
-  const bwInputValid = bwInput !== '' && !isNaN(parseFloat(bwInput)) && parseFloat(bwInput) >= 20 && parseFloat(bwInput) <= 300
+  const bwParsed     = bwInput !== '' ? parseFlexibleNumber(bwInput) : null
+  const bwInputValid = bwParsed !== null && bwParsed >= 20 && bwParsed <= 300
   const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
@@ -474,7 +476,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               </div>
               <div className="flex items-baseline gap-1.5">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
                   placeholder={latestWeight ? String(latestWeight) : '70.0'}
                   value={bwInput}
