@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Settings, ChevronRight, Lock } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import { RANKS, getRankInfo, fmtComma } from '@/lib/ranks'
+import { t, type Locale, type LangPref } from '@/lib/i18n'
 
 function fmtLargeVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)}M`
@@ -65,8 +66,8 @@ type RecentSession = {
 const T = {
   main:      '#f5f5f5',
   secondary: 'rgba(255,255,255,0.65)',
-  muted:     'rgba(255,255,255,0.48)',
-  empty:     'rgba(255,255,255,0.42)',
+  muted:     'rgba(255,255,255,0.55)',
+  empty:     'rgba(255,255,255,0.55)',
   label:     'rgba(255,255,255,0.58)',
   divider:   'rgba(255,255,255,0.08)',
   card: {
@@ -106,7 +107,7 @@ export default async function ProfilePage() {
     benchRes, squatRes, deadliftRes,
     bestLiftRes, muscleGroupsRes,
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name, plan').eq('id', user.id).single(),
+    supabase.from('profiles').select('display_name, plan, lang_pref').eq('id', user.id).single(),
     supabase.from('workout_sessions')
       .select('total_volume_kg, trained_at')
       .eq('user_id', user.id)
@@ -139,6 +140,7 @@ export default async function ProfilePage() {
   const profile     = profileRes.data
   const displayName = (profile?.display_name as string | null) ?? 'USER'
   const username    = usernameHandle(user.email ?? 'user')
+  const locale: Locale = ((profile as { lang_pref?: string } | null)?.lang_pref as LangPref) === 'ja' ? 'ja' : 'en'
 
   const allSessions  = sessionsRes.data ?? []
   const sessionCount = allSessions.length
@@ -215,7 +217,9 @@ export default async function ProfilePage() {
           </div>
 
           {/* Rank description */}
-          <p className="text-[11px]" style={{ color: T.muted }}>{rankInfo.current.description}</p>
+          <p className="text-[11px]" style={{ color: T.muted }}>
+            {t(locale, `profile.rank.${rankInfo.current.name.toLowerCase()}.description`)}
+          </p>
         </div>
       </div>
 
@@ -256,7 +260,7 @@ export default async function ProfilePage() {
               </p>
             ) : (
               <p className="text-sm font-black leading-none tracking-widest" style={{ color: T.empty }}>
-                START
+                {t(locale, 'profile.streakStart')}
               </p>
             )}
             <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>BEST STREAK</p>
@@ -287,7 +291,9 @@ export default async function ProfilePage() {
                   <p className="text-[9px] font-bold mt-1" style={{ color: T.muted }}>kg</p>
                 </>
               ) : (
-                <p className="text-sm font-bold leading-none" style={{ color: 'rgba(255,107,0,0.55)' }}>Add</p>
+                <p className="text-sm font-bold leading-none" style={{ color: 'rgba(255,107,0,0.55)' }}>
+                  {t(locale, 'profile.addPR')}
+                </p>
               )}
             </div>
           ))}
@@ -310,7 +316,7 @@ export default async function ProfilePage() {
                 </span>
               </p>
             ) : (
-              <p className="text-sm font-bold" style={{ color: T.empty }}>Not logged yet</p>
+              <p className="text-sm font-bold" style={{ color: T.empty }}>{t(locale, 'profile.notLoggedYet')}</p>
             )}
           </div>
 
@@ -320,13 +326,13 @@ export default async function ProfilePage() {
             {mainMuscle ? (
               <p className="text-sm font-black capitalize" style={{ color: T.secondary }}>{mainMuscle}</p>
             ) : (
-              <p className="text-sm font-bold" style={{ color: T.empty }}>Not set</p>
+              <p className="text-sm font-bold" style={{ color: T.empty }}>{t(locale, 'profile.notSet')}</p>
             )}
           </div>
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <p className="text-[10px] font-black tracking-widest shrink-0" style={{ color: T.label }}>SPLIT</p>
-            <p className="text-sm font-bold" style={{ color: T.empty }}>Not set</p>
+            <p className="text-sm font-bold" style={{ color: T.empty }}>{t(locale, 'profile.notSet')}</p>
           </div>
 
         </div>
@@ -348,7 +354,9 @@ export default async function ProfilePage() {
                     {rankInfo.next.emoji} {rankInfo.next.name}
                   </p>
                   <p className="text-xs font-bold mt-1" style={{ color: T.muted }}>
-                    {fmtComma(rankInfo.remaining)}kg to go
+                    {locale === 'ja'
+                      ? `あと${fmtComma(rankInfo.remaining)}kgでランクアップ`
+                      : `${fmtComma(rankInfo.remaining)}kg to go`}
                   </p>
                 </div>
                 <div className="text-right">
@@ -397,14 +405,18 @@ export default async function ProfilePage() {
                   <p className="text-[11px] font-black" style={{ color: unlocked ? rank.color : T.label }}>
                     {rank.name}
                   </p>
-                  <p className="text-[10px]" style={{ color: T.muted }}>{rank.unlockText}</p>
+                  <p className="text-[10px]" style={{ color: T.muted }}>
+                    {t(locale, `profile.rank.${rank.name.toLowerCase()}.unlockText`)}
+                  </p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-[10px] font-bold" style={{ color: T.muted, fontFamily: 'var(--font-mono)' }}>
                     {fmtComma(rank.threshold)}kg
                   </p>
                   {unlocked && (
-                    <p className="text-[9px] font-black" style={{ color: rank.color }}>UNLOCKED</p>
+                    <p className="text-[9px] font-black" style={{ color: rank.color }}>
+                      {t(locale, 'profile.unlocked')}
+                    </p>
                   )}
                 </div>
               </div>
@@ -418,9 +430,11 @@ export default async function ProfilePage() {
         {sec('RECENT ACTIVITY')}
         {recentSessions.length === 0 ? (
           <div className="px-4 py-9 text-center rounded-2xl" style={T.card}>
-            <p className="text-sm font-black mb-2" style={{ color: 'rgba(255,255,255,0.72)' }}>No workouts yet.</p>
-            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
-              Log your first session to build your lifting profile.
+            <p className="text-sm font-black mb-2" style={{ color: 'rgba(255,255,255,0.72)' }}>
+              {t(locale, 'profile.noWorkoutsYet')}
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.58)' }}>
+              {t(locale, 'profile.logFirstSession')}
             </p>
           </div>
         ) : (
@@ -453,7 +467,7 @@ export default async function ProfilePage() {
                     </div>
                     <p className="text-[11px] font-bold" style={{ color: T.muted }}>
                       {s.total_volume_kg != null ? formatVolume(s.total_volume_kg) : '—'}
-                      {' · '}{setCount} {setCount === 1 ? 'set' : 'sets'}
+                      {' · '}{locale === 'ja' ? `${setCount}セット` : `${setCount} ${setCount === 1 ? 'set' : 'sets'}`}
                     </p>
                   </div>
                   <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.30)' }} />

@@ -10,6 +10,23 @@ export function resolveLocale(pref: LangPref): Locale {
 
 const translations = {
   en: {
+    profile: {
+      justGettingStarted: 'Just getting started',
+      streakStart: 'START',
+      addPR: 'Add',
+      notLoggedYet: 'Not logged yet',
+      notSet: 'Not set',
+      noWorkoutsYet: 'No workouts yet.',
+      logFirstSession: 'Log your first session to build your lifting profile.',
+      unlocked: 'UNLOCKED',
+      rank: {
+        rookie:  { description: 'Just getting started',  unlockText: 'Basic profile badge'          },
+        grinder: { description: 'Building consistency',  unlockText: 'Rank badge on share cards'    },
+        beast:   { description: 'Serious lifter',        unlockText: 'Beast share frame'            },
+        elite:   { description: 'Advanced athlete',      unlockText: 'Elite profile accent'         },
+        legend:  { description: 'Lifting legend',        unlockText: 'Legend share card style'      },
+      },
+    },
     settings: {
       language: 'Language',
       languageSub: 'Auto / English / 日本語',
@@ -237,6 +254,23 @@ const translations = {
   },
 
   ja: {
+    profile: {
+      justGettingStarted: '記録を始めるとプロフィールが育ちます',
+      streakStart: '未開始',
+      addPR: '追加',
+      notLoggedYet: 'まだ記録がありません',
+      notSet: 'まだデータがありません',
+      noWorkoutsYet: 'まだ記録がありません。',
+      logFirstSession: '最初のワークアウトを記録しましょう。',
+      unlocked: '解放済み',
+      rank: {
+        rookie:  { description: '記録を始めるとプロフィールが育ちます',    unlockText: 'プロフィールの基本バッジが解放されます'              },
+        grinder: { description: 'コツコツ積み上げています',                unlockText: 'Shareカードにランクバッジが表示されます'             },
+        beast:   { description: '本気のリフター',                          unlockText: 'Shareカードの特別フレームが解放されます'             },
+        elite:   { description: '上級アスリート',                          unlockText: 'プロフィールの特別アクセントが解放されます'          },
+        legend:  { description: 'リフティングの頂点',                      unlockText: 'Legend専用のShareカードスタイルが解放されます'       },
+      },
+    },
     settings: {
       language: '言語',
       languageSub: '自動 / English / 日本語',
