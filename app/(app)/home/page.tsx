@@ -41,7 +41,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('profiles')
-      .select('display_name, onboarding_completed, lang_pref')
+      .select('display_name, onboarding_completed, language')
       .eq('id', user.id)
       .single(),
 
@@ -148,12 +148,12 @@ export default async function HomePage() {
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessionsRes.data?.length ?? 0
   const todayWorked = thisWeekSessions.some((s: { trained_at: string }) => s.trained_at === todayStr)
-  const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null; lang_pref: string | null } | null
+  const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null; language: string | null } | null
   if (profileData?.onboarding_completed === false && !user.is_anonymous) {
     redirect('/onboarding')
   }
   const displayName = profileData?.display_name ?? null
-  const locale: Locale = (profileData?.lang_pref as LangPref) === 'ja' ? 'ja' : 'en'
+  const locale: Locale = (profileData?.language as LangPref) === 'ja' ? 'ja' : 'en'
 
   const thisWeekVolume = thisWeekSessions.reduce((s: number, r: { total_volume_kg: number | null }) => s + (r.total_volume_kg ?? 0), 0)
   const lastWeekVolume = (lastWeekRes.data ?? []).reduce(

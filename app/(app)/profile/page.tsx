@@ -107,7 +107,7 @@ export default async function ProfilePage() {
     benchRes, squatRes, deadliftRes,
     bestLiftRes, muscleGroupsRes,
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name, plan, lang_pref').eq('id', user.id).single(),
+    supabase.from('profiles').select('display_name, plan, language').eq('id', user.id).single(),
     supabase.from('workout_sessions')
       .select('total_volume_kg, trained_at')
       .eq('user_id', user.id)
@@ -140,7 +140,7 @@ export default async function ProfilePage() {
   const profile     = profileRes.data
   const displayName = (profile?.display_name as string | null) ?? 'USER'
   const username    = usernameHandle(user.email ?? 'user')
-  const locale: Locale = ((profile as { lang_pref?: string } | null)?.lang_pref as LangPref) === 'ja' ? 'ja' : 'en'
+  const locale: Locale = ((profile as { language?: string } | null)?.language as LangPref) === 'ja' ? 'ja' : 'en'
 
   const allSessions  = sessionsRes.data ?? []
   const sessionCount = allSessions.length
