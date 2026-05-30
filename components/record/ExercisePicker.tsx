@@ -40,37 +40,58 @@ function normalizeSearchText(s: string): string {
 }
 
 const MUSCLE_GROUP_KEYWORDS: Record<string, string[]> = {
-  CHEST: ['chest', '胸', '胸筋', '大胸筋', 'チェスト', 'pec', 'pecs', 'bench'],
-  BACK: ['back', '背中', '背筋', '広背筋', 'バック', 'lats', 'lat', 'traps', 'trap', 'row', 'pull'],
-  SHOULDERS: ['shoulders', 'shoulder', '肩', '三角筋', 'ショルダー', 'delts', 'delt', 'press', 'overhead'],
-  BICEPS: ['biceps', 'bicep', '二頭筋', '二頭', '上腕二頭筋', 'arms', 'arm', '腕', '上腕', 'アーム', 'curl', 'カール'],
-  TRICEPS: ['triceps', 'tricep', '三頭筋', '三頭', '上腕三頭筋', 'arms', 'arm', '腕', '上腕', 'アーム', 'extension'],
-  FOREARMS: ['forearms', 'forearm', '前腕', '腕', 'arms', 'arm', 'wrist', 'grip', '手首'],
-  QUADS: ['quads', 'quad', 'quadriceps', '前もも', '大腿四頭筋', 'legs', 'leg', '脚', '足', '下半身', '太もも', 'レッグ', 'squat', 'スクワット'],
-  HAMSTRINGS: ['hamstrings', 'hamstring', 'もも裏', 'ハムストリング', 'legs', 'leg', '脚', '足', '下半身', '太もも', 'レッグ', 'deadlift', 'デッドリフト'],
-  GLUTES: ['glutes', 'glute', 'お尻', '尻', '臀部', '殿筋', '大臀筋', 'legs', 'leg', '脚', '足', '下半身', 'レッグ', 'hip', 'ヒップ'],
-  CALVES: ['calves', 'calf', 'ふくらはぎ', '下腿', '腓腹筋', 'legs', 'leg', '脚', '足', '下半身', 'レッグ', 'raise'],
-  ABS: ['abs', 'ab', 'core', '腹筋', '腹', '体幹', 'コア', 'crunch', 'クランチ', 'plank', 'プランク'],
+  CHEST:      ['chest', '胸', '胸筋', '大胸筋', 'チェスト', 'pec', 'pecs', 'bench', 'push', 'fly', 'flye'],
+  BACK:       ['back', '背中', '背筋', '広背筋', 'バック', 'lats', 'lat', 'traps', 'trap', 'row', 'pull', 'pulling', 'rowing'],
+  SHOULDERS:  ['shoulders', 'shoulder', '肩', '三角筋', 'ショルダー', 'delts', 'delt', 'press', 'overhead', 'ohp', 'raise'],
+  BICEPS:     ['biceps', 'bicep', '二頭筋', '二頭', '上腕二頭筋', 'arms', 'arm', '腕', '上腕', 'アーム', 'curl', 'カール', 'hammer'],
+  TRICEPS:    ['triceps', 'tricep', '三頭筋', '三頭', '上腕三頭筋', 'arms', 'arm', '腕', '上腕', 'アーム', 'extension', 'pushdown', 'push', 'dip', 'skull'],
+  FOREARMS:   ['forearms', 'forearm', '前腕', '腕', 'arms', 'arm', 'wrist', 'grip', '手首'],
+  QUADS:      ['quads', 'quad', 'quadriceps', '前もも', '大腿四頭筋', 'legs', 'leg', '脚', '足', '下半身', '太もも', 'レッグ', 'squat', 'スクワット', 'lower', 'lower body'],
+  HAMSTRINGS: ['hamstrings', 'hamstring', 'もも裏', 'ハムストリング', 'legs', 'leg', '脚', '足', '下半身', '太もも', 'レッグ', 'deadlift', 'デッドリフト', 'lower', 'lower body'],
+  GLUTES:     ['glutes', 'glute', 'お尻', '尻', '臀部', '殿筋', '大臀筋', 'legs', 'leg', '脚', '足', '下半身', 'レッグ', 'hip', 'ヒップ', 'butt', 'lower', 'lower body'],
+  CALVES:     ['calves', 'calf', 'ふくらはぎ', '下腿', '腓腹筋', 'legs', 'leg', '脚', '足', '下半身', 'レッグ', 'raise', 'lower', 'lower body'],
+  ABS:        ['abs', 'ab', 'core', '腹筋', '腹', '体幹', 'コア', 'crunch', 'クランチ', 'plank', 'プランク', 'rollout'],
 }
 
 function getMuscleGroupKeywords(group: string): string[] {
   return MUSCLE_GROUP_KEYWORDS[group.toUpperCase()] ?? []
 }
 
-function getExerciseSearchTexts(e: Exercise): string[] {
-  const nameEn = JA_TO_EN[e.name]
-  const base = [e.name, e.muscle_group, ...getMuscleGroupKeywords(e.muscle_group)]
-  if (nameEn) base.push(nameEn)
-  return base.map(normalizeSearchText).filter(s => s.length > 0)
-}
+// Score 0 = exclude; higher = better match
+function scoreExercise(e: Exercise, q: string): number {
+  const nameJa = normalizeSearchText(e.name)
+  const nameEnRaw = JA_TO_EN[e.name]
+  const nameEn = nameEnRaw ? normalizeSearchText(nameEnRaw) : null
+  const muscle  = normalizeSearchText(e.muscle_group)
 
-function exerciseMatchesQuery(e: Exercise, normalizedQuery: string): boolean {
-  if (!normalizedQuery) return true
-  const searchTexts = getExerciseSearchTexts(e)
-  return searchTexts.some(text =>
-    text.includes(normalizedQuery) ||
-    (text.length >= 2 && normalizedQuery.includes(text))
-  )
+  // ── Exact name match ──────────────────────────────────────
+  if (nameJa === q || nameEn === q) return 100
+
+  let score = 0
+
+  // ── Name starts with / includes ───────────────────────────
+  if (nameJa.startsWith(q) || nameEn?.startsWith(q))        score = Math.max(score, 90)
+  if (nameJa.includes(q))                                    score = Math.max(score, 80)
+  if (nameEn?.includes(q))                                   score = Math.max(score, 80)
+
+  // Early return: strong name match beats all category signals
+  if (score >= 80) return score
+
+  // ── Muscle group direct ───────────────────────────────────
+  if (muscle === q)                                           score = Math.max(score, 70)
+  else if (muscle.includes(q) || q.includes(muscle))         score = Math.max(score, 65)
+
+  // ── Keyword matching ──────────────────────────────────────
+  for (const kw of getMuscleGroupKeywords(e.muscle_group)) {
+    const k = normalizeSearchText(kw)
+    if (!k) continue
+    if (k === q)                                              { score = Math.max(score, 60); break }
+    if (k.startsWith(q) || q.startsWith(k))                  score = Math.max(score, 45)
+    else if ((k.length >= 2 && q.includes(k)) ||
+             (q.length >= 2 && k.includes(q)))               score = Math.max(score, 30)
+  }
+
+  return score
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -172,12 +193,18 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   const freqIdSet = useMemo(() => new Set(showFrequent ? frequentlyUsed.map(e => e.id) : []), [showFrequent, frequentlyUsed])
 
   const filtered = useMemo(() => {
-    return exercises.filter(e => {
+    const base = exercises.filter(e => {
       if (hiddenIds.includes(e.id)) return false
       if (freqIdSet.has(e.id)) return false
       if (activeGroup !== 'ALL' && e.muscle_group !== activeGroup) return false
-      return exerciseMatchesQuery(e, normalizedQuery)
+      return true
     })
+    if (!normalizedQuery) return base
+    return base
+      .map(e => ({ e, score: scoreExercise(e, normalizedQuery) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ e }) => e)
   }, [exercises, hiddenIds, freqIdSet, normalizedQuery, activeGroup])
 
   const hiddenExercises = useMemo(() => {
