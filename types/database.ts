@@ -39,6 +39,15 @@ export interface Database {
           avatar_url: string | null
           plan: UserPlan
           stripe_customer_id: string | null
+          weight_unit: 'kg' | 'lbs'
+          goal: 'muscle_gain' | 'fat_loss' | 'strength' | 'endurance' | 'general' | null
+          experience: 'beginner' | 'intermediate' | 'advanced' | null
+          workout_frequency: number | null
+          onboarding_completed: boolean
+          language: 'auto' | 'en' | 'ja'
+          email_opt_in: boolean
+          email_opt_in_at: string | null
+          acquisition_source: string | null
           created_at: string
           updated_at: string
         }
@@ -49,6 +58,15 @@ export interface Database {
           avatar_url?: string | null
           plan?: UserPlan
           stripe_customer_id?: string | null
+          weight_unit?: 'kg' | 'lbs'
+          goal?: 'muscle_gain' | 'fat_loss' | 'strength' | 'endurance' | 'general' | null
+          experience?: 'beginner' | 'intermediate' | 'advanced' | null
+          workout_frequency?: number | null
+          onboarding_completed?: boolean
+          language?: 'auto' | 'en' | 'ja'
+          email_opt_in?: boolean
+          email_opt_in_at?: string | null
+          acquisition_source?: string | null
         }
         Update: {
           display_name?: string | null
@@ -56,6 +74,15 @@ export interface Database {
           avatar_url?: string | null
           plan?: UserPlan
           stripe_customer_id?: string | null
+          weight_unit?: 'kg' | 'lbs'
+          goal?: 'muscle_gain' | 'fat_loss' | 'strength' | 'endurance' | 'general' | null
+          experience?: 'beginner' | 'intermediate' | 'advanced' | null
+          workout_frequency?: number | null
+          onboarding_completed?: boolean
+          language?: 'auto' | 'en' | 'ja'
+          email_opt_in?: boolean
+          email_opt_in_at?: string | null
+          acquisition_source?: string | null
           updated_at?: string
         }
       }

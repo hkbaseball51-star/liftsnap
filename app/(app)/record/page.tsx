@@ -20,6 +20,7 @@ export default async function RecordPage({
       date={date}
       existingSessionId={sessionData?.id}
       existingExercises={sessionData?.exercises}
+      existingTitle={sessionData?.title}
     />
   )
 }

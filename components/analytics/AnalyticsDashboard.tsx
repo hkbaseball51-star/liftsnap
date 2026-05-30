@@ -10,6 +10,8 @@ import { Share2, Lock } from 'lucide-react'
 import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analytics'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
 type WeightPoint = { date: string; label: string; weight: number }
@@ -58,6 +60,7 @@ const tooltipStyle = {
 }
 
 export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
+  const { locale } = useLocale()
   const [tab, setTab] = useState<Tab>('MAX 1RM')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
@@ -125,9 +128,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         const filtered = prev.filter(p => p.date !== today)
         return [...filtered, { date: today, label, weight: v }].sort((a, b) => a.date.localeCompare(b.date))
       })
-      showBwToast('Weight logged', true)
+      showBwToast(t(locale, 'analytics.weightLogged'), true)
     } catch {
-      showBwToast('Could not save weight', false)
+      showBwToast(t(locale, 'analytics.weightError'), false)
     } finally {
       setBwSaving(false)
     }

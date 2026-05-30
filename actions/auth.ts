@@ -30,7 +30,7 @@ export async function signup(formData: FormData) {
   if (error) return { error: error.message }
 
   revalidatePath('/', 'layout')
-  redirect('/home')
+  redirect('/onboarding')
 }
 
 export async function logout() {

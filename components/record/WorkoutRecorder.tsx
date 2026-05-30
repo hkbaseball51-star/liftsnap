@@ -55,20 +55,19 @@ type Props = {
   date: string                      // YYYY-MM-DD
   existingSessionId?: string
   existingExercises?: InitialExercise[]
+  existingTitle?: string
 }
 
 /* ─── Pure helpers ────────────────────────────────────── */
 
 function uid() { return Math.random().toString(36).slice(2) }
 
-function getDefaultTitle(date: string) {
-  const d = new Date(date + 'T00:00:00')
-  const h = d.getHours()
-  if (h < 6)  return 'NIGHT SESSION'
-  if (h < 12) return 'MORNING SESSION'
-  if (h < 15) return 'NOON SESSION'
-  if (h < 19) return 'EVENING SESSION'
-  return 'NIGHT SESSION'
+function getDefaultTitle(): string {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 11) return 'Morning Session'
+  if (h >= 11 && h < 17) return 'Afternoon Session'
+  if (h >= 17 && h < 21) return 'Evening Session'
+  return 'Night Session'
 }
 
 function formatDateLabel(date: string) {
@@ -284,6 +283,7 @@ export default function WorkoutRecorder({
   date,
   existingSessionId,
   existingExercises,
+  existingTitle,
 }: Props) {
   const router = useRouter()
   const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
@@ -291,7 +291,7 @@ export default function WorkoutRecorder({
   const isToday = date === todayJST
 
   const [sessionId, setSessionId] = useState<string | null>(existingSessionId ?? null)
-  const [title, setTitle] = useState(() => getDefaultTitle(date))
+  const [title, setTitle] = useState(() => existingTitle?.trim() ? existingTitle : getDefaultTitle())
   const [editingTitle, setEditingTitle] = useState(false)
   const [exerciseList, setExerciseList] = useState<ExerciseEntry[]>(() =>
     (existingExercises ?? []).map(ex => ({
@@ -484,7 +484,7 @@ export default function WorkoutRecorder({
             {editingTitle ? (
               <input autoFocus value={title}
                 onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
-                onBlur={() => setEditingTitle(false)}
+                onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle()); setEditingTitle(false) }}
                 onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
                 className="text-sm font-black text-white bg-transparent outline-none min-w-0"
                 style={{ borderBottom: '1px solid #ff6b00', maxWidth: 160 }}

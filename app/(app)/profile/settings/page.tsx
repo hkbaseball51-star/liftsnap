@@ -89,10 +89,13 @@ const ACCOUNT_ROWS: LiveRow[] = [
   { label: 'Notifications', sub: 'Push and in-app alerts',     icon: Bell,   href: '/profile/notifications' },
 ]
 
+const APP_LIVE_ROWS: LiveRow[] = [
+  { label: 'Language', sub: 'Auto / English / 日本語', icon: Globe, href: '/profile/language' },
+]
+
 const APP_ROWS: SoonRow[] = [
-  { label: 'Units',    sub: 'kg / lb toggle coming soon',              icon: Ruler },
-  { label: 'Theme',    sub: 'Custom color themes coming soon',          icon: Palette },
-  { label: 'Language', sub: 'English / Japanese support coming soon',   icon: Globe },
+  { label: 'Units', sub: 'kg / lb toggle coming soon', icon: Ruler },
+  { label: 'Theme', sub: 'Custom color themes coming soon', icon: Palette },
 ]
 
 const SUPPORT_ROWS: LiveRow[] = [
@@ -136,6 +139,9 @@ export default async function SettingsPage() {
       <div className="mx-4 mb-4">
         <SectionLabel text="APP" />
         <div style={T.card}>
+          {APP_LIVE_ROWS.map((row, i) => (
+            <LiveRowEl key={row.label} row={row} last={APP_ROWS.length === 0 && i === APP_LIVE_ROWS.length - 1} />
+          ))}
           {APP_ROWS.map((row, i) => (
             <SoonRowEl key={row.label} row={row} last={i === APP_ROWS.length - 1} />
           ))}
