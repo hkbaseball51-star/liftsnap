@@ -5,6 +5,7 @@ import { Settings, ChevronRight, Lock } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import { RANKS, getRankInfo, fmtComma } from '@/lib/ranks'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
+import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 import PersonalBests from '@/components/profile/PersonalBests'
 
 function fmtLargeVolume(kg: number): string {
@@ -106,7 +107,7 @@ export default async function ProfilePage() {
     benchRes, squatRes, deadliftRes,
     bestLiftRes, muscleGroupsRes,
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name, plan, language, username').eq('id', user.id).single(),
+    supabase.from('profiles').select('display_name, plan, language, username, weight_unit').eq('id', user.id).single(),
     supabase.from('workout_sessions')
       .select('total_volume_kg, trained_at')
       .eq('user_id', user.id)
@@ -144,6 +145,8 @@ export default async function ProfilePage() {
   const cookieLang = cookieStore.get('liftsnap_lang')?.value
   const dbLang     = (profile as { language?: string | null } | null)?.language
   const locale: Locale = resolveServerLocale(cookieLang, dbLang, headerStore.get('accept-language') ?? '')
+  const dbWeightUnit = (profile as { weight_unit?: string | null } | null)?.weight_unit
+  const weightUnit: WeightUnit = dbWeightUnit === 'lbs' ? 'lbs' : 'kg'
 
   const allSessions  = sessionsRes.data ?? []
   const sessionCount = allSessions.length
@@ -248,9 +251,9 @@ export default async function ProfilePage() {
           <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1.5">
             <div className="flex items-baseline gap-0.5 leading-none">
               <p className="text-2xl font-black" style={{ color: T.main, fontFamily: 'var(--font-mono)' }}>
-                {totalVolume > 0 ? fmtLargeVolume(totalVolume) : '0'}
+                {totalVolume > 0 ? fmtLargeVolume(toDisplayWeight(totalVolume, weightUnit)) : '0'}
               </p>
-              <p className="text-[10px] font-bold" style={{ color: T.muted }}>kg</p>
+              <p className="text-[10px] font-bold" style={{ color: T.muted }}>{weightUnitLabel(weightUnit)}</p>
             </div>
             <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>VOLUME</p>
           </div>
@@ -293,7 +296,7 @@ export default async function ProfilePage() {
               <p className="text-sm font-bold text-right ml-3">
                 <span style={{ color: T.secondary }}>{bestLift.exercise_name} </span>
                 <span className="font-black" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
-                  {bestLift.weight_kg}kg
+                  {toDisplayWeight(bestLift.weight_kg, weightUnit)}{weightUnitLabel(weightUnit)}
                 </span>
               </p>
             ) : (
@@ -336,15 +339,15 @@ export default async function ProfilePage() {
                   </p>
                   <p className="text-xs font-bold mt-1" style={{ color: T.muted }}>
                     {locale === 'ja'
-                      ? `あと${fmtComma(rankInfo.remaining)}kgでランクアップ`
-                      : `${fmtComma(rankInfo.remaining)}kg to go`}
+                      ? `あと${fmtComma(Math.round(toDisplayWeight(rankInfo.remaining, weightUnit)))}${weightUnitLabel(weightUnit)}でランクアップ`
+                      : `${fmtComma(Math.round(toDisplayWeight(rankInfo.remaining, weightUnit)))}${weightUnitLabel(weightUnit)} to go`}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[9px] font-black tracking-widest mb-1.5" style={{ color: T.label }}>TOTAL VOLUME</p>
                   <p className="text-sm font-black"
                     style={{ color: T.main, fontFamily: 'var(--font-mono)' }}>
-                    {fmtComma(totalVolume)}kg
+                    {fmtComma(Math.round(toDisplayWeight(totalVolume, weightUnit)))}{weightUnitLabel(weightUnit)}
                   </p>
                 </div>
               </div>
@@ -447,7 +450,7 @@ export default async function ProfilePage() {
                       )}
                     </div>
                     <p className="text-[11px] font-bold" style={{ color: T.muted }}>
-                      {s.total_volume_kg != null ? formatVolume(s.total_volume_kg) : '—'}
+                      {s.total_volume_kg != null ? formatVolume(s.total_volume_kg, weightUnit) : '—'}
                       {' · '}{locale === 'ja' ? `${setCount}セット` : `${setCount} ${setCount === 1 ? 'set' : 'sets'}`}
                     </p>
                   </div>

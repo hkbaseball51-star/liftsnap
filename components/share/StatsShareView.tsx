@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -423,6 +425,8 @@ function ChartSVG({ pts, ac, accent, chartType }: {
 export default function StatsShareView({ data }: { data: StatsData }) {
   const router     = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
+  const { unit }   = useWeightUnit()
+  const unitLabel  = weightUnitLabel(unit)
 
   const [theme,      setTheme]      = useState<Theme>('dark')
   const [accent,     setAccent]     = useState<Accent>('dark')
@@ -479,9 +483,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const exName         = exNameEn.length > 18 ? exNameEn.slice(0, 17) + '…' : exNameEn
 
   const rm1Growth   = rm1FullHistory.length >= 2
-    ? Math.round((bestRM - rm1FullHistory[0].est1rm) * 10) / 10
+    ? Math.round((toDisplayWeight(bestRM, unit) - toDisplayWeight(rm1FullHistory[0].est1rm, unit)) * 10) / 10
     : null
-  const rm1FirstVal = rm1FullHistory.length >= 1 ? rm1FullHistory[0].est1rm : null
+  const rm1FirstVal = rm1FullHistory.length >= 1 ? toDisplayWeight(rm1FullHistory[0].est1rm, unit) : null
+  const bestRMDisplay = toDisplayWeight(bestRM, unit)
 
   // Story display: max 16 bars — latest on top, first on bottom, middle evenly sampled
   const rm1DisplayData: RMPoint[] = (() => {
@@ -499,8 +504,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     return [latest, ...sampled.reverse(), first]
   })()
 
-  const n      = rm1DisplayData.length
-  const rm1Max = n ? Math.max(...rm1DisplayData.map(d => d.est1rm)) : 0
+  const rm1DisplayDataConverted = rm1DisplayData.map(p => ({
+    ...p,
+    est1rm: Math.round(toDisplayWeight(p.est1rm, unit)),
+  }))
+  const n      = rm1DisplayDataConverted.length
+  const rm1Max = n ? Math.max(...rm1DisplayDataConverted.map(d => d.est1rm)) : 0
 
   // Dense bar layout: flex-start + explicit gap (no space-between stretching)
   const barGap    = n <= 4 ? 14 : n <= 10 ? 10 : n <= 20 ? 7 : n <= 35 ? 4 : 3
@@ -528,11 +537,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   if (data.type === 'volume') {
     metricLabel = 'DAILY VOLUME'; exerciseName = data.exerciseName
-    const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
+    const maxVol = data.history.length ? Math.round(toDisplayWeight(Math.max(...data.history.map(d => d.volume)), unit)) : 0
     heroNum = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
-    supp1 = `${data.totalVolume >= 10000 ? `${(data.totalVolume/1000).toFixed(1)}k` : data.totalVolume.toLocaleString()} kg total`
+    const displayTotal = Math.round(toDisplayWeight(data.totalVolume, unit))
+    supp1 = `${displayTotal >= 10000 ? `${(displayTotal/1000).toFixed(1)}k` : displayTotal.toLocaleString()} ${unitLabel} total`
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
-    chartData = data.history.map(d => ({ date: d.date, value: d.volume }))
+    chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else if (data.type === 'bodyweight') {
     metricLabel = 'BODY WEIGHT'; heroNum = String(data.currentWeight)
     if (data.change !== 0) supp1 = `${data.change > 0 ? '+' : ''}${data.change} kg since start`
@@ -615,28 +625,28 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, margin: '0 0 3px', flexWrap: 'nowrap' }}>
                       <span style={{ fontSize: 7, fontWeight: 700, color: '#EDEDED', letterSpacing: '0.1em' }}>START</span>
                       <span style={{ fontSize: 17, fontWeight: 700, color: '#F2F2F2', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                        {rm1FirstVal}<span style={{ fontSize: 9, fontWeight: 500, color: '#D0D0D0' }}>kg</span>
+                        {rm1FirstVal}<span style={{ fontSize: 9, fontWeight: 500, color: '#D0D0D0' }}>{unitLabel}</span>
                       </span>
                     </div>
                     {/* NOW row — hero number */}
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, margin: '0 0 4px', flexWrap: 'nowrap' }}>
                       <span style={{ fontSize: 8, fontWeight: 700, color: acHex, letterSpacing: '0.08em', paddingBottom: 6 }}>NOW</span>
                       <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95, whiteSpace: 'nowrap' }}>
-                        {bestRM}
+                        {bestRMDisplay}
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', lineHeight: 1, paddingBottom: 5 }}>kg</span>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', lineHeight: 1, paddingBottom: 5 }}>{unitLabel}</span>
                     </div>
                     {/* GAIN row */}
                     {rm1Growth !== null && (
                       <p style={{ fontSize: 16, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1.2 }}>
-                        {rm1Growth >= 0 ? '+' : ''}{rm1Growth}kg GAIN
+                        {rm1Growth >= 0 ? '+' : ''}{rm1Growth}{unitLabel} GAIN
                       </p>
                     )}
                   </>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                    <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95 }}>{bestRM}</span>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', paddingBottom: 5 }}>kg</span>
+                    <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95 }}>{bestRMDisplay}</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', paddingBottom: 5 }}>{unitLabel}</span>
                   </div>
                 )}
               </div>
@@ -661,7 +671,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {n === 0 ? (
                   <p style={{ fontSize: 7, color: '#444' }}>No data yet</p>
                 ) : (
-                  rm1DisplayData.map((pt, i) => {
+                  rm1DisplayDataConverted.map((pt, i) => {
                     const isLatest      = i === 0
                     const isFirstRecord = i === n - 1
                     const pct = rm1Max > 0 ? (pt.est1rm / rm1Max) * 100 : 0

@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useLocale } from '@/lib/useLocale'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t } from '@/lib/i18n'
 
 type Props = {
@@ -12,6 +14,7 @@ type Props = {
 
 export default function PersonalBests({ benchPR, squatPR, deadliftPR }: Props) {
   const { locale } = useLocale()
+  const { unit } = useWeightUnit()
   const [toast, setToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -40,9 +43,9 @@ export default function PersonalBests({ benchPR, squatPR, deadliftPR }: Props) {
             {pr != null ? (
               <>
                 <p className="text-xl font-black leading-none" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
-                  {pr}
+                  {toDisplayWeight(pr, unit)}
                 </p>
-                <p className="text-[9px] font-bold mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>kg</p>
+                <p className="text-[9px] font-bold mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>{weightUnitLabel(unit)}</p>
               </>
             ) : (
               <p className="text-[11px] font-bold leading-none mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>

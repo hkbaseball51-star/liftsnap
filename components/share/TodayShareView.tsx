@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 
 export type TodayData = {
   title: string
@@ -137,6 +139,8 @@ async function captureCard(captureEl: HTMLDivElement, theme: Theme): Promise<Blo
 export default function TodayShareView({ data }: { data: TodayData }) {
   const router     = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
+  const { unit }   = useWeightUnit()
+  const unitLabel  = weightUnitLabel(unit)
 
   const [theme,      setTheme]      = useState<Theme>('dark')
   const [accent,     setAccent]     = useState<Accent>('dark')
@@ -175,7 +179,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const acHex = ac.hex
   const isT   = theme === 'transparent'
 
-  const volStr       = fmtVol(data.volume)
+  const volStr       = formatVolumeWithUnit(data.volume, unit)
   const g1rm         = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
   const dividerColor = 'rgba(255,255,255,0.22)'
   // text-shadow cascades to all children; natural shadow keeps white readable over photos
@@ -247,13 +251,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 {/* flex keeps the number and unit on the same line — no absolute positioning */}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, margin: '0 0 3px', lineHeight: 1 }}>
                   <span style={{ fontSize: 42, fontWeight: 900, color: acHex, lineHeight: 1 }}>{volStr}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: '#F2F2F2', lineHeight: 1, paddingBottom: 2 }}>kg</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px', flexWrap: 'nowrap' }}>
                   <span style={{ fontSize: 9, color: '#F2F2F2', lineHeight: 1.4, whiteSpace: 'nowrap' }}>{data.setsCount} SETS</span>
                   {g1rm > 0 && (
                     <span style={{ fontSize: 9, color: '#EDEDED', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
-                      · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(g1rm)}kg</span>
+                      · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{toDisplayWeight(Math.round(g1rm), unit)}{unitLabel}</span>
                     </span>
                   )}
                 </div>
@@ -285,7 +288,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                               <span style={{ fontSize: 9, color: '#EDEDED', lineHeight: 1.1 }}>·</span>
                               <span style={{ fontSize: 10, color: '#F2F2F2', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                                 est. 1RM&nbsp;
-                                <span style={{ color: acHex, fontWeight: 700 }}>{Math.round(ex.best1RM)}kg</span>
+                                <span style={{ color: acHex, fontWeight: 700 }}>{toDisplayWeight(Math.round(ex.best1RM), unit)}{unitLabel}</span>
                               </span>
                             </>
                           )}
@@ -296,7 +299,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                           {visibleSets.map((s, si) => (
                             <p key={si} style={{ fontSize: 13, lineHeight: 1.3, margin: 0, fontWeight: 500 }}>
                               <span style={{ color: '#F0F0F0' }}>
-                                {s.weight > 0 ? `${fmtKg(s.weight)}kg` : 'BW'}
+                                {s.weight > 0 ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel}` : 'BW'}
                               </span>
                               <span style={{ color: '#F2F2F2' }}> × {s.reps}</span>
                             </p>

@@ -109,10 +109,10 @@ export default function SettingsPage() {
 
   const APP_LIVE_ROWS: LiveRow[] = [
     { label: t(locale, 'settings.language'), sub: t(locale, 'settings.languageSub'), icon: Globe, href: '/profile/language' },
+    { label: t(locale, 'settings.units'),    sub: t(locale, 'settings.unitsSub'),    icon: Ruler, href: '/profile/units'    },
   ]
 
   const APP_ROWS: SoonRow[] = [
-    { label: t(locale, 'settings.units'), sub: t(locale, 'settings.unitsSub'), icon: Ruler },
     { label: t(locale, 'settings.theme'), sub: t(locale, 'settings.themeSub'), icon: Palette },
   ]
 

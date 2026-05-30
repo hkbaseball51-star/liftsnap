@@ -6,6 +6,8 @@ import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t } from '@/lib/i18n'
 import { getDisplayName } from '@/lib/exerciseNames'
 
@@ -33,6 +35,7 @@ export default function SelectedDaySummary({
 }) {
   const router = useRouter()
   const { locale } = useLocale()
+  const { unit } = useWeightUnit()
   const [visible, setVisible] = useState(false)
 
   // Component remounts on key change; double rAF ensures transition fires after paint
@@ -126,8 +129,8 @@ export default function SelectedDaySummary({
           <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.42)', marginBottom: 10 }}>
             {locale === 'ja' ? `${summary.totalSets}セット` : `${summary.totalSets} sets`}
             {' · '}
-            {formatVolume(summary.totalVolume)}
-            {summary.best1rm > 0 && ` · 1RM ${summary.best1rm}kg`}
+            {formatVolume(summary.totalVolume, unit)}
+            {summary.best1rm > 0 && ` · 1RM ${toDisplayWeight(summary.best1rm, unit)}${weightUnitLabel(unit)}`}
             {bodyWeight !== null && (
               <span style={{ color: 'rgba(255,255,255,0.32)' }}>{` · BW ${bodyWeight}kg`}</span>
             )}
@@ -142,7 +145,7 @@ export default function SelectedDaySummary({
           </p>
           {summary.mainExerciseBestWeight > 0 && summary.mainExerciseBestReps > 0 && (
             <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>
-              {t(locale, 'home.bestSet')}&nbsp; {summary.mainExerciseBestWeight}kg × {summary.mainExerciseBestReps}
+              {t(locale, 'home.bestSet')}&nbsp; {toDisplayWeight(summary.mainExerciseBestWeight, unit)}{weightUnitLabel(unit)} × {summary.mainExerciseBestReps}
             </p>
           )}
           {summary.mainExerciseNote && (

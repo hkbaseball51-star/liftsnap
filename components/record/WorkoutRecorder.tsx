@@ -10,6 +10,8 @@ import NumberInputSheet from './NumberInputSheet'
 import NoteInputSheet from './NoteInputSheet'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, fromDisplayWeight, formatVolumeWithUnit, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
 import { getDisplayName } from '@/lib/exerciseNames'
 
@@ -118,6 +120,7 @@ async function ensureAuth() {
 
 type ExerciseCardProps = {
   ex: ExerciseEntry
+  weightUnit: import('@/lib/units').WeightUnit
   onAddSet: (exerciseId: string) => void
   onRemoveExercise: (exerciseId: string) => void
   onRemoveSet: (exerciseId: string, setId: string) => void
@@ -126,7 +129,7 @@ type ExerciseCardProps = {
 }
 
 const ExerciseCard = memo(function ExerciseCard({
-  ex, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget,
+  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget,
 }: ExerciseCardProps) {
   const { locale } = useLocale()
   const stats = useMemo(() => calcExerciseStats(ex), [ex])
@@ -156,7 +159,7 @@ const ExerciseCard = memo(function ExerciseCard({
             </span>
             {ex.allTimePR !== null ? (
               <span className="text-[10px] font-bold" style={{ color: '#888' }}>
-                · PR {ex.allTimePR}kg
+                · PR {toDisplayWeight(ex.allTimePR, weightUnit)}{weightUnitLabel(weightUnit)}
               </span>
             ) : (
               <span className="px-1.5 py-px rounded-full text-[8px] font-black tracking-widest"
@@ -175,7 +178,7 @@ const ExerciseCard = memo(function ExerciseCard({
       <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
         style={{ borderTop: '1px solid rgba(255,255,255,0.09)' }}>
         <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>#</span>
-        <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>KG</span>
+        <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>{weightUnitLabel(weightUnit).toUpperCase()}</span>
         <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>REPS</span>
         <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>1RM</span>
       </div>
@@ -226,7 +229,7 @@ const ExerciseCard = memo(function ExerciseCard({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
-              {set.weight_kg ?? '—'}
+              {set.weight_kg !== null ? toDisplayWeight(set.weight_kg, weightUnit) : '—'}
             </button>
 
             {/* REPS input */}
@@ -248,7 +251,7 @@ const ExerciseCard = memo(function ExerciseCard({
             <div className="col-span-3 flex items-center justify-center">
               {setEst1rm !== null ? (
                 <span style={{ color: isBestSet ? '#9B72E8' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
-                  {setEst1rm}kg
+                  {toDisplayWeight(setEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
                 </span>
               ) : (
                 <span style={{ color: '#666', fontSize: 14, fontWeight: 900 }}>—</span>
@@ -263,12 +266,12 @@ const ExerciseCard = memo(function ExerciseCard({
         <div style={{ padding: '5px 14px 9px' }}>
           <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
             <span style={{ color: '#ff6b00', fontWeight: 700 }}>
-              {stats.volume >= 1000 ? `${(stats.volume / 1000).toFixed(1)}t` : `${stats.volume}kg`}
+              {formatVolumeWithUnit(stats.volume, weightUnit)}
             </span>
             {' vol · '}
-            <span style={{ color: '#9B72E8', fontWeight: 700 }}>{stats.est1rm}kg</span>
+            <span style={{ color: '#9B72E8', fontWeight: 700 }}>{toDisplayWeight(stats.est1rm, weightUnit)}{weightUnitLabel(weightUnit)}</span>
             {' 1RM · Best '}
-            <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{stats.bestWeight}×{stats.bestReps}</span>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{toDisplayWeight(stats.bestWeight, weightUnit)}×{stats.bestReps}</span>
           </p>
         </div>
       )}
@@ -324,6 +327,7 @@ export default function WorkoutRecorder({
 }: Props) {
   const router = useRouter()
   const { locale } = useLocale()
+  const { unit: weightUnit } = useWeightUnit()
   const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
   const todayJST = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
   const isToday = date === todayJST
@@ -392,8 +396,11 @@ export default function WorkoutRecorder({
     if (!numberTarget) return null
     const ex = exerciseList.find(e => e.id === numberTarget.exerciseId)
     const s = ex?.sets.find(s => s.id === numberTarget.setId)
-    return s?.[numberTarget.field] ?? null
-  }, [numberTarget, exerciseList])
+    const raw = s?.[numberTarget.field] ?? null
+    if (raw === null) return null
+    if (numberTarget.field === 'weight_kg') return toDisplayWeight(raw, weightUnit)
+    return raw
+  }, [numberTarget, exerciseList, weightUnit])
 
   const hasWorkoutContent = exerciseList.length > 0
   const isSavedState = !isDirty && sessionId !== null
@@ -557,9 +564,9 @@ export default function WorkoutRecorder({
         <div className="flex items-center justify-between pb-2">
           <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.32)' }}>
             {[
-              displayVolume > 0 ? formatVolume(displayVolume) : null,
+              displayVolume > 0 ? formatVolumeWithUnit(displayVolume, weightUnit) : null,
               displaySetsCount > 0 ? `${displaySetsCount} sets` : null,
-              bestSessionEst1rm > 0 ? `1RM ${bestSessionEst1rm}kg` : null,
+              bestSessionEst1rm > 0 ? `1RM ${toDisplayWeight(bestSessionEst1rm, weightUnit)}${weightUnitLabel(weightUnit)}` : null,
             ].filter(Boolean).join(' · ') || '—'}
           </p>
           {saveStatusDisplay && (
@@ -588,6 +595,7 @@ export default function WorkoutRecorder({
           <ExerciseCard
             key={ex.id}
             ex={ex}
+            weightUnit={weightUnit}
             onAddSet={addSet}
             onRemoveExercise={removeExercise}
             onRemoveSet={removeSet}
@@ -650,13 +658,22 @@ export default function WorkoutRecorder({
 
       {numberTarget && (
         <NumberInputSheet
-          label={numberTarget.field === 'weight_kg' ? 'WEIGHT (kg)' : 'REPS'}
+          label={numberTarget.field === 'weight_kg' ? `WEIGHT (${weightUnitLabel(weightUnit)})` : 'REPS'}
           value={currentTarget}
-          unit={numberTarget.field === 'weight_kg' ? 'kg' : 'reps'}
-          step={numberTarget.field === 'weight_kg' ? 2.5 : 1}
-          quickSteps={numberTarget.field === 'weight_kg' ? [-1.25, -2.5, 2.5, 1.25, -5, 5, -10, 10] : [-2, -1, 1, 2]}
+          unit={numberTarget.field === 'weight_kg' ? weightUnitLabel(weightUnit) : 'reps'}
+          step={numberTarget.field === 'weight_kg' ? (weightUnit === 'lbs' ? 5 : 2.5) : 1}
+          quickSteps={
+            numberTarget.field === 'weight_kg'
+              ? weightUnit === 'lbs'
+                ? [-2.5, -5, 5, 2.5, -10, 10, -25, 25, -45, 45]
+                : [-1.25, -2.5, 2.5, 1.25, -5, 5, -10, 10]
+              : [-2, -1, 1, 2]
+          }
           isInteger={numberTarget.field === 'reps'}
-          onConfirm={v => updateSet(numberTarget.exerciseId, numberTarget.setId, numberTarget.field, v)}
+          onConfirm={v => {
+            const stored = numberTarget.field === 'weight_kg' ? fromDisplayWeight(v, weightUnit) : v
+            updateSet(numberTarget.exerciseId, numberTarget.setId, numberTarget.field, stored)
+          }}
           onClose={() => setNumberTarget(null)}
         />
       )}

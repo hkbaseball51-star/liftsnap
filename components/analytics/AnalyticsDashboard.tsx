@@ -11,6 +11,8 @@ import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analyt
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
 import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
@@ -61,6 +63,8 @@ const tooltipStyle = {
 
 export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
   const { locale } = useLocale()
+  const { unit } = useWeightUnit()
+  const unitLabel = weightUnitLabel(unit)
   const [tab, setTab] = useState<Tab>('MAX 1RM')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
@@ -143,6 +147,10 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
+
+  // Display-unit converted data for charts
+  const rmDataDisplay = rmData.map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
+  const volDataDisplay = volData.map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
   const showExerciseSelector = tab !== 'BODY WEIGHT' && exercises.length > 0
 
   const exerciseLogCount      = exercises.find(e => e.name === selectedExercise)?.logCount ?? 0
@@ -244,8 +252,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : bestRM !== null ? (
                     <div className="flex items-baseline gap-1">
-                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{bestRM}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{toDisplayWeight(bestRM, unit)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
                     </div>
                   ) : (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
@@ -268,11 +276,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   <ChartEmpty />
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={rmData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                    <LineChart data={rmDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, 'Est. 1RM']} />
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
                       <Line type="monotone" dataKey="est1rm" stroke="#ff6b00" strokeWidth={2.5}
                         dot={{ fill: '#ff6b00', r: 4, strokeWidth: 0 }}
                         activeDot={{ r: 6, fill: '#ff6b00' }} />
@@ -288,16 +296,19 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                     <div className="px-4 pt-4 pb-2">
                       <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
                     </div>
-                    {[...rmData].reverse().slice(0, 6).map(p => (
-                      <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                        <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
-                        <div className="flex items-baseline gap-1">
-                          <span style={{ fontSize: 16, fontWeight: 700, color: p.est1rm === bestRM ? '#FF6B00' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
+                    {[...rmDataDisplay].reverse().slice(0, 6).map((p, i) => {
+                      const origEst1rm = [...rmData].reverse()[i]?.est1rm
+                      return (
+                        <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
+                          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                          <div className="flex items-baseline gap-1">
+                            <span style={{ fontSize: 16, fontWeight: 700, color: bestRM !== null && origEst1rm === bestRM ? '#FF6B00' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{unitLabel}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   {exerciseShareUnlocked ? (
                     <Link
@@ -355,14 +366,22 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   {volLoading ? (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : totalVol > 0 ? (
-                    <div className="flex items-baseline gap-1">
-                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                        {totalVol >= 10000 ? `${(totalVol / 1000).toFixed(1)}k` : totalVol.toLocaleString()}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
-                        {totalVol >= 10000 ? '' : 'kg'}
-                      </span>
-                    </div>
+                    (() => {
+                      const displayTotalVol = Math.round(toDisplayWeight(totalVol, unit))
+                      const threshold = 10000
+                      const volStr = displayTotalVol >= threshold ? `${(displayTotalVol / 1000).toFixed(1)}k` : displayTotalVol.toLocaleString()
+                      const volSuffix = displayTotalVol >= threshold ? '' : unitLabel
+                      return (
+                        <div className="flex items-baseline gap-1">
+                          <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                            {volStr}
+                          </span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
+                            {volSuffix}
+                          </span>
+                        </div>
+                      )
+                    })()
                   ) : (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
                   )}
@@ -384,13 +403,13 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   <ChartEmpty />
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={volData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                    <BarChart data={volDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false}
-                        interval={Math.max(0, Math.floor(volData.length / 5) - 1)} />
+                        interval={Math.max(0, Math.floor(volDataDisplay.length / 5) - 1)} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
                         tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} kg`, 'Volume']} />
+                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
                       <Bar dataKey="volume" fill="#ff6b00" radius={[4, 4, 0, 0]} maxBarSize={28} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -404,7 +423,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                     <div className="px-4 pt-4 pb-2">
                       <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
                     </div>
-                    {[...volData].reverse().slice(0, 8).map(p => (
+                    {[...volDataDisplay].reverse().slice(0, 8).map(p => (
                       <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
                         style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                         <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
@@ -412,7 +431,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                           <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
                             {p.volume >= 1000 ? `${(p.volume / 1000).toFixed(1)}k` : p.volume.toLocaleString()}
                           </span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>kg</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{unitLabel}</span>
                         </div>
                       </div>
                     ))}

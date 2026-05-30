@@ -44,8 +44,9 @@ export default function NumberInputSheet({
 
   const confirmValue = isInteger ? Math.floor(current) : current
 
-  // Weight layout: 8 steps ordered as [±1.25, ±2.5, ±5, ±10]
+  // kg layout: 8 steps (3 rows), lbs layout: 10 steps (4 rows)
   const isWeightLayout = quickSteps.length === 8
+  const isLbWeightLayout = quickSteps.length === 10
 
   return (
     <div
@@ -94,7 +95,7 @@ export default function NumberInputSheet({
 
           {/* Quick adjust buttons */}
           {isWeightLayout ? (
-            // Weight: 3 rows — row1: ±1.25/±2.5 (4-col), row2: ±5, row3: ±10 (2-col each)
+            // kg weight: 3 rows — row1: ±1.25/±2.5 (4-col), row2: ±5, row3: ±10 (2-col each)
             <div className="flex flex-col gap-3">
               <div className="grid grid-cols-4 gap-2">
                 {quickSteps.slice(0, 4).map(s => (
@@ -147,6 +148,46 @@ export default function NumberInputSheet({
                   </button>
                 ))}
               </div>
+            </div>
+          ) : isLbWeightLayout ? (
+            // lbs weight: 4 rows — row1: ±2.5/±5 (4-col), row2: ±10, row3: ±25, row4: ±45 (2-col each)
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-4 gap-2">
+                {quickSteps.slice(0, 4).map(s => (
+                  <button
+                    key={s}
+                    className="rounded-xl font-black"
+                    style={{
+                      fontSize: 13,
+                      background: '#1a1a1a',
+                      color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                      border: '1px solid #222',
+                      minHeight: 42,
+                    }}
+                    onClick={() => adjust(s)}>
+                    {s > 0 ? `+${s}` : s}
+                  </button>
+                ))}
+              </div>
+              {([quickSteps.slice(4, 6), quickSteps.slice(6, 8), quickSteps.slice(8, 10)] as number[][]).map((row, i) => (
+                <div key={i} className="grid grid-cols-2 gap-3">
+                  {row.map(s => (
+                    <button
+                      key={s}
+                      className="rounded-2xl font-black"
+                      style={{
+                        fontSize: 15,
+                        background: '#1a1a1a',
+                        color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                        border: '1px solid #222',
+                        minHeight: 46,
+                      }}
+                      onClick={() => adjust(s)}>
+                      {s > 0 ? `+${s}` : s}
+                    </button>
+                  ))}
+                </div>
+              ))}
             </div>
           ) : (
             // Reps: single row

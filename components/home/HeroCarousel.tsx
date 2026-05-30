@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Share2 } from 'lucide-react'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 
 export type HeroData = {
   bestLift: {
@@ -84,11 +86,13 @@ function BestLiftSlide({
   d: NonNullable<HeroData['bestLift']>
   sessionId: string | null
 }) {
+  const { unit } = useWeightUnit()
   const isNew = d.prStatus === 'new_pr'
   const isFirst = d.prStatus === 'first'
   const improvement = isNew && d.prevPR !== null
     ? Math.round((d.bestWeight - d.prevPR) * 10) / 10
     : null
+  const unitLabel = weightUnitLabel(unit)
 
   return (
     <div style={CARD}>
@@ -110,10 +114,10 @@ function BestLiftSlide({
           letterSpacing: '-0.03em',
           fontFamily: 'var(--font-mono)',
         }}>
-          {d.bestWeight}
+          {toDisplayWeight(d.bestWeight, unit)}
         </span>
         <div>
-          <span style={{ fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>kg</span>
+          <span style={{ fontSize: 18, fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>{unitLabel}</span>
           <p style={{ fontSize: 16, fontWeight: 500, color: '#fff', marginTop: 2 }}>
             × {d.bestReps}
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 4 }}>reps</span>
@@ -128,12 +132,12 @@ function BestLiftSlide({
             EST. 1RM
           </span>
           <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.62)', fontFamily: 'var(--font-mono)' }}>
-            {d.est1rm} kg
+            {toDisplayWeight(d.est1rm, unit)} {unitLabel}
           </span>
         </div>
         {improvement !== null && (
           <span style={{ fontSize: 13, fontWeight: 600, color: '#22c55e' }}>
-            +{improvement} kg
+            +{toDisplayWeight(improvement, unit)} {unitLabel}
           </span>
         )}
       </div>
@@ -150,14 +154,19 @@ function TodayEffortSlide({
   d: NonNullable<HeroData['todayEffort']>
   sessionId: string | null
 }) {
+  const { unit } = useWeightUnit()
   const h = Math.floor(d.durationSeconds / 3600)
   const m = Math.floor((d.durationSeconds % 3600) / 60)
   const dur = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m` : null
 
-  const volNum = d.totalVolume >= 10000
-    ? `${(d.totalVolume / 1000).toFixed(1)}k`
-    : Math.round(d.totalVolume).toLocaleString()
-  const volUnit = d.totalVolume >= 10000 ? '' : 'kg'
+  const displayVol = unit === 'lbs'
+    ? Math.round(d.totalVolume * 2.20462)
+    : Math.round(d.totalVolume)
+  const threshold = unit === 'lbs' ? 10000 : 10000
+  const volNum = displayVol >= threshold
+    ? `${(displayVol / 1000).toFixed(1)}k`
+    : displayVol.toLocaleString()
+  const volUnit = displayVol >= threshold ? '' : weightUnitLabel(unit)
 
   const meta = [
     `${d.totalSets} sets`,
@@ -268,6 +277,8 @@ function PRCardSlide({
   d: NonNullable<HeroData['prCard']>
   sessionId: string | null
 }) {
+  const { unit } = useWeightUnit()
+  const unitLabel = weightUnitLabel(unit)
   return (
     <div style={CARD}>
       <div className="flex items-center justify-between mb-3">
@@ -291,8 +302,8 @@ function PRCardSlide({
             fontFamily: 'var(--font-mono)',
             letterSpacing: '-0.02em',
           }}>
-            {d.prevPR}
-            <span style={{ fontSize: 15, marginLeft: 3, color: 'rgba(255,255,255,0.15)' }}>kg</span>
+            {toDisplayWeight(d.prevPR, unit)}
+            <span style={{ fontSize: 15, marginLeft: 3, color: 'rgba(255,255,255,0.15)' }}>{unitLabel}</span>
           </span>
         </div>
 
@@ -312,13 +323,13 @@ function PRCardSlide({
             letterSpacing: '-0.03em',
             fontFamily: 'var(--font-mono)',
           }}>
-            {d.newPR}
-            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', marginLeft: 3 }}>kg</span>
+            {toDisplayWeight(d.newPR, unit)}
+            <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', marginLeft: 3 }}>{unitLabel}</span>
           </span>
         </div>
 
         <p style={{ fontSize: 13, fontWeight: 500, color: '#22c55e', marginTop: 4 }}>
-          +{d.improvement} kg improvement
+          +{toDisplayWeight(d.improvement, unit)} {unitLabel} improvement
         </p>
       </div>
 
