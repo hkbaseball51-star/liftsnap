@@ -11,7 +11,7 @@ import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analyt
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
-import { t } from '@/lib/i18n'
+import { t, type Locale } from '@/lib/i18n'
 import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
 type WeightPoint = { date: string; label: string; weight: number }
@@ -169,6 +169,15 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         ))}
       </div>
 
+      {/* Tab description */}
+      <p className="text-[11px] mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        {tab === 'MAX 1RM'
+          ? t(locale, 'analytics.tab1RMDesc')
+          : tab === 'DAILY VOLUME'
+            ? t(locale, 'analytics.tabVolumeDesc')
+            : t(locale, 'analytics.tabBWDesc')}
+      </p>
+
       {/* Muscle group + exercise selector */}
       {showExerciseSelector && (
         <>
@@ -192,7 +201,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
           {/* Exercise chips */}
           {filteredExercises.length === 0 ? (
-            <p className="text-xs font-bold mb-4" style={{ color: '#444' }}>No exercises logged in this group</p>
+            <p className="text-xs font-bold mb-4" style={{ color: '#444' }}>{t(locale, 'analytics.noGroupData')}</p>
           ) : (
             <div className="overflow-x-auto no-scrollbar mb-4">
               <div className="flex gap-2 pb-1">
@@ -219,8 +228,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         <div>
           {!exerciseProgressUnlocked ? (
             !lineChartUnlocked
-              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} />
-              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} />
+              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} locale={locale} />
+              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} locale={locale} />
           ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
@@ -316,7 +325,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                         fontWeight: 500,
                       }}>
                       <Lock size={13} strokeWidth={1.5} />
-                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} logs
+                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} {t(locale, 'analytics.shareLogsUnit')}
                     </div>
                   )}
                 </>
@@ -331,8 +340,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         <div>
           {!exerciseProgressUnlocked ? (
             !lineChartUnlocked
-              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} />
-              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} />
+              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} locale={locale} />
+              : <MilestoneLock label="EXERCISE PROGRESS" current={totalSessions} required={10} locale={locale} />
           ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
@@ -434,7 +443,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                         fontWeight: 500,
                       }}>
                       <Lock size={13} strokeWidth={1.5} />
-                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} logs
+                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} {t(locale, 'analytics.shareLogsUnit')}
                     </div>
                   )}
                 </>
@@ -490,7 +499,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>kg</span>
               </div>
               {bwInput && !bwInputValid && (
-                <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>Enter 20–300 kg</p>
+                <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>{t(locale, 'analytics.bwInputError')}</p>
               )}
             </div>
             <button
@@ -537,7 +546,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
             <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>BODY WEIGHT (90 DAYS)</p>
             {bwData.length < 2 ? (
               <div className="h-48 flex items-center justify-center">
-                <p className="text-xs font-bold" style={{ color: '#444' }}>Log 2+ days to see your chart</p>
+                <p className="text-xs font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.bwChartEmpty')}</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
@@ -548,9 +557,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, 'Weight']} />
                   <ReferenceLine y={bwData[0]?.weight} stroke="#222" strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="weight" stroke="#a78bfa" strokeWidth={2.5}
-                    dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: '#a78bfa' }} />
+                  <Line type="monotone" dataKey="weight" stroke="#9B72E8" strokeWidth={2.5}
+                    dot={{ fill: '#9B72E8', r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: '#9B72E8' }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -578,6 +587,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 }
 
 function EmptyState() {
+  const { locale } = useLocale()
   return (
     <div className="rounded-2xl p-10 text-center" style={{
       background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
@@ -585,20 +595,21 @@ function EmptyState() {
       borderRadius: 18,
     }}>
       <p style={{ fontSize: 32, marginBottom: 12 }}>📊</p>
-      <p className="text-base font-bold text-white mb-2">No data yet</p>
-      <p className="text-sm font-bold" style={{ color: '#444' }}>Log your first set to unlock stats</p>
+      <p className="text-base font-bold text-white mb-2">{t(locale, 'analytics.noDataYet')}</p>
+      <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.logFirstSet')}</p>
     </div>
   )
 }
 
 function NoGroupData() {
+  const { locale } = useLocale()
   return (
     <div className="rounded-2xl p-8 text-center" style={{
       background: '#111',
       border: '1px solid rgba(255,107,0,0.22)',
       borderRadius: 18,
     }}>
-      <p className="text-sm font-bold" style={{ color: '#555' }}>No exercises logged in this group yet</p>
+      <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noGroupData')}</p>
     </div>
   )
 }
@@ -612,27 +623,34 @@ function LoadingChart() {
 }
 
 function ChartEmpty() {
+  const { locale } = useLocale()
   return (
     <div className="h-48 flex items-center justify-center flex-col gap-2">
-      <p className="text-sm font-bold" style={{ color: '#444' }}>No data yet</p>
-      <p className="text-xs font-bold" style={{ color: '#2a2a2a' }}>Log your first set to unlock stats</p>
+      <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noDataYet')}</p>
+      <p className="text-xs font-bold" style={{ color: '#333' }}>{t(locale, 'analytics.chartNoData')}</p>
     </div>
   )
 }
 
-function MilestoneLock({ label, current, required }: { label: string; current: number; required: number }) {
+function MilestoneLock({ label, current, required, locale }: {
+  label: string; current: number; required: number; locale: Locale
+}) {
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = Math.max(required - current, 0)
+  const unlockText = locale === 'ja'
+    ? `${required}${t(locale, 'analytics.lockSessions')}`
+    : `${t(locale, 'analytics.lockUnlockAt')} ${required} ${t(locale, 'analytics.lockSessions')}`
+  const remainingText = locale === 'ja'
+    ? `あと${remaining}${t(locale, 'analytics.lockRemaining')}`
+    : `${remaining} more session${remaining !== 1 ? 's' : ''} to go`
   return (
     <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Lock size={13} strokeWidth={1.5} style={{ color: '#444' }} />
         <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>{label}</p>
       </div>
-      <p className="text-sm font-bold mb-1" style={{ color: '#777' }}>Unlock at {required} sessions</p>
-      <p className="text-xs mb-4" style={{ color: '#444' }}>
-        {remaining} more session{remaining !== 1 ? 's' : ''} to go
-      </p>
+      <p className="text-sm font-bold mb-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{unlockText}</p>
+      <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.40)' }}>{remainingText}</p>
       <div className="h-1 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: 'rgba(255,107,0,0.55)', transition: 'width 0.4s ease' }} />
       </div>

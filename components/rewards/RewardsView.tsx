@@ -10,6 +10,7 @@ import {
   EXERCISE_GRAPH_REQUIRED,
   getShareCount,
   type NextRewardResult,
+  type TrainingMilestoneId,
 } from '@/lib/unlocks'
 import { getRewardsData } from '@/actions/rewards'
 import { useLocale } from '@/lib/useLocale'
@@ -49,12 +50,10 @@ export default function RewardsView() {
   const [shareCount, setShareCount]       = useState(0)
   const [dataLoaded, setDataLoaded]       = useState(false)
 
-  // localStorage is client-only — read after mount
   useEffect(() => {
     setShareCount(getShareCount())
   }, [])
 
-  // Fetch rewards data client-side so the page renders immediately on navigation
   useEffect(() => {
     console.time('[Rewards] total')
     getRewardsData()
@@ -94,13 +93,13 @@ export default function RewardsView() {
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
 
-      {/* ── Header — renders immediately ────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────── */}
       <div className="px-4 pt-14 pb-4">
         <div className="flex items-center gap-2.5 mb-1">
           <Trophy size={16} strokeWidth={2} style={{ color: '#ff6b00' }} />
           <h1 className="text-xl font-black tracking-widest text-white">REWARDS</h1>
         </div>
-        <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+        <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.50)' }}>
           {t(locale, 'rewards.trainMore')}
         </p>
       </div>
@@ -141,15 +140,15 @@ export default function RewardsView() {
         />
       </div>
 
-      {/* ── Training Milestones — static structure, live progress ── */}
+      {/* ── Training Milestones ──────────────────────────────── */}
       <RewardSection title="TRAINING MILESTONES" sub={t(locale, 'rewards.sectionTraining')}>
         {trainingUnlocks.map((m, i) => {
           const isNext = !m.unlocked && (i === 0 || trainingUnlocks[i - 1].unlocked)
           return (
             <MilestoneRow
               key={m.id}
+              id={m.id}
               label={m.label}
-              description={m.description}
               current={m.progress}
               required={m.requiredSessions}
               unlocked={m.unlocked}
@@ -161,7 +160,7 @@ export default function RewardsView() {
         })}
       </RewardSection>
 
-      {/* ── Exercise Graphs — ALWAYS_SHOW renders immediately ── */}
+      {/* ── Exercise Graphs ──────────────────────────────────── */}
       <RewardSection title="EXERCISE GRAPHS" sub={t(locale, 'rewards.sectionExercise')}>
         {allExercises.map((ex, i) => (
           <ExerciseRow
@@ -174,13 +173,13 @@ export default function RewardsView() {
         ))}
       </RewardSection>
 
-      {/* ── Share Themes — static structure, live progress ──── */}
+      {/* ── Share Themes ─────────────────────────────────────── */}
       <RewardSection title="SHARE THEMES" sub={t(locale, 'rewards.sectionThemes')}>
         {shareThemes.map((theme, i) => (
           <ThemeRow
             key={theme.id}
+            id={theme.id}
             label={theme.label}
-            description={theme.description}
             requiredShares={theme.requiredShares}
             unlocked={theme.unlocked}
             shareCount={shareCount}
@@ -245,7 +244,7 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
           <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
             {t(locale, 'rewards.allUnlocked')}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.65 }}>
             {t(locale, 'rewards.allUnlockedSub')}
           </p>
         </div>
@@ -264,14 +263,13 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
   if (result.type === 'training') {
     const m   = result.milestone
     const rem = m.requiredSessions - result.current
+    const milestoneDesc = t(locale, `rewards.milestone.${m.id}`)
     title        = m.label
     current      = result.current
     required     = m.requiredSessions
-    progressUnit = locale === 'ja'
-      ? t(locale, 'rewards.sessionPlural')
-      : (required === 1 ? t(locale, 'rewards.sessionSingular') : t(locale, 'rewards.sessionPlural'))
+    progressUnit = locale === 'ja' ? t(locale, 'rewards.sessionPlural') : (required === 1 ? 'session' : 'sessions')
     description  = locale === 'ja'
-      ? `あと${rem}${t(locale, 'rewards.sessionPlural')}で解放できます。`
+      ? `${milestoneDesc}\nあと${rem}回の記録で解放。`
       : rem === 1
         ? `1 more session to unlock ${m.description.toLowerCase()}.`
         : `${rem} more sessions to unlock ${m.description.toLowerCase()}.`
@@ -283,9 +281,9 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
     title        = `${name} Graph Share`
     current      = result.current
     required     = EXERCISE_GRAPH_REQUIRED
-    progressUnit = t(locale, 'rewards.logs')
+    progressUnit = locale === 'ja' ? '回' : 'logs'
     description  = locale === 'ja'
-      ? `あと${rem}回のログで解放できます。`
+      ? `${name}のグラフ共有まであと${rem}回の記録。`
       : rem === 1
         ? `1 more ${name} log to unlock graph sharing.`
         : `${rem} more ${name} logs to unlock graph sharing.`
@@ -294,12 +292,13 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
   } else {
     const theme = result.theme
     const rem   = theme.requiredShares - result.current
+    const themeDesc = t(locale, `rewards.theme.${theme.id}`)
     title        = `${theme.label} Theme`
     current      = result.current
     required     = theme.requiredShares
-    progressUnit = t(locale, 'rewards.exports')
+    progressUnit = locale === 'ja' ? '回' : 'exports'
     description  = locale === 'ja'
-      ? `あと${rem}回のエクスポートで解放できます。`
+      ? `${themeDesc}\nあと${rem}回のShare Storyで解放。`
       : rem === 1
         ? `1 more story export to unlock this theme.`
         : `${rem} more story exports to unlock this theme.`
@@ -323,16 +322,16 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
           NEXT REWARD
         </p>
 
-        <p style={{ fontSize: 22, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, marginBottom: 6 }}>
+        <p style={{ fontSize: 22, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, marginBottom: 8 }}>
           {title}
         </p>
 
-        <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
-          {current} / {required} {progressUnit}
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', lineHeight: 1.65, marginBottom: 12, whiteSpace: 'pre-line' }}>
+          {description}
         </p>
 
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 16 }}>
-          {description}
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.50)', marginBottom: 14 }}>
+          {current} / {required} {progressUnit}
         </p>
 
         <div style={{
@@ -377,13 +376,13 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
 function SummaryCard({ label, value, sub, loading }: { label: string; value: string; sub: string; loading: boolean }) {
   return (
     <div className="rounded-2xl p-3" style={{ background: '#111', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <p className="text-[8px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.28)' }}>
+      <p className="text-[8px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.30)' }}>
         {label}
       </p>
       <p className="text-lg font-black text-white leading-none mb-1.5" style={{ opacity: loading ? 0.3 : 1, transition: 'opacity 200ms' }}>
         {value}
       </p>
-      <p className="text-[9px] leading-snug" style={{ color: 'rgba(255,255,255,0.28)', minHeight: 12 }}>
+      <p className="text-[9px] leading-snug" style={{ color: 'rgba(255,255,255,0.50)', minHeight: 12 }}>
         {sub}
       </p>
     </div>
@@ -394,7 +393,7 @@ function RewardSection({ title, sub, children }: { title: string; sub: string; c
   return (
     <div className="px-4 mb-6">
       <p className="text-[10px] font-black tracking-widest mb-0.5" style={{ color: '#ff6b00' }}>{title}</p>
-      <p className="text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.32)' }}>{sub}</p>
+      <p className="text-[11px] mb-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>{sub}</p>
       <div className="rounded-2xl overflow-hidden" style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
         {children}
       </div>
@@ -402,12 +401,14 @@ function RewardSection({ title, sub, children }: { title: string; sub: string; c
   )
 }
 
-function MilestoneRow({ label, description, current, required, unlocked, isNext, isLast, locale }: {
-  label: string; description: string; current: number; required: number
+function MilestoneRow({ id, label, current, required, unlocked, isNext, isLast, locale }: {
+  id: TrainingMilestoneId; label: string; current: number; required: number
   unlocked: boolean; isNext: boolean; isLast: boolean; locale?: Locale
 }) {
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = required - current
+  const description = t(locale ?? 'en', `rewards.milestone.${id}`)
+  const reqLabel    = locale === 'ja' ? `${required}回` : `${required} sess`
   return (
     <div className="px-4 py-3.5" style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-start justify-between">
@@ -416,7 +417,7 @@ function MilestoneRow({ label, description, current, required, unlocked, isNext,
             style={{ color: unlocked ? '#fff' : isNext ? '#d0d0d0' : '#666' }}>
             {label}
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>
+          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
             {description}
           </p>
         </div>
@@ -427,8 +428,8 @@ function MilestoneRow({ label, description, current, required, unlocked, isNext,
           </div>
         ) : (
           <span className="text-[10px] font-bold flex-shrink-0 mt-0.5"
-            style={{ color: 'rgba(255,255,255,0.22)' }}>
-            {required} sess
+            style={{ color: 'rgba(255,255,255,0.28)' }}>
+            {reqLabel}
           </span>
         )}
       </div>
@@ -442,11 +443,11 @@ function MilestoneRow({ label, description, current, required, unlocked, isNext,
             }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>{current} / {required}</span>
+            <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.28)' }}>{current} / {required}</span>
             {remaining > 0 && (
               <span className="text-[9px]"
-                style={{ color: isNext ? 'rgba(255,107,0,0.55)' : 'rgba(255,255,255,0.15)' }}>
-                {locale === 'ja' ? `あと${remaining}` : `${remaining} more`}
+                style={{ color: isNext ? 'rgba(255,107,0,0.60)' : 'rgba(255,255,255,0.22)' }}>
+                {locale === 'ja' ? `あと${remaining}回` : `${remaining} more`}
               </span>
             )}
           </div>
@@ -460,17 +461,16 @@ function ExerciseRow({ name, logCount, locale, isLast }: { name: string; logCoun
   const unlocked  = logCount >= EXERCISE_GRAPH_REQUIRED
   const pct       = Math.min((logCount / EXERCISE_GRAPH_REQUIRED) * 100, 100)
   const remaining = EXERCISE_GRAPH_REQUIRED - logCount
+  const lockedDesc = locale === 'ja'
+    ? `あと${remaining}${t(locale, 'rewards.graphLockedDesc')}`
+    : `${remaining} more logs to unlock`
   return (
     <div className="px-4 py-3.5" style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-start justify-between">
         <div className="flex-1 mr-3">
           <p className="text-[13px] font-bold" style={{ color: unlocked ? '#fff' : '#aaa' }}>{name}</p>
-          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>
-            {unlocked
-              ? t(locale, 'rewards.graphAvailable')
-              : locale === 'ja'
-                ? `あと${remaining}${t(locale, 'rewards.moreLogsToUnlock')}`
-                : `${remaining} ${t(locale, 'rewards.moreLogsToUnlock')}`}
+          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            {unlocked ? t(locale, 'rewards.graphAvailable') : lockedDesc}
           </p>
         </div>
         {unlocked ? (
@@ -480,7 +480,7 @@ function ExerciseRow({ name, logCount, locale, isLast }: { name: string; logCoun
           </div>
         ) : (
           <span className="text-[10px] font-bold flex-shrink-0 mt-0.5"
-            style={{ color: 'rgba(255,255,255,0.22)' }}>
+            style={{ color: 'rgba(255,255,255,0.28)' }}>
             {logCount}/10
           </span>
         )}
@@ -494,7 +494,7 @@ function ExerciseRow({ name, logCount, locale, isLast }: { name: string; logCoun
               transition: 'width 0.4s ease',
             }} />
           </div>
-          <span className="text-[9px] mt-1 block" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <span className="text-[9px] mt-1 block" style={{ color: 'rgba(255,255,255,0.28)' }}>
             {logCount} / {EXERCISE_GRAPH_REQUIRED}
           </span>
         </div>
@@ -503,12 +503,16 @@ function ExerciseRow({ name, logCount, locale, isLast }: { name: string; logCoun
   )
 }
 
-function ThemeRow({ label, description, requiredShares, unlocked, shareCount, dotColor, locale, isLast }: {
-  label: string; description: string; requiredShares: number
+function ThemeRow({ id, label, requiredShares, unlocked, shareCount, dotColor, locale, isLast }: {
+  id: string; label: string; requiredShares: number
   unlocked: boolean; shareCount: number; dotColor: string; locale: Locale; isLast: boolean
 }) {
-  const pct       = requiredShares > 0 ? Math.min((shareCount / requiredShares) * 100, 100) : 100
-  const remaining = Math.max(requiredShares - shareCount, 0)
+  const pct         = requiredShares > 0 ? Math.min((shareCount / requiredShares) * 100, 100) : 100
+  const remaining   = Math.max(requiredShares - shareCount, 0)
+  const description = t(locale, `rewards.theme.${id}`)
+  const reqLabel    = locale === 'ja'
+    ? `${requiredShares}${t(locale, 'rewards.requiredSharesSuffix')}`
+    : `${requiredShares} shares`
   return (
     <div className="px-4 py-3.5" style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-start justify-between">
@@ -516,7 +520,9 @@ function ThemeRow({ label, description, requiredShares, unlocked, shareCount, do
           <div className="w-3.5 h-3.5 rounded-full flex-shrink-0 mt-[3px]" style={{ background: dotColor }} />
           <div>
             <p className="text-[13px] font-bold" style={{ color: unlocked ? '#fff' : '#888' }}>{label}</p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>{description}</p>
+            <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              {description}
+            </p>
           </div>
         </div>
         {unlocked ? (
@@ -525,9 +531,9 @@ function ThemeRow({ label, description, requiredShares, unlocked, shareCount, do
             <span className="text-[10px] font-black" style={{ color: '#4ade80' }}>ACTIVE</span>
           </div>
         ) : (
-          <span className="text-[10px] font-bold flex-shrink-0 mt-0.5"
-            style={{ color: 'rgba(255,255,255,0.22)' }}>
-            {requiredShares} shares
+          <span className="text-[10px] font-bold flex-shrink-0 mt-0.5 text-right"
+            style={{ color: 'rgba(255,255,255,0.28)', maxWidth: 72 }}>
+            {reqLabel}
           </span>
         )}
       </div>
@@ -541,12 +547,12 @@ function ThemeRow({ label, description, requiredShares, unlocked, shareCount, do
             }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.28)' }}>
               {shareCount} / {requiredShares}
             </span>
             {remaining > 0 && (
-              <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
-                {locale === 'ja' ? `あと${remaining}` : `${remaining} more`}
+              <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                {locale === 'ja' ? `あと${remaining}回` : `${remaining} more`}
               </span>
             )}
           </div>

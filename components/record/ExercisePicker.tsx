@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Search, X, Plus, EyeOff, Trash2, RotateCcw } from 'lucide-react'
 import { createCustomExercise, getExerciseUsageCounts, deleteCustomExercise } from '@/actions/workout'
 import { createClient } from '@/lib/supabase/client'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 const HIDDEN_KEY = 'liftsnap_hidden_exercises'
 
@@ -30,6 +32,7 @@ type Props = {
 const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS']
 
 export default function ExercisePicker({ onSelect, onClose }: Props) {
+  const { locale } = useLocale()
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({})
@@ -132,7 +135,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       <button
         className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity pr-2"
         onClick={() => onSelect(e)}>
-        <p className="text-sm font-black text-white truncate">{e.name}</p>
+        <p className="text-sm font-black text-white line-clamp-2" style={{ lineHeight: 1.35 }}>{e.name}</p>
         <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#555' }}>
           {e.muscle_group}
           {e.is_custom ? ' · CUSTOM' : ''}
@@ -178,7 +181,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
           <Search size={16} style={{ color: '#444' }} />
           <input
             type="text"
-            placeholder="Search exercises..."
+            placeholder={t(locale, 'record.searchExercises')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="flex-1 bg-transparent text-sm text-white outline-none"
@@ -192,7 +195,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       </div>
 
       {/* Muscle group filter */}
-      <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 px-4 pb-2 overflow-x-auto no-scrollbar">
         {MUSCLE_GROUPS.map(g => (
           <button key={g}
             className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
@@ -206,6 +209,17 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
           </button>
         ))}
       </div>
+
+      {/* Category supplement — ja only */}
+      {locale === 'ja' && (
+        <div className="px-4 pb-3">
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)' }}>
+            {activeGroup === 'ALL'
+              ? t(locale, 'record.filterByBodyPart')
+              : t(locale, `record.categoryDescription.${activeGroup.toLowerCase()}`)}
+          </p>
+        </div>
+      )}
 
       {/* Exercise list */}
       <div className="flex-1 overflow-y-auto px-4">

@@ -7,6 +7,7 @@ import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
+import { t, type Locale, type LangPref } from '@/lib/i18n'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -40,7 +41,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('profiles')
-      .select('display_name, onboarding_completed')
+      .select('display_name, onboarding_completed, lang_pref')
       .eq('id', user.id)
       .single(),
 
@@ -147,11 +148,12 @@ export default async function HomePage() {
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessionsRes.data?.length ?? 0
   const todayWorked = thisWeekSessions.some((s: { trained_at: string }) => s.trained_at === todayStr)
-  const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null } | null
+  const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null; lang_pref: string | null } | null
   if (profileData?.onboarding_completed === false && !user.is_anonymous) {
     redirect('/onboarding')
   }
   const displayName = profileData?.display_name ?? null
+  const locale: Locale = (profileData?.lang_pref as LangPref) === 'ja' ? 'ja' : 'en'
 
   const thisWeekVolume = thisWeekSessions.reduce((s: number, r: { total_volume_kg: number | null }) => s + (r.total_volume_kg ?? 0), 0)
   const lastWeekVolume = (lastWeekRes.data ?? []).reduce(
@@ -184,7 +186,7 @@ export default async function HomePage() {
         <div className="flex items-center gap-1.5">
           <Zap size={11} style={{ color: 'rgba(255,255,255,0.2)' }} />
           <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
-            {totalSessions90} lifts
+            {locale === 'ja' ? `${totalSessions90}回` : `${totalSessions90} lifts`}
           </span>
         </div>
       </div>
@@ -192,12 +194,12 @@ export default async function HomePage() {
       {/* ── WELCOME ── */}
       <div className="px-4 pt-4 pb-6">
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
-          {getGreeting()}
+          {getGreeting(locale)}
         </p>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <p style={{ fontSize: 30, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-              Welcome back{displayName ? ',' : '.'}
+              {t(locale, 'home.welcomeBack')}{displayName ? ',' : '.'}
             </p>
             {displayName && (
               <p style={{ fontSize: 30, fontWeight: 600, color: '#FF6B00', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
@@ -209,11 +211,11 @@ export default async function HomePage() {
         </div>
         {todayWorked ? (
           <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
-            Great work today.
+            {t(locale, 'home.greatWork')}
           </p>
         ) : (
           <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginTop: 10 }}>
-            No session today — let&apos;s change that.
+            {t(locale, 'home.noSession')}
           </p>
         )}
       </div>
@@ -235,19 +237,19 @@ export default async function HomePage() {
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 4,
                   color: todayWorked ? 'rgba(255,107,0,0.8)' : 'rgba(255,255,255,0.18)',
                 }}>
-                  {todayWorked ? "TODAY'S WORKOUT" : 'NO SESSION YET'}
+                  {todayWorked ? t(locale, 'home.todaysWorkout') : t(locale, 'home.noSessionYet')}
                 </p>
                 <p style={{
                   fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 3,
                   color: todayWorked ? '#ffffff' : 'rgba(255,255,255,0.3)',
                 }}>
-                  {todayWorked ? "Share Today's Workout" : "Log Today's Workout"}
+                  {todayWorked ? t(locale, 'home.shareTodaysWorkout') : t(locale, 'home.logTodaysWorkout')}
                 </p>
                 <p style={{
                   fontSize: 11, fontWeight: 400,
                   color: todayWorked ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.15)',
                 }}>
-                  {todayWorked ? 'Post your effort to Instagram Story' : 'Record your session first'}
+                  {todayWorked ? t(locale, 'home.postToStory') : t(locale, 'home.recordFirst')}
                 </p>
               </div>
               <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
@@ -271,7 +273,7 @@ export default async function HomePage() {
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-4">
         <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
-          WEEKLY EFFORT
+          {t(locale, 'home.weeklyEffort')}
         </p>
         <div className="grid grid-cols-3 gap-2">
           {([
@@ -285,7 +287,7 @@ export default async function HomePage() {
             {
               label: 'SESSIONS',
               value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
-              sub: 'goal: 3×',
+              sub: t(locale, 'home.goalWeekly'),
               subColor: 'rgba(255,255,255,0.32)' as string,
               active: thisWeekSessions.length > 0,
             },
@@ -324,7 +326,7 @@ export default async function HomePage() {
 
       {/* ── STRENGTH CLUB ── */}
       <div className="px-4 mb-4">
-        <ClubCard club={club} allTimeEst1rm={allTimeEst1rm} />
+        <ClubCard club={club} allTimeEst1rm={allTimeEst1rm} locale={locale} />
       </div>
 
       {/* ── BODY WEIGHT ── */}
@@ -340,7 +342,7 @@ export default async function HomePage() {
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
               </div>
             ) : (
-              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.32)' }}>Not logged</p>
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.32)' }}>{t(locale, 'home.notLogged')}</p>
             )}
           </div>
           <Link href="/analytics"
@@ -353,7 +355,7 @@ export default async function HomePage() {
               fontSize: 11,
               fontWeight: 500,
             }}>
-            {todayWeight ? 'View →' : 'Log +'}
+            {todayWeight ? t(locale, 'home.viewBtn') : t(locale, 'home.logPlus')}
           </Link>
         </div>
       </div>
@@ -366,19 +368,19 @@ export default async function HomePage() {
 
 type ClubInfo = { name: string; target: number; gap: number; progress: number; prev: number }
 
-function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1rm: number | null }) {
+function ClubCard({ club, allTimeEst1rm, locale }: { club: ClubInfo | null; allTimeEst1rm: number | null; locale: Locale }) {
   if (!club || !allTimeEst1rm) {
     return (
       <div className="premium-card rounded-xl px-4 py-3">
         <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
-          STRENGTH CLUB
+          {t(locale, 'home.strengthClub')}
         </p>
         <div className="flex items-center gap-3 mb-3">
           <span style={{ fontSize: 16 }}>🏅</span>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>100KG Club</p>
             <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>
-              Log your first lift to track progress
+              {t(locale, 'home.logFirstLift')}
             </p>
           </div>
         </div>
@@ -389,18 +391,19 @@ function ClubCard({ club, allTimeEst1rm }: { club: ClubInfo | null; allTimeEst1r
 
   const current = Math.min(allTimeEst1rm, club.target)
   const pct = club.progress
+  const kgToGo = locale === 'ja' ? `あと${club.gap}kg` : `+${club.gap} kg to go`
 
   return (
     <div className="premium-card rounded-xl px-4 py-3">
       <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
-        STRENGTH CLUB
+        {t(locale, 'home.strengthClub')}
       </p>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <span style={{ fontSize: 16 }}>🏅</span>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{club.name}</p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: '#22c55e' }}>+{club.gap} kg to go</p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: '#22c55e' }}>{kgToGo}</p>
           </div>
         </div>
         <div className="flex items-baseline gap-1">
@@ -444,11 +447,11 @@ function getLastWeekStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function getGreeting() {
+function getGreeting(locale: Locale) {
   const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', hour12: false }), 10)
-  if (h < 12) return 'GOOD MORNING'
-  if (h < 17) return 'GOOD AFTERNOON'
-  return 'GOOD EVENING'
+  if (h < 12) return t(locale, 'home.greeting.morning')
+  if (h < 17) return t(locale, 'home.greeting.afternoon')
+  return t(locale, 'home.greeting.evening')
 }
 
 function getStreakWindowStart(): string {

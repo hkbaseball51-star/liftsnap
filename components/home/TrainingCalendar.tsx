@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 export type CalendarSession = {
   date: string       // YYYY-MM-DD
@@ -87,6 +89,7 @@ export default function TrainingCalendar({
   onNavigate?: (date: string) => void
 }) {
   const router = useRouter()
+  const { locale } = useLocale()
   const clientToday = useMemo(() => localDateStr(new Date()), [])
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
@@ -135,7 +138,7 @@ export default function TrainingCalendar({
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>
-          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#777' }}>TRAINING LOG</p>
+          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#777' }}>{t(locale, 'home.trainingLog')}</p>
           <div className="flex items-baseline gap-2">
             <p className="text-xl font-black text-white tracking-wider">
               {MONTH_NAMES[month]}
@@ -144,7 +147,7 @@ export default function TrainingCalendar({
             {thisMonthCount > 0 && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(255,107,0,0.12)', color: '#ff6b00' }}>
-                {thisMonthCount} sessions
+                {locale === 'ja' ? `${thisMonthCount}回` : `${thisMonthCount} sessions`}
               </span>
             )}
           </div>

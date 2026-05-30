@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -29,6 +31,7 @@ export default function SelectedDaySummary({
   bodyWeight?: number | null
 }) {
   const router = useRouter()
+  const { locale } = useLocale()
   const [visible, setVisible] = useState(false)
 
   // Component remounts on key change; double rAF ensures transition fires after paint
@@ -76,7 +79,7 @@ export default function SelectedDaySummary({
             {dateLabel}
           </p>
           <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.22)', marginBottom: bodyWeight !== null ? 6 : 14 }}>
-            No workout logged
+            {t(locale, 'home.noWorkoutLogged')}
           </p>
           {bodyWeight !== null && (
             <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>
@@ -85,7 +88,7 @@ export default function SelectedDaySummary({
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#ff6b00' }}>
-              Log Workout →
+              {t(locale, 'home.logWorkoutArrow')}
             </span>
           </div>
         </button>
@@ -114,13 +117,13 @@ export default function SelectedDaySummary({
               )}
             </div>
             <span style={{ fontSize: 11, fontWeight: 700, color: accentColor }}>
-              View →
+              {t(locale, 'home.viewBtn')}
             </span>
           </div>
 
           {/* Row 2: stats summary */}
           <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.42)', marginBottom: 10 }}>
-            {summary.totalSets} sets
+            {locale === 'ja' ? `${summary.totalSets}セット` : `${summary.totalSets} sets`}
             {' · '}
             {formatVolume(summary.totalVolume)}
             {summary.best1rm > 0 && ` · 1RM ${summary.best1rm}kg`}
@@ -138,7 +141,7 @@ export default function SelectedDaySummary({
           </p>
           {summary.mainExerciseBestWeight > 0 && summary.mainExerciseBestReps > 0 && (
             <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>
-              Best set&nbsp; {summary.mainExerciseBestWeight}kg × {summary.mainExerciseBestReps}
+              {t(locale, 'home.bestSet')}&nbsp; {summary.mainExerciseBestWeight}kg × {summary.mainExerciseBestReps}
             </p>
           )}
 
@@ -154,7 +157,7 @@ export default function SelectedDaySummary({
                 const hidden = summary.extraCount - (summary.secondExercise ? 1 : 0)
                 return hidden > 0 ? (
                   <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.22)' }}>
-                    +{hidden} exercise{hidden > 1 ? 's' : ''}
+                    {locale === 'ja' ? `他${hidden}種目` : `+${hidden} exercise${hidden > 1 ? 's' : ''}`}
                   </span>
                 ) : null
               })()}
