@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { resolveLocale, type LangPref } from '@/lib/i18n'
 import { saveLanguage, getUserLanguage } from '@/actions/settings'
 
 const STORAGE_KEY = 'liftsnap_lang'
@@ -11,23 +12,22 @@ export default function LocaleSync() {
     const stored = localStorage.getItem(STORAGE_KEY)
 
     if (stored) {
-      // Ensure the server-side cookie matches localStorage.
-      // Only call saveLanguage if the cookie isn't already set to avoid unnecessary writes.
+      const resolved = resolveLocale(stored as LangPref)
       const cookieValue = document.cookie
         .split('; ')
         .find(row => row.startsWith(`${COOKIE_KEY}=`))
         ?.split('=')[1]
 
-      if (cookieValue !== stored) {
-        saveLanguage(stored).catch(() => {})
+      // Cookie should hold the resolved locale, not raw pref
+      if (cookieValue !== resolved) {
+        saveLanguage(stored, resolved).catch(() => {})
       }
     } else {
-      // No localStorage value — pull from DB and hydrate both localStorage and cookie
       getUserLanguage()
         .then(pref => {
           if (pref) {
             localStorage.setItem(STORAGE_KEY, pref)
-            saveLanguage(pref).catch(() => {})
+            saveLanguage(pref, resolveLocale(pref as LangPref)).catch(() => {})
           }
         })
         .catch(() => {})

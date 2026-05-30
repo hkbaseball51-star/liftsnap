@@ -5,16 +5,15 @@ import { createClient } from '@/lib/supabase/server'
 
 const COOKIE_KEY = 'liftsnap_lang'
 
-export async function saveLanguage(pref: string): Promise<void> {
-  // Set cookie so Server Components can read locale without a DB round-trip
+// cookieLocale must be resolved ('en'|'ja') — never 'auto' — so server can read it directly
+export async function saveLanguage(pref: string, cookieLocale: string): Promise<void> {
   const cookieStore = await cookies()
-  cookieStore.set(COOKIE_KEY, pref, {
+  cookieStore.set(COOKIE_KEY, cookieLocale, {
     path: '/',
     maxAge: 60 * 60 * 24 * 365,
     sameSite: 'lax',
   })
 
-  // Also persist to DB for cross-device sync
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return

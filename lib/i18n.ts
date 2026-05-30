@@ -8,6 +8,19 @@ export function resolveLocale(pref: LangPref): Locale {
   return 'en'
 }
 
+// Server-side: cookie stores resolved locale; fall back to DB pref then Accept-Language header
+export function resolveServerLocale(
+  cookieLang: string | undefined,
+  dbLang: string | null | undefined,
+  acceptLanguage: string,
+): Locale {
+  if (cookieLang === 'ja' || cookieLang === 'en') return cookieLang
+  const pref = dbLang ?? 'auto'
+  if (pref === 'ja') return 'ja'
+  if (pref === 'en') return 'en'
+  return acceptLanguage.split(',')[0].trim().toLowerCase().startsWith('ja') ? 'ja' : 'en'
+}
+
 const translations = {
   en: {
     profileEdit: {

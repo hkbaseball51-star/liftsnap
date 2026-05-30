@@ -21,7 +21,7 @@ export function useLocale() {
   const setLangPref = async (pref: LangPref) => {
     setLangPrefState(pref)
     localStorage.setItem(STORAGE_KEY, pref)
-    await saveLanguage(pref).catch(() => {})
+    await saveLanguage(pref, resolveLocale(pref)).catch(() => {})
   }
 
   return { locale, langPref, setLangPref, mounted }
