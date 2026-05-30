@@ -87,7 +87,7 @@ export default function SelectedDaySummary({
           </p>
           {bodyWeight !== null && (
             <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>
-              BW {bodyWeight}kg
+              BW {toDisplayWeight(bodyWeight, unit)}{weightUnitLabel(unit)}
             </p>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -132,7 +132,7 @@ export default function SelectedDaySummary({
             {formatVolume(summary.totalVolume, unit)}
             {summary.best1rm > 0 && ` · 1RM ${toDisplayWeight(summary.best1rm, unit)}${weightUnitLabel(unit)}`}
             {bodyWeight !== null && (
-              <span style={{ color: 'rgba(255,255,255,0.32)' }}>{` · BW ${bodyWeight}kg`}</span>
+              <span style={{ color: 'rgba(255,255,255,0.32)' }}>{` · BW ${toDisplayWeight(bodyWeight, unit)}${weightUnitLabel(unit)}`}</span>
             )}
           </p>
 

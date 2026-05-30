@@ -12,7 +12,7 @@ import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
-import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
+import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
 import { EXERCISE_GRAPH_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 
@@ -63,8 +63,10 @@ const tooltipStyle = {
 
 export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
   const { locale } = useLocale()
-  const { unit } = useWeightUnit()
+  const { unit, mounted: unitMounted } = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
+  const bwMin = unit === 'lbs' ? 44 : 20
+  const bwMax = unit === 'lbs' ? 661 : 300
   const [tab, setTab] = useState<Tab>('MAX 1RM')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
@@ -105,6 +107,17 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, selectedExercise])
 
+  // Re-initialize bwInput in display unit once unit resolves
+  useEffect(() => {
+    if (!unitMounted) return
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+    const entry = bwData.find(p => p.date === today)
+    if (entry) {
+      setBwInput(String(toDisplayWeight(entry.weight, unit)))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitMounted])
+
   const handleMuscleFilter = (mg: MuscleGroup) => {
     setMuscleFilter(mg)
     const newFiltered = exercises.filter(e => matchesMuscleGroup(e.muscle_group, mg))
@@ -120,17 +133,18 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const saveBW = async () => {
     const v = parseFlexibleNumber(bwInput)
-    if (v === null || v < 20 || v > 300) return
+    if (v === null || v < bwMin || v > bwMax) return
     if (bwSaving) return
+    const vKg = fromDisplayWeight(v, unit)
     setBwSaving(true)
     try {
-      await upsertBodyWeight(v)
+      await upsertBodyWeight(vKg)
       const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
       const [, mm, dd] = today.split('-')
       const label = `${parseInt(mm)}/${parseInt(dd)}`
       setBwData(prev => {
         const filtered = prev.filter(p => p.date !== today)
-        return [...filtered, { date: today, label, weight: v }].sort((a, b) => a.date.localeCompare(b.date))
+        return [...filtered, { date: today, label, weight: vKg }].sort((a, b) => a.date.localeCompare(b.date))
       })
       showBwToast(t(locale, 'analytics.weightLogged'), true)
     } catch {
@@ -143,8 +157,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const todayJST     = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
   const todaySaved   = bwData.some(p => p.date === todayJST)
   const bwParsed     = bwInput !== '' ? parseFlexibleNumber(bwInput) : null
-  const bwInputValid = bwParsed !== null && bwParsed >= 20 && bwParsed <= 300
+  const bwInputValid = bwParsed !== null && bwParsed >= bwMin && bwParsed <= bwMax
   const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
+  const bwDataDisplay = bwData.map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
 
@@ -509,16 +524,16 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <input
                   type="text"
                   inputMode="decimal"
-                  placeholder={latestWeight ? String(latestWeight) : '70.0'}
+                  placeholder={latestWeight ? String(toDisplayWeight(latestWeight, unit)) : (unit === 'lbs' ? '154.0' : '70.0')}
                   value={bwInput}
                   onChange={e => setBwInput(e.target.value)}
                   className="w-20 bg-transparent text-white text-xl font-black outline-none"
                   style={{ fontFamily: 'var(--font-mono)' }}
                 />
-                <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
               </div>
               {bwInput && !bwInputValid && (
-                <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>{t(locale, 'analytics.bwInputError')}</p>
+                <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>{t(locale, unit === 'lbs' ? 'analytics.bwInputErrorLbs' : 'analytics.bwInputError')}</p>
               )}
             </div>
             <button
@@ -540,12 +555,12 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               <div>
                 <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>LATEST</p>
                 <div className="flex items-baseline gap-1">
-                  <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                  <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight !== null ? toDisplayWeight(latestWeight, unit) : ''}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
                 </div>
               </div>
-              {bwData.length >= 2 && (() => {
-                const diff = bwData[bwData.length - 1].weight - bwData[0].weight
+              {bwDataDisplay.length >= 2 && (() => {
+                const diff = Math.round((bwDataDisplay[bwDataDisplay.length - 1].weight - bwDataDisplay[0].weight) * 10) / 10
                 return (
                   <div className="text-right">
                     <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>CHANGE</p>
@@ -553,7 +568,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                       <span style={{ fontSize: 28, fontWeight: 900, color: diff <= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', lineHeight: 1 }}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(1)}
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
                     </div>
                   </div>
                 )
@@ -569,13 +584,13 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={bwData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <LineChart data={bwDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                   <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
-                    interval={Math.floor(bwData.length / 6)} />
+                    interval={Math.floor(bwDataDisplay.length / 6)} />
                   <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                  <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, 'Weight']} />
-                  <ReferenceLine y={bwData[0]?.weight} stroke="#222" strokeDasharray="4 4" />
+                  <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
+                  <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="#222" strokeDasharray="4 4" />
                   <Line type="monotone" dataKey="weight" stroke="#9B72E8" strokeWidth={2.5}
                     dot={{ fill: '#9B72E8', r: 3, strokeWidth: 0 }}
                     activeDot={{ r: 5, fill: '#9B72E8' }} />

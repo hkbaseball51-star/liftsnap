@@ -135,7 +135,11 @@ export default function RewardsView() {
         <SummaryCard
           label="THEMES"
           value={dataLoaded ? `${unlockedThemes.length}/4` : '—'}
-          sub={dataLoaded ? `${4 - unlockedThemes.length} ${t(locale, 'rewards.locked')}` : ''}
+          sub={dataLoaded
+            ? (locale === 'ja'
+              ? `残り${4 - unlockedThemes.length}テーマ`
+              : `${4 - unlockedThemes.length} ${(4 - unlockedThemes.length) === 1 ? 'theme' : 'themes'} locked`)
+            : ''}
           loading={!dataLoaded}
         />
       </div>
@@ -269,10 +273,10 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
     required     = m.requiredSessions
     progressUnit = locale === 'ja' ? t(locale, 'rewards.sessionPlural') : (required === 1 ? 'session' : 'sessions')
     description  = locale === 'ja'
-      ? `${milestoneDesc}\nあと${rem}回の記録で解放。`
+      ? `${milestoneDesc}\nあと${rem}回記録すると解放されます。`
       : rem === 1
-        ? `1 more session to unlock ${m.description.toLowerCase()}.`
-        : `${rem} more sessions to unlock ${m.description.toLowerCase()}.`
+        ? `${milestoneDesc}\nUnlocks after 1 more workout.`
+        : `${milestoneDesc}\nUnlocks after ${rem} more workouts.`
     ctaLabel = t(locale, 'rewards.logWorkout')
     ctaHref  = '/record'
   } else if (result.type === 'exercise_graph') {
@@ -283,10 +287,10 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
     required     = EXERCISE_GRAPH_REQUIRED
     progressUnit = locale === 'ja' ? '回' : 'logs'
     description  = locale === 'ja'
-      ? `${name}のグラフ共有まであと${rem}回の記録。`
+      ? `あと${rem}回記録で解放。`
       : rem === 1
-        ? `1 more ${name} log to unlock graph sharing.`
-        : `${rem} more ${name} logs to unlock graph sharing.`
+        ? `Unlocks after 1 more log.`
+        : `Unlocks after ${rem} more logs.`
     ctaLabel = locale === 'ja' ? `${name}${t(locale, 'rewards.logExercise')}` : `Log ${name}`
     ctaHref  = '/record'
   } else {
@@ -300,8 +304,8 @@ function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: 
     description  = locale === 'ja'
       ? `${themeDesc}\nあと${rem}回のShare Storyで解放。`
       : rem === 1
-        ? `1 more story export to unlock this theme.`
-        : `${rem} more story exports to unlock this theme.`
+        ? `${themeDesc}\nUnlocks after 1 more story export.`
+        : `${themeDesc}\nUnlocks after ${rem} more story exports.`
     ctaLabel = t(locale, 'rewards.createStory')
     ctaHref  = '/home'
   }
@@ -462,8 +466,10 @@ function ExerciseRow({ name, logCount, locale, isLast }: { name: string; logCoun
   const pct       = Math.min((logCount / EXERCISE_GRAPH_REQUIRED) * 100, 100)
   const remaining = EXERCISE_GRAPH_REQUIRED - logCount
   const lockedDesc = locale === 'ja'
-    ? `あと${remaining}${t(locale, 'rewards.graphLockedDesc')}`
-    : `${remaining} more logs to unlock`
+    ? `あと${remaining}回記録で解放`
+    : remaining === 1
+      ? `Unlocks after 1 more log`
+      : `Unlocks after ${remaining} more logs`
   return (
     <div className="px-4 py-3.5" style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-start justify-between">
@@ -511,8 +517,8 @@ function ThemeRow({ id, label, requiredShares, unlocked, shareCount, dotColor, l
   const remaining   = Math.max(requiredShares - shareCount, 0)
   const description = t(locale, `rewards.theme.${id}`)
   const reqLabel    = locale === 'ja'
-    ? `${requiredShares}${t(locale, 'rewards.requiredSharesSuffix')}`
-    : `${requiredShares} shares`
+    ? `${requiredShares}回シェアで解放`
+    : `Unlock after ${requiredShares} shares`
   return (
     <div className="px-4 py-3.5" style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-start justify-between">

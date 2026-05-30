@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
-import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
+import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -77,12 +77,12 @@ const RM_JA_EN: Record<string, string> = {
   'フェイスプル': 'FACE PULL', 'ランジ': 'LUNGE',
 }
 
-function fmtYLabel(v: number, isVolume: boolean): string {
+function fmtYLabel(v: number, isVolume: boolean, unit: WeightUnit = 'kg'): string {
   if (isVolume) {
     if (v >= 10000) return `${Math.round(v/1000)}k`
     if (v >= 1000)  return `${(v/1000).toFixed(1)}k`
   }
-  return `${Math.round(v * 10) / 10}kg`
+  return `${Math.round(v * 10) / 10}${unit}`
 }
 
 function niceYTicks(dataMin: number, dataMax: number, count = 4): number[] {
@@ -116,7 +116,7 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 type ChartPt = { date: string; value: number }
 
 /* ── BAR chart (canvas — used for volume/bodyweight) ──────── */
-function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], isVolume = false) {
+function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], isVolume = false, unit: WeightUnit = 'kg') {
   if (!pts.length) return
   const n   = Math.min(pts.length, 14)
   const sub = pts.slice(-n)
@@ -159,14 +159,14 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
     const ty = max > 0 ? y + h - Math.round((tick / max) * h * 0.9) : y + h
     if (ty < y - 4) return
     ctx.fillStyle = 'rgba(255,255,255,0.85)'
-    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 10)
+    ctx.fillText(fmtYLabel(tick, isVolume, unit), x - 16, ty + 10)
   })
   ctx.textAlign = 'left'
 }
 
 /* ── LINE chart (canvas — used for volume/bodyweight) ─────── */
-function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], accent: Accent, isVolume = false) {
-  if (pts.length < 2) { canvasBar(ctx, pts, x, y, w, h, ac, isVolume); return }
+function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], accent: Accent, isVolume = false, unit: WeightUnit = 'kg') {
+  if (pts.length < 2) { canvasBar(ctx, pts, x, y, w, h, ac, isVolume, unit); return }
   const n    = Math.min(pts.length, 14)
   const sub  = pts.slice(-n)
   const max  = Math.max(...sub.map(d => d.value))
@@ -223,13 +223,13 @@ function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y:
     const ty = py(tick)
     if (ty < y - 4 || ty > y + h + 4) return
     ctx.fillStyle = 'rgba(255,255,255,0.85)'
-    ctx.fillText(fmtYLabel(tick, isVolume), x - 16, ty + 10)
+    ctx.fillText(fmtYLabel(tick, isVolume, unit), x - 16, ty + 10)
   })
   ctx.textAlign = 'left'
 }
 
 /* ── Canvas card (volume / bodyweight only) ──────────────── */
-async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, chartType: ChartType): Promise<Blob> {
+async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, chartType: ChartType, unit: WeightUnit = 'kg'): Promise<Blob> {
   const W = 1080, H = 1920
   const cv = document.createElement('canvas')
   cv.width = W; cv.height = H
@@ -262,23 +262,32 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   let supp2Color = 'rgba(255,255,255,0.75)'
   let chartData: ChartPt[] = []
 
+  const canvasUnitLabel = weightUnitLabel(unit)
   if (data.type === 'volume') {
     metricLabel = 'DAILY VOLUME'; exerciseName = data.exerciseName
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
-    heroStr = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
-    supp1 = `${data.totalVolume >= 10000 ? `${(data.totalVolume/1000).toFixed(1)}k` : data.totalVolume.toLocaleString()} kg accumulated`
+    const maxVolDisplay = Math.round(toDisplayWeight(maxVol, unit))
+    heroStr = maxVolDisplay >= 10000 ? `${(maxVolDisplay/1000).toFixed(1)}k` : maxVolDisplay.toLocaleString()
+    const totalDisplay = Math.round(toDisplayWeight(data.totalVolume, unit))
+    supp1 = `${totalDisplay >= 10000 ? `${(totalDisplay/1000).toFixed(1)}k` : totalDisplay.toLocaleString()} ${canvasUnitLabel} accumulated`
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
-    chartData = data.history.map(d => ({ date: d.date, value: d.volume }))
+    chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else {
     // bodyweight
-    metricLabel = 'BODY WEIGHT'; heroStr = String((data as Extract<StatsData, {type:'bodyweight'}>).currentWeight)
     const bw = data as Extract<StatsData, {type:'bodyweight'}>
-    if (bw.change !== 0) supp1 = `${bw.change > 0 ? '+' : ''}${bw.change} kg since start`
+    metricLabel = 'BODY WEIGHT'
+    heroStr = String(toDisplayWeight(bw.currentWeight, unit))
+    if (bw.change !== 0) {
+      const changeDisplay = Math.round(toDisplayWeight(bw.change, unit) * 10) / 10
+      supp1 = `${changeDisplay > 0 ? '+' : ''}${changeDisplay} ${canvasUnitLabel} since start`
+    }
     if (bw.history.length >= 2) {
-      supp2 = `${bw.history[0].weight} kg → ${bw.currentWeight} kg`
+      const startDisplay = toDisplayWeight(bw.history[0].weight, unit)
+      const currDisplay = toDisplayWeight(bw.currentWeight, unit)
+      supp2 = `${startDisplay} ${canvasUnitLabel} → ${currDisplay} ${canvasUnitLabel}`
       supp2Color = 'rgba(255,255,255,0.65)'
     }
-    chartData = bw.history.map(d => ({ date: d.date, value: d.weight }))
+    chartData = bw.history.map(d => ({ date: d.date, value: toDisplayWeight(d.weight, unit) }))
   }
 
   let cy = 202
@@ -298,7 +307,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   ctx.fillStyle = heroColor; ctx.font = f(152, 700); ctx.fillText(heroStr, 80, cy)
   const hw = ctx.measureText(heroStr).width
   ctx.fillStyle = 'rgba(255,255,255,0.70)'; ctx.font = f(56, 500)
-  ctx.fillText(' kg', 80 + hw + 10, cy - 12)
+  ctx.fillText(' ' + canvasUnitLabel, 80 + hw + 10, cy - 12)
   cy += 72
 
   if (supp1) {
@@ -325,9 +334,9 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   const chartW      = W - chartX - 80
 
   if (chartType === 'line') {
-    canvasLine(ctx, chartData, chartX, chartTop, chartW, chartH, ac, accent, isVol)
+    canvasLine(ctx, chartData, chartX, chartTop, chartW, chartH, ac, accent, isVol, unit)
   } else {
-    canvasBar(ctx, chartData, chartX, chartTop, chartW, chartH, ac, isVol)
+    canvasBar(ctx, chartData, chartX, chartTop, chartW, chartH, ac, isVol, unit)
   }
 
   ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = f(26)
@@ -444,7 +453,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       if (data.type === 'max1rm' && captureRef.current) {
         blob = await captureMax1RMCard(captureRef.current, theme)
       } else {
-        blob = await generateStatsCard(data, theme, accent, chartType)
+        blob = await generateStatsCard(data, theme, accent, chartType, unit)
       }
       const file = new File([blob], 'liftsnap-stats.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
@@ -544,13 +553,19 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
     chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else if (data.type === 'bodyweight') {
-    metricLabel = 'BODY WEIGHT'; heroNum = String(data.currentWeight)
-    if (data.change !== 0) supp1 = `${data.change > 0 ? '+' : ''}${data.change} kg since start`
+    metricLabel = 'BODY WEIGHT'
+    heroNum = String(toDisplayWeight(data.currentWeight, unit))
+    if (data.change !== 0) {
+      const changeDisplay = Math.round(toDisplayWeight(data.change, unit) * 10) / 10
+      supp1 = `${changeDisplay > 0 ? '+' : ''}${changeDisplay} ${unitLabel} since start`
+    }
     if (data.history.length >= 2) {
-      supp2 = `${data.history[0].weight} kg → ${data.currentWeight} kg`
+      const startDisplay = toDisplayWeight(data.history[0].weight, unit)
+      const currDisplay = toDisplayWeight(data.currentWeight, unit)
+      supp2 = `${startDisplay} ${unitLabel} → ${currDisplay} ${unitLabel}`
       supp2Color = 'rgba(255,255,255,0.65)'
     }
-    chartData = data.history.map(d => ({ date: d.date, value: d.weight }))
+    chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.weight, unit) * 10) / 10 }))
   }
 
   const chartMin = chartData.length ? Math.min(...chartData.map(d => d.value)) : 0
