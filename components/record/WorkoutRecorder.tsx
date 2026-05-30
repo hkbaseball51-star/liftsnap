@@ -653,7 +653,7 @@ export default function WorkoutRecorder({
           value={currentTarget}
           unit={numberTarget.field === 'weight_kg' ? 'kg' : 'reps'}
           step={numberTarget.field === 'weight_kg' ? 2.5 : 1}
-          quickSteps={numberTarget.field === 'weight_kg' ? [-10, -2.5, -1.25, 1.25, 2.5, 10] : [-2, -1, 1, 2]}
+          quickSteps={numberTarget.field === 'weight_kg' ? [-1.25, 1.25, -2.5, 2.5, -5, 5, -10, 10] : [-2, -1, 1, 2]}
           isInteger={numberTarget.field === 'reps'}
           onConfirm={v => updateSet(numberTarget.exerciseId, numberTarget.setId, numberTarget.field, v)}
           onClose={() => setNumberTarget(null)}
