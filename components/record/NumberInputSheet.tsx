@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { parseFlexibleNumber } from '@/lib/number'
 
 type Props = {
   label: string
@@ -9,30 +10,39 @@ type Props = {
   unit: string
   step: number
   quickSteps: number[]
+  isInteger?: boolean
   onConfirm: (value: number) => void
   onClose: () => void
 }
 
-export default function NumberInputSheet({ label, value, unit, step, quickSteps, onConfirm, onClose }: Props) {
+export default function NumberInputSheet({
+  label, value, unit, step, quickSteps, isInteger = false, onConfirm, onClose,
+}: Props) {
   const [current, setCurrent] = useState(value ?? 0)
   const [inputVal, setInputVal] = useState(String(value ?? 0))
 
   useEffect(() => {
-    setCurrent(value ?? 0)
-    setInputVal(String(value ?? 0))
+    const n = value ?? 0
+    setCurrent(n)
+    setInputVal(String(n))
   }, [value])
 
   const adjust = (delta: number) => {
-    const next = Math.max(0, Math.round((current + delta) * 10) / 10)
+    const raw = Math.max(0, Math.round((current + delta) * 10) / 10)
+    const next = isInteger ? Math.floor(raw) : raw
     setCurrent(next)
     setInputVal(String(next))
   }
 
   const handleInput = (v: string) => {
     setInputVal(v)
-    const n = parseFloat(v)
-    if (!isNaN(n) && n >= 0) setCurrent(n)
+    const n = parseFlexibleNumber(v)
+    if (n !== null && n >= 0) {
+      setCurrent(isInteger ? Math.floor(n) : n)
+    }
   }
+
+  const confirmValue = isInteger ? Math.floor(current) : current
 
   return (
     <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.75)' }}
@@ -45,11 +55,12 @@ export default function NumberInputSheet({ label, value, unit, step, quickSteps,
           <button onClick={onClose}><X size={20} style={{ color: '#555' }} /></button>
         </div>
 
-        {/* Large number */}
+        {/* Large number input — user taps here to type */}
         <div className="flex items-baseline justify-center gap-2 mb-6">
           <input
-            type="number"
-            inputMode="decimal"
+            type="text"
+            inputMode={isInteger ? 'numeric' : 'decimal'}
+            pattern={isInteger ? '[0-9０-９]*' : '[0-9０-９]*[.]?[0-9０-９]*'}
             value={inputVal}
             onChange={e => handleInput(e.target.value)}
             className="bg-transparent text-center text-6xl font-black text-white outline-none w-40"
@@ -78,7 +89,7 @@ export default function NumberInputSheet({ label, value, unit, step, quickSteps,
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white tracking-widest"
           style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
-          onClick={() => { onConfirm(current); onClose() }}>
+          onClick={() => { onConfirm(confirmValue); onClose() }}>
           SET
         </button>
       </div>

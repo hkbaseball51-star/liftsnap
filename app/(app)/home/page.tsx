@@ -51,10 +51,9 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('body_weights')
-      .select('weight_kg')
+      .select('weight_kg, recorded_at')
       .eq('user_id', user.id)
-      .eq('recorded_at', todayStr)
-      .maybeSingle(),
+      .gte('recorded_at', ninetyDaysAgoStr),
 
     supabase.from('workout_sets')
       .select('weight_kg, reps')
@@ -73,7 +72,7 @@ export default async function HomePage() {
   ])
   const [
     thisWeekRes, calendarSessionsRes, profileRes,
-    lastWeekRes, todayWeightRes, atbRes,
+    lastWeekRes, bwHistoryRes, atbRes,
     streakSessionsRes,
   ] = rawResults.map(settled)
 
@@ -156,7 +155,11 @@ export default async function HomePage() {
   const volumeDiff = lastWeekVolume > 0
     ? Math.round(((thisWeekVolume - lastWeekVolume) / lastWeekVolume) * 100)
     : null
-  const todayWeight = todayWeightRes.data?.weight_kg ?? null
+  const bodyWeightByDate: Record<string, number> = {}
+  for (const bw of ((bwHistoryRes.data ?? []) as { weight_kg: number; recorded_at: string }[])) {
+    bodyWeightByDate[bw.recorded_at] = bw.weight_kg
+  }
+  const todayWeight = bodyWeightByDate[todayStr] ?? null
 
   const allTimeBest = atbRes.data as { weight_kg: number; reps: number } | null
   const allTimeEst1rm = allTimeBest
@@ -257,7 +260,7 @@ export default async function HomePage() {
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
       <div className="px-4 mb-5">
-        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} />
+        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} />
       </div>
 
       {/* ── WEEKLY EFFORT ── */}

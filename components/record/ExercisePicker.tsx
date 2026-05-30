@@ -182,7 +182,6 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="flex-1 bg-transparent text-sm text-white outline-none"
-            autoFocus
           />
           {query && (
             <button onClick={() => setQuery('')}>

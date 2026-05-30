@@ -23,10 +23,12 @@ export default function CalendarWithSummary({
   sessions,
   todayStr,
   daySummaries,
+  bodyWeightByDate = {},
 }: {
   sessions: CalendarSession[]
   todayStr: string
   daySummaries: Record<string, DaySummary>
+  bodyWeightByDate?: Record<string, number>
 }) {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -46,6 +48,7 @@ export default function CalendarWithSummary({
             key={selectedDate}
             selectedDate={selectedDate}
             summary={daySummaries[selectedDate] ?? null}
+            bodyWeight={bodyWeightByDate[selectedDate] ?? null}
           />
         </div>
       )}

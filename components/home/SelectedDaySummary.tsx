@@ -22,9 +22,11 @@ function formatDateLabel(dateStr: string): string {
 export default function SelectedDaySummary({
   selectedDate,
   summary,
+  bodyWeight = null,
 }: {
   selectedDate: string
   summary: DaySummary | null
+  bodyWeight?: number | null
 }) {
   const router = useRouter()
   const [visible, setVisible] = useState(false)
@@ -73,9 +75,14 @@ export default function SelectedDaySummary({
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
             {dateLabel}
           </p>
-          <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.22)', marginBottom: 14 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.22)', marginBottom: bodyWeight !== null ? 6 : 14 }}>
             No workout logged
           </p>
+          {bodyWeight !== null && (
+            <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>
+              BW {bodyWeight}kg
+            </p>
+          )}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#ff6b00' }}>
               Log Workout →
@@ -116,7 +123,10 @@ export default function SelectedDaySummary({
             {summary.totalSets} sets
             {' · '}
             {formatVolume(summary.totalVolume)}
-            {summary.best1rm > 0 && ` · Best 1RM ${summary.best1rm}kg`}
+            {summary.best1rm > 0 && ` · 1RM ${summary.best1rm}kg`}
+            {bodyWeight !== null && (
+              <span style={{ color: 'rgba(255,255,255,0.32)' }}>{` · BW ${bodyWeight}kg`}</span>
+            )}
           </p>
 
           {/* Divider */}
