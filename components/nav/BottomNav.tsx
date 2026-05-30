@@ -74,6 +74,7 @@ export default function BottomNav() {
             <button
               key={href}
               className="flex flex-col items-center gap-0.5 py-1 px-3 active:opacity-60 transition-opacity"
+              style={{ transform: 'translateY(-6px)' }}
               onClick={() => navigate(href)}
             >
               <Icon
