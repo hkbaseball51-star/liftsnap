@@ -27,7 +27,7 @@ export default function RestTimerSheet({ defaultSeconds = 90, onClose }: Props) 
   const presets = [60, 90, 120, 180]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.75)' }}
+    <div className="fixed inset-0 z-[60] flex items-end" style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
       <div className="w-full rounded-t-3xl p-6 pb-10" style={{ background: '#111', border: '1px solid #1e1e1e' }}
         onClick={e => e.stopPropagation()}>

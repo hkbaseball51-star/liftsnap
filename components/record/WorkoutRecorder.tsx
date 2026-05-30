@@ -7,6 +7,7 @@ import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/
 import { createClient } from '@/lib/supabase/client'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
+import NoteInputSheet from './NoteInputSheet'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
 import { t, type Locale } from '@/lib/i18n'
@@ -26,6 +27,7 @@ type ExerciseEntry = {
   muscle_group: string
   allTimePR: number | null
   sets: SetEntry[]
+  note: string
 }
 
 type Exercise = {
@@ -50,6 +52,7 @@ type PRStatus =
 type InitialExercise = {
   name: string
   muscle_group: string
+  note?: string | null
   sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[]
 }
 
@@ -118,11 +121,13 @@ type ExerciseCardProps = {
   onRemoveExercise: (exerciseId: string) => void
   onRemoveSet: (exerciseId: string, setId: string) => void
   onSetTarget: (target: NumberTarget) => void
+  onNoteTarget: (exerciseId: string) => void
 }
 
 const ExerciseCard = memo(function ExerciseCard({
-  ex, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget,
+  ex, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget,
 }: ExerciseCardProps) {
+  const { locale } = useLocale()
   const stats = useMemo(() => calcExerciseStats(ex), [ex])
   const prStatus = useMemo(
     () => stats ? calcPRStatus(stats.maxWeightToday, ex.allTimePR) : null,
@@ -275,6 +280,35 @@ const ExerciseCard = memo(function ExerciseCard({
         <Plus size={10} strokeWidth={3} />
         SET
       </button>
+
+      {/* Note */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '7px 12px 10px' }}>
+        {ex.note ? (
+          <button
+            className="w-full text-left active:opacity-70 transition-opacity"
+            onClick={() => onNoteTarget(ex.id)}>
+            <div className="flex items-start gap-2"
+              style={{ borderRadius: 10, background: 'rgba(255,255,255,0.04)', padding: '7px 10px' }}>
+              <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>📝</span>
+              <p style={{
+                fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5,
+                overflow: 'hidden', display: '-webkit-box',
+                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              }}>
+                {ex.note}
+              </p>
+            </div>
+          </button>
+        ) : (
+          <button
+            className="active:opacity-70 transition-opacity"
+            onClick={() => onNoteTarget(ex.id)}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>
+              {t(locale, 'record.addNote')}
+            </span>
+          </button>
+        )}
+      </div>
     </div>
   )
 })
@@ -302,6 +336,7 @@ export default function WorkoutRecorder({
       name: ex.name,
       muscle_group: ex.muscle_group,
       allTimePR: null,
+      note: ex.note ?? '',
       sets: ex.sets.map(s => ({
         id: uid(),
         set_number: s.set_number,
@@ -312,6 +347,7 @@ export default function WorkoutRecorder({
   )
   const [showPicker, setShowPicker] = useState(false)
   const [numberTarget, setNumberTarget] = useState<NumberTarget | null>(null)
+  const [noteTarget, setNoteTarget] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
@@ -414,6 +450,15 @@ export default function WorkoutRecorder({
 
   const handleSetTarget = useCallback((target: NumberTarget) => setNumberTarget(target), [])
 
+  const updateNote = useCallback((exerciseId: string, note: string) => {
+    setExerciseList(prev => prev.map(ex =>
+      ex.id === exerciseId ? { ...ex, note } : ex
+    ))
+    setIsDirty(true)
+  }, [])
+
+  const handleNoteTarget = useCallback((exerciseId: string) => setNoteTarget(exerciseId), [])
+
   /* ── Exercise addition: optimistic (instant UI, session creation in background) ── */
 
   const addExercise = (exercise: Exercise) => {
@@ -423,6 +468,7 @@ export default function WorkoutRecorder({
       name: exercise.name,
       muscle_group: exercise.muscle_group,
       allTimePR: null,
+      note: '',
       sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null }],
     }])
     setIsDirty(true)
@@ -459,6 +505,7 @@ export default function WorkoutRecorder({
             set_number: s.set_number,
             weight_kg: s.weight_kg,
             reps: s.reps,
+            note: ex.note || null,
           }))
       )
       await saveFullSession(sid, title, setsToSave)
@@ -544,6 +591,7 @@ export default function WorkoutRecorder({
             onRemoveExercise={removeExercise}
             onRemoveSet={removeSet}
             onSetTarget={handleSetTarget}
+            onNoteTarget={handleNoteTarget}
           />
         ))}
 
@@ -605,15 +653,23 @@ export default function WorkoutRecorder({
           value={currentTarget}
           unit={numberTarget.field === 'weight_kg' ? 'kg' : 'reps'}
           step={numberTarget.field === 'weight_kg' ? 2.5 : 1}
-          quickSteps={numberTarget.field === 'weight_kg' ? [-5, -2.5, 2.5, 5] : [-2, -1, 1, 2]}
+          quickSteps={numberTarget.field === 'weight_kg' ? [-10, -2.5, -1.25, 1.25, 2.5, 10] : [-2, -1, 1, 2]}
           isInteger={numberTarget.field === 'reps'}
           onConfirm={v => updateSet(numberTarget.exerciseId, numberTarget.setId, numberTarget.field, v)}
           onClose={() => setNumberTarget(null)}
         />
       )}
 
+      {noteTarget && (
+        <NoteInputSheet
+          value={exerciseList.find(ex => ex.id === noteTarget)?.note ?? ''}
+          onSave={note => updateNote(noteTarget, note)}
+          onClose={() => setNoteTarget(null)}
+        />
+      )}
+
       {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.92)' }}>
           <div className="w-full rounded-3xl p-6" style={{ background: '#131313', border: '1px solid rgba(255,255,255,0.14)' }}>
             <p className="text-xl font-black text-white text-center mb-1 tracking-wide">{t(locale, 'record.cancelTitle')}</p>

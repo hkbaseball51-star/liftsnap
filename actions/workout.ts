@@ -238,18 +238,19 @@ export async function getSessionForDate(date: string) {
 
   const { data: sets } = await supabase
     .from('workout_sets')
-    .select('id, exercise_name, muscle_group, set_number, weight_kg, reps')
+    .select('id, exercise_name, muscle_group, set_number, weight_kg, reps, note')
     .eq('session_id', session.id)
     .order('set_number')
 
   const exerciseMap = new Map<string, {
     muscle_group: string
+    note: string | null
     sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[]
   }>()
 
   for (const s of sets ?? []) {
     if (!exerciseMap.has(s.exercise_name)) {
-      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, sets: [] })
+      exerciseMap.set(s.exercise_name, { muscle_group: s.muscle_group, note: s.note ?? null, sets: [] })
     }
     exerciseMap.get(s.exercise_name)!.sets.push({
       id: s.id,
@@ -265,6 +266,7 @@ export async function getSessionForDate(date: string) {
     exercises: Array.from(exerciseMap.entries()).map(([name, d]) => ({
       name,
       muscle_group: d.muscle_group,
+      note: d.note,
       sets: d.sets,
     })),
   }
@@ -279,6 +281,7 @@ export async function saveFullSession(
     set_number: number
     weight_kg: number | null
     reps: number | null
+    note?: string | null
   }[]
 ) {
   const supabase = await createClient()

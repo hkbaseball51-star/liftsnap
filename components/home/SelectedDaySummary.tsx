@@ -144,6 +144,12 @@ export default function SelectedDaySummary({
               {t(locale, 'home.bestSet')}&nbsp; {summary.mainExerciseBestWeight}kg × {summary.mainExerciseBestReps}
             </p>
           )}
+          {summary.mainExerciseNote && (
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.38)', marginTop: 5, lineHeight: 1.45 }}>
+              <span style={{ fontWeight: 600 }}>{locale === 'ja' ? 'メモ：' : 'Note: '}</span>
+              {summary.mainExerciseNote}
+            </p>
+          )}
 
           {/* Row 4: extra exercises */}
           {summary.extraCount > 0 && (

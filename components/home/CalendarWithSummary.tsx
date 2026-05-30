@@ -15,6 +15,7 @@ export type DaySummary = {
   mainExercise: string
   mainExerciseBestWeight: number
   mainExerciseBestReps: number
+  mainExerciseNote?: string | null
   secondExercise: string | null
   extraCount: number
 }

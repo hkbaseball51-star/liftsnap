@@ -28,7 +28,7 @@ export default function NumberInputSheet({
   }, [value])
 
   const adjust = (delta: number) => {
-    const raw = Math.max(0, Math.round((current + delta) * 10) / 10)
+    const raw = Math.max(0, Math.round((current + delta) * 100) / 100)
     const next = isInteger ? Math.floor(raw) : raw
     setCurrent(next)
     setInputVal(String(next))
@@ -46,7 +46,7 @@ export default function NumberInputSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end"
+      className="fixed inset-0 z-[60] flex items-end"
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
 
@@ -89,16 +89,20 @@ export default function NumberInputSheet({
             </span>
           </div>
 
-          {/* Quick adjust buttons */}
-          <div className="flex gap-2">
+          {/* Quick adjust buttons — 3-col grid for 6 items, 4-col for 4 items */}
+          <div
+            className="grid gap-2"
+            style={{ gridTemplateColumns: `repeat(${quickSteps.length === 6 ? 3 : quickSteps.length}, 1fr)` }}>
             {quickSteps.map(s => (
               <button
                 key={s}
-                className="flex-1 py-3 rounded-2xl text-sm font-black"
+                className="py-3 rounded-2xl font-black"
                 style={{
+                  fontSize: quickSteps.length === 6 ? 13 : 14,
                   background: '#1a1a1a',
                   color: s > 0 ? '#ff6b00' : '#555',
                   border: '1px solid #222',
+                  minHeight: 44,
                 }}
                 onClick={() => adjust(s)}>
                 {s > 0 ? `+${s}` : s}

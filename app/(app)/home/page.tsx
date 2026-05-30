@@ -36,7 +36,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('workout_sessions')
-      .select('id, trained_at, workout_sets(exercise_name, muscle_group, weight_kg, reps)')
+      .select('id, trained_at, workout_sets(exercise_name, muscle_group, weight_kg, reps, note)')
       .eq('user_id', user.id)
       .gte('trained_at', ninetyDaysAgoStr)
       .not('completed_at', 'is', null),
@@ -80,7 +80,7 @@ export default async function HomePage() {
   ] = rawResults.map(settled)
 
   /* ── Calendar sessions + day summaries (all from embedded query) ── */
-  type SetRow = { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null }
+  type SetRow = { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null; note: string | null }
   type SessionRow = { id: string; trained_at: string; workout_sets: SetRow[] }
 
   const calendarSessions: CalendarSession[] = []
@@ -102,7 +102,7 @@ export default async function HomePage() {
     calendarSessions.push({ date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups })
 
     // Per-exercise stats for summary card
-    const exMap = new Map<string, { volume: number; bestEst1rm: number; bestWeight: number; bestReps: number }>()
+    const exMap = new Map<string, { volume: number; bestEst1rm: number; bestWeight: number; bestReps: number; note: string | null }>()
     let totalSets = 0
     let totalVolume = 0
     let best1rm = 0
@@ -115,13 +115,14 @@ export default async function HomePage() {
       const est = w > 0 && r > 0 ? (r === 1 ? w : Math.round(w * (1 + r / 30))) : 0
       if (est > best1rm) best1rm = est
 
-      const ex = exMap.get(s.exercise_name) ?? { volume: 0, bestEst1rm: 0, bestWeight: 0, bestReps: 0 }
+      const ex = exMap.get(s.exercise_name) ?? { volume: 0, bestEst1rm: 0, bestWeight: 0, bestReps: 0, note: null }
       const isBetter = est > ex.bestEst1rm
       exMap.set(s.exercise_name, {
         volume: ex.volume + w * r,
         bestEst1rm: isBetter ? est : ex.bestEst1rm,
         bestWeight: isBetter ? w : ex.bestWeight,
         bestReps: isBetter ? r : ex.bestReps,
+        note: ex.note ?? (s.note || null),
       })
     }
 
@@ -140,6 +141,7 @@ export default async function HomePage() {
       mainExercise: main ? main[0] : '',
       mainExerciseBestWeight: main ? main[1].bestWeight : 0,
       mainExerciseBestReps: main ? main[1].bestReps : 0,
+      mainExerciseNote: main ? (main[1].note ?? null) : null,
       secondExercise: second ? second[0] : null,
       extraCount: Math.max(0, exMap.size - 1),
     }

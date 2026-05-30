@@ -220,7 +220,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#0a0a0a' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
         <button onClick={onClose}><X size={22} style={{ color: '#555' }} /></button>
