@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Search, X, Plus, EyeOff, Trash2, RotateCcw } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Search, X, Plus, EyeOff, Trash2 } from 'lucide-react'
 import { createCustomExercise, getExerciseUsageCounts, deleteCustomExercise } from '@/actions/workout'
 import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
@@ -32,6 +32,46 @@ type Props = {
 const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS'] as const
 type MuscleGroup = typeof MUSCLE_GROUPS[number]
 
+// ── Search helpers ────────────────────────────────────────────
+
+function normalizeSearchText(s: string): string {
+  return s.toLowerCase().trim().normalize('NFKC')
+}
+
+const MUSCLE_GROUP_KEYWORDS: Record<string, string[]> = {
+  CHEST: ['chest', '胸', '胸筋', '大胸筋', 'チェスト', 'pec', 'pecs', 'bench'],
+  BACK: ['back', '背中', '背筋', '広背筋', 'バック', 'lats', 'lat', 'traps', 'trap', 'row', 'pull'],
+  SHOULDERS: ['shoulders', 'shoulder', '肩', '三角筋', 'ショルダー', 'delts', 'delt', 'press', 'overhead'],
+  BICEPS: ['biceps', 'bicep', '二頭筋', '二頭', '上腕二頭筋', 'arms', 'arm', '腕', '上腕', 'アーム', 'curl', 'カール'],
+  TRICEPS: ['triceps', 'tricep', '三頭筋', '三頭', '上腕三頭筋', 'arms', 'arm', '腕', '上腕', 'アーム', 'extension'],
+  FOREARMS: ['forearms', 'forearm', '前腕', '腕', 'arms', 'arm', 'wrist', 'grip', '手首'],
+  QUADS: ['quads', 'quad', 'quadriceps', '前もも', '大腿四頭筋', 'legs', 'leg', '脚', '足', '下半身', '太もも', 'レッグ', 'squat', 'スクワット'],
+  HAMSTRINGS: ['hamstrings', 'hamstring', 'もも裏', 'ハムストリング', 'legs', 'leg', '脚', '足', '下半身', '太もも', 'レッグ', 'deadlift', 'デッドリフト'],
+  GLUTES: ['glutes', 'glute', 'お尻', '尻', '臀部', '殿筋', '大臀筋', 'legs', 'leg', '脚', '足', '下半身', 'レッグ', 'hip', 'ヒップ'],
+  CALVES: ['calves', 'calf', 'ふくらはぎ', '下腿', '腓腹筋', 'legs', 'leg', '脚', '足', '下半身', 'レッグ', 'raise'],
+  ABS: ['abs', 'ab', 'core', '腹筋', '腹', '体幹', 'コア', 'crunch', 'クランチ', 'plank', 'プランク'],
+}
+
+function getMuscleGroupKeywords(group: string): string[] {
+  return MUSCLE_GROUP_KEYWORDS[group.toUpperCase()] ?? []
+}
+
+function getExerciseSearchTexts(e: Exercise): string[] {
+  const base = [e.name, e.muscle_group, ...getMuscleGroupKeywords(e.muscle_group)]
+  return base.map(normalizeSearchText).filter(s => s.length > 0)
+}
+
+function exerciseMatchesQuery(e: Exercise, normalizedQuery: string): boolean {
+  if (!normalizedQuery) return true
+  const searchTexts = getExerciseSearchTexts(e)
+  return searchTexts.some(text =>
+    text.includes(normalizedQuery) ||
+    (text.length >= 2 && normalizedQuery.includes(text))
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+
 export default function ExercisePicker({ onSelect, onClose }: Props) {
   const { locale } = useLocale()
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -49,6 +89,15 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   const [creating, setCreating] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [showHiddenModal, setShowHiddenModal] = useState(false)
+  const [confirmHideId, setConfirmHideId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -102,6 +151,8 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
     }
   }
 
+  const normalizedQuery = useMemo(() => normalizeSearchText(query), [query])
+
   const frequentlyUsed = useMemo(() => {
     if (!Object.keys(usageCounts).length) return []
     return exercises
@@ -121,11 +172,10 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
     return exercises.filter(e => {
       if (hiddenIds.includes(e.id)) return false
       if (freqIdSet.has(e.id)) return false
-      const matchQuery = e.name.toLowerCase().includes(query.toLowerCase())
-      const matchGroup = activeGroup === 'ALL' || e.muscle_group === activeGroup
-      return matchQuery && matchGroup
+      if (activeGroup !== 'ALL' && e.muscle_group !== activeGroup) return false
+      return exerciseMatchesQuery(e, normalizedQuery)
     })
-  }, [exercises, hiddenIds, freqIdSet, query, activeGroup])
+  }, [exercises, hiddenIds, freqIdSet, normalizedQuery, activeGroup])
 
   const hiddenExercises = useMemo(() => {
     return exercises.filter(e => hiddenIds.includes(e.id))
@@ -155,7 +205,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
         ) : (
           <button
             className="w-8 h-8 flex items-center justify-center active:opacity-60"
-            onClick={() => hideExercise(e.id)}>
+            onClick={() => setConfirmHideId(e.id)}>
             <EyeOff size={14} style={{ color: '#333' }} />
           </button>
         )}
@@ -213,16 +263,24 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
         ))}
       </div>
 
-      {/* Category supplement — ja only */}
-      {locale === 'ja' && (
-        <div className="px-4 pb-3">
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)' }}>
+      {/* Supplement text (ja only) + Hidden button */}
+      <div className="px-4 pb-3 flex items-center justify-between" style={{ minHeight: 28 }}>
+        {locale === 'ja' ? (
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', flex: 1, marginRight: 8 }}>
             {activeGroup === 'ALL'
               ? t(locale, 'record.filterByBodyPart')
               : t(locale, `record.categoryDescription.${activeGroup.toLowerCase()}`)}
           </p>
-        </div>
-      )}
+        ) : (
+          <div className="flex-1" />
+        )}
+        <button
+          className="active:opacity-70 shrink-0"
+          style={{ fontSize: 12, fontWeight: 700, color: '#ff6b00' }}
+          onClick={() => setShowHiddenModal(true)}>
+          {t(locale, 'record.hiddenBtn')}
+        </button>
+      </div>
 
       {/* Exercise list */}
       <div className="flex-1 overflow-y-auto px-4">
@@ -249,7 +307,9 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             {/* Main list */}
             {filtered.length === 0 && !showFrequent ? (
               <div className="py-12 text-center">
-                <p className="text-sm font-bold" style={{ color: '#444' }}>No exercises found</p>
+                <p className="text-sm font-bold" style={{ color: '#444' }}>
+                  {t(locale, 'record.noExercisesFound')}
+                </p>
               </div>
             ) : (
               filtered.map(e => renderRow(e))
@@ -265,7 +325,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                   <Plus size={14} style={{ color: '#ff6b00' }} />
                 </div>
                 <span className="text-sm font-black tracking-wide" style={{ color: '#ff6b00' }}>
-                  Add Custom Exercise
+                  {t(locale, 'record.addCustomExerciseBtn')}
                 </span>
               </button>
             ) : (
@@ -310,39 +370,100 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
               </div>
             )}
 
-            {/* Manage Hidden */}
-            {!query && hiddenExercises.length > 0 && (
-              <>
-                <div style={{ marginTop: 12, marginBottom: 14, borderTop: '1px solid #141414' }} />
-                <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#2e2e2e' }}>
-                  HIDDEN ({hiddenExercises.length})
-                </p>
-                {hiddenExercises.map(e => (
-                  <div key={'hidden-' + e.id}
-                    className="flex items-center py-3.5"
-                    style={{ borderBottom: '1px solid #0f0f0f' }}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black truncate" style={{ color: '#2e2e2e' }}>{e.name}</p>
-                      <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#222' }}>
-                        {e.muscle_group}
-                      </p>
-                    </div>
-                    <button
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-60"
-                      style={{ background: '#111', border: '1px solid #1a1a1a' }}
-                      onClick={() => restoreExercise(e.id)}>
-                      <RotateCcw size={11} style={{ color: '#444' }} />
-                      <span className="text-[10px] font-black" style={{ color: '#444' }}>RESTORE</span>
-                    </button>
-                  </div>
-                ))}
-              </>
-            )}
-
             <div style={{ height: 40 }} />
           </>
         )}
       </div>
+
+      {/* Hidden exercises modal */}
+      {showHiddenModal && (
+        <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#0a0a0a' }}>
+          <div className="flex items-center gap-3 px-4 pt-14 pb-3">
+            <button onClick={() => setShowHiddenModal(false)}>
+              <X size={22} style={{ color: '#555' }} />
+            </button>
+            <span className="text-base font-black text-white tracking-widest">
+              {t(locale, 'record.hiddenTitle').toUpperCase()}
+            </span>
+          </div>
+          <div className="px-4 pb-4">
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+              {t(locale, 'record.hiddenDesc')}
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4">
+            {hiddenExercises.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm font-bold" style={{ color: '#444' }}>
+                  {t(locale, 'record.hiddenEmpty')}
+                </p>
+              </div>
+            ) : (
+              hiddenExercises.map(e => (
+                <div key={'hidden-' + e.id}
+                  className="flex items-center py-3.5"
+                  style={{ borderBottom: '1px solid #111' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black truncate text-white">{e.name}</p>
+                    <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#555' }}>
+                      {e.muscle_group}
+                    </p>
+                  </div>
+                  <button
+                    className="px-3 py-1.5 rounded-full active:opacity-60 shrink-0"
+                    style={{ background: 'rgba(255,107,0,0.1)', border: '1px solid rgba(255,107,0,0.2)' }}
+                    onClick={() => {
+                      restoreExercise(e.id)
+                      showToast(t(locale, 'record.hiddenRestoredToast'))
+                    }}>
+                    <span className="text-[11px] font-black" style={{ color: '#ff6b00' }}>
+                      {t(locale, 'record.hiddenRestore')}
+                    </span>
+                  </button>
+                </div>
+              ))
+            )}
+            <div style={{ height: 40 }} />
+          </div>
+        </div>
+      )}
+
+      {/* Hide confirmation */}
+      {confirmHideId && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={() => setConfirmHideId(null)}>
+          <div
+            className="w-full p-5 rounded-t-3xl"
+            style={{ background: '#111' }}
+            onClick={e => e.stopPropagation()}>
+            <p className="text-base font-black text-white text-center mb-1">
+              {t(locale, 'record.hideConfirmTitle')}
+            </p>
+            <p className="text-sm text-center mb-6" style={{ color: '#555' }}>
+              {t(locale, 'record.hideConfirmBody')}
+            </p>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 py-4 rounded-2xl text-sm font-black"
+                style={{ background: '#1a1a1a', color: '#666' }}
+                onClick={() => setConfirmHideId(null)}>
+                {t(locale, 'record.hideConfirmCancel')}
+              </button>
+              <button
+                className="flex-1 py-4 rounded-2xl text-sm font-black text-white"
+                style={{ background: '#333' }}
+                onClick={() => {
+                  hideExercise(confirmHideId)
+                  setConfirmHideId(null)
+                }}>
+                {t(locale, 'record.hideConfirmBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       {confirmDeleteId && (
@@ -374,6 +495,15 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="fixed left-4 right-4 z-[80] px-4 py-3 rounded-2xl text-center"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)', background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+          <p className="text-sm font-bold text-white">{toast}</p>
         </div>
       )}
     </div>
