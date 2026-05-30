@@ -1,5 +1,9 @@
+'use client'
+
 import Link from 'next/link'
 import { ChevronLeft, Lock, Globe, Users, Check } from 'lucide-react'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
@@ -39,6 +43,8 @@ const Toggle = () => (
 )
 
 export default function PrivacyPage() {
+  const { locale } = useLocale()
+
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
 
@@ -63,8 +69,8 @@ export default function PrivacyPage() {
               <Lock size={14} style={{ color: '#ff6b00' }} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-black" style={{ color: T.main }}>Private</p>
-              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>Only you can see your workouts</p>
+              <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'privacy.privateOption')}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'privacy.privateSub')}</p>
             </div>
             <Check size={16} style={{ color: '#ff6b00' }} />
           </div>
@@ -77,11 +83,11 @@ export default function PrivacyPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.52)' }}>Followers Only</p>
+                <p className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.52)' }}>{t(locale, 'privacy.followersOption')}</p>
                 <SoonBadge />
               </div>
               <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>
-                Coming after social profiles launch
+                {t(locale, 'privacy.followersSub')}
               </p>
             </div>
           </div>
@@ -94,17 +100,17 @@ export default function PrivacyPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.52)' }}>Public</p>
+                <p className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.52)' }}>{t(locale, 'privacy.publicOption')}</p>
                 <SoonBadge />
               </div>
               <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>
-                Public profiles are coming soon
+                {t(locale, 'privacy.publicSub')}
               </p>
             </div>
           </div>
         </div>
         <p className="text-[10px] px-1 mt-2" style={{ color: T.muted }}>
-          Your profile is private by default. Public sharing is planned for a future update.
+          {t(locale, 'privacy.visibilityNote')}
         </p>
       </div>
 
@@ -115,20 +121,20 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between gap-3 px-4 py-4" style={{ borderBottom: T.divider }}>
             <div className="flex-1">
               <p className="text-sm font-bold" style={{ color: T.main }}>Analytics</p>
-              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>Help improve the app with usage data</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'privacy.analyticsSub')}</p>
             </div>
             <Toggle />
           </div>
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <div className="flex-1">
               <p className="text-sm font-bold" style={{ color: T.main }}>Crash Reports</p>
-              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>Automatically send crash logs</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'privacy.crashSub')}</p>
             </div>
             <Toggle />
           </div>
         </div>
         <p className="text-[10px] px-1 mt-2" style={{ color: T.muted }}>
-          These settings will be functional in a future update.
+          {t(locale, 'privacy.dataNote')}
         </p>
       </div>
 

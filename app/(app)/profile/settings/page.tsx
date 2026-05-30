@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
 import { logout } from '@/actions/auth'
 import Link from 'next/link'
 import {
@@ -9,6 +11,9 @@ import {
   HelpCircle, FileText, UserX,
   LogOut,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
@@ -82,37 +87,41 @@ function SoonRowEl({ row, last }: { row: SoonRow; last: boolean }) {
   )
 }
 
-/* ── Row definitions ─────────────────────────────────── */
-const ACCOUNT_ROWS: LiveRow[] = [
-  { label: 'Edit Profile',  sub: 'Name, bio, training style', icon: User,   href: '/profile/edit' },
-  { label: 'Privacy',       sub: 'Profile visibility & data',  icon: Shield, href: '/profile/privacy' },
-  { label: 'Notifications', sub: 'Push and in-app alerts',     icon: Bell,   href: '/profile/notifications' },
-]
-
-const APP_LIVE_ROWS: LiveRow[] = [
-  { label: 'Language', sub: 'Auto / English / 日本語', icon: Globe, href: '/profile/language' },
-]
-
-const APP_ROWS: SoonRow[] = [
-  { label: 'Units', sub: 'kg / lb toggle coming soon', icon: Ruler },
-  { label: 'Theme', sub: 'Custom color themes coming soon', icon: Palette },
-]
-
-const SUPPORT_ROWS: LiveRow[] = [
-  { label: 'Help & Support',   sub: 'FAQ and contact',           icon: HelpCircle, href: '/profile/support' },
-  { label: 'Terms of Service', sub: 'Usage terms & conditions',  icon: FileText,   href: '/profile/support' },
-  { label: 'Privacy Policy',   sub: 'How we handle your data',   icon: Shield,     href: '/profile/support' },
-  { label: 'Delete Account',   sub: 'Permanently remove account & data', icon: UserX, href: '/profile/support', danger: true },
-]
-
 /* ── Page ────────────────────────────────────────────── */
-export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile } = user
-    ? await supabase.from('profiles').select('plan').eq('id', user.id).single()
-    : { data: null }
-  const isPro = profile?.plan === 'pro'
+export default function SettingsPage() {
+  const { locale } = useLocale()
+  const [isPro, setIsPro] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('profiles').select('plan').eq('id', user.id).single()
+        .then(({ data }) => { if (data?.plan === 'pro') setIsPro(true) })
+    })
+  }, [])
+
+  const ACCOUNT_ROWS: LiveRow[] = [
+    { label: 'Edit Profile',  sub: t(locale, 'settings.accountEditSub'), icon: User,   href: '/profile/edit' },
+    { label: 'Privacy',       sub: t(locale, 'settings.privacySub'),     icon: Shield, href: '/profile/privacy' },
+    { label: 'Notifications', sub: t(locale, 'settings.notificationsSub'), icon: Bell, href: '/profile/notifications' },
+  ]
+
+  const APP_LIVE_ROWS: LiveRow[] = [
+    { label: 'Language', sub: t(locale, 'settings.languageSub'), icon: Globe, href: '/profile/language' },
+  ]
+
+  const APP_ROWS: SoonRow[] = [
+    { label: 'Units', sub: t(locale, 'settings.unitsSub'), icon: Ruler },
+    { label: 'Theme', sub: t(locale, 'settings.themeSub'), icon: Palette },
+  ]
+
+  const SUPPORT_ROWS: LiveRow[] = [
+    { label: 'Help & Support',   sub: t(locale, 'settings.helpSub'),          icon: HelpCircle, href: '/profile/support' },
+    { label: 'Terms of Service', sub: t(locale, 'settings.termsSub'),         icon: FileText,   href: '/profile/support' },
+    { label: 'Privacy Policy',   sub: t(locale, 'settings.privacyPolicySub'), icon: Shield,     href: '/profile/support' },
+    { label: 'Delete Account',   sub: t(locale, 'settings.deleteAccountSub'), icon: UserX,      href: '/profile/support', danger: true },
+  ]
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
@@ -161,14 +170,14 @@ export default async function SettingsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
-                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>Your plan is active</p>
+                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.proActive')}</p>
               </div>
               <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(255,107,0,0.10)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.20)' }}>
                 ACTIVE
               </span>
             </div>
-            <SoonRowEl row={{ label: 'Manage Subscription', sub: 'Subscription management coming soon', icon: CreditCard }} last={true} />
+            <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} />
           </div>
         ) : (
           <>
@@ -177,9 +186,9 @@ export default async function SettingsPage() {
               style={{ background: '#161616', border: '1px solid rgba(255,107,0,0.20)' }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <p className="text-sm font-black" style={{ color: T.main }}>Upgrade to Pro</p>
+                  <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.upgradeTitle')}</p>
                   <p className="text-xs mt-0.5" style={{ color: T.secondary }}>
-                    No watermark · Custom themes · Detailed analytics
+                    {t(locale, 'settings.upgradeSub')}
                   </p>
                 </div>
                 <span className="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5"
@@ -200,7 +209,7 @@ export default async function SettingsPage() {
             </div>
             {/* Manage Subscription */}
             <div style={T.card}>
-              <SoonRowEl row={{ label: 'Manage Subscription', sub: 'Subscription management coming soon', icon: CreditCard }} last={true} />
+              <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} />
             </div>
           </>
         )}

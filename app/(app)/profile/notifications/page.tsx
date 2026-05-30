@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
@@ -18,13 +20,13 @@ const T = {
   },
 }
 
-type NotifItem = { label: string; desc: string }
+type NotifItem = { label: string; descKey: string }
 
 const PUSH_ITEMS: NotifItem[] = [
-  { label: 'Workout Reminders', desc: 'Push notification support coming soon' },
-  { label: 'Weekly Summary',    desc: 'Your training stats every Monday' },
-  { label: 'PR Alerts',         desc: 'When you set a new personal record' },
-  { label: 'Product Updates',   desc: 'New features and improvements' },
+  { label: 'Workout Reminders', descKey: 'notifications.workoutRemindersSub' },
+  { label: 'Weekly Summary',    descKey: 'notifications.weeklySummarySub' },
+  { label: 'PR Alerts',         descKey: 'notifications.prAlertsSub' },
+  { label: 'Product Updates',   descKey: 'notifications.productUpdatesSub' },
 ]
 
 const Toggle = () => (
@@ -43,6 +45,8 @@ const SoonBadge = () => (
 )
 
 export default function NotificationsPage() {
+  const { locale } = useLocale()
+
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
 
@@ -58,7 +62,7 @@ export default function NotificationsPage() {
       <div className="mx-4 mb-4 px-4 py-3 rounded-2xl"
         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <p className="text-xs font-bold" style={{ color: T.muted }}>
-          Notifications are shown as a preview. Push support is coming in a future update.
+          {t(locale, 'notifications.previewBanner')}
         </p>
       </div>
 
@@ -68,13 +72,13 @@ export default function NotificationsPage() {
           PUSH NOTIFICATIONS
         </p>
         <div style={T.card}>
-          {PUSH_ITEMS.map(({ label, desc }, i) => (
+          {PUSH_ITEMS.map(({ label, descKey }, i) => (
             <div key={label}
               className="flex items-center gap-3 px-4 py-4"
               style={{ borderBottom: i < PUSH_ITEMS.length - 1 ? T.divider : 'none' }}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold" style={{ color: T.main }}>{label}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{desc}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, descKey)}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <SoonBadge />
@@ -94,7 +98,7 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-3 px-4 py-4">
             <div className="flex-1">
               <p className="text-sm font-bold" style={{ color: T.main }}>Workout Streak</p>
-              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>Notify when your streak is at risk</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'notifications.workoutStreakSub')}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <SoonBadge />
@@ -105,7 +109,7 @@ export default function NotificationsPage() {
       </div>
 
       <p className="text-[11px] text-center px-8 pb-4" style={{ color: T.muted }}>
-        These options are shown as a preview only.{'\n'}Actual push notifications will be available in a future update.
+        {t(locale, 'notifications.footerNote')}{'\n'}{t(locale, 'notifications.footerNote2')}
       </p>
 
     </div>

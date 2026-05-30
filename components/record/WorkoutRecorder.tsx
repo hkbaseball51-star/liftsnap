@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import { formatVolume } from '@/lib/utils'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 /* ─── Types ───────────────────────────────────────────── */
 
@@ -286,6 +288,7 @@ export default function WorkoutRecorder({
   existingTitle,
 }: Props) {
   const router = useRouter()
+  const { locale } = useLocale()
   const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
   const todayJST = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
   const isToday = date === todayJST
@@ -356,11 +359,11 @@ export default function WorkoutRecorder({
   }, [numberTarget, exerciseList])
 
   const saveStatusDisplay = useMemo(() => {
-    if (saving) return { text: 'Saving...', color: '#888' }
-    if (isDirty) return { text: 'Unsaved changes', color: '#ff9500' }
-    if (isEditing || sessionId) return { text: 'Saved', color: '#22c55e' }
+    if (saving) return { text: t(locale, 'record.saving'), color: '#888' }
+    if (isDirty) return { text: t(locale, 'record.unsavedChanges'), color: '#ff9500' }
+    if (isEditing || sessionId) return { text: t(locale, 'record.saved'), color: '#22c55e' }
     return null
-  }, [saving, isDirty, isEditing, sessionId])
+  }, [saving, isDirty, isEditing, sessionId, locale])
 
   /* ── Stable callbacks (useCallback so React.memo on ExerciseCard works) ── */
 
@@ -524,9 +527,9 @@ export default function WorkoutRecorder({
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="text-5xl mb-4">{isEditing ? '✏️' : '⚡'}</div>
             <p className="text-base font-black text-white mb-2 tracking-wide">
-              {isEditing ? 'EDIT TODAY\'S SESSION' : 'BUILD TODAY\'S EFFORT'}
+              {isEditing ? t(locale, 'record.editSession') : t(locale, 'record.buildEffort')}
             </p>
-            <p className="text-xs font-bold" style={{ color: '#777' }}>Tap + Add Exercise to get started</p>
+            <p className="text-xs font-bold" style={{ color: '#777' }}>{t(locale, 'record.addExercise')}</p>
           </div>
         )}
 
@@ -596,17 +599,17 @@ export default function WorkoutRecorder({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.92)' }}>
           <div className="w-full rounded-3xl p-6" style={{ background: '#131313', border: '1px solid rgba(255,255,255,0.14)' }}>
-            <p className="text-xl font-black text-white text-center mb-1 tracking-wide">LEAVE?</p>
+            <p className="text-xl font-black text-white text-center mb-1 tracking-wide">{t(locale, 'record.cancelTitle')}</p>
             <p className="text-xs text-center mb-6 font-bold" style={{ color: '#aaa' }}>
-              {isEditing ? 'Changes will not be saved' : 'Your entries will not be saved'}
+              {isEditing ? t(locale, 'record.cancelSubEditing') : t(locale, 'record.cancelSub')}
             </p>
             <div className="flex gap-3">
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.12)' }}
-                onClick={() => setShowCancelConfirm(false)}>KEEP GOING</button>
+                onClick={() => setShowCancelConfirm(false)}>{t(locale, 'record.keepGoing')}</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
-                onClick={() => { setShowCancelConfirm(false); router.push('/home') }}>LEAVE</button>
+                onClick={() => { setShowCancelConfirm(false); router.push('/home') }}>{t(locale, 'record.leave')}</button>
             </div>
           </div>
         </div>

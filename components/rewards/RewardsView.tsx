@@ -12,6 +12,8 @@ import {
   type NextRewardResult,
 } from '@/lib/unlocks'
 import { getRewardsData } from '@/actions/rewards'
+import { useLocale } from '@/lib/useLocale'
+import { t, type Locale } from '@/lib/i18n'
 
 const ALWAYS_SHOW = ['ベンチプレス', 'スクワット', 'デッドリフト']
 
@@ -41,6 +43,7 @@ const THEME_DOT: Record<string, string> = {
 }
 
 export default function RewardsView() {
+  const { locale } = useLocale()
   const [totalSessions, setTotalSessions] = useState(0)
   const [exercises, setExercises]         = useState<{ name: string; logCount: number }[]>([])
   const [shareCount, setShareCount]       = useState(0)
@@ -98,13 +101,13 @@ export default function RewardsView() {
           <h1 className="text-xl font-black tracking-widest text-white">REWARDS</h1>
         </div>
         <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
-          Train more. Unlock more.
+          {t(locale, 'rewards.trainMore')}
         </p>
       </div>
 
       {/* ── Next Reward Card ────────────────────────────────── */}
       {dataLoaded
-        ? <NextRewardCard result={nextReward} />
+        ? <NextRewardCard result={nextReward} locale={locale} />
         : <NextRewardSkeleton />
       }
 
@@ -116,7 +119,9 @@ export default function RewardsView() {
             ? (nextMilestone ? `${totalSessions}/${nextMilestone.requiredSessions}` : String(totalSessions))
             : '—'}
           sub={dataLoaded
-            ? (nextMilestone ? `Next: ${nextMilestone.label}` : 'All unlocked')
+            ? (nextMilestone
+                ? `${t(locale, 'rewards.summaryNext')} ${nextMilestone.label}`
+                : t(locale, 'rewards.summaryAllUnlocked'))
             : ''}
           loading={!dataLoaded}
         />
@@ -124,20 +129,20 @@ export default function RewardsView() {
           label="GRAPH SHARE"
           value={dataLoaded ? String(unlockedExercises.length) : '—'}
           sub={dataLoaded
-            ? (unlockedExercises.length > 0 ? toEn(unlockedExercises[0].name) : '10 logs each')
+            ? (unlockedExercises.length > 0 ? toEn(unlockedExercises[0].name) : t(locale, 'rewards.logsPer'))
             : ''}
           loading={!dataLoaded}
         />
         <SummaryCard
           label="THEMES"
           value={dataLoaded ? `${unlockedThemes.length}/4` : '—'}
-          sub={dataLoaded ? `${4 - unlockedThemes.length} locked` : ''}
+          sub={dataLoaded ? `${4 - unlockedThemes.length} ${t(locale, 'rewards.locked')}` : ''}
           loading={!dataLoaded}
         />
       </div>
 
       {/* ── Training Milestones — static structure, live progress ── */}
-      <RewardSection title="TRAINING MILESTONES" sub="Log sessions to unlock analytics features">
+      <RewardSection title="TRAINING MILESTONES" sub={t(locale, 'rewards.sectionTraining')}>
         {trainingUnlocks.map((m, i) => {
           const isNext = !m.unlocked && (i === 0 || trainingUnlocks[i - 1].unlocked)
           return (
@@ -150,25 +155,27 @@ export default function RewardsView() {
               unlocked={m.unlocked}
               isNext={isNext}
               isLast={i === trainingUnlocks.length - 1}
+              locale={locale}
             />
           )
         })}
       </RewardSection>
 
       {/* ── Exercise Graphs — ALWAYS_SHOW renders immediately ── */}
-      <RewardSection title="EXERCISE GRAPHS" sub="Log 10 sessions per exercise to unlock graph sharing">
+      <RewardSection title="EXERCISE GRAPHS" sub={t(locale, 'rewards.sectionExercise')}>
         {allExercises.map((ex, i) => (
           <ExerciseRow
             key={ex.name}
             name={toEn(ex.name)}
             logCount={ex.logCount}
+            locale={locale}
             isLast={i === allExercises.length - 1}
           />
         ))}
       </RewardSection>
 
       {/* ── Share Themes — static structure, live progress ──── */}
-      <RewardSection title="SHARE THEMES" sub="Export Story cards to unlock color themes">
+      <RewardSection title="SHARE THEMES" sub={t(locale, 'rewards.sectionThemes')}>
         {shareThemes.map((theme, i) => (
           <ThemeRow
             key={theme.id}
@@ -178,6 +185,7 @@ export default function RewardsView() {
             unlocked={theme.unlocked}
             shareCount={shareCount}
             dotColor={THEME_DOT[theme.accent] ?? 'rgba(255,255,255,0.3)'}
+            locale={locale}
             isLast={i === shareThemes.length - 1}
           />
         ))}
@@ -211,7 +219,7 @@ function NextRewardSkeleton() {
 
 /* ── Next Reward Card ───────────────────────────────────────── */
 
-function NextRewardCard({ result }: { result: NextRewardResult }) {
+function NextRewardCard({ result, locale }: { result: NextRewardResult; locale: Locale }) {
   const [visible, setVisible] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true))
@@ -235,10 +243,10 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
             NEXT REWARD
           </p>
           <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
-            All rewards unlocked
+            {t(locale, 'rewards.allUnlocked')}
           </p>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', lineHeight: 1.55 }}>
-            You&apos;ve unlocked everything available. More rewards coming soon.
+            {t(locale, 'rewards.allUnlockedSub')}
           </p>
         </div>
       </div>
@@ -259,11 +267,15 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
     title        = m.label
     current      = result.current
     required     = m.requiredSessions
-    progressUnit = required === 1 ? 'session' : 'sessions'
-    description  = rem === 1
-      ? `1 more session to unlock ${m.description.toLowerCase()}.`
-      : `${rem} more sessions to unlock ${m.description.toLowerCase()}.`
-    ctaLabel = 'Log Workout'
+    progressUnit = locale === 'ja'
+      ? t(locale, 'rewards.sessionPlural')
+      : (required === 1 ? t(locale, 'rewards.sessionSingular') : t(locale, 'rewards.sessionPlural'))
+    description  = locale === 'ja'
+      ? `あと${rem}${t(locale, 'rewards.sessionPlural')}で解放できます。`
+      : rem === 1
+        ? `1 more session to unlock ${m.description.toLowerCase()}.`
+        : `${rem} more sessions to unlock ${m.description.toLowerCase()}.`
+    ctaLabel = t(locale, 'rewards.logWorkout')
     ctaHref  = '/record'
   } else if (result.type === 'exercise_graph') {
     const name = toEn(result.exerciseName)
@@ -271,23 +283,27 @@ function NextRewardCard({ result }: { result: NextRewardResult }) {
     title        = `${name} Graph Share`
     current      = result.current
     required     = EXERCISE_GRAPH_REQUIRED
-    progressUnit = 'logs'
-    description  = rem === 1
-      ? `1 more ${name} log to unlock graph sharing.`
-      : `${rem} more ${name} logs to unlock graph sharing.`
-    ctaLabel = `Log ${name}`
+    progressUnit = t(locale, 'rewards.logs')
+    description  = locale === 'ja'
+      ? `あと${rem}回のログで解放できます。`
+      : rem === 1
+        ? `1 more ${name} log to unlock graph sharing.`
+        : `${rem} more ${name} logs to unlock graph sharing.`
+    ctaLabel = locale === 'ja' ? `${name}${t(locale, 'rewards.logExercise')}` : `Log ${name}`
     ctaHref  = '/record'
   } else {
-    const t   = result.theme
-    const rem = t.requiredShares - result.current
-    title        = `${t.label} Theme`
+    const theme = result.theme
+    const rem   = theme.requiredShares - result.current
+    title        = `${theme.label} Theme`
     current      = result.current
-    required     = t.requiredShares
-    progressUnit = 'exports'
-    description  = rem === 1
-      ? `1 more story export to unlock this theme.`
-      : `${rem} more story exports to unlock this theme.`
-    ctaLabel = 'Create Story'
+    required     = theme.requiredShares
+    progressUnit = t(locale, 'rewards.exports')
+    description  = locale === 'ja'
+      ? `あと${rem}回のエクスポートで解放できます。`
+      : rem === 1
+        ? `1 more story export to unlock this theme.`
+        : `${rem} more story exports to unlock this theme.`
+    ctaLabel = t(locale, 'rewards.createStory')
     ctaHref  = '/home'
   }
 
@@ -386,9 +402,9 @@ function RewardSection({ title, sub, children }: { title: string; sub: string; c
   )
 }
 
-function MilestoneRow({ label, description, current, required, unlocked, isNext, isLast }: {
+function MilestoneRow({ label, description, current, required, unlocked, isNext, isLast, locale }: {
   label: string; description: string; current: number; required: number
-  unlocked: boolean; isNext: boolean; isLast: boolean
+  unlocked: boolean; isNext: boolean; isLast: boolean; locale?: Locale
 }) {
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = required - current
@@ -430,7 +446,7 @@ function MilestoneRow({ label, description, current, required, unlocked, isNext,
             {remaining > 0 && (
               <span className="text-[9px]"
                 style={{ color: isNext ? 'rgba(255,107,0,0.55)' : 'rgba(255,255,255,0.15)' }}>
-                {remaining} more
+                {locale === 'ja' ? `あと${remaining}` : `${remaining} more`}
               </span>
             )}
           </div>
@@ -440,7 +456,7 @@ function MilestoneRow({ label, description, current, required, unlocked, isNext,
   )
 }
 
-function ExerciseRow({ name, logCount, isLast }: { name: string; logCount: number; isLast: boolean }) {
+function ExerciseRow({ name, logCount, locale, isLast }: { name: string; logCount: number; locale: Locale; isLast: boolean }) {
   const unlocked  = logCount >= EXERCISE_GRAPH_REQUIRED
   const pct       = Math.min((logCount / EXERCISE_GRAPH_REQUIRED) * 100, 100)
   const remaining = EXERCISE_GRAPH_REQUIRED - logCount
@@ -450,7 +466,11 @@ function ExerciseRow({ name, logCount, isLast }: { name: string; logCount: numbe
         <div className="flex-1 mr-3">
           <p className="text-[13px] font-bold" style={{ color: unlocked ? '#fff' : '#aaa' }}>{name}</p>
           <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>
-            {unlocked ? 'Graph Share available' : `${remaining} more logs to unlock`}
+            {unlocked
+              ? t(locale, 'rewards.graphAvailable')
+              : locale === 'ja'
+                ? `あと${remaining}${t(locale, 'rewards.moreLogsToUnlock')}`
+                : `${remaining} ${t(locale, 'rewards.moreLogsToUnlock')}`}
           </p>
         </div>
         {unlocked ? (
@@ -483,9 +503,9 @@ function ExerciseRow({ name, logCount, isLast }: { name: string; logCount: numbe
   )
 }
 
-function ThemeRow({ label, description, requiredShares, unlocked, shareCount, dotColor, isLast }: {
+function ThemeRow({ label, description, requiredShares, unlocked, shareCount, dotColor, locale, isLast }: {
   label: string; description: string; requiredShares: number
-  unlocked: boolean; shareCount: number; dotColor: string; isLast: boolean
+  unlocked: boolean; shareCount: number; dotColor: string; locale: Locale; isLast: boolean
 }) {
   const pct       = requiredShares > 0 ? Math.min((shareCount / requiredShares) * 100, 100) : 100
   const remaining = Math.max(requiredShares - shareCount, 0)
@@ -526,7 +546,7 @@ function ThemeRow({ label, description, requiredShares, unlocked, shareCount, do
             </span>
             {remaining > 0 && (
               <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
-                {remaining} more
+                {locale === 'ja' ? `あと${remaining}` : `${remaining} more`}
               </span>
             )}
           </div>
