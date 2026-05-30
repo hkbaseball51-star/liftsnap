@@ -21,6 +21,28 @@ export async function updateDisplayName(displayName: string) {
   revalidatePath('/profile')
 }
 
+export async function updateProfile(displayName: string, username: string | null) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const trimmedName = displayName.trim()
+  if (!trimmedName) throw new Error('Display name is required')
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: trimmedName, username: username ?? null })
+    .eq('id', user.id)
+
+  if (error) {
+    if (error.code === '23505' || error.message.includes('unique') || error.message.includes('duplicate')) {
+      throw new Error('USERNAME_TAKEN')
+    }
+    throw new Error(error.message)
+  }
+  revalidatePath('/profile')
+}
+
 export async function deleteAccount() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

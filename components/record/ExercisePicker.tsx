@@ -29,7 +29,8 @@ type Props = {
   onClose: () => void
 }
 
-const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS']
+const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS'] as const
+type MuscleGroup = typeof MUSCLE_GROUPS[number]
 
 export default function ExercisePicker({ onSelect, onClose }: Props) {
   const { locale } = useLocale()
@@ -39,10 +40,12 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   const [hiddenIds, setHiddenIds] = useState<string[]>([])
 
   const [query, setQuery] = useState('')
-  const [activeGroup, setActiveGroup] = useState('ALL')
+  const [activeGroup, setActiveGroup] = useState<MuscleGroup>('ALL')
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newGroup, setNewGroup] = useState('CHEST')
+  const [newGroup, setNewGroup] = useState<MuscleGroup>('CHEST')
+
+  const groupLabel = (g: MuscleGroup) => t(locale, `record.category.${g.toLowerCase()}`)
   const [creating, setCreating] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -205,7 +208,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
               border: activeGroup === g ? 'none' : '1px solid #1e1e1e',
             }}
             onClick={() => setActiveGroup(g)}>
-            {g}
+            {groupLabel(g)}
           </button>
         ))}
       </div>
@@ -287,7 +290,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                         border: newGroup === g ? 'none' : '1px solid #1e1e1e',
                       }}
                       onClick={() => setNewGroup(g)}>
-                      {g}
+                      {groupLabel(g)}
                     </button>
                   ))}
                 </div>

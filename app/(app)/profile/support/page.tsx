@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Mail, BookOpen, FileText, Shield, UserX, AlertTriangle } from 'lucide-react'
 import { deleteAccount } from '@/actions/profile'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
@@ -40,6 +42,7 @@ type Row = {
 }
 
 export default function SupportPage() {
+  const { locale } = useLocale()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting]               = useState(false)
 
@@ -74,7 +77,7 @@ export default function SupportPage() {
         {row.soon && (
           <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full mr-1"
             style={T.soon}>
-            SOON
+            {t(locale, 'support.soonBadge')}
           </span>
         )}
         <ChevronRight size={13} style={{ color: row.danger ? 'rgba(248,113,113,0.45)' : T.chevron }} />
@@ -97,32 +100,32 @@ export default function SupportPage() {
 
   const generalRows: Row[] = [
     {
-      label: 'FAQ',
+      label: t(locale, 'support.faqLabel'),
       icon:  BookOpen,
-      sub:   'Frequently asked questions',
+      sub:   t(locale, 'support.faqSub'),
       soon:  true,
       onClick: () => {},
     },
     {
-      label: 'Contact Support',
+      label: t(locale, 'support.contactLabel'),
       icon:  Mail,
-      sub:   'Send us a message',
+      sub:   t(locale, 'support.contactSub'),
       href:  'mailto:support@liftsnap.app',
     },
   ]
 
   const legalRows: Row[] = [
     {
-      label: 'Terms of Service',
+      label: t(locale, 'support.termsLabel'),
       icon:  FileText,
-      sub:   'Will be published before public launch',
+      sub:   t(locale, 'support.termsSub'),
       soon:  true,
       onClick: () => {},
     },
     {
-      label: 'Privacy Policy',
+      label: t(locale, 'support.privacyLabel'),
       icon:  Shield,
-      sub:   'Will be published before public launch',
+      sub:   t(locale, 'support.privacySub'),
       soon:  true,
       onClick: () => {},
     },
@@ -130,9 +133,9 @@ export default function SupportPage() {
 
   const accountRows: Row[] = [
     {
-      label:   'Delete Account',
+      label:   t(locale, 'support.deleteLabel'),
       icon:    UserX,
-      sub:     'Permanently remove your account and data',
+      sub:     t(locale, 'support.deleteSub'),
       danger:  true,
       onClick: () => setShowDeleteModal(true),
     },
@@ -146,12 +149,12 @@ export default function SupportPage() {
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
           <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
         </Link>
-        <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>HELP & SUPPORT</h1>
+        <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'support.title')}</h1>
       </div>
 
       {/* General */}
       <div className="mx-4 mb-4">
-        <SectionLabel text="GENERAL" />
+        <SectionLabel text={t(locale, 'support.sectionGeneral')} />
         <div style={T.card}>
           {generalRows.map((row, i, arr) => renderRow(row, i, arr))}
         </div>
@@ -159,23 +162,23 @@ export default function SupportPage() {
 
       {/* Legal */}
       <div className="mx-4 mb-4">
-        <SectionLabel text="LEGAL" />
+        <SectionLabel text={t(locale, 'support.sectionLegal')} />
         <div style={T.card}>
           {legalRows.map((row, i, arr) => renderRow(row, i, arr))}
         </div>
         <p className="text-[10px] px-1 mt-2" style={{ color: T.muted }}>
-          Terms and Privacy Policy will be published before public launch.
+          {t(locale, 'support.legalNote')}
         </p>
       </div>
 
       {/* Account */}
       <div className="mx-4 mb-8">
-        <SectionLabel text="ACCOUNT" />
+        <SectionLabel text={t(locale, 'support.sectionAccount')} />
         <div style={{ ...T.card, border: '1px solid rgba(239,68,68,0.16)' }}>
           {accountRows.map((row, i, arr) => renderRow(row, i, arr))}
         </div>
         <p className="text-[10px] px-1 mt-2" style={{ color: T.muted }}>
-          Deleting your account will permanently remove all workout data.
+          {t(locale, 'support.deleteNote')}
         </p>
       </div>
 
@@ -203,13 +206,13 @@ export default function SupportPage() {
             </div>
 
             <p className="text-base font-black text-center mb-2" style={{ color: T.main }}>
-              Delete Account?
+              {t(locale, 'support.deleteModalTitle')}
             </p>
             <p className="text-sm text-center mb-2 leading-relaxed" style={{ color: T.secondary }}>
-              This will permanently delete your account and all workout history.
+              {t(locale, 'support.deleteModalBody')}
             </p>
             <p className="text-xs text-center mb-6 font-bold" style={{ color: '#f87171' }}>
-              This cannot be undone.
+              {t(locale, 'support.deleteModalWarning')}
             </p>
 
             <div className="flex gap-3">
@@ -218,7 +221,7 @@ export default function SupportPage() {
                 style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
                 disabled={deleting}
                 onClick={() => setShowDeleteModal(false)}>
-                CANCEL
+                {t(locale, 'support.deleteModalCancel')}
               </button>
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
@@ -228,7 +231,7 @@ export default function SupportPage() {
                 }}
                 disabled={deleting}
                 onClick={handleDelete}>
-                {deleting ? 'DELETING...' : 'DELETE'}
+                {deleting ? t(locale, 'support.deleteModalDeleting') : t(locale, 'support.deleteModalConfirm')}
               </button>
             </div>
           </div>

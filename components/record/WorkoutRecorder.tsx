@@ -9,7 +9,7 @@ import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
-import { t } from '@/lib/i18n'
+import { t, type Locale } from '@/lib/i18n'
 
 /* ─── Types ───────────────────────────────────────────── */
 
@@ -64,12 +64,12 @@ type Props = {
 
 function uid() { return Math.random().toString(36).slice(2) }
 
-function getDefaultTitle(): string {
+function getDefaultTitle(locale: Locale): string {
   const h = new Date().getHours()
-  if (h >= 5 && h < 11) return 'Morning Session'
-  if (h >= 11 && h < 17) return 'Afternoon Session'
-  if (h >= 17 && h < 21) return 'Evening Session'
-  return 'Night Session'
+  if (h >= 5 && h < 11) return t(locale, 'record.morningSession')
+  if (h >= 11 && h < 17) return t(locale, 'record.afternoonSession')
+  if (h >= 17 && h < 21) return t(locale, 'record.eveningSession')
+  return t(locale, 'record.nightSession')
 }
 
 function formatDateLabel(date: string) {
@@ -294,7 +294,7 @@ export default function WorkoutRecorder({
   const isToday = date === todayJST
 
   const [sessionId, setSessionId] = useState<string | null>(existingSessionId ?? null)
-  const [title, setTitle] = useState(() => existingTitle?.trim() ? existingTitle : getDefaultTitle())
+  const [title, setTitle] = useState(() => existingTitle?.trim() ? existingTitle : getDefaultTitle(locale))
   const [editingTitle, setEditingTitle] = useState(false)
   const [exerciseList, setExerciseList] = useState<ExerciseEntry[]>(() =>
     (existingExercises ?? []).map(ex => ({
@@ -357,6 +357,9 @@ export default function WorkoutRecorder({
     const s = ex?.sets.find(s => s.id === numberTarget.setId)
     return s?.[numberTarget.field] ?? null
   }, [numberTarget, exerciseList])
+
+  const hasWorkoutContent = exerciseList.length > 0
+  const canFinish = !saving && displaySetsCount > 0
 
   const saveStatusDisplay = useMemo(() => {
     if (saving) return { text: t(locale, 'record.saving'), color: '#888' }
@@ -487,7 +490,7 @@ export default function WorkoutRecorder({
             {editingTitle ? (
               <input autoFocus value={title}
                 onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
-                onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle()); setEditingTitle(false) }}
+                onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle(locale)); setEditingTitle(false) }}
                 onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
                 className="text-sm font-black text-white bg-transparent outline-none min-w-0"
                 style={{ borderBottom: '1px solid #ff6b00', maxWidth: 160 }}
@@ -521,7 +524,7 @@ export default function WorkoutRecorder({
 
       {/* ── Exercise list ── */}
       <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-3"
-        style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
+        style={{ paddingBottom: 'calc(10rem + env(safe-area-inset-bottom))' }}>
 
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -548,10 +551,10 @@ export default function WorkoutRecorder({
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="fixed inset-x-0 z-10 px-4 pb-3 pt-2"
+      <div className="fixed inset-x-0 z-40 px-4 py-3"
         style={{
           bottom: 'calc(4rem + env(safe-area-inset-bottom))',
-          background: 'linear-gradient(to top, #080808 65%, transparent)',
+          background: 'linear-gradient(to top, #080808 70%, transparent)',
         }}>
         <div className="flex gap-2.5">
           <button
@@ -559,19 +562,20 @@ export default function WorkoutRecorder({
             style={{ background: 'rgba(255,106,0,0.06)', color: '#ff6a00', border: '1px solid rgba(255,106,0,0.4)' }}
             onClick={() => setShowPicker(true)}>
             <Plus size={15} strokeWidth={2.5} />
-            Exercise
+            {t(locale, 'record.addExerciseBtn')}
           </button>
-          {isDirty && displaySetsCount > 0 && (
+          {hasWorkoutContent && (
             <button
               className="flex-1 py-3.5 rounded-2xl text-sm font-black"
               style={{
-                background: saving ? '#222' : '#ff6b00',
-                color: saving ? '#666' : '#fff',
-                boxShadow: saving ? 'none' : '0 4px 20px rgba(255,107,0,0.3)',
+                background: canFinish ? '#ff6b00' : 'rgba(255,107,0,0.22)',
+                color: canFinish ? '#fff' : 'rgba(255,255,255,0.42)',
+                boxShadow: canFinish ? '0 4px 20px rgba(255,107,0,0.3)' : 'none',
+                transition: 'background 200ms, color 200ms, box-shadow 200ms',
               }}
-              disabled={saving}
+              disabled={!canFinish}
               onClick={handleFinish}>
-              {saving ? 'Saving...' : isEditing ? 'Update' : 'Finish'}
+              {saving ? t(locale, 'record.savingBtn') : isEditing ? t(locale, 'record.updateBtn') : t(locale, 'record.finishBtn')}
             </button>
           )}
         </div>

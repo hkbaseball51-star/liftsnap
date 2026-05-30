@@ -30,9 +30,6 @@ function actDate(d: string): string {
   return `${months[m - 1]} ${day}`
 }
 
-function usernameHandle(email: string): string {
-  return '@' + email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()
-}
 
 function getMondayOfWeek(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -108,7 +105,7 @@ export default async function ProfilePage() {
     benchRes, squatRes, deadliftRes,
     bestLiftRes, muscleGroupsRes,
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name, plan, language').eq('id', user.id).single(),
+    supabase.from('profiles').select('display_name, plan, language, username').eq('id', user.id).single(),
     supabase.from('workout_sessions')
       .select('total_volume_kg, trained_at')
       .eq('user_id', user.id)
@@ -138,9 +135,9 @@ export default async function ProfilePage() {
       .not('muscle_group', 'is', null),
   ])
 
-  const profile     = profileRes.data
-  const displayName = (profile?.display_name as string | null) ?? 'USER'
-  const username    = usernameHandle(user.email ?? 'user')
+  const profile      = profileRes.data
+  const displayName  = (profile?.display_name as string | null) ?? 'USER'
+  const profileUsername = (profile as { username?: string | null } | null)?.username ?? null
 
   // Read locale from cookie (set by saveLanguage server action) — more reliable
   // than DB because it doesn't require a successful DB write at language change time.
@@ -195,8 +192,11 @@ export default async function ProfilePage() {
 
         <p className="text-2xl font-black text-white tracking-tight leading-none">{displayName}</p>
 
-        <p className="text-xs mt-2" style={{ color: T.secondary, fontFamily: 'var(--font-mono)' }}>
-          {username}
+        <p className="text-xs mt-2" style={{
+          color: profileUsername ? T.secondary : 'rgba(255,255,255,0.28)',
+          fontFamily: 'var(--font-mono)',
+        }}>
+          {profileUsername ? `@${profileUsername}` : '@username'}
         </p>
 
         <div className="flex flex-col items-center mt-5 gap-2">

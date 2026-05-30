@@ -16,7 +16,7 @@ type Props = {
 }
 
 export default function NumberInputSheet({
-  label, value, unit, step, quickSteps, isInteger = false, onConfirm, onClose,
+  label, value, unit, step: _step, quickSteps, isInteger = false, onConfirm, onClose,
 }: Props) {
   const [current, setCurrent] = useState(value ?? 0)
   const [inputVal, setInputVal] = useState(String(value ?? 0))
@@ -45,53 +45,81 @@ export default function NumberInputSheet({
   const confirmValue = isInteger ? Math.floor(current) : current
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.75)' }}
+    <div
+      className="fixed inset-0 z-50 flex items-end"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
-      <div className="w-full rounded-t-3xl p-6 pb-10" style={{ background: '#111', border: '1px solid #1e1e1e' }}
+
+      {/* Sheet — max-height constrains to viewport, flex-col keeps footer pinned */}
+      <div
+        className="w-full rounded-t-3xl flex flex-col"
+        style={{
+          background: '#111',
+          border: '1px solid #1e1e1e',
+          maxHeight: 'calc(100dvh - 4rem)',
+        }}
         onClick={e => e.stopPropagation()}>
 
-        <div className="flex items-center justify-between mb-6">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
           <span className="text-[10px] font-black tracking-widest" style={{ color: '#555' }}>{label}</span>
           <button onClick={onClose}><X size={20} style={{ color: '#555' }} /></button>
         </div>
 
-        {/* Large number input — user taps here to type */}
-        <div className="flex items-baseline justify-center gap-2 mb-6">
-          <input
-            type="text"
-            inputMode={isInteger ? 'numeric' : 'decimal'}
-            pattern={isInteger ? '[0-9０-９]*' : '[0-9０-９]*[.]?[0-9０-９]*'}
-            value={inputVal}
-            onChange={e => handleInput(e.target.value)}
-            className="bg-transparent text-center text-6xl font-black text-white outline-none w-40"
-            style={{ fontFamily: 'var(--font-mono)', caretColor: '#ff6b00' }}
-          />
-          <span className="text-xl font-black" style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>{unit}</span>
-        </div>
+        {/* Body — scrolls if content overflows on very small screens */}
+        <div className="flex-1 overflow-y-auto px-6 pb-2">
 
-        {/* Quick adjust */}
-        <div className="flex gap-2 mb-5">
-          {quickSteps.map(s => (
-            <button key={s}
-              className="flex-1 py-3 rounded-2xl text-sm font-black"
+          {/* Large number input */}
+          <div className="flex items-baseline justify-center gap-2 mb-6 mt-2">
+            <input
+              type="text"
+              inputMode={isInteger ? 'numeric' : 'decimal'}
+              pattern={isInteger ? '[0-9０-９]*' : '[0-9０-９]*[.]?[0-9０-９]*'}
+              value={inputVal}
+              onChange={e => handleInput(e.target.value)}
+              className="bg-transparent text-center font-black text-white outline-none w-40"
               style={{
-                background: '#1a1a1a',
-                color: s > 0 ? '#ff6b00' : '#555',
-                border: '1px solid #222',
+                fontSize: 'clamp(48px, 14vw, 72px)',
+                fontFamily: 'var(--font-mono)',
+                caretColor: '#ff6b00',
               }}
-              onClick={() => adjust(s)}>
-              {s > 0 ? `+${s}` : s}
-            </button>
-          ))}
+            />
+            <span className="text-xl font-black" style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>
+              {unit}
+            </span>
+          </div>
+
+          {/* Quick adjust buttons */}
+          <div className="flex gap-2">
+            {quickSteps.map(s => (
+              <button
+                key={s}
+                className="flex-1 py-3 rounded-2xl text-sm font-black"
+                style={{
+                  background: '#1a1a1a',
+                  color: s > 0 ? '#ff6b00' : '#555',
+                  border: '1px solid #222',
+                }}
+                onClick={() => adjust(s)}>
+                {s > 0 ? `+${s}` : s}
+              </button>
+            ))}
+          </div>
+
         </div>
 
-        {/* Confirm */}
-        <button
-          className="w-full py-4 rounded-2xl text-base font-black text-white tracking-widest"
-          style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
-          onClick={() => { onConfirm(confirmValue); onClose() }}>
-          SET
-        </button>
+        {/* Footer — always visible, respects safe-area-inset-bottom */}
+        <div
+          className="px-6 pt-3 shrink-0"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+          <button
+            className="w-full py-4 rounded-2xl text-base font-black text-white tracking-widest"
+            style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
+            onClick={() => { onConfirm(confirmValue); onClose() }}>
+            SET
+          </button>
+        </div>
+
       </div>
     </div>
   )

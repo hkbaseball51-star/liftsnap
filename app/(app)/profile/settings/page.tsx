@@ -68,7 +68,7 @@ function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
   )
 }
 
-function SoonRowEl({ row, last }: { row: SoonRow; last: boolean }) {
+function SoonRowEl({ row, last, soonLabel }: { row: SoonRow; last: boolean; soonLabel: string }) {
   const Icon = row.icon
   return (
     <div className="flex items-center gap-3 px-4 py-3.5"
@@ -81,7 +81,7 @@ function SoonRowEl({ row, last }: { row: SoonRow; last: boolean }) {
         <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>{row.sub}</p>
       </div>
       <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full shrink-0" style={T.soon}>
-        SOON
+        {soonLabel}
       </span>
     </div>
   )
@@ -102,25 +102,25 @@ export default function SettingsPage() {
   }, [])
 
   const ACCOUNT_ROWS: LiveRow[] = [
-    { label: 'Edit Profile',  sub: t(locale, 'settings.accountEditSub'), icon: User,   href: '/profile/edit' },
-    { label: 'Privacy',       sub: t(locale, 'settings.privacySub'),     icon: Shield, href: '/profile/privacy' },
-    { label: 'Notifications', sub: t(locale, 'settings.notificationsSub'), icon: Bell, href: '/profile/notifications' },
+    { label: t(locale, 'settings.editProfile'),   sub: t(locale, 'settings.accountEditSub'),   icon: User,   href: '/profile/edit' },
+    { label: t(locale, 'settings.privacy'),       sub: t(locale, 'settings.privacySub'),       icon: Shield, href: '/profile/privacy' },
+    { label: t(locale, 'settings.notifications'), sub: t(locale, 'settings.notificationsSub'), icon: Bell,   href: '/profile/notifications' },
   ]
 
   const APP_LIVE_ROWS: LiveRow[] = [
-    { label: 'Language', sub: t(locale, 'settings.languageSub'), icon: Globe, href: '/profile/language' },
+    { label: t(locale, 'settings.language'), sub: t(locale, 'settings.languageSub'), icon: Globe, href: '/profile/language' },
   ]
 
   const APP_ROWS: SoonRow[] = [
-    { label: 'Units', sub: t(locale, 'settings.unitsSub'), icon: Ruler },
-    { label: 'Theme', sub: t(locale, 'settings.themeSub'), icon: Palette },
+    { label: t(locale, 'settings.units'), sub: t(locale, 'settings.unitsSub'), icon: Ruler },
+    { label: t(locale, 'settings.theme'), sub: t(locale, 'settings.themeSub'), icon: Palette },
   ]
 
   const SUPPORT_ROWS: LiveRow[] = [
-    { label: 'Help & Support',   sub: t(locale, 'settings.helpSub'),          icon: HelpCircle, href: '/profile/support' },
-    { label: 'Terms of Service', sub: t(locale, 'settings.termsSub'),         icon: FileText,   href: '/profile/support' },
-    { label: 'Privacy Policy',   sub: t(locale, 'settings.privacyPolicySub'), icon: Shield,     href: '/profile/support' },
-    { label: 'Delete Account',   sub: t(locale, 'settings.deleteAccountSub'), icon: UserX,      href: '/profile/support', danger: true },
+    { label: t(locale, 'settings.helpSupport'),    sub: t(locale, 'settings.helpSub'),          icon: HelpCircle, href: '/profile/support' },
+    { label: t(locale, 'settings.termsOfService'), sub: t(locale, 'settings.termsSub'),         icon: FileText,   href: '/profile/support' },
+    { label: t(locale, 'settings.privacyPolicy'),  sub: t(locale, 'settings.privacyPolicySub'), icon: Shield,     href: '/profile/support' },
+    { label: t(locale, 'settings.deleteAccount'),  sub: t(locale, 'settings.deleteAccountSub'), icon: UserX,      href: '/profile/support', danger: true },
   ]
 
   return (
@@ -131,12 +131,12 @@ export default function SettingsPage() {
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
           <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
         </Link>
-        <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>SETTINGS</h1>
+        <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'settings.settingsTitle')}</h1>
       </div>
 
       {/* ACCOUNT */}
       <div className="mx-4 mb-4">
-        <SectionLabel text="ACCOUNT" />
+        <SectionLabel text={t(locale, 'settings.sectionAccount')} />
         <div style={T.card}>
           {ACCOUNT_ROWS.map((row, i) => (
             <LiveRowEl key={row.label} row={row} last={i === ACCOUNT_ROWS.length - 1} />
@@ -146,20 +146,20 @@ export default function SettingsPage() {
 
       {/* APP */}
       <div className="mx-4 mb-4">
-        <SectionLabel text="APP" />
+        <SectionLabel text={t(locale, 'settings.sectionApp')} />
         <div style={T.card}>
           {APP_LIVE_ROWS.map((row, i) => (
             <LiveRowEl key={row.label} row={row} last={APP_ROWS.length === 0 && i === APP_LIVE_ROWS.length - 1} />
           ))}
           {APP_ROWS.map((row, i) => (
-            <SoonRowEl key={row.label} row={row} last={i === APP_ROWS.length - 1} />
+            <SoonRowEl key={row.label} row={row} last={i === APP_ROWS.length - 1} soonLabel={t(locale, 'settings.soonBadge')} />
           ))}
         </div>
       </div>
 
       {/* PLAN */}
       <div className="mx-4 mb-4">
-        <SectionLabel text="PLAN" />
+        <SectionLabel text={t(locale, 'settings.sectionPlan')} />
         {isPro ? (
           <div style={T.card}>
             {/* Pro active status */}
@@ -177,7 +177,7 @@ export default function SettingsPage() {
                 ACTIVE
               </span>
             </div>
-            <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} />
+            <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
           </div>
         ) : (
           <>
@@ -209,7 +209,7 @@ export default function SettingsPage() {
             </div>
             {/* Manage Subscription */}
             <div style={T.card}>
-              <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} />
+              <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
             </div>
           </>
         )}
@@ -217,7 +217,7 @@ export default function SettingsPage() {
 
       {/* SUPPORT */}
       <div className="mx-4 mb-4">
-        <SectionLabel text="SUPPORT" />
+        <SectionLabel text={t(locale, 'settings.sectionSupport')} />
         <div style={T.card}>
           {SUPPORT_ROWS.map((row, i) => (
             <LiveRowEl key={row.label} row={row} last={i === SUPPORT_ROWS.length - 1} />
@@ -227,7 +227,7 @@ export default function SettingsPage() {
 
       {/* SESSION */}
       <div className="mx-4 mb-10">
-        <SectionLabel text="SESSION" />
+        <SectionLabel text={t(locale, 'settings.sectionSession')} />
         <div style={T.card}>
           <form action={logout}>
             <button type="submit"
@@ -236,7 +236,7 @@ export default function SettingsPage() {
                 style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}>
                 <LogOut size={14} style={{ color: '#f87171' }} />
               </div>
-              <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>Sign Out</span>
+              <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>{t(locale, 'settings.signOut')}</span>
             </button>
           </form>
         </div>
