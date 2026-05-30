@@ -24,14 +24,14 @@ const AC: Record<Accent, {
   barActive: string; barInactive: string; barTrack: string
 }> = {
   orange: { hex:'#ff6b00', badgeBg:'rgba(255,107,0,0.14)',   badgeBorder:'rgba(255,107,0,0.3)',   badgeText:'#ff6b00',              cardBorder:'rgba(255,107,0,0.35)',  topLine:'#ff6b00',                barActive:'#ff6b00',               barInactive:'rgba(255,107,0,0.32)',  barTrack:'rgba(255,107,0,0.06)'  },
-  purple: { hex:'#a855f7', badgeBg:'rgba(168,85,247,0.14)',  badgeBorder:'rgba(168,85,247,0.3)',  badgeText:'#a855f7',              cardBorder:'rgba(168,85,247,0.35)', topLine:'#a855f7',                barActive:'#a855f7',               barInactive:'rgba(168,85,247,0.32)', barTrack:'rgba(168,85,247,0.06)' },
+  purple: { hex:'#6E38D4', badgeBg:'rgba(110,56,212,0.14)',  badgeBorder:'rgba(110,56,212,0.3)',  badgeText:'#6E38D4',              cardBorder:'rgba(110,56,212,0.35)', topLine:'#6E38D4',                barActive:'#6E38D4',               barInactive:'rgba(110,56,212,0.32)', barTrack:'rgba(110,56,212,0.06)' },
   dark:   { hex:'rgba(255,255,255,0.7)', badgeBg:'rgba(255,255,255,0.06)', badgeBorder:'rgba(255,255,255,0.18)', badgeText:'rgba(255,255,255,0.6)', cardBorder:'rgba(255,255,255,0.1)', topLine:'rgba(255,255,255,0.18)', barActive:'rgba(255,255,255,0.6)', barInactive:'rgba(255,255,255,0.18)', barTrack:'rgba(255,255,255,0.04)' },
   black:  { hex:'#ffffff', badgeBg:'transparent',             badgeBorder:'rgba(255,255,255,0.28)',badgeText:'#ffffff',              cardBorder:'rgba(255,255,255,0.04)', topLine:'rgba(255,255,255,0.08)', barActive:'rgba(255,255,255,0.85)', barInactive:'rgba(255,255,255,0.15)', barTrack:'rgba(255,255,255,0.03)' },
 }
 
 const AREA_FILL: Record<Accent, string> = {
   orange: 'rgba(255,107,0,0.1)',
-  purple: 'rgba(168,85,247,0.1)',
+  purple: 'rgba(110,56,212,0.1)',
   dark:   'rgba(255,255,255,0.05)',
   black:  'rgba(255,255,255,0.03)',
 }
@@ -513,7 +513,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     const t  = idx / Math.max(n - 1, 1)
     const op = Math.max(0.50, 0.85 - t * 0.35)
     if (accent === 'orange') return `rgba(255,106,0,${op.toFixed(2)})`
-    if (accent === 'purple') return `rgba(168,85,247,${op.toFixed(2)})`
+    if (accent === 'purple') return `rgba(110,56,212,${op.toFixed(2)})`
     return `rgba(255,255,255,${op.toFixed(2)})`
   }
 
@@ -695,7 +695,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                             borderRadius: 0,
                             boxShadow: isLatest ? (
                               accent === 'orange' ? '0 2px 8px rgba(255,106,0,0.28)' :
-                              accent === 'purple' ? '0 2px 8px rgba(168,85,247,0.28)' :
+                              accent === 'purple' ? '0 2px 8px rgba(110,56,212,0.28)' :
                               '0 2px 6px rgba(255,255,255,0.15)'
                             ) : 'none',
                             minWidth: 2,
@@ -823,7 +823,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               const info     = shareThemes.find(t => t.accent === a)!
               const unlocked = info.unlocked
               const sel      = accent === a
-              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#a855f7' : a === 'black' ? '#050505' : '#3a3a3a'
+              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
               const bg       = sel ? selBg : '#1a1a1a'
               return (
                 <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"

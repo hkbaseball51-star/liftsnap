@@ -241,7 +241,7 @@ const ExerciseCard = memo(function ExerciseCard({
             {/* Set 1RM */}
             <div className="col-span-3 flex items-center justify-center">
               {setEst1rm !== null ? (
-                <span style={{ color: isBestSet ? '#c09bff' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: isBestSet ? '#9B72E8' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
                   {setEst1rm}kg
                 </span>
               ) : (
@@ -260,7 +260,7 @@ const ExerciseCard = memo(function ExerciseCard({
               {stats.volume >= 1000 ? `${(stats.volume / 1000).toFixed(1)}t` : `${stats.volume}kg`}
             </span>
             {' vol · '}
-            <span style={{ color: '#c09bff', fontWeight: 700 }}>{stats.est1rm}kg</span>
+            <span style={{ color: '#9B72E8', fontWeight: 700 }}>{stats.est1rm}kg</span>
             {' 1RM · Best '}
             <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{stats.bestWeight}×{stats.bestReps}</span>
           </p>

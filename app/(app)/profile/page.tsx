@@ -178,7 +178,7 @@ export default async function ProfilePage() {
         <div
           className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white mb-4"
           style={{
-            background: 'linear-gradient(135deg, #ff6b00 0%, #7c3aed 100%)',
+            background: 'linear-gradient(135deg, #ff6b00 0%, #6E38D4 100%)',
             boxShadow: '0 0 36px rgba(255,107,0,0.18)',
           }}>
           {displayName[0].toUpperCase()}

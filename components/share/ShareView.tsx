@@ -15,7 +15,7 @@ type CardData = {
 type Theme = 'clear' | 'dark'
 type Accent = 'orange' | 'purple'
 
-const ACCENT_COLOR = { orange: '#ff6b00', purple: '#7c3aed' }
+const ACCENT_COLOR = { orange: '#ff6b00', purple: '#6E38D4' }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()

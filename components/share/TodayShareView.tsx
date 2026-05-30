@@ -28,7 +28,7 @@ const AC: Record<Accent, {
   cardBorder: string; topLine: string
 }> = {
   orange: { hex: '#ff6b00', badgeBg: '#ff6b00',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(255,107,0,0.35)',  topLine: '#ff6b00'                   },
-  purple: { hex: '#a855f7', badgeBg: '#a855f7',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(168,85,247,0.35)', topLine: '#a855f7'                   },
+  purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(110,56,212,0.35)', topLine: '#6E38D4'                   },
   dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)',cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)'   },
   black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff',              cardBorder: 'rgba(255,255,255,0.04)', topLine: 'rgba(255,255,255,0.08)'   },
 }
@@ -358,7 +358,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               const info     = shareThemes.find(t => t.accent === a)!
               const unlocked = info.unlocked
               const sel      = accent === a
-              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#a855f7' : a === 'black' ? '#050505' : '#3a3a3a'
+              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
               const bg       = sel ? selBg : '#1a1a1a'
               return (
                 <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"

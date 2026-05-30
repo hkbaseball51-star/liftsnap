@@ -38,7 +38,7 @@ const toEn = (name: string) => JA_EN[name] ?? name
 const THEME_DOT: Record<string, string> = {
   dark:   'rgba(255,255,255,0.28)',
   orange: '#ff6b00',
-  purple: '#a855f7',
+  purple: '#6E38D4',
   black:  '#e0e0e0',
 }
 
