@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { Settings, ChevronRight, Lock } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import { RANKS, getRankInfo, fmtComma } from '@/lib/ranks'
-import { t, type Locale, type LangPref } from '@/lib/i18n'
+import { t, type Locale } from '@/lib/i18n'
 
 function fmtLargeVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)}M`
@@ -140,7 +141,13 @@ export default async function ProfilePage() {
   const profile     = profileRes.data
   const displayName = (profile?.display_name as string | null) ?? 'USER'
   const username    = usernameHandle(user.email ?? 'user')
-  const locale: Locale = ((profile as { language?: string } | null)?.language as LangPref) === 'ja' ? 'ja' : 'en'
+
+  // Read locale from cookie (set by saveLanguage server action) — more reliable
+  // than DB because it doesn't require a successful DB write at language change time.
+  const cookieStore = await cookies()
+  const cookieLang  = cookieStore.get('liftsnap_lang')?.value
+  const dbLang      = (profile as { language?: string | null } | null)?.language
+  const locale: Locale = (cookieLang === 'ja' || dbLang === 'ja') ? 'ja' : 'en'
 
   const allSessions  = sessionsRes.data ?? []
   const sessionCount = allSessions.length

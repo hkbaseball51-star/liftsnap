@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Zap, Share2 } from 'lucide-react'
@@ -7,7 +8,7 @@ import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
-import { t, type Locale, type LangPref } from '@/lib/i18n'
+import { t, type Locale } from '@/lib/i18n'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -153,7 +154,10 @@ export default async function HomePage() {
     redirect('/onboarding')
   }
   const displayName = profileData?.display_name ?? null
-  const locale: Locale = (profileData?.language as LangPref) === 'ja' ? 'ja' : 'en'
+
+  const cookieStore = await cookies()
+  const cookieLang  = cookieStore.get('liftsnap_lang')?.value
+  const locale: Locale = (cookieLang === 'ja' || profileData?.language === 'ja') ? 'ja' : 'en'
 
   const thisWeekVolume = thisWeekSessions.reduce((s: number, r: { total_volume_kg: number | null }) => s + (r.total_volume_kg ?? 0), 0)
   const lastWeekVolume = (lastWeekRes.data ?? []).reduce(
