@@ -180,6 +180,8 @@ const translations = {
       updateBtn: 'Update',
       finishBtn: 'Finish',
       savingBtn: 'Saving...',
+      saveBtn: 'Save',
+      savedBtn: 'Saved ✓',
       category: {
         all: 'ALL',
         chest: 'CHEST',
@@ -506,6 +508,8 @@ const translations = {
       updateBtn: '更新する',
       finishBtn: '完了',
       savingBtn: '保存中...',
+      saveBtn: '保存する',
+      savedBtn: '保存済み ✓',
       category: {
         all: 'すべて',
         chest: '胸',

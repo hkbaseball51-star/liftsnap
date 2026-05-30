@@ -198,12 +198,12 @@ export default async function HomePage() {
       {/* ── WELCOME ── */}
       <div className="px-4 pt-4 pb-6">
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
-          {getGreeting(locale)}
+          {getGreeting()}
         </p>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <p style={{ fontSize: 30, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-              {t(locale, 'home.welcomeBack')}{displayName ? ',' : '.'}
+              Welcome back{displayName ? ',' : '.'}
             </p>
             {displayName && (
               <p style={{ fontSize: 30, fontWeight: 600, color: '#FF6B00', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
@@ -215,11 +215,11 @@ export default async function HomePage() {
         </div>
         {todayWorked ? (
           <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
-            {t(locale, 'home.greatWork')}
+            Great work today.
           </p>
         ) : (
           <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginTop: 10 }}>
-            {t(locale, 'home.noSession')}
+            {"No session today — let's change that."}
           </p>
         )}
       </div>
@@ -451,11 +451,11 @@ function getLastWeekStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function getGreeting(locale: Locale) {
+function getGreeting() {
   const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', hour12: false }), 10)
-  if (h < 12) return t(locale, 'home.greeting.morning')
-  if (h < 17) return t(locale, 'home.greeting.afternoon')
-  return t(locale, 'home.greeting.evening')
+  if (h < 12) return 'GOOD MORNING'
+  if (h < 17) return 'GOOD AFTERNOON'
+  return 'GOOD EVENING'
 }
 
 function getStreakWindowStart(): string {

@@ -359,7 +359,8 @@ export default function WorkoutRecorder({
   }, [numberTarget, exerciseList])
 
   const hasWorkoutContent = exerciseList.length > 0
-  const canFinish = !saving && displaySetsCount > 0
+  const isSavedState = !isDirty && sessionId !== null
+  const canFinish = !saving && isDirty && displaySetsCount > 0
 
   const saveStatusDisplay = useMemo(() => {
     if (saving) return { text: t(locale, 'record.saving'), color: '#888' }
@@ -462,7 +463,6 @@ export default function WorkoutRecorder({
       )
       await saveFullSession(sid, title, setsToSave)
       setIsDirty(false)
-      router.push('/home')
     } finally {
       setSaving(false)
     }
@@ -568,14 +568,27 @@ export default function WorkoutRecorder({
             <button
               className="flex-1 py-3.5 rounded-2xl text-sm font-black"
               style={{
-                background: canFinish ? '#ff6b00' : 'rgba(255,107,0,0.22)',
-                color: canFinish ? '#fff' : 'rgba(255,255,255,0.42)',
+                background: canFinish
+                  ? '#ff6b00'
+                  : isSavedState
+                    ? 'rgba(34,197,94,0.12)'
+                    : 'rgba(255,107,0,0.22)',
+                color: canFinish
+                  ? '#fff'
+                  : isSavedState
+                    ? '#22c55e'
+                    : 'rgba(255,255,255,0.42)',
+                border: isSavedState ? '1px solid rgba(34,197,94,0.25)' : 'none',
                 boxShadow: canFinish ? '0 4px 20px rgba(255,107,0,0.3)' : 'none',
                 transition: 'background 200ms, color 200ms, box-shadow 200ms',
               }}
               disabled={!canFinish}
               onClick={handleFinish}>
-              {saving ? t(locale, 'record.savingBtn') : isEditing ? t(locale, 'record.updateBtn') : t(locale, 'record.finishBtn')}
+              {saving
+                ? t(locale, 'record.savingBtn')
+                : isSavedState
+                  ? t(locale, 'record.savedBtn')
+                  : t(locale, 'record.saveBtn')}
             </button>
           )}
         </div>

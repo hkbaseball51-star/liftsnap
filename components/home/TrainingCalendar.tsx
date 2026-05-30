@@ -27,9 +27,7 @@ export function getPPLDisplay(muscles: string[]): { label: string; color: string
 
 const ABBREV: Record<string, string> = {
   chest: 'C', back: 'B', legs: 'L', shoulders: 'S',
-  arms: 'A', 'full body': 'F', core: 'CO', abs: 'AB',
-  glutes: 'G', cardio: 'CR', biceps: 'BI', triceps: 'TR',
-  'chest & triceps': 'C', 'back & biceps': 'B', 'lower body': 'L',
+  arms: 'A', 'full body': 'F',
 }
 
 export const MUSCLE_COLORS: Record<string, string> = {
@@ -39,12 +37,16 @@ export const MUSCLE_COLORS: Record<string, string> = {
   shoulders: '#6E38D4',
   arms: '#f59e0b',
   'full body': '#ec4899',
-  core: '#14b8a6',
-  abs: '#14b8a6',
-  glutes: '#10b981',
-  cardio: '#ef4444',
-  biceps: '#f59e0b',
-  triceps: '#f59e0b',
+}
+
+function normalizeCalendarGroup(group: string): string {
+  const g = group.toLowerCase().trim()
+  if (g === 'chest' || g === 'chest & triceps') return 'chest'
+  if (['back', 'back & biceps', 'lats', 'traps', 'rear delts'].includes(g)) return 'back'
+  if (['legs', 'quads', 'hamstrings', 'glutes', 'calves', 'lower body'].includes(g)) return 'legs'
+  if (['shoulders', 'delts'].includes(g)) return 'shoulders'
+  if (['arms', 'biceps', 'triceps', 'forearms'].includes(g)) return 'arms'
+  return 'full body'
 }
 
 // Sample data shown when no real sessions exist
@@ -111,15 +113,16 @@ export default function TrainingCalendar({
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
   const activeSessions = sessions.length > 0 ? sessions : SAMPLE_SESSIONS
-  type SessionInfo = { muscle: string; allMuscles: string[] }
+  type SessionInfo = { muscle: string }
   const sessionMap = new Map<string, SessionInfo>()
   activeSessions.forEach(s => {
-    const muscle = s.muscleGroup.toLowerCase()
-    const allMuscles = (s.allMuscleGroups && s.allMuscleGroups.length > 0
+    const normalized = (s.allMuscleGroups && s.allMuscleGroups.length > 0
       ? s.allMuscleGroups
       : [s.muscleGroup]
-    ).map(m => m.toLowerCase())
-    sessionMap.set(s.date, { muscle, allMuscles })
+    ).map(m => normalizeCalendarGroup(m))
+    const unique = [...new Set(normalized)]
+    const muscle = unique.length === 1 ? unique[0] : 'full body'
+    sessionMap.set(s.date, { muscle })
   })
 
   const thisMonthCount = [...sessionMap.keys()].filter(dateKey => {
@@ -138,7 +141,7 @@ export default function TrainingCalendar({
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>
-          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#777' }}>{t(locale, 'home.trainingLog')}</p>
+          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#777' }}>TRAINING LOG</p>
           <div className="flex items-baseline gap-2">
             <p className="text-xl font-black text-white tracking-wider">
               {MONTH_NAMES[month]}
@@ -147,7 +150,7 @@ export default function TrainingCalendar({
             {thisMonthCount > 0 && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(255,107,0,0.12)', color: '#ff6b00' }}>
-                {locale === 'ja' ? `${thisMonthCount}回` : `${thisMonthCount} sessions`}
+                {thisMonthCount === 1 ? '1 session' : `${thisMonthCount} sessions`}
               </span>
             )}
           </div>
@@ -197,10 +200,8 @@ export default function TrainingCalendar({
             const isSelected = dateStr === selectedDate
             const isFuture = dateStr > clientToday
 
-            // PPL takes priority for multi-muscle days
-            const ppl = sessionData ? getPPLDisplay(sessionData.allMuscles) : null
-            const color = ppl?.color ?? (muscle ? (MUSCLE_COLORS[muscle] ?? '#ff6b00') : null)
-            const abbrev = ppl?.label ?? (muscle ? (ABBREV[muscle] ?? muscle.charAt(0).toUpperCase()) : null)
+            const color = muscle ? (MUSCLE_COLORS[muscle] ?? '#ec4899') : null
+            const abbrev = muscle ? (ABBREV[muscle] ?? 'F') : null
 
             // ── Visual state matrix ──────────────────────────
             let bg: string
@@ -300,27 +301,13 @@ export default function TrainingCalendar({
 
         {/* Legend */}
         <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          {/* Muscle group dots */}
-          <div className="flex flex-wrap" style={{ gap: '5px 14px', marginBottom: 6 }}>
-            {Object.entries(MUSCLE_COLORS).slice(0, 6).map(([m, c]) => (
+          <div className="flex flex-wrap" style={{ gap: '5px 14px' }}>
+            {Object.entries(MUSCLE_COLORS).map(([m, c]) => (
               <div key={m} className="flex items-center" style={{ gap: 4 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', color: '#999', textTransform: 'uppercase' }}>
                   {m}
                 </span>
-              </div>
-            ))}
-          </div>
-          {/* PPL labels */}
-          <div className="flex items-center" style={{ gap: 14 }}>
-            {([
-              { label: 'PSH', name: 'Push',  color: '#ff6b00' },
-              { label: 'PUL', name: 'Pull',  color: '#3b82f6' },
-              { label: 'LEG', name: 'Legs',  color: '#22c55e' },
-            ] as const).map(({ label, name, color }) => (
-              <div key={label} className="flex items-center" style={{ gap: 4 }}>
-                <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.07em', color }}>{label}</span>
-                <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: '0.04em', color: '#777' }}>{name}</span>
               </div>
             ))}
           </div>
