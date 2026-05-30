@@ -44,6 +44,16 @@ export default function NumberInputSheet({
 
   const confirmValue = isInteger ? Math.floor(current) : current
 
+  // Weight layout: 2-col grid, reordered as [-small,+small,-med,+med,-large,+large]
+  const isWeightLayout = quickSteps.length === 6
+  const orderedSteps = isWeightLayout
+    ? (() => {
+        const neg = quickSteps.filter(s => s < 0).sort((a, b) => b - a) // [-1.25,-2.5,-10]
+        const pos = quickSteps.filter(s => s > 0).sort((a, b) => a - b) // [1.25,2.5,10]
+        return neg.flatMap((n, i) => [n, pos[i]])
+      })()
+    : quickSteps
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end"
@@ -70,7 +80,7 @@ export default function NumberInputSheet({
         <div className="flex-1 overflow-y-auto px-6 pb-2">
 
           {/* Large number input */}
-          <div className="flex items-baseline justify-center gap-2 mb-6 mt-2">
+          <div className="flex items-baseline justify-center gap-2 mb-5 mt-2">
             <input
               type="text"
               inputMode={isInteger ? 'numeric' : 'decimal'}
@@ -89,26 +99,48 @@ export default function NumberInputSheet({
             </span>
           </div>
 
-          {/* Quick adjust buttons — 3-col grid for 6 items, 4-col for 4 items */}
-          <div
-            className="grid gap-2"
-            style={{ gridTemplateColumns: `repeat(${quickSteps.length === 6 ? 3 : quickSteps.length}, 1fr)` }}>
-            {quickSteps.map(s => (
-              <button
-                key={s}
-                className="py-3 rounded-2xl font-black"
-                style={{
-                  fontSize: quickSteps.length === 6 ? 13 : 14,
-                  background: '#1a1a1a',
-                  color: s > 0 ? '#ff6b00' : '#555',
-                  border: '1px solid #222',
-                  minHeight: 44,
-                }}
-                onClick={() => adjust(s)}>
-                {s > 0 ? `+${s}` : s}
-              </button>
-            ))}
-          </div>
+          {/* Quick adjust buttons */}
+          {isWeightLayout ? (
+            // Weight: 2-col (minus left, plus right), rows ascending by magnitude
+            <div className="grid grid-cols-2 gap-3">
+              {orderedSteps.map(s => (
+                <button
+                  key={s}
+                  className="rounded-2xl font-black"
+                  style={{
+                    fontSize: 14,
+                    background: '#1a1a1a',
+                    color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                    border: '1px solid #222',
+                    minHeight: 46,
+                  }}
+                  onClick={() => adjust(s)}>
+                  {s > 0 ? `+${s}` : s}
+                </button>
+              ))}
+            </div>
+          ) : (
+            // Reps: single row
+            <div
+              className="grid gap-2"
+              style={{ gridTemplateColumns: `repeat(${quickSteps.length}, 1fr)` }}>
+              {quickSteps.map(s => (
+                <button
+                  key={s}
+                  className="py-3 rounded-2xl font-black"
+                  style={{
+                    fontSize: 14,
+                    background: '#1a1a1a',
+                    color: s > 0 ? '#ff6b00' : '#555',
+                    border: '1px solid #222',
+                    minHeight: 44,
+                  }}
+                  onClick={() => adjust(s)}>
+                  {s > 0 ? `+${s}` : s}
+                </button>
+              ))}
+            </div>
+          )}
 
         </div>
 
