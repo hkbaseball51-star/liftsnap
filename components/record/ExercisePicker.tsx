@@ -241,9 +241,9 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
         )}
         <button
           className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-          style={{ background: 'rgba(255,107,0,0.1)', border: '1px solid rgba(255,107,0,0.2)' }}
+          style={{ background: 'rgba(237, 116, 47,0.1)', border: '1px solid rgba(237, 116, 47,0.2)' }}
           onClick={() => onSelect(e)}>
-          <Plus size={14} style={{ color: '#ff6b00' }} />
+          <Plus size={14} style={{ color: '#ED742F' }} />
         </button>
       </div>
     </div>
@@ -260,7 +260,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       {/* Search */}
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-          style={{ background: '#111', border: '1px solid #1e1e1e' }}>
+          style={{ background: '#171717', border: '1px solid #1e1e1e' }}>
           <Search size={16} style={{ color: '#444' }} />
           <input
             type="text"
@@ -283,7 +283,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
           <button key={g}
             className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
             style={{
-              background: activeGroup === g ? '#ff6b00' : '#111',
+              background: activeGroup === g ? '#ED742F' : '#171717',
               color: activeGroup === g ? '#fff' : '#555',
               border: activeGroup === g ? 'none' : '1px solid #1e1e1e',
             }}
@@ -296,7 +296,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       {/* Supplement text (ja only) + Hidden button */}
       <div className="px-4 pb-3 flex items-center justify-between" style={{ minHeight: 28 }}>
         {locale === 'ja' ? (
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', flex: 1, marginRight: 8 }}>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.68)', flex: 1, marginRight: 8 }}>
             {activeGroup === 'ALL'
               ? t(locale, 'record.filterByBodyPart')
               : t(locale, `record.categoryDescription.${activeGroup.toLowerCase()}`)}
@@ -306,7 +306,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
         )}
         <button
           className="active:opacity-70 shrink-0"
-          style={{ fontSize: 12, fontWeight: 700, color: '#ff6b00' }}
+          style={{ fontSize: 12, fontWeight: 700, color: '#ED742F' }}
           onClick={() => setShowHiddenModal(true)}>
           {t(locale, 'record.hiddenBtn')}
         </button>
@@ -351,10 +351,10 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                 className="w-full py-4 flex items-center gap-3 active:opacity-70"
                 onClick={() => setShowCreate(true)}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: '#111', border: '1px solid #1e1e1e' }}>
-                  <Plus size={14} style={{ color: '#ff6b00' }} />
+                  style={{ background: '#171717', border: '1px solid #1e1e1e' }}>
+                  <Plus size={14} style={{ color: '#ED742F' }} />
                 </div>
-                <span className="text-sm font-black tracking-wide" style={{ color: '#ff6b00' }}>
+                <span className="text-sm font-black tracking-wide" style={{ color: '#ED742F' }}>
                   {t(locale, 'record.addCustomExerciseBtn')}
                 </span>
               </button>
@@ -367,7 +367,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   className="w-full px-3 py-3 rounded-xl text-sm text-white outline-none"
-                  style={{ background: '#111', border: '1px solid #1e1e1e' }}
+                  style={{ background: '#171717', border: '1px solid #1e1e1e' }}
                   autoFocus
                 />
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -375,7 +375,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                     <button key={g}
                       className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
                       style={{
-                        background: newGroup === g ? '#ff6b00' : '#111',
+                        background: newGroup === g ? '#ED742F' : '#171717',
                         color: newGroup === g ? '#fff' : '#555',
                         border: newGroup === g ? 'none' : '1px solid #1e1e1e',
                       }}
@@ -386,12 +386,12 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <button className="flex-1 py-3 rounded-xl text-sm font-black"
-                    style={{ background: '#111', color: '#555', border: '1px solid #1e1e1e' }}
+                    style={{ background: '#171717', color: '#555', border: '1px solid #1e1e1e' }}
                     onClick={() => setShowCreate(false)}>
                     CANCEL
                   </button>
                   <button className="flex-1 py-3 rounded-xl text-sm font-black text-white"
-                    style={{ background: creating || !newName.trim() ? '#222' : '#ff6b00' }}
+                    style={{ background: creating || !newName.trim() ? '#222' : '#ED742F' }}
                     disabled={creating || !newName.trim()}
                     onClick={handleCreate}>
                     {creating ? 'SAVING...' : 'ADD'}
@@ -417,7 +417,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             </span>
           </div>
           <div className="px-4 pb-4">
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.56)' }}>
               {t(locale, 'record.hiddenDesc')}
             </p>
           </div>
@@ -441,12 +441,12 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                   </div>
                   <button
                     className="px-3 py-1.5 rounded-full active:opacity-60 shrink-0"
-                    style={{ background: 'rgba(255,107,0,0.1)', border: '1px solid rgba(255,107,0,0.2)' }}
+                    style={{ background: 'rgba(237, 116, 47,0.1)', border: '1px solid rgba(237, 116, 47,0.2)' }}
                     onClick={() => {
                       restoreExercise(e.id)
                       showToast(t(locale, 'record.hiddenRestoredToast'))
                     }}>
-                    <span className="text-[11px] font-black" style={{ color: '#ff6b00' }}>
+                    <span className="text-[11px] font-black" style={{ color: '#ED742F' }}>
                       {t(locale, 'record.hiddenRestore')}
                     </span>
                   </button>
@@ -466,7 +466,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
           onClick={() => setConfirmHideId(null)}>
           <div
             className="w-full p-5 rounded-t-3xl"
-            style={{ background: '#111' }}
+            style={{ background: '#171717' }}
             onClick={e => e.stopPropagation()}>
             <p className="text-base font-black text-white text-center mb-1">
               {t(locale, 'record.hideConfirmTitle')}
@@ -477,7 +477,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: '#1a1a1a', color: '#666' }}
+                style={{ background: '#222222', color: '#666' }}
                 onClick={() => setConfirmHideId(null)}>
                 {t(locale, 'record.hideConfirmCancel')}
               </button>
@@ -503,7 +503,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
           onClick={() => setConfirmDeleteId(null)}>
           <div
             className="w-full p-5 rounded-t-3xl"
-            style={{ background: '#111' }}
+            style={{ background: '#171717' }}
             onClick={e => e.stopPropagation()}>
             <p className="text-base font-black text-white text-center mb-1">Delete Exercise?</p>
             <p className="text-sm text-center mb-6" style={{ color: '#555' }}>
@@ -512,7 +512,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: '#1a1a1a', color: '#666' }}
+                style={{ background: '#222222', color: '#666' }}
                 onClick={() => setConfirmDeleteId(null)}>
                 CANCEL
               </button>
@@ -532,7 +532,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       {toast && (
         <div
           className="fixed left-4 right-4 z-[80] px-4 py-3 rounded-2xl text-center"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)', background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)', background: '#222222', border: '1px solid #2a2a2a' }}>
           <p className="text-sm font-bold text-white">{toast}</p>
         </div>
       )}

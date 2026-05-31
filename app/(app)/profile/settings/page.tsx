@@ -23,10 +23,10 @@ const T = {
   dim:      'rgba(255,255,255,0.34)',
   label:    'rgba(255,255,255,0.52)',
   chevron:  'rgba(255,255,255,0.28)',
-  card:     { background: '#161616', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, overflow: 'hidden' } as const,
+  card:     { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
   divider:  '1px solid rgba(255,255,255,0.07)',
-  iconWrap: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' } as const,
-  soon:     { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.58)', border: '1px solid rgba(255,255,255,0.10)' } as const,
+  iconWrap: { background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' } as const,
+  soon:     { background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.58)', border: '1px solid rgba(255,255,255,0.17)' } as const,
 }
 
 type LiveRow = {
@@ -77,7 +77,7 @@ function SoonRowEl({ row, last, soonLabel }: { row: SoonRow; last: boolean; soon
         <Icon size={14} style={{ color: T.dim }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>{row.label}</p>
+        <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.65)' }}>{row.label}</p>
         <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>{row.sub}</p>
       </div>
       <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full shrink-0" style={T.soon}>
@@ -138,7 +138,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
         </Link>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'settings.settingsTitle')}</h1>
       </div>
@@ -174,15 +174,15 @@ export default function SettingsPage() {
             {/* Pro active status */}
             <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(255,107,0,0.10)', border: '1px solid rgba(255,107,0,0.20)' }}>
-                <Crown size={14} style={{ color: '#ff6b00' }} />
+                style={{ background: 'rgba(237, 116, 47,0.14)', border: '1px solid rgba(237, 116, 47,0.35)' }}>
+                <Crown size={14} style={{ color: '#ED742F' }} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
                 <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.proActive')}</p>
               </div>
               <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(255,107,0,0.10)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.20)' }}>
+                style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
                 ACTIVE
               </span>
             </div>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
           <>
             {/* Upgrade card */}
             <div className="rounded-2xl p-4 mb-2"
-              style={{ background: '#161616', border: '1px solid rgba(255,107,0,0.20)' }}>
+              style={{ background: '#1D1D1D', border: '1px solid rgba(237, 116, 47,0.35)' }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.upgradeTitle')}</p>
@@ -201,17 +201,17 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <span className="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5"
-                  style={{ background: 'rgba(255,107,0,0.10)', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.20)' }}>
+                  style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
                   PRO
                 </span>
               </div>
               <div className="flex gap-2">
                 <button className="flex-1 py-2.5 rounded-xl text-xs font-black"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: T.secondary, border: '1px solid rgba(255,255,255,0.09)' }}>
+                  style={{ background: 'rgba(255,255,255,0.11)', color: T.secondary, border: '1px solid rgba(255,255,255,0.40)' }}>
                   ¥480 / mo
                 </button>
                 <button className="flex-1 py-2.5 rounded-xl text-xs font-black text-white"
-                  style={{ background: '#ff6b00' }}>
+                  style={{ background: '#ED742F' }}>
                   ¥2,980 / yr ★
                 </button>
               </div>
@@ -268,9 +268,9 @@ export default function SettingsPage() {
       {/* Your data note */}
       <div className="mx-4 mb-10">
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <Database size={12} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.14)' }}>
+          <Database size={12} style={{ color: 'rgba(255,255,255,0.58)', flexShrink: 0 }} />
+          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.58)' }}>
             {t(locale, 'settings.yourDataSaved')}
           </p>
         </div>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
           onClick={() => !signingOut && setShowSignOutModal(false)}>
           <div
             className="w-full p-5 rounded-t-3xl pb-10"
-            style={{ background: '#161616', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}
+            style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}
             onClick={e => e.stopPropagation()}>
 
             <div className="flex justify-center mb-4">
@@ -304,7 +304,7 @@ export default function SettingsPage() {
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
                 disabled={signingOut}
                 onClick={() => setShowSignOutModal(false)}>
                 {t(locale, 'settings.signOutConfirmCancel')}

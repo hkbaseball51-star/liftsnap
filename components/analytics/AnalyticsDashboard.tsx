@@ -49,17 +49,17 @@ function matchesMuscleGroup(mg: string, filter: MuscleGroup): boolean {
 }
 
 const CARD = {
-  background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
-  border: '1px solid rgba(255,107,0,0.22)',
-  boxShadow: '0 0 30px rgba(255,107,0,0.04)',
+  background: 'linear-gradient(135deg, rgba(237, 116, 47,0.05), rgba(255,255,255,0.01) 40%, rgba(237, 116, 47,0.03))',
+  border: '1px solid rgba(237, 116, 47,0.38)',
+  boxShadow: '0 0 30px rgba(237, 116, 47,0.04)',
   borderRadius: 18,
 } as const
 
 const tooltipStyle = {
-  contentStyle: { background: '#111', border: '1px solid rgba(255,107,0,0.22)', borderRadius: 12, color: '#fff' },
+  contentStyle: { background: '#171717', border: '1px solid rgba(237, 116, 47,0.38)', borderRadius: 12, color: '#fff' },
   labelStyle: { color: '#555', fontSize: 10 },
-  itemStyle: { color: '#ff6b00', fontWeight: 'bold' as const },
-  cursor: { stroke: '#1a1a1a' },
+  itemStyle: { color: '#ED742F', fontWeight: 'bold' as const },
+  cursor: { stroke: '#222222' },
 }
 
 // px per data point for scrollable chart
@@ -223,12 +223,12 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       <h1 className="text-xl font-black tracking-widest text-white mb-5">ANALYTICS</h1>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-4 p-1 rounded-2xl" style={{ background: '#111', border: '1px solid rgba(255,107,0,0.1)' }}>
+      <div className="flex gap-1 mb-4 p-1 rounded-2xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>
         {TABS.map(t => (
           <button key={t}
             className="flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all"
             style={{
-              background: tab === t ? '#ff6b00' : 'transparent',
+              background: tab === t ? '#ED742F' : 'transparent',
               color: tab === t ? '#fff' : '#555',
             }}
             onClick={() => setTab(t)}>
@@ -238,7 +238,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       </div>
 
       {/* Tab description */}
-      <p className="text-[11px] mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <p className="text-[11px] mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
         {tab === 'MAX 1RM'
           ? t(locale, 'analytics.tab1RMDesc')
           : tab === 'DAILY VOLUME'
@@ -256,9 +256,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <button key={mg}
                   className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all"
                   style={{
-                    background: muscleFilter === mg ? 'rgba(255,107,0,0.14)' : '#111',
-                    color: muscleFilter === mg ? '#FF6B00' : '#444',
-                    border: muscleFilter === mg ? '1px solid rgba(255,107,0,0.35)' : '1px solid #1e1e1e',
+                    background: muscleFilter === mg ? 'rgba(237, 116, 47,0.14)' : '#171717',
+                    color: muscleFilter === mg ? '#ED742F' : '#444',
+                    border: muscleFilter === mg ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #1e1e1e',
                   }}
                   onClick={() => handleMuscleFilter(mg)}>
                   {mg}
@@ -277,7 +277,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   <button key={e.name}
                     className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all"
                     style={{
-                      background: selectedExercise === e.name ? '#FF6B00' : '#111',
+                      background: selectedExercise === e.name ? '#ED742F' : '#171717',
                       color: selectedExercise === e.name ? '#fff' : '#555',
                       border: selectedExercise === e.name ? 'none' : '1px solid #1e1e1e',
                     }}
@@ -292,12 +292,12 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       )}
 
       {/* Period filter */}
-      <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: '#111', border: '1px solid rgba(255,107,0,0.1)' }}>
+      <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>
         {PERIODS.map(p => (
           <button key={p}
             className="flex-1 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all"
             style={{
-              background: period === p ? '#ff6b00' : 'transparent',
+              background: period === p ? '#ED742F' : 'transparent',
               color: period === p ? '#fff' : '#555',
             }}
             onClick={() => setPeriod(p)}>
@@ -322,20 +322,20 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               {/* Summary card */}
               <div className="rounded-2xl p-4 mb-3 flex items-center justify-between" style={CARD}>
                 <div>
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>BEST 1RM</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>BEST 1RM</p>
                   {rmLoading ? (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : bestRM !== null ? (
                     <div className="flex items-baseline gap-1">
                       <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{toDisplayWeight(bestRM, unit)}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
                     </div>
                   ) : (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSIONS</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSIONS</p>
                   <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {rmLoading ? '...' : rmData.length > 0 ? rmData.length : '—'}
                   </p>
@@ -344,7 +344,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
               {/* 1RM chart */}
               <div className="rounded-2xl p-4 mb-3" style={CARD}>
-                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>1RM PROGRESSION</p>
+                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#ED742F' }}>1RM PROGRESSION</p>
                 {rmLoading ? (
                   <LoadingChart />
                 ) : rmData.length === 0 ? (
@@ -352,25 +352,25 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 ) : isScrollable ? (
                   <div ref={rmScrollRef} className="overflow-x-auto no-scrollbar">
                     <LineChart width={scrollChartWidth(rmDataDisplay.length, period)} height={200} data={rmDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={rmXInterval} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
-                      <Line type="monotone" dataKey="est1rm" stroke="#ff6b00" strokeWidth={2.5}
-                        dot={{ fill: '#ff6b00', r: 4, strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: '#ff6b00' }} />
+                      <Line type="monotone" dataKey="est1rm" stroke="#ED742F" strokeWidth={2.5}
+                        dot={{ fill: '#ED742F', r: 4, strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: '#ED742F' }} />
                     </LineChart>
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={rmDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={rmXInterval} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
-                      <Line type="monotone" dataKey="est1rm" stroke="#ff6b00" strokeWidth={2.5}
-                        dot={{ fill: '#ff6b00', r: 4, strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: '#ff6b00' }} />
+                      <Line type="monotone" dataKey="est1rm" stroke="#ED742F" strokeWidth={2.5}
+                        dot={{ fill: '#ED742F', r: 4, strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: '#ED742F' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
@@ -381,17 +381,17 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <>
                   <div className="rounded-2xl overflow-hidden" style={CARD}>
                     <div className="px-4 pt-4 pb-2">
-                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSION HISTORY</p>
                     </div>
                     {[...rmDataDisplay].reverse().slice(0, 6).map((p, i) => {
                       const origEst1rm = [...rmData].reverse()[i]?.est1rm
                       return (
                         <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                          <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                          style={{ borderTop: '1px solid rgba(255,255,255,0.17)' }}>
+                          <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.60)' }}>{p.label}</span>
                           <div className="flex items-baseline gap-1">
-                            <span style={{ fontSize: 16, fontWeight: 700, color: bestRM !== null && origEst1rm === bestRM ? '#FF6B00' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{unitLabel}</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: bestRM !== null && origEst1rm === bestRM ? '#ED742F' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.47)' }}>{unitLabel}</span>
                           </div>
                         </div>
                       )
@@ -404,8 +404,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                       style={{
                         padding: '12px 16px',
                         background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        color: 'rgba(255,255,255,0.4)',
+                        border: '1px solid rgba(255,255,255,0.13)',
+                        color: 'rgba(255,255,255,0.60)',
                         fontSize: 13,
                         fontWeight: 500,
                       }}>
@@ -417,7 +417,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                       style={{
                         padding: '12px 16px',
                         background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.17)',
                         color: '#333',
                         fontSize: 13,
                         fontWeight: 500,
@@ -449,7 +449,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               {/* Summary card */}
               <div className="rounded-2xl p-4 mb-3 flex items-center justify-between" style={CARD}>
                 <div>
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>TOTAL VOLUME</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>TOTAL VOLUME</p>
                   {volLoading ? (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : totalVol > 0 ? (
@@ -463,7 +463,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                           <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                             {volStr}
                           </span>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.52)' }}>
                             {volSuffix}
                           </span>
                         </div>
@@ -474,7 +474,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSIONS</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSIONS</p>
                   <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {volLoading ? '...' : volData.length > 0 ? volData.length : '—'}
                   </p>
@@ -483,7 +483,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
               {/* Volume chart */}
               <div className="rounded-2xl p-4 mb-3" style={CARD}>
-                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>DAILY VOLUME</p>
+                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#ED742F' }}>DAILY VOLUME</p>
                 {volLoading ? (
                   <LoadingChart />
                 ) : volData.length === 0 ? (
@@ -491,23 +491,23 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 ) : isScrollable ? (
                   <div ref={volScrollRef} className="overflow-x-auto no-scrollbar">
                     <BarChart width={scrollChartWidth(volDataDisplay.length, period)} height={200} data={volDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={volXInterval} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
                         tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                       <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
-                      <Bar dataKey="volume" fill="#ff6b00" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                      <Bar dataKey="volume" fill="#ED742F" radius={[4, 4, 0, 0]} maxBarSize={24} />
                     </BarChart>
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={volDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
                       <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={volXInterval} />
                       <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
                         tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                       <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
-                      <Bar dataKey="volume" fill="#ff6b00" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="volume" fill="#ED742F" radius={[4, 4, 0, 0]} maxBarSize={28} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -518,17 +518,17 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <>
                   <div className="rounded-2xl overflow-hidden" style={CARD}>
                     <div className="px-4 pt-4 pb-2">
-                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>SESSION HISTORY</p>
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSION HISTORY</p>
                     </div>
                     {[...volDataDisplay].reverse().slice(0, 8).map(p => (
                       <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                        <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>{p.label}</span>
+                        style={{ borderTop: '1px solid rgba(255,255,255,0.17)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.60)' }}>{p.label}</span>
                         <div className="flex items-baseline gap-1">
                           <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
                             {p.volume >= 1000 ? `${(p.volume / 1000).toFixed(1)}k` : p.volume.toLocaleString()}
                           </span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{unitLabel}</span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.47)' }}>{unitLabel}</span>
                         </div>
                       </div>
                     ))}
@@ -540,8 +540,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                       style={{
                         padding: '12px 16px',
                         background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        color: 'rgba(255,255,255,0.4)',
+                        border: '1px solid rgba(255,255,255,0.13)',
+                        color: 'rgba(255,255,255,0.60)',
                         fontSize: 13,
                         fontWeight: 500,
                       }}>
@@ -553,7 +553,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                       style={{
                         padding: '12px 16px',
                         background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.17)',
                         color: '#333',
                         fontSize: 13,
                         fontWeight: 500,
@@ -597,7 +597,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
           <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={CARD}>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1.5">
-                <p className="text-[10px] font-black tracking-widest" style={{ color: '#FF6B00' }}>TODAY&apos;S WEIGHT</p>
+                <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>TODAY&apos;S WEIGHT</p>
                 {todaySaved && (
                   <span className="text-[9px] font-black tracking-wider" style={{ color: '#22c55e' }}>SAVED</span>
                 )}
@@ -612,7 +612,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   className="w-20 bg-transparent text-white text-xl font-black outline-none"
                   style={{ fontFamily: 'var(--font-mono)' }}
                 />
-                <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
+                <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
               </div>
               {bwInput && !bwInputValid && (
                 <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>{t(locale, unit === 'lbs' ? 'analytics.bwInputErrorLbs' : 'analytics.bwInputError')}</p>
@@ -621,9 +621,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
             <button
               className="px-5 py-3 rounded-xl text-xs font-black tracking-widest transition-opacity"
               style={{
-                background: bwInputValid ? '#ff6b00' : 'rgba(255,255,255,0.04)',
+                background: bwInputValid ? '#ED742F' : 'rgba(255,255,255,0.04)',
                 color: bwInputValid ? '#fff' : '#444',
-                border: bwInputValid ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                border: bwInputValid ? 'none' : '1px solid rgba(255,255,255,0.13)',
                 opacity: bwSaving ? 0.6 : 1,
               }}
               disabled={!bwInputValid || bwSaving}
@@ -635,22 +635,22 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
           {latestWeight && (
             <div className="rounded-2xl p-4 mb-4 flex items-center justify-between" style={CARD}>
               <div>
-                <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#FF6B00' }}>LATEST</p>
+                <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>LATEST</p>
                 <div className="flex items-baseline gap-1">
                   <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight !== null ? toDisplayWeight(latestWeight, unit) : ''}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
                 </div>
               </div>
               {bwDataDisplay.length >= 2 && (() => {
                 const diff = Math.round((bwDataDisplay[bwDataDisplay.length - 1].weight - bwDataDisplay[0].weight) * 10) / 10
                 return (
                   <div className="text-right">
-                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>CHANGE</p>
+                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>CHANGE</p>
                     <div className="flex items-baseline gap-1 justify-end">
                       <span style={{ fontSize: 28, fontWeight: 900, color: diff <= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', lineHeight: 1 }}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(1)}
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{unitLabel}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
                     </div>
                   </div>
                 )
@@ -659,7 +659,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
           )}
 
           <div className="rounded-2xl p-4" style={CARD}>
-            <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#FF6B00' }}>BODY WEIGHT · {periodLabel}</p>
+            <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#ED742F' }}>BODY WEIGHT · {periodLabel}</p>
             {bwDataDisplay.length < 2 ? (
               <div className="h-48 flex items-center justify-center">
                 <p className="text-xs font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.bwChartEmpty')}</p>
@@ -667,7 +667,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
             ) : isScrollable ? (
               <div ref={bwScrollRef} className="overflow-x-auto no-scrollbar">
                 <LineChart width={scrollChartWidth(bwDataDisplay.length, period)} height={200} data={bwDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
                   <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={bwXInterval} />
                   <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
@@ -680,7 +680,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={bwDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
                   <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={bwXInterval} />
                   <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
@@ -699,8 +699,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               style={{
                 padding: '12px 16px',
                 background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.4)',
+                border: '1px solid rgba(255,255,255,0.13)',
+                color: 'rgba(255,255,255,0.60)',
                 fontSize: 13,
                 fontWeight: 500,
               }}>
@@ -718,8 +718,8 @@ function EmptyState() {
   const { locale } = useLocale()
   return (
     <div className="rounded-2xl p-10 text-center" style={{
-      background: 'linear-gradient(135deg, rgba(255,107,0,0.05), rgba(255,255,255,0.01) 40%, rgba(255,107,0,0.03))',
-      border: '1px solid rgba(255,107,0,0.22)',
+      background: 'linear-gradient(135deg, rgba(237, 116, 47,0.05), rgba(255,255,255,0.01) 40%, rgba(237, 116, 47,0.03))',
+      border: '1px solid rgba(237, 116, 47,0.38)',
       borderRadius: 18,
     }}>
       <p style={{ fontSize: 32, marginBottom: 12 }}>📊</p>
@@ -733,8 +733,8 @@ function NoGroupData() {
   const { locale } = useLocale()
   return (
     <div className="rounded-2xl p-8 text-center" style={{
-      background: '#111',
-      border: '1px solid rgba(255,107,0,0.22)',
+      background: '#171717',
+      border: '1px solid rgba(237, 116, 47,0.38)',
       borderRadius: 18,
     }}>
       <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noGroupData')}</p>
@@ -776,15 +776,15 @@ function MilestoneLock({ label, current, required, locale, lockUnit = 'sessions'
       ? `${remaining} more log${remaining !== 1 ? 's' : ''} to go`
       : `${remaining} more session${remaining !== 1 ? 's' : ''} to go`
   return (
-    <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)' }}>
+    <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.17)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Lock size={13} strokeWidth={1.5} style={{ color: '#444' }} />
         <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>{label}</p>
       </div>
       <p className="text-sm font-bold mb-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{unlockText}</p>
-      <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.40)' }}>{remainingText}</p>
-      <div className="h-1 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: 'rgba(255,107,0,0.55)', transition: 'width 0.4s ease' }} />
+      <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.60)' }}>{remainingText}</p>
+      <div className="h-1 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.17)' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: 'rgba(237, 116, 47,0.55)', transition: 'width 0.4s ease' }} />
       </div>
       <p className="text-[10px] text-right" style={{ color: '#3a3a3a' }}>{current} / {required}</p>
     </div>

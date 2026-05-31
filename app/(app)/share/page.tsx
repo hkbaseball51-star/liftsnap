@@ -19,7 +19,7 @@ export default async function SharePage({
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
           <p className="text-white mb-4">Date not specified</p>
-          <Link href="/home" className="text-sm" style={{ color: '#ff6b00' }}>Back to Home</Link>
+          <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>Back to Home</Link>
         </div>
       )
     }
@@ -29,7 +29,7 @@ export default async function SharePage({
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
           <p className="text-white mb-2">No workout found for {date}</p>
           <p className="text-sm mb-6" style={{ color: '#555' }}>Log a session first</p>
-          <Link href={`/record?date=${date}`} className="text-sm font-bold" style={{ color: '#ff6b00' }}>Log Workout →</Link>
+          <Link href={`/record?date=${date}`} className="text-sm font-bold" style={{ color: '#ED742F' }}>Log Workout →</Link>
         </div>
       )
     }
@@ -42,7 +42,7 @@ export default async function SharePage({
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
           <p className="text-white mb-4">Data not found</p>
-          <Link href="/analytics" className="text-sm" style={{ color: '#ff6b00' }}>Back to Analytics</Link>
+          <Link href="/analytics" className="text-sm" style={{ color: '#ED742F' }}>Back to Analytics</Link>
         </div>
       )
     }
@@ -54,7 +54,7 @@ export default async function SharePage({
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
         <p className="text-white mb-4">セッションが見つかりません</p>
-        <Link href="/home" className="text-sm" style={{ color: '#ff6b00' }}>ホームへ戻る</Link>
+        <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>ホームへ戻る</Link>
       </div>
     )
   }
@@ -64,7 +64,7 @@ export default async function SharePage({
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
         <p className="text-white mb-4">データが見つかりません</p>
-        <Link href="/home" className="text-sm" style={{ color: '#ff6b00' }}>ホームへ戻る</Link>
+        <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>ホームへ戻る</Link>
       </div>
     )
   }

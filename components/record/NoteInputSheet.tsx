@@ -26,7 +26,7 @@ export default function NoteInputSheet({ value, onSave, onClose }: Props) {
       <div
         className="w-full rounded-t-3xl flex flex-col"
         style={{
-          background: '#111',
+          background: '#171717',
           border: '1px solid #1e1e1e',
           maxHeight: 'calc(100dvh - 4rem)',
         }}
@@ -53,7 +53,7 @@ export default function NoteInputSheet({ value, onSave, onClose }: Props) {
               fontSize: 14,
               lineHeight: 1.65,
               color: '#fff',
-              caretColor: '#ff6b00',
+              caretColor: '#ED742F',
             }}
           />
           <div className="flex justify-end mt-1">
@@ -75,15 +75,15 @@ export default function NoteInputSheet({ value, onSave, onClose }: Props) {
           <div className="flex gap-3">
             <button
               className="flex-1 py-3.5 rounded-2xl text-sm font-black"
-              style={{ background: '#1a1a1a', color: '#666', border: '1px solid #222' }}
+              style={{ background: '#222222', color: '#666', border: '1px solid #222' }}
               onClick={onClose}>
               {t(locale, 'record.noteCancel')}
             </button>
             <button
               className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white"
               style={{
-                background: tooLong ? '#333' : '#ff6b00',
-                boxShadow: tooLong ? 'none' : '0 4px 20px rgba(255,107,0,0.3)',
+                background: tooLong ? '#333' : '#ED742F',
+                boxShadow: tooLong ? 'none' : '0 4px 20px rgba(237, 116, 47,0.3)',
               }}
               disabled={tooLong}
               onClick={() => { onSave(text.trim()); onClose() }}>

@@ -15,7 +15,7 @@ type CardData = {
 type Theme = 'clear' | 'dark'
 type Accent = 'orange' | 'purple'
 
-const ACCENT_COLOR = { orange: '#BF5C24', purple: '#6E38D4' }
+const ACCENT_COLOR = { orange: '#ED742F', purple: '#6E38D4' }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
@@ -129,7 +129,7 @@ async function generateCard(data: CardData, theme: Theme, accent: Accent): Promi
   shadow()
   ctx.fillStyle = 'rgba(255,255,255,0.25)'
   ctx.font = '30px system-ui, -apple-system, sans-serif'
-  ctx.fillText('liftsnap.app', 80, H - 100)
+  ctx.fillText('repra.app', 80, H - 100)
   noShadow()
 
   return new Promise(resolve => canvas.toBlob(b => resolve(b!), 'image/png'))
@@ -186,7 +186,7 @@ export default function ShareView({ data }: { data: CardData }) {
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-4">
-        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
+        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#222222' }}>
           <ArrowLeft size={18} style={{ color: '#888' }} />
         </button>
         <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
@@ -217,19 +217,19 @@ export default function ShareView({ data }: { data: CardData }) {
               </span>
             </div>
             {/* Date */}
-            <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{dateLabel}</p>
+            <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.68)' }}>{dateLabel}</p>
             {/* Title */}
             <p className="text-2xl font-black text-white leading-tight mb-4">{data.title}</p>
 
             <div className="h-px mb-4" style={{ background: 'rgba(255,255,255,0.15)' }} />
 
             {/* Volume */}
-            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}>TOTAL VOLUME</p>
+            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.60)', letterSpacing: '0.1em' }}>TOTAL VOLUME</p>
             <div className="flex items-baseline gap-1 mb-1">
               <span className="text-5xl font-black" style={{ color: accentColor }}>{volStr}</span>
-              <span className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>kg</span>
+              <span className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.68)' }}>kg</span>
             </div>
-            <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.56)' }}>
               {data.setsCount} SETS COMPLETED
             </p>
 
@@ -246,7 +246,7 @@ export default function ShareView({ data }: { data: CardData }) {
             </div>
 
             {/* Watermark */}
-            <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.2)' }}>liftsnap.app</p>
+            <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.44)' }}>repra.app</p>
           </div>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function ShareView({ data }: { data: CardData }) {
           {(['dark', 'clear'] as Theme[]).map(t => (
             <button key={t}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: theme === t ? '#BF5C24' : '#1a1a1a', color: theme === t ? '#fff' : '#888', border: '1px solid #2a2a2a' }}
+              style={{ background: theme === t ? '#ED742F' : '#222222', color: theme === t ? '#fff' : '#888', border: '1px solid #2a2a2a' }}
               onClick={() => setTheme(t)}>
               {t === 'dark' ? 'Dark' : 'Clear'}
             </button>
@@ -273,7 +273,7 @@ export default function ShareView({ data }: { data: CardData }) {
             <button key={a}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
               style={{
-                background: accent === a ? ACCENT_COLOR[a] : '#1a1a1a',
+                background: accent === a ? ACCENT_COLOR[a] : '#222222',
                 color: '#fff',
                 border: `1px solid ${accent === a ? ACCENT_COLOR[a] : '#2a2a2a'}`,
               }}
@@ -291,7 +291,7 @@ export default function ShareView({ data }: { data: CardData }) {
         )}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-          style={{ background: '#BF5C24' }}
+          style={{ background: '#ED742F' }}
           disabled={sharing}
           onClick={handleShare}>
           <Share2 size={20} />

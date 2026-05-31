@@ -10,9 +10,9 @@ function getTodayJST() {
 
 const tabs = [
   { href: '/home',      icon: Home,     label: 'HOME'    },
-  { href: '/analytics', icon: BarChart2, label: 'STATS'  },
-  { href: '/record',    icon: Plus,     label: '',        primary: true },
-  { href: '/rewards',   icon: Trophy,   label: 'REWARDS' },
+  { href: '/analytics', icon: BarChart2, label: 'PROGRESS' },
+  { href: '/record',    icon: Plus,     label: '',         primary: true },
+  { href: '/rewards',   icon: Trophy,   label: 'PROOF'    },
   { href: '/profile',   icon: User,     label: 'ME'      },
 ]
 
@@ -60,8 +60,8 @@ export default function BottomNav() {
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                   style={{
-                    background: '#BF5C24',
-                    boxShadow: '0 4px 20px rgba(255,107,0,0.45)',
+                    background: '#ED742F',
+                    boxShadow: '0 4px 20px rgba(237, 116, 47,0.45)',
                   }}
                 >
                   <Icon size={26} color="#fff" strokeWidth={2.5} />
@@ -79,13 +79,13 @@ export default function BottomNav() {
             >
               <Icon
                 size={22}
-                color={active ? '#BF5C24' : '#444'}
+                color={active ? '#ED742F' : 'rgba(255,255,255,0.65)'}
                 strokeWidth={active ? 2.5 : 2}
               />
               {label && (
                 <span
                   className="text-[8px] font-black tracking-widest"
-                  style={{ color: active ? '#BF5C24' : '#444' }}
+                  style={{ color: active ? '#ED742F' : 'rgba(255,255,255,0.48)' }}
                 >
                   {label}
                 </span>

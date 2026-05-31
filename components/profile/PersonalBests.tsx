@@ -1,68 +1,63 @@
 'use client'
 
-import { useState } from 'react'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
-import { t } from '@/lib/i18n'
+import type { PBEntry } from '@/actions/personalBests'
 
 type Props = {
-  benchPR:    number | null
-  squatPR:    number | null
-  deadliftPR: number | null
+  bench:    PBEntry | null
+  squat:    PBEntry | null
+  deadlift: PBEntry | null
 }
 
-export default function PersonalBests({ benchPR, squatPR, deadliftPR }: Props) {
+export default function PersonalBests({ bench, squat, deadlift }: Props) {
   const { locale } = useLocale()
   const { unit } = useWeightUnit()
-  const [toast, setToast] = useState<string | null>(null)
 
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2500)
-  }
+  const noRecord = locale === 'ja' ? '未記録' : 'No record'
 
-  const items = [
-    { label: 'Bench',    pr: benchPR    },
-    { label: 'Squat',    pr: squatPR    },
-    { label: 'Deadlift', pr: deadliftPR },
-  ] as const
+  const items: { label: string; entry: PBEntry | null }[] = [
+    { label: 'Bench',    entry: bench    },
+    { label: 'Squat',    entry: squat    },
+    { label: 'Deadlift', entry: deadlift },
+  ]
 
   return (
-    <>
-      <div className="grid grid-cols-3 gap-2">
-        {items.map(({ label, pr }) => (
-          <button
-            key={label}
-            className="rounded-2xl p-4 flex flex-col items-center active:opacity-70 transition-opacity"
-            style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.12)' }}
-            onClick={() => showToast(t(locale, 'profile.personalBestAutoMessage'))}>
-            <p className="text-[10px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              {label}
-            </p>
-            {pr != null ? (
-              <>
-                <p className="text-xl font-black leading-none" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
-                  {toDisplayWeight(pr, unit)}
-                </p>
-                <p className="text-[9px] font-bold mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>{weightUnitLabel(unit)}</p>
-              </>
-            ) : (
-              <p className="text-[11px] font-bold leading-none mt-1" style={{ color: 'rgba(255,255,255,0.28)' }}>
-                {t(locale, 'profile.personalBestAuto')}
-              </p>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {toast && (
+    <div className="grid grid-cols-3 gap-2">
+      {items.map(({ label, entry }) => (
         <div
-          className="fixed left-4 right-4 z-[80] px-4 py-3 rounded-2xl text-center"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 80px)', background: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-          <p className="text-sm font-bold text-white">{toast}</p>
+          key={label}
+          className="rounded-2xl px-3 py-4 flex flex-col items-center"
+          style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.19)' }}
+        >
+          <p className="text-[10px] font-bold mb-2.5" style={{ color: 'rgba(255,255,255,0.68)' }}>
+            {label}
+          </p>
+
+          {entry ? (
+            <>
+              <p
+                className="font-black leading-none"
+                style={{ fontSize: 26, color: '#fff', fontFamily: 'var(--font-mono)' }}
+              >
+                {toDisplayWeight(entry.est1rm, unit)}
+              </p>
+              <p className="text-[9px] font-bold mt-0.5" style={{ color: 'rgba(255,255,255,0.60)' }}>
+                {weightUnitLabel(unit)}
+              </p>
+              <p className="text-[10px] mt-2 leading-none" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                {toDisplayWeight(entry.weight, unit)} × {entry.reps}
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] font-bold mt-1 text-center leading-tight"
+              style={{ color: 'rgba(255,255,255,0.52)' }}>
+              {noRecord}
+            </p>
+          )}
         </div>
-      )}
-    </>
+      ))}
+    </div>
   )
 }

@@ -7,6 +7,8 @@ import { RANKS, getRankInfo, fmtComma } from '@/lib/ranks'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
 import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 import PersonalBests from '@/components/profile/PersonalBests'
+import { calcBestProofStreak } from '@/lib/proofStreak'
+import { getPersonalBests } from '@/actions/personalBests'
 
 function fmtLargeVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)}M`
@@ -33,27 +35,6 @@ function actDate(d: string): string {
 }
 
 
-function getMondayOfWeek(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  const day = d.getDay()
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function calcBestWeekStreak(dates: string[]): number {
-  if (dates.length === 0) return 0
-  const weeks = [...new Set(dates.map(getMondayOfWeek))].sort()
-  let best = 1, cur = 1
-  for (let i = 1; i < weeks.length; i++) {
-    const diffDays = Math.round(
-      (new Date(weeks[i] + 'T00:00:00').getTime() - new Date(weeks[i - 1] + 'T00:00:00').getTime())
-      / 86_400_000
-    )
-    if (diffDays === 7) { cur++; if (cur > best) best = cur }
-    else cur = 1
-  }
-  return best
-}
 
 type RecentSession = {
   id: string
@@ -65,14 +46,14 @@ type RecentSession = {
 /* ── Design tokens ───────────────────────────────────── */
 const T = {
   main:      '#f5f5f5',
-  secondary: 'rgba(255,255,255,0.65)',
-  muted:     'rgba(255,255,255,0.55)',
-  empty:     'rgba(255,255,255,0.55)',
-  label:     'rgba(255,255,255,0.58)',
-  divider:   'rgba(255,255,255,0.08)',
+  secondary: 'rgba(255,255,255,0.78)',
+  muted:     'rgba(255,255,255,0.65)',
+  empty:     'rgba(255,255,255,0.65)',
+  label:     'rgba(255,255,255,0.72)',
+  divider:   'rgba(255,255,255,0.12)',
   card: {
-    background: '#181818',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: '#1E1E1E',
+    border: '1px solid rgba(255,255,255,0.19)',
     borderRadius: 20,
   } as const,
 }
@@ -92,7 +73,7 @@ export default async function ProfilePage() {
         </p>
         <Link href="/signup"
           className="w-full max-w-xs py-4 rounded-2xl text-center text-sm font-black text-white block tracking-widest"
-          style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.35)' }}>
+          style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.35)' }}>
           CREATE ACCOUNT
         </Link>
         <Link href="/login" className="mt-4 text-sm font-bold" style={{ color: T.muted }}>
@@ -104,8 +85,8 @@ export default async function ProfilePage() {
 
   const [
     profileRes, sessionsRes, recentRes,
-    benchRes, squatRes, deadliftRes,
-    bestLiftRes, muscleGroupsRes,
+    personalBests,
+    bestLiftRes, muscleGroupsRes, photoLogsRes,
   ] = await Promise.all([
     supabase.from('profiles').select('display_name, plan, language, username, weight_unit').eq('id', user.id).single(),
     supabase.from('workout_sessions')
@@ -118,15 +99,7 @@ export default async function ProfilePage() {
       .not('completed_at', 'is', null)
       .order('trained_at', { ascending: false })
       .limit(3),
-    supabase.from('workout_sets').select('weight_kg')
-      .ilike('exercise_name', '%bench%').eq('is_completed', true)
-      .not('weight_kg', 'is', null).order('weight_kg', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('workout_sets').select('weight_kg')
-      .ilike('exercise_name', '%squat%').eq('is_completed', true)
-      .not('weight_kg', 'is', null).order('weight_kg', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('workout_sets').select('weight_kg')
-      .ilike('exercise_name', '%deadlift%').eq('is_completed', true)
-      .not('weight_kg', 'is', null).order('weight_kg', { ascending: false }).limit(1).maybeSingle(),
+    getPersonalBests(),
     supabase.from('workout_sets').select('exercise_name, weight_kg')
       .eq('is_completed', true)
       .not('weight_kg', 'is', null)
@@ -135,6 +108,9 @@ export default async function ProfilePage() {
     supabase.from('workout_sets').select('muscle_group')
       .eq('is_completed', true)
       .not('muscle_group', 'is', null),
+    supabase.from('workout_photo_logs')
+      .select('workout_date')
+      .eq('user_id', user.id),
   ])
 
   const profile      = profileRes.data
@@ -154,13 +130,11 @@ export default async function ProfilePage() {
   const rankInfo     = getRankInfo(totalVolume)
 
   const recentSessions = (recentRes.data ?? []) as unknown as RecentSession[]
-  const benchPR    = benchRes.data?.weight_kg   ?? null
-  const squatPR    = squatRes.data?.weight_kg   ?? null
-  const deadliftPR = deadliftRes.data?.weight_kg ?? null
-
   const bestLift   = bestLiftRes.data as { exercise_name: string; weight_kg: number } | null
   const mainMuscle = topMuscle((muscleGroupsRes.data ?? []) as { muscle_group: string | null }[])
-  const bestStreak = calcBestWeekStreak(allSessions.map(s => (s as { trained_at: string }).trained_at))
+  const workoutDatesForStreak = allSessions.map(s => (s as { trained_at: string }).trained_at.slice(0, 10))
+  const photoDatesForStreak   = ((photoLogsRes.data ?? []) as { workout_date: string }[]).map(p => p.workout_date)
+  const bestStreak = calcBestProofStreak(workoutDatesForStreak, photoDatesForStreak)
 
   const sec = (text: string) => (
     <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: T.label }}>{text}</p>
@@ -176,7 +150,7 @@ export default async function ProfilePage() {
           href="/profile/settings"
           aria-label="Open settings"
           className="p-2 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
-          style={{ background: '#161616', border: '1px solid rgba(255,255,255,0.10)' }}>
+          style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)' }}>
           <Settings size={18} style={{ color: T.secondary }} />
         </Link>
       </div>
@@ -186,8 +160,8 @@ export default async function ProfilePage() {
         <div
           className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white mb-4"
           style={{
-            background: 'linear-gradient(135deg, #ff6b00 0%, #6E38D4 100%)',
-            boxShadow: '0 0 36px rgba(255,107,0,0.18)',
+            background: 'linear-gradient(135deg, #ED742F 0%, #6E38D4 100%)',
+            boxShadow: '0 0 36px rgba(237, 116, 47,0.18)',
           }}>
           {displayName[0].toUpperCase()}
         </div>
@@ -195,7 +169,7 @@ export default async function ProfilePage() {
         <p className="text-2xl font-black text-white tracking-tight leading-none">{displayName}</p>
 
         <p className="text-xs mt-2" style={{
-          color: profileUsername ? T.secondary : 'rgba(255,255,255,0.28)',
+          color: profileUsername ? T.secondary : 'rgba(255,255,255,0.68)',
           fontFamily: 'var(--font-mono)',
         }}>
           {profileUsername ? `@${profileUsername}` : '@username'}
@@ -217,9 +191,9 @@ export default async function ProfilePage() {
 
             {/* Private badge */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <Lock size={9} style={{ color: 'rgba(255,255,255,0.45)' }} />
-              <span className="text-[9px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              style={{ background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.19)' }}>
+              <Lock size={9} style={{ color: 'rgba(255,255,255,0.65)' }} />
+              <span className="text-[9px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.72)' }}>
                 PRIVATE
               </span>
             </div>
@@ -272,7 +246,7 @@ export default async function ProfilePage() {
                 {t(locale, 'profile.streakStart')}
               </p>
             )}
-            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>BEST STREAK</p>
+            <p className="text-[9px] font-black tracking-widest" style={{ color: T.label }}>BEST PROOF STREAK</p>
           </div>
 
         </div>
@@ -281,7 +255,7 @@ export default async function ProfilePage() {
       {/* ── 4. Personal Bests ─────────────────────────── */}
       <div className="mx-4 mb-5">
         {sec('PERSONAL BESTS')}
-        <PersonalBests benchPR={benchPR} squatPR={squatPR} deadliftPR={deadliftPR} />
+        <PersonalBests bench={personalBests.bench} squat={personalBests.squat} deadlift={personalBests.deadlift} />
       </div>
 
       {/* ── 5. Lifter Summary ─────────────────────────── */}
@@ -295,7 +269,7 @@ export default async function ProfilePage() {
             {bestLift ? (
               <p className="text-sm font-bold text-right ml-3">
                 <span style={{ color: T.secondary }}>{bestLift.exercise_name} </span>
-                <span className="font-black" style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
+                <span className="font-black" style={{ color: '#ED742F', fontFamily: 'var(--font-mono)' }}>
                   {toDisplayWeight(bestLift.weight_kg, weightUnit)}{weightUnitLabel(weightUnit)}
                 </span>
               </p>
@@ -441,9 +415,9 @@ export default async function ProfilePage() {
                       {muscle && (
                         <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full"
                           style={{
-                            background: 'rgba(255,255,255,0.07)',
+                            background: 'rgba(255,255,255,0.12)',
                             color: T.secondary,
-                            border: '1px solid rgba(255,255,255,0.12)',
+                            border: '1px solid rgba(255,255,255,0.19)',
                           }}>
                           {muscle.toUpperCase()}
                         </span>
@@ -454,7 +428,7 @@ export default async function ProfilePage() {
                       {' · '}{locale === 'ja' ? `${setCount}セット` : `${setCount} ${setCount === 1 ? 'set' : 'sets'}`}
                     </p>
                   </div>
-                  <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.30)' }} />
+                  <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.52)' }} />
                 </Link>
               )
             })}

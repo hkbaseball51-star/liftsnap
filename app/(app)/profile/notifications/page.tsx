@@ -11,12 +11,12 @@ const T = {
   secondary: 'rgba(255,255,255,0.58)',
   muted:     'rgba(255,255,255,0.42)',
   label:     'rgba(255,255,255,0.52)',
-  card:      { background: '#161616', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, overflow: 'hidden' } as const,
+  card:      { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
   divider:   '1px solid rgba(255,255,255,0.07)',
   soon: {
-    background: 'rgba(255,255,255,0.07)',
-    color:      'rgba(255,255,255,0.58)',
-    border:     '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(255,255,255,0.12)',
+    color: 'rgba(255,255,255,0.58)',
+    border:     '1px solid rgba(255,255,255,0.17)',
   },
 }
 
@@ -31,7 +31,7 @@ const PUSH_ITEMS: NotifItem[] = [
 
 const Toggle = () => (
   <div className="w-11 h-6 rounded-full relative shrink-0"
-    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}>
+    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.17)' }}>
     <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full"
       style={{ background: 'rgba(255,255,255,0.22)' }} />
   </div>
@@ -53,14 +53,14 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
         </Link>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>NOTIFICATIONS</h1>
       </div>
 
       {/* Preview banner */}
       <div className="mx-4 mb-4 px-4 py-3 rounded-2xl"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.15)' }}>
         <p className="text-xs font-bold" style={{ color: T.muted }}>
           {t(locale, 'notifications.previewBanner')}
         </p>

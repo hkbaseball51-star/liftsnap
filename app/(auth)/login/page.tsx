@@ -63,7 +63,7 @@ export default function LoginPage() {
             <button
               onClick={() => { setMode('login'); setResetSent(false); setError(null) }}
               className="text-sm font-black"
-              style={{ color: '#BF5C24' }}>
+              style={{ color: '#ED742F' }}>
               Back to Sign In
             </button>
           </div>
@@ -82,7 +82,7 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-                style={{ background: '#111', border: '1px solid #1e1e1e' }}
+                style={{ background: '#171717', border: '1px solid #1e1e1e' }}
               />
             </div>
 
@@ -94,7 +94,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-              style={{ background: loading ? '#333' : '#BF5C24' }}>
+              style={{ background: loading ? '#333' : '#ED742F' }}>
               {loading ? 'SENDING...' : 'SEND RESET LINK'}
             </button>
 
@@ -119,7 +119,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-              style={{ background: '#111', border: '1px solid #1e1e1e' }}
+              style={{ background: '#171717', border: '1px solid #1e1e1e' }}
             />
           </div>
           <div>
@@ -131,7 +131,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => { setMode('reset'); setError(null) }}
                 className="text-[10px] font-black tracking-widest"
-                style={{ color: '#BF5C24' }}>
+                style={{ color: '#ED742F' }}>
                 FORGOT PASSWORD?
               </button>
             </div>
@@ -141,7 +141,7 @@ export default function LoginPage() {
               required
               autoComplete="current-password"
               className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-              style={{ background: '#111', border: '1px solid #1e1e1e' }}
+              style={{ background: '#171717', border: '1px solid #1e1e1e' }}
             />
           </div>
 
@@ -153,7 +153,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-            style={{ background: loading ? '#333' : '#BF5C24' }}>
+            style={{ background: loading ? '#333' : '#ED742F' }}>
             {loading ? 'SIGNING IN...' : 'SIGN IN'}
           </button>
         </form>
@@ -162,7 +162,7 @@ export default function LoginPage() {
       {mode === 'login' && (
         <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
           Don't have an account?{' '}
-          <Link href="/signup" className="font-black" style={{ color: '#BF5C24' }}>
+          <Link href="/signup" className="font-black" style={{ color: '#ED742F' }}>
             Sign up
           </Link>
         </p>

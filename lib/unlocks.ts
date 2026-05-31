@@ -81,10 +81,10 @@ export type ShareTheme = {
 }
 
 export const SHARE_THEMES: ShareTheme[] = [
-  { id: 'default', accent: 'dark',   label: 'Default',       requiredShares: 0,  description: 'Clean monochrome style'   },
-  { id: 'orange',  accent: 'orange', label: 'Orange',        requiredShares: 3,  description: 'LIFTSNAP orange accent'   },
-  { id: 'purple',  accent: 'purple', label: 'Purple',        requiredShares: 5,  description: 'Electric purple accent'   },
-  { id: 'black',   accent: 'black',  label: 'Minimal Black', requiredShares: 10, description: 'Pure black minimal style' },
+  { id: 'default', accent: 'dark',   label: 'Default',       requiredShares: 0,  description: 'REPRA standard theme'      },
+  { id: 'orange',  accent: 'orange', label: 'Orange',        requiredShares: 3,  description: 'Workout intensity in orange' },
+  { id: 'purple',  accent: 'purple', label: 'Purple',        requiredShares: 5,  description: 'Electric purple accent'      },
+  { id: 'black',   accent: 'black',  label: 'Stealth Black', requiredShares: 10, description: 'Pure black stealth style'    },
 ]
 
 export function getShareThemeUnlocks(shareCount: number) {
@@ -127,6 +127,109 @@ export function getNextReward(
   }
 
   return { type: 'complete' }
+}
+
+// ─── Workout Badges ───────────────────────────────────────────
+export type WorkoutBadgeId = 'first_workout' | 'ten_sessions' | 'thirty_sessions'
+
+export type WorkoutBadge = {
+  id: WorkoutBadgeId
+  label: string
+  requiredSessions: number
+  description: string
+}
+
+export const WORKOUT_BADGES: WorkoutBadge[] = [
+  { id: 'first_workout',   label: 'First Workout', requiredSessions: 1,  description: 'Your first rep is in the books'  },
+  { id: 'ten_sessions',    label: '10 Sessions',   requiredSessions: 10, description: 'Getting into the groove'         },
+  { id: 'thirty_sessions', label: '30 Sessions',   requiredSessions: 30, description: 'One month strong'                },
+]
+
+export function getWorkoutBadgeUnlocks(totalSessions: number) {
+  return WORKOUT_BADGES.map(b => ({
+    ...b,
+    unlocked: totalSessions >= b.requiredSessions,
+    progress: Math.min(totalSessions, b.requiredSessions),
+  }))
+}
+
+// ─── Body Log Badges ──────────────────────────────────────────
+export type BodyLogBadgeId = 'first_photo' | 'three_photos' | 'seven_photos' | 'fourteen_photos' | 'thirty_photos'
+
+export type BodyLogBadge = {
+  id: BodyLogBadgeId
+  label: string
+  requiredPhotos: number
+  description: string
+}
+
+export const BODY_LOG_BADGES: BodyLogBadge[] = [
+  { id: 'first_photo',     label: '1 Photo',   requiredPhotos: 1,  description: 'Visual progress starts here'   },
+  { id: 'three_photos',    label: '3 Photos',  requiredPhotos: 3,  description: 'Building the habit of tracking' },
+  { id: 'seven_photos',    label: '7 Photos',  requiredPhotos: 7,  description: 'One week of body check-ins'     },
+  { id: 'fourteen_photos', label: '14 Photos', requiredPhotos: 14, description: 'Two weeks of visual data'       },
+  { id: 'thirty_photos',   label: '30 Photos', requiredPhotos: 30, description: 'A full month documented'        },
+]
+
+export function getBodyLogBadgeUnlocks(photoCount: number) {
+  return BODY_LOG_BADGES.map(b => ({
+    ...b,
+    unlocked: photoCount >= b.requiredPhotos,
+    progress: Math.min(photoCount, b.requiredPhotos),
+  }))
+}
+
+// ─── Consistency Badges ───────────────────────────────────────
+export type ConsistencyBadgeId = 'three_days' | 'seven_days' | 'thirty_days'
+
+export type ConsistencyBadge = {
+  id: ConsistencyBadgeId
+  label: string
+  requiredDays: number
+  description: string
+}
+
+export const CONSISTENCY_BADGES: ConsistencyBadge[] = [
+  { id: 'three_days',  label: '3 Workout Days',  requiredDays: 3,  description: '3 different training days logged' },
+  { id: 'seven_days',  label: '7 Workout Days',  requiredDays: 7,  description: 'One week of gym visits'           },
+  { id: 'thirty_days', label: '30 Workout Days', requiredDays: 30, description: '30 unique training days'          },
+]
+
+export function getConsistencyBadgeUnlocks(uniqueWorkoutDays: number) {
+  return CONSISTENCY_BADGES.map(b => ({
+    ...b,
+    unlocked: uniqueWorkoutDays >= b.requiredDays,
+    progress: Math.min(uniqueWorkoutDays, b.requiredDays),
+  }))
+}
+
+// ─── Proof Streak Badges ──────────────────────────────────────
+export type ProofStreakBadgeId =
+  | 'first_proof_week'
+  | 'four_week_streak'
+  | 'eight_week_streak'
+  | 'twelve_week_streak'
+
+export type ProofStreakBadge = {
+  id: ProofStreakBadgeId
+  label: string
+  requiredStreak: number
+  description: string
+}
+
+export const PROOF_STREAK_BADGES: ProofStreakBadge[] = [
+  { id: 'first_proof_week',   label: 'First Proof Week',    requiredStreak: 1,  description: 'Your first week of consistent effort' },
+  { id: 'four_week_streak',   label: '4-Week Proof Streak', requiredStreak: 4,  description: 'One month of consistent proof'         },
+  { id: 'eight_week_streak',  label: '8-Week Proof Streak', requiredStreak: 8,  description: 'Changes are starting to show'          },
+  { id: 'twelve_week_streak', label: '12-Week Proof Streak',requiredStreak: 12, description: 'A real habit has formed'               },
+]
+
+export function getProofStreakBadgeUnlocks(bestProofStreak: number) {
+  return PROOF_STREAK_BADGES.map(b => ({
+    ...b,
+    unlocked: bestProofStreak >= b.requiredStreak,
+    progress: Math.min(bestProofStreak, b.requiredStreak),
+  }))
 }
 
 // ─── Share count — localStorage (client-only) ─────────────────

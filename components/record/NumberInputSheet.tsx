@@ -58,7 +58,7 @@ export default function NumberInputSheet({
       <div
         className="w-full rounded-t-3xl flex flex-col"
         style={{
-          background: '#111',
+          background: '#171717',
           border: '1px solid #1e1e1e',
           maxHeight: 'calc(100dvh - 4rem)',
         }}
@@ -85,7 +85,7 @@ export default function NumberInputSheet({
               style={{
                 fontSize: 'clamp(48px, 14vw, 72px)',
                 fontFamily: 'var(--font-mono)',
-                caretColor: '#ff6b00',
+                caretColor: '#ED742F',
               }}
             />
             <span className="text-xl font-black" style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>
@@ -104,8 +104,8 @@ export default function NumberInputSheet({
                     className="rounded-xl font-black"
                     style={{
                       fontSize: 13,
-                      background: '#1a1a1a',
-                      color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                      background: '#222222',
+                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
                       border: '1px solid #222',
                       minHeight: 42,
                     }}
@@ -121,8 +121,8 @@ export default function NumberInputSheet({
                     className="rounded-2xl font-black"
                     style={{
                       fontSize: 15,
-                      background: '#1a1a1a',
-                      color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                      background: '#222222',
+                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
                       border: '1px solid #222',
                       minHeight: 46,
                     }}
@@ -138,8 +138,8 @@ export default function NumberInputSheet({
                     className="rounded-2xl font-black"
                     style={{
                       fontSize: 15,
-                      background: '#1a1a1a',
-                      color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                      background: '#222222',
+                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
                       border: '1px solid #222',
                       minHeight: 46,
                     }}
@@ -159,8 +159,8 @@ export default function NumberInputSheet({
                     className="rounded-xl font-black"
                     style={{
                       fontSize: 13,
-                      background: '#1a1a1a',
-                      color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                      background: '#222222',
+                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
                       border: '1px solid #222',
                       minHeight: 42,
                     }}
@@ -177,8 +177,8 @@ export default function NumberInputSheet({
                       className="rounded-2xl font-black"
                       style={{
                         fontSize: 15,
-                        background: '#1a1a1a',
-                        color: s > 0 ? '#ff6b00' : 'rgba(255,255,255,0.32)',
+                        background: '#222222',
+                        color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
                         border: '1px solid #222',
                         minHeight: 46,
                       }}
@@ -200,8 +200,8 @@ export default function NumberInputSheet({
                   className="py-3 rounded-2xl font-black"
                   style={{
                     fontSize: 14,
-                    background: '#1a1a1a',
-                    color: s > 0 ? '#ff6b00' : '#555',
+                    background: '#222222',
+                    color: s > 0 ? '#ED742F' : '#555',
                     border: '1px solid #222',
                     minHeight: 44,
                   }}
@@ -220,7 +220,7 @@ export default function NumberInputSheet({
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
           <button
             className="w-full py-4 rounded-2xl text-base font-black text-white tracking-widest"
-            style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
+            style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
             onClick={() => { onConfirm(confirmValue); onClose() }}>
             SET
           </button>

@@ -139,11 +139,11 @@ export default function OnboardingFlow({ initialDisplayName }: { initialDisplayN
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
       {/* Progress bar */}
-      <div style={{ height: 2, background: '#111', position: 'relative' }}>
+      <div style={{ height: 2, background: '#171717', position: 'relative' }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, height: '100%',
           width: `${progressPct}%`,
-          background: '#BF5C24',
+          background: '#ED742F',
           transition: 'width 300ms ease',
         }} />
       </div>
@@ -151,7 +151,7 @@ export default function OnboardingFlow({ initialDisplayName }: { initialDisplayN
       {/* Header */}
       <div className="flex items-center px-5 pt-12 pb-4">
         {stepIndex > 0 ? (
-          <button onClick={goBack} style={{ color: 'rgba(255,255,255,0.4)', padding: '4px 0' }}>
+          <button onClick={goBack} style={{ color: 'rgba(255,255,255,0.60)', padding: '4px 0' }}>
             <ChevronLeft size={22} />
           </button>
         ) : (
@@ -188,14 +188,14 @@ export default function OnboardingFlow({ initialDisplayName }: { initialDisplayN
               width: '100%',
               padding: '16px',
               borderRadius: 16,
-              background: canProceed ? '#BF5C24' : '#1a1a1a',
-              color: canProceed ? '#fff' : 'rgba(255,255,255,0.2)',
+              background: canProceed ? '#ED742F' : '#222222',
+              color: canProceed ? '#fff' : 'rgba(255,255,255,0.44)',
               fontSize: 15,
               fontWeight: 800,
               letterSpacing: '0.08em',
               border: 'none',
               transition: 'background 150ms, color 150ms',
-              boxShadow: canProceed ? '0 4px 20px rgba(255,107,0,0.3)' : 'none',
+              boxShadow: canProceed ? '0 4px 20px rgba(237, 116, 47,0.3)' : 'none',
             }}>
             {buttonLabel}
           </button>
@@ -210,14 +210,14 @@ export default function OnboardingFlow({ initialDisplayName }: { initialDisplayN
 function StepHeader({ label, title, sub }: { label: string; title: string; sub?: string }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: '#BF5C24', marginBottom: 10 }}>
+      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: '#ED742F', marginBottom: 10 }}>
         {label}
       </p>
       <p style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.02em', marginBottom: sub ? 8 : 0 }}>
         {title}
       </p>
       {sub && (
-        <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>
+        <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.58)' }}>
           {sub}
         </p>
       )}
@@ -237,8 +237,8 @@ function OptionButton<T>({
         width: '100%',
         padding: '14px 16px',
         borderRadius: 14,
-        background: selected ? 'rgba(255,107,0,0.12)' : '#111',
-        border: `1px solid ${selected ? '#BF5C24' : 'rgba(255,255,255,0.07)'}`,
+        background: selected ? 'rgba(237, 116, 47,0.12)' : '#171717',
+        border: `1px solid ${selected ? '#ED742F' : 'rgba(255,255,255,0.07)'}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -250,7 +250,7 @@ function OptionButton<T>({
           {label}
         </p>
         {sub && (
-          <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.32)', marginTop: 2 }}>
+          <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.54)', marginTop: 2 }}>
             {sub}
           </p>
         )}
@@ -258,7 +258,7 @@ function OptionButton<T>({
       {selected && (
         <div style={{
           width: 22, height: 22, borderRadius: '50%',
-          background: '#BF5C24',
+          background: '#ED742F',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
@@ -282,14 +282,14 @@ function UnitsStep({ locale, weightUnit, setWeightUnit }: { locale: Locale; weig
             onClick={() => setWeightUnit(u)}
             style={{
               flex: 1, padding: '22px 0', borderRadius: 16,
-              background: weightUnit === u ? 'rgba(255,107,0,0.12)' : '#111',
-              border: `1px solid ${weightUnit === u ? '#BF5C24' : 'rgba(255,255,255,0.07)'}`,
+              background: weightUnit === u ? 'rgba(237, 116, 47,0.12)' : '#171717',
+              border: `1px solid ${weightUnit === u ? '#ED742F' : 'rgba(255,255,255,0.07)'}`,
               transition: 'background 150ms, border-color 150ms',
             }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: weightUnit === u ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+            <p style={{ fontSize: 22, fontWeight: 800, color: weightUnit === u ? '#fff' : 'rgba(255,255,255,0.60)' }}>
               {u}
             </p>
-            <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
+            <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.52)', marginTop: 4 }}>
               {u === 'kg' ? 'Kilograms' : 'Pounds'}
             </p>
           </button>
@@ -346,14 +346,14 @@ function FrequencyStep({ locale, frequency, setFrequency }: { locale: Locale; fr
             style={{
               padding: '20px 0',
               borderRadius: 14,
-              background: frequency === f.value ? 'rgba(255,107,0,0.12)' : '#111',
-              border: `1px solid ${frequency === f.value ? '#BF5C24' : 'rgba(255,255,255,0.07)'}`,
+              background: frequency === f.value ? 'rgba(237, 116, 47,0.12)' : '#171717',
+              border: `1px solid ${frequency === f.value ? '#ED742F' : 'rgba(255,255,255,0.07)'}`,
               transition: 'background 150ms, border-color 150ms',
             }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: frequency === f.value ? '#fff' : 'rgba(255,255,255,0.5)' }}>
+            <p style={{ fontSize: 22, fontWeight: 800, color: frequency === f.value ? '#fff' : 'rgba(255,255,255,0.68)' }}>
               {f.label}
             </p>
-            <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
+            <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.52)', marginTop: 4 }}>
               {perWeek}
             </p>
           </button>
@@ -376,7 +376,7 @@ function BodyWeightStep({ locale, bwInput, setBwInput, bwValid }: { locale: Loca
           placeholder="e.g. 75"
           style={{
             width: '100%',
-            background: '#111',
+            background: '#171717',
             border: `1px solid ${bwInput !== '' && !bwValid ? '#ef4444' : 'rgba(255,255,255,0.1)'}`,
             borderRadius: 14,
             padding: '18px 52px 18px 18px',
@@ -384,12 +384,12 @@ function BodyWeightStep({ locale, bwInput, setBwInput, bwValid }: { locale: Loca
             fontWeight: 800,
             color: '#fff',
             outline: 'none',
-            caretColor: '#BF5C24',
+            caretColor: '#ED742F',
           }}
         />
         <span style={{
           position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
+          fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.52)',
         }}>
           kg
         </span>
@@ -413,7 +413,7 @@ function ProfileStep({ locale, displayName, setDisplayName }: { locale: Locale; 
         maxLength={40}
         style={{
           width: '100%',
-          background: '#111',
+          background: '#171717',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 14,
           padding: '18px',
@@ -421,7 +421,7 @@ function ProfileStep({ locale, displayName, setDisplayName }: { locale: Locale; 
           fontWeight: 700,
           color: '#fff',
           outline: 'none',
-          caretColor: '#BF5C24',
+          caretColor: '#ED742F',
         }}
       />
     </>
@@ -445,8 +445,8 @@ function EmailOptInStep({ locale, onSelect }: { locale: Locale; onSelect: (value
       />
 
       <div style={{
-        background: '#111',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: '#171717',
+        border: '1px solid rgba(255,255,255,0.14)',
         borderRadius: 14,
         padding: '16px 18px',
         marginBottom: 28,
@@ -455,12 +455,12 @@ function EmailOptInStep({ locale, onSelect }: { locale: Locale; onSelect: (value
           <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div style={{
               width: 18, height: 18, borderRadius: '50%',
-              background: 'rgba(255,107,0,0.15)',
-              border: '1px solid rgba(255,107,0,0.3)',
+              background: 'rgba(237, 116, 47,0.15)',
+              border: '1px solid rgba(237, 116, 47,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <Check size={10} color="#BF5C24" strokeWidth={3} />
+              <Check size={10} color="#ED742F" strokeWidth={3} />
             </div>
             <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}>{b}</p>
           </div>
@@ -473,14 +473,14 @@ function EmailOptInStep({ locale, onSelect }: { locale: Locale; onSelect: (value
           width: '100%',
           padding: '16px',
           borderRadius: 16,
-          background: '#BF5C24',
+          background: '#ED742F',
           color: '#fff',
           fontSize: 15,
           fontWeight: 800,
           letterSpacing: '0.06em',
           border: 'none',
           marginBottom: 10,
-          boxShadow: '0 4px 20px rgba(255,107,0,0.3)',
+          boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)',
         }}>
         {t(locale, 'onboarding.emailOptIn.sure')}
       </button>
@@ -492,10 +492,10 @@ function EmailOptInStep({ locale, onSelect }: { locale: Locale; onSelect: (value
           padding: '14px',
           borderRadius: 16,
           background: 'transparent',
-          color: 'rgba(255,255,255,0.3)',
+          color: 'rgba(255,255,255,0.52)',
           fontSize: 14,
           fontWeight: 500,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.15)',
         }}>
         {t(locale, 'onboarding.emailOptIn.noThanks')}
       </button>
@@ -521,8 +521,8 @@ function AcquisitionSourceStep({
             style={{
               padding: '14px 10px',
               borderRadius: 13,
-              background: source === s.value ? 'rgba(255,107,0,0.12)' : '#111',
-              border: `1px solid ${source === s.value ? '#BF5C24' : 'rgba(255,255,255,0.07)'}`,
+              background: source === s.value ? 'rgba(237, 116, 47,0.12)' : '#171717',
+              border: `1px solid ${source === s.value ? '#ED742F' : 'rgba(255,255,255,0.07)'}`,
               transition: 'background 150ms, border-color 150ms',
               position: 'relative',
             }}>
@@ -536,7 +536,7 @@ function AcquisitionSourceStep({
               <div style={{
                 position: 'absolute', top: 6, right: 6,
                 width: 14, height: 14, borderRadius: '50%',
-                background: '#BF5C24',
+                background: '#ED742F',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Check size={9} color="#fff" strokeWidth={3} />
@@ -563,18 +563,18 @@ function CompleteStep({
       <div style={{ textAlign: 'center', maxWidth: 320 }}>
         <div style={{
           width: 72, height: 72, borderRadius: '50%',
-          background: 'rgba(255,107,0,0.15)',
-          border: '1px solid rgba(255,107,0,0.4)',
+          background: 'rgba(237, 116, 47,0.15)',
+          border: '1px solid rgba(237, 116, 47,0.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 28px',
         }}>
-          <Check size={32} color="#BF5C24" strokeWidth={2.5} />
+          <Check size={32} color="#ED742F" strokeWidth={2.5} />
         </div>
 
         <p style={{ fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 10 }}>
           {title}
         </p>
-        <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.38)', marginBottom: 48 }}>
+        <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.58)', marginBottom: 48 }}>
           {t(locale, 'onboarding.complete.sub')}
         </p>
 
@@ -585,13 +585,13 @@ function CompleteStep({
             width: '100%',
             padding: '18px',
             borderRadius: 16,
-            background: saving ? '#1a1a1a' : '#BF5C24',
-            color: saving ? 'rgba(255,255,255,0.3)' : '#fff',
+            background: saving ? '#222222' : '#ED742F',
+            color: saving ? 'rgba(255,255,255,0.52)' : '#fff',
             fontSize: 15,
             fontWeight: 800,
             letterSpacing: '0.08em',
             border: 'none',
-            boxShadow: saving ? 'none' : '0 4px 24px rgba(255,107,0,0.35)',
+            boxShadow: saving ? 'none' : '0 4px 24px rgba(237, 116, 47,0.35)',
             transition: 'background 150ms',
           }}>
           {saving ? t(locale, 'onboarding.complete.saving') : t(locale, 'onboarding.complete.cta')}

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   description: 'Every rep becomes proof.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/repra-app-icon.png',
+    icon: [{ url: '/repra-app-icon.png', type: 'image/png' }],
     shortcut: '/repra-app-icon.png',
     apple: '/apple-touch-icon.png',
   },

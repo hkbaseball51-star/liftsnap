@@ -25,14 +25,14 @@ const AC: Record<Accent, {
   cardBorder: string; topLine: string
   barActive: string; barInactive: string; barTrack: string
 }> = {
-  orange: { hex:'#BF5C24', badgeBg:'rgba(255,107,0,0.14)',   badgeBorder:'rgba(255,107,0,0.3)',   badgeText:'#BF5C24',              cardBorder:'rgba(255,107,0,0.35)',  topLine:'#BF5C24',                barActive:'#BF5C24',               barInactive:'rgba(255,107,0,0.32)',  barTrack:'rgba(255,107,0,0.06)'  },
+  orange: { hex:'#ED742F', badgeBg:'rgba(237, 116, 47,0.14)',   badgeBorder:'rgba(237, 116, 47,0.3)',   badgeText:'#ED742F',              cardBorder:'rgba(237, 116, 47,0.35)',  topLine:'#ED742F',                barActive:'#ED742F',               barInactive:'rgba(237, 116, 47,0.32)',  barTrack:'rgba(237, 116, 47,0.06)'  },
   purple: { hex:'#6E38D4', badgeBg:'rgba(110,56,212,0.14)',  badgeBorder:'rgba(110,56,212,0.3)',  badgeText:'#6E38D4',              cardBorder:'rgba(110,56,212,0.35)', topLine:'#6E38D4',                barActive:'#6E38D4',               barInactive:'rgba(110,56,212,0.32)', barTrack:'rgba(110,56,212,0.06)' },
   dark:   { hex:'rgba(255,255,255,0.7)', badgeBg:'rgba(255,255,255,0.06)', badgeBorder:'rgba(255,255,255,0.18)', badgeText:'rgba(255,255,255,0.6)', cardBorder:'rgba(255,255,255,0.1)', topLine:'rgba(255,255,255,0.18)', barActive:'rgba(255,255,255,0.6)', barInactive:'rgba(255,255,255,0.18)', barTrack:'rgba(255,255,255,0.04)' },
   black:  { hex:'#ffffff', badgeBg:'transparent',             badgeBorder:'rgba(255,255,255,0.28)',badgeText:'#ffffff',              cardBorder:'rgba(255,255,255,0.04)', topLine:'rgba(255,255,255,0.08)', barActive:'rgba(255,255,255,0.85)', barInactive:'rgba(255,255,255,0.15)', barTrack:'rgba(255,255,255,0.03)' },
 }
 
 const AREA_FILL: Record<Accent, string> = {
-  orange: 'rgba(255,107,0,0.1)',
+  orange: 'rgba(237, 116, 47,0.1)',
   purple: 'rgba(110,56,212,0.1)',
   dark:   'rgba(255,255,255,0.05)',
   black:  'rgba(255,255,255,0.03)',
@@ -455,16 +455,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       } else {
         blob = await generateStatsCard(data, theme, accent, chartType, unit)
       }
-      const file = new File([blob], 'liftsnap-stats.png', { type: 'image/png' })
+      const file = new File([blob], 'repra-stats.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
-        await navigator.share({ files: [file], title: 'LIFTSNAP Stats' })
+        await navigator.share({ files: [file], title: 'REPRA Stats' })
         const next = incrementShareCount(); setShareCount(next)
         setStatus('')
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
-        a.href = url; a.download = 'liftsnap-stats.png'; a.click()
+        a.href = url; a.download = 'repra-stats.png'; a.click()
         URL.revokeObjectURL(url)
         const next = incrementShareCount(); setShareCount(next)
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
@@ -530,7 +530,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     if (idx === 0) return acHex
     const t  = idx / Math.max(n - 1, 1)
     const op = Math.max(0.50, 0.85 - t * 0.35)
-    if (accent === 'orange') return `rgba(255,106,0,${op.toFixed(2)})`
+    if (accent === 'orange') return `rgba(237, 116, 47,${op.toFixed(2)})`
     if (accent === 'purple') return `rgba(110,56,212,${op.toFixed(2)})`
     return `rgba(255,255,255,${op.toFixed(2)})`
   }
@@ -610,13 +610,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               flexDirection: 'column',
               textShadow: tsh,
             }}>
-              {/* LIFTSNAP badge */}
+              {/* REPRA badge */}
               <div style={{ display: 'inline-flex', marginBottom: 7, flexShrink: 0 }}>
                 <span style={{
                   fontSize: 10, fontWeight: 900, padding: '3px 10px', borderRadius: 7,
                   background: ac.badgeBg, color: ac.badgeText,
                   border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
-                }}>LIFTSNAP</span>
+                }}>REPRA</span>
               </div>
 
               {/* Exercise name — same role as "NIGHT SESSION" in TodayShareView */}
@@ -719,7 +719,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                             background: getBarBg(i),
                             borderRadius: 0,
                             boxShadow: isLatest ? (
-                              accent === 'orange' ? '0 2px 8px rgba(255,106,0,0.28)' :
+                              accent === 'orange' ? '0 2px 8px rgba(237, 116, 47,0.28)' :
                               accent === 'purple' ? '0 2px 8px rgba(110,56,212,0.28)' :
                               '0 2px 6px rgba(255,255,255,0.15)'
                             ) : 'none',
@@ -743,8 +743,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
 
               {/* Watermark */}
-              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
-                LIFTSNAP
+              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
+                REPRA
               </p>
             </div>
           </div>
@@ -764,7 +764,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div className="inline-flex mb-2.5">
                 <span className="text-[10px] font-black px-2.5 py-1 rounded-lg"
                   style={{ background: ac.badgeBg, color: ac.badgeText, border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em' }}>
-                  LIFTSNAP
+                  REPRA
                 </span>
               </div>
 
@@ -817,8 +817,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 )}
               </div>
 
-              <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.45)', marginTop: 5 }}>
-                Made with LIFTSNAP · liftsnap.app
+              <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.65)', marginTop: 5 }}>
+                Made with REPRA
               </p>
             </div>
           </div>
@@ -831,7 +831,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <div className="flex gap-2">
           {(['dark', 'transparent'] as Theme[]).map(t => (
             <button key={t} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: theme === t ? '#BF5C24' : '#1a1a1a', color: theme === t ? '#fff' : '#666', border: `1px solid ${theme === t ? '#BF5C24' : '#2a2a2a'}` }}
+              style={{ background: theme === t ? '#ED742F' : '#1a1a1a', color: theme === t ? '#fff' : '#666', border: `1px solid ${theme === t ? '#ED742F' : '#2a2a2a'}` }}
               onClick={() => setTheme(t)}>
               {t === 'dark' ? 'Dark' : 'Transparent'}
             </button>
@@ -848,7 +848,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               const info     = shareThemes.find(t => t.accent === a)!
               const unlocked = info.unlocked
               const sel      = accent === a
-              const selBg    = a === 'orange' ? '#BF5C24' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
+              const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
               const bg       = sel ? selBg : '#1a1a1a'
               return (
                 <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
@@ -870,7 +870,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           <div className="flex gap-2">
             {(['bar', 'line'] as ChartType[]).map(ct => (
               <button key={ct} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{ background: chartType === ct ? '#BF5C24' : '#1a1a1a', color: chartType === ct ? '#fff' : '#666', border: `1px solid ${chartType === ct ? '#BF5C24' : '#2a2a2a'}` }}
+                style={{ background: chartType === ct ? '#ED742F' : '#1a1a1a', color: chartType === ct ? '#fff' : '#666', border: `1px solid ${chartType === ct ? '#ED742F' : '#2a2a2a'}` }}
                 onClick={() => setChartType(ct)}>
                 {ct === 'bar' ? 'Bar' : 'Line'}
               </button>
@@ -884,7 +884,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-          style={{ background: '#BF5C24', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
+          style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
           disabled={sharing} onClick={handleShare}>
           <Share2 size={20} />
           {sharing ? 'Generating...' : 'Share to Instagram Story'}

@@ -66,7 +66,7 @@ export default function SelectedDaySummary({
     : []
 
   const ppl = allMuscles.length > 0 ? getPPLDisplay(allMuscles) : null
-  const baseColor = summary ? (MUSCLE_COLORS[summary.muscleGroup] ?? '#ff6b00') : '#ff6b00'
+  const baseColor = summary ? (MUSCLE_COLORS[summary.muscleGroup] ?? '#ED742F') : '#ED742F'
   const accentColor = ppl?.color ?? baseColor
   const accentRgb = hexToRgb(accentColor)
   const badgeLabel = summary ? (ppl?.label ?? summary.muscleGroup.toUpperCase()) : null
@@ -76,8 +76,8 @@ export default function SelectedDaySummary({
   const showPhotoBtn = summary !== null && sessionId !== null && (localHasPhoto || isToday)
 
   const cardBase = {
-    background: '#151515',
-    border: '1px solid rgba(255,255,255,0.09)',
+    background: '#222222',
+    border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 20,
     padding: '16px 18px',
     textAlign: 'left' as const,
@@ -97,19 +97,19 @@ export default function SelectedDaySummary({
             className="active:opacity-70 transition-opacity"
             style={cardBase}
             onClick={() => router.push(`/record?date=${selectedDate}`)}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)', marginBottom: 10 }}>
               {dateLabel}
             </p>
-            <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.22)', marginBottom: bodyWeight !== null ? 6 : 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.65)', marginBottom: bodyWeight !== null ? 6 : 14 }}>
               {t(locale, 'home.noWorkoutLogged')}
             </p>
             {bodyWeight !== null && (
-              <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>
+              <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.56)', marginBottom: 14 }}>
                 BW {toDisplayWeight(bodyWeight, unit)}{weightUnitLabel(unit)}
               </p>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#ff6b00' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#ED742F' }}>
                 {t(locale, 'home.logWorkoutArrow')}
               </span>
             </div>
@@ -143,13 +143,13 @@ export default function SelectedDaySummary({
               </div>
 
               {/* Row 2: stats summary */}
-              <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.42)', marginBottom: 10 }}>
+              <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.62)', marginBottom: 10 }}>
                 {locale === 'ja' ? `${summary.totalSets}セット` : `${summary.totalSets} sets`}
                 {' · '}
                 {formatVolume(summary.totalVolume, unit)}
                 {summary.best1rm > 0 && ` · 1RM ${toDisplayWeight(summary.best1rm, unit)}${weightUnitLabel(unit)}`}
                 {bodyWeight !== null && (
-                  <span style={{ color: 'rgba(255,255,255,0.32)' }}>{` · BW ${toDisplayWeight(bodyWeight, unit)}${weightUnitLabel(unit)}`}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.54)' }}>{` · BW ${toDisplayWeight(bodyWeight, unit)}${weightUnitLabel(unit)}`}</span>
                 )}
               </p>
 
@@ -161,12 +161,12 @@ export default function SelectedDaySummary({
                 {getDisplayName(summary.mainExercise, locale)}
               </p>
               {summary.mainExerciseBestWeight > 0 && summary.mainExerciseBestReps > 0 && (
-                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.56)' }}>
                   {t(locale, 'home.bestSet')}&nbsp; {toDisplayWeight(summary.mainExerciseBestWeight, unit)}{weightUnitLabel(unit)} × {summary.mainExerciseBestReps}
                 </p>
               )}
               {summary.mainExerciseNote && (
-                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.38)', marginTop: 5, lineHeight: 1.45 }}>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.58)', marginTop: 5, lineHeight: 1.45 }}>
                   <span style={{ fontWeight: 600 }}>{locale === 'ja' ? 'メモ：' : 'Note: '}</span>
                   {summary.mainExerciseNote}
                 </p>
@@ -183,7 +183,7 @@ export default function SelectedDaySummary({
                   {(() => {
                     const hidden = summary.extraCount - (summary.secondExercise ? 1 : 0)
                     return hidden > 0 ? (
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.22)' }}>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.65)' }}>
                         {locale === 'ja' ? `他${hidden}種目` : `+${hidden} exercise${hidden > 1 ? 's' : ''}`}
                       </span>
                     ) : null
@@ -194,26 +194,26 @@ export default function SelectedDaySummary({
 
             {/* Photo button row */}
             {showPhotoBtn && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.14)' }}>
                 <button
                   className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl active:opacity-70 transition-opacity"
                   style={{
                     background: localHasPhoto
-                      ? 'rgba(255,107,0,0.08)'
+                      ? 'rgba(237, 116, 47,0.08)'
                       : 'rgba(255,255,255,0.04)',
                     border: localHasPhoto
-                      ? '1px solid rgba(255,107,0,0.2)'
+                      ? '1px solid rgba(237, 116, 47,0.2)'
                       : '1px solid rgba(255,255,255,0.08)',
                   }}
                   onClick={() => setShowPhotoSheet(true)}>
                   {localHasPhoto
-                    ? <ImageIcon size={14} style={{ color: '#ff6b00', flexShrink: 0 }} />
-                    : <Camera size={14} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
+                    ? <ImageIcon size={14} style={{ color: '#ED742F', flexShrink: 0 }} />
+                    : <Camera size={14} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0 }} />
                   }
                   <span style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: localHasPhoto ? '#ff6b00' : 'rgba(255,255,255,0.45)',
+                    color: localHasPhoto ? '#ED742F' : 'rgba(255,255,255,0.65)',
                   }}>
                     {localHasPhoto
                       ? t(locale, 'photo.viewPhoto')
@@ -225,12 +225,12 @@ export default function SelectedDaySummary({
                   <button
                     className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl active:opacity-70 transition-opacity mt-2"
                     style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.09)',
+                      border: '1px solid rgba(255,255,255,0.15)',
                     }}
                     onClick={() => router.push(`/body-log?start=${selectedDate}`)}>
-                    <Images size={14} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
+                    <Images size={14} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>
                       {t(locale, 'bodyLog.viewFromThisDay')}
                     </span>
                   </button>

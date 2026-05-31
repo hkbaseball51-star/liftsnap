@@ -14,16 +14,16 @@ const T = {
   muted:     'rgba(255,255,255,0.42)',
   label:     'rgba(255,255,255,0.52)',
   chevron:   'rgba(255,255,255,0.28)',
-  card:      { background: '#161616', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, overflow: 'hidden' } as const,
+  card:      { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
   divider:   '1px solid rgba(255,255,255,0.07)',
   soon: {
-    background: 'rgba(255,255,255,0.07)',
-    color:      'rgba(255,255,255,0.58)',
-    border:     '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(255,255,255,0.12)',
+    color: 'rgba(255,255,255,0.58)',
+    border:     '1px solid rgba(255,255,255,0.17)',
   },
   iconWrap: {
-    background: 'rgba(255,255,255,0.06)',
-    border:     '1px solid rgba(255,255,255,0.09)',
+    background: 'rgba(255,255,255,0.11)',
+    border:     '1px solid rgba(255,255,255,0.15)',
   },
 }
 
@@ -121,7 +121,7 @@ export default function SupportPage() {
       label: t(locale, 'support.contactLabel'),
       icon:  Mail,
       sub:   t(locale, 'support.contactSub'),
-      href:  'mailto:support@liftsnap.app',
+      href:  'mailto:support@repra.app',
     },
   ]
 
@@ -167,7 +167,7 @@ export default function SupportPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
         </Link>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'support.title')}</h1>
       </div>
@@ -203,8 +203,8 @@ export default function SupportPage() {
       </div>
 
       {/* App version */}
-      <p className="text-center text-[10px] pb-6" style={{ color: 'rgba(255,255,255,0.22)', fontFamily: 'var(--font-mono)' }}>
-        LIFTSNAP v1.0.0
+      <p className="text-center text-[10px] pb-6" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'var(--font-mono)' }}>
+        REPRA v1.0.0
       </p>
 
       {/* Delete Account Modal — Step 1: data list */}
@@ -215,7 +215,7 @@ export default function SupportPage() {
           onClick={closeModal}>
           <div
             className="w-full p-5 rounded-t-3xl pb-10"
-            style={{ background: '#161616', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}
+            style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}
             onClick={e => e.stopPropagation()}>
 
             <div className="flex justify-center mb-4">
@@ -248,7 +248,7 @@ export default function SupportPage() {
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
                 onClick={closeModal}>
                 {t(locale, 'support.deleteModalCancel')}
               </button>
@@ -271,7 +271,7 @@ export default function SupportPage() {
           onClick={closeModal}>
           <div
             className="w-full p-5 rounded-t-3xl pb-10"
-            style={{ background: '#161616', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}
+            style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}
             onClick={e => e.stopPropagation()}>
 
             <div className="flex justify-center mb-4">
@@ -298,7 +298,7 @@ export default function SupportPage() {
               spellCheck={false}
               className="w-full px-4 py-3.5 rounded-2xl text-sm font-black outline-none mb-5 text-center tracking-[0.25em]"
               style={{
-                background: '#1a1a1a',
+                background: '#222222',
                 border: deleteInput === 'DELETE' ? '1px solid rgba(239,68,68,0.55)' : '1px solid rgba(255,255,255,0.12)',
                 color: deleteInput === 'DELETE' ? '#f87171' : T.main,
               }}
@@ -307,7 +307,7 @@ export default function SupportPage() {
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
                 disabled={deleting}
                 onClick={() => { setDeleteStep('confirm'); setDeleteInput('') }}>
                 {t(locale, 'support.deleteStep2Cancel')}
@@ -316,7 +316,7 @@ export default function SupportPage() {
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
                 style={{
                   background: deleteInput === 'DELETE' && !deleting ? '#dc2626' : 'rgba(239,68,68,0.18)',
-                  color: deleteInput === 'DELETE' && !deleting ? '#fff' : 'rgba(255,255,255,0.35)',
+                  color: deleteInput === 'DELETE' && !deleting ? '#fff' : 'rgba(255,255,255,0.56)',
                 }}
                 disabled={deleteInput !== 'DELETE' || deleting}
                 onClick={handleDelete}>

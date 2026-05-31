@@ -46,7 +46,7 @@ export default function SignupPage() {
             required
             placeholder="e.g. Kenichi"
             className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none placeholder:text-[#333]"
-            style={{ background: '#111', border: '1px solid #1e1e1e' }}
+            style={{ background: '#171717', border: '1px solid #1e1e1e' }}
           />
         </div>
         <div>
@@ -59,7 +59,7 @@ export default function SignupPage() {
             required
             autoComplete="email"
             className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-            style={{ background: '#111', border: '1px solid #1e1e1e' }}
+            style={{ background: '#171717', border: '1px solid #1e1e1e' }}
           />
         </div>
         <div>
@@ -73,7 +73,7 @@ export default function SignupPage() {
             minLength={8}
             autoComplete="new-password"
             className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-            style={{ background: '#111', border: '1px solid #1e1e1e' }}
+            style={{ background: '#171717', border: '1px solid #1e1e1e' }}
           />
         </div>
 
@@ -85,7 +85,7 @@ export default function SignupPage() {
           type="submit"
           disabled={loading}
           className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-          style={{ background: loading ? '#333' : '#BF5C24' }}
+          style={{ background: loading ? '#333' : '#ED742F' }}
         >
           {loading ? 'CREATING...' : 'CREATE ACCOUNT'}
         </button>
@@ -93,7 +93,7 @@ export default function SignupPage() {
 
       <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
         Already have an account?{' '}
-        <Link href="/login" className="font-black" style={{ color: '#BF5C24' }}>
+        <Link href="/login" className="font-black" style={{ color: '#ED742F' }}>
           Sign in
         </Link>
       </p>

@@ -19,7 +19,7 @@ export type RankInfo = {
 export const RANKS: Rank[] = [
   { name: 'ROOKIE',  threshold: 0,           emoji: '🌱', color: '#7ED957', description: 'Just getting started',  unlockText: 'Basic profile badge'        },
   { name: 'GRINDER', threshold: 5_000,       emoji: '💪', color: '#F59E0B', description: 'Building consistency',  unlockText: 'Rank badge on share cards'  },
-  { name: 'BEAST',   threshold: 50_000,      emoji: '🔥', color: '#FF6A00', description: 'Serious lifter',        unlockText: 'Beast share frame'          },
+  { name: 'BEAST',   threshold: 50_000,      emoji: '🔥', color: '#ED742F', description: 'Serious lifter',        unlockText: 'Beast share frame'          },
   { name: 'ELITE',   threshold: 250_000,     emoji: '⚡', color: '#A855F7', description: 'Advanced athlete',      unlockText: 'Elite profile accent'       },
   { name: 'LEGEND',  threshold: 1_000_000,   emoji: '👑', color: '#FACC15', description: 'Lifting legend',        unlockText: 'Legend share card style'    },
 ]

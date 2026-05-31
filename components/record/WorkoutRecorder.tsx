@@ -145,18 +145,18 @@ const ExerciseCard = memo(function ExerciseCard({
     <div className="rounded-2xl overflow-hidden"
       style={{
         background: '#131313',
-        border: isNewPR ? '1px solid rgba(255,107,0,0.40)' : '1px solid rgba(255,255,255,0.13)',
-        boxShadow: isNewPR ? '0 0 18px rgba(255,107,0,0.10)' : 'none',
+        border: isNewPR ? '1px solid rgba(237, 116, 47,0.40)' : '1px solid rgba(255,255,255,0.13)',
+        boxShadow: isNewPR ? '0 0 18px rgba(237, 116, 47,0.10)' : 'none',
       }}>
 
       {/* Exercise header */}
       <div className="flex items-center gap-2.5 px-3 py-2">
         <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
-          style={{ background: isNewPR ? '#ff6b00' : '#3a3a3a' }} />
+          style={{ background: isNewPR ? '#ED742F' : '#3a3a3a' }} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-black text-white leading-tight truncate">{getDisplayName(ex.name, locale)}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[10px] font-black tracking-wider" style={{ color: '#ff6b00' }}>
+            <span className="text-[10px] font-black tracking-wider" style={{ color: '#ED742F' }}>
               {ex.muscle_group}
             </span>
             {ex.allTimePR !== null ? (
@@ -178,7 +178,7 @@ const ExerciseCard = memo(function ExerciseCard({
 
       {/* Column labels */}
       <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.09)' }}>
+        style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }}>
         <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>#</span>
         <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>{weightUnitLabel(weightUnit).toUpperCase()}</span>
         <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>REPS</span>
@@ -209,10 +209,10 @@ const ExerciseCard = memo(function ExerciseCard({
               )}
               <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
                 style={{
-                  background: isBestSet ? 'rgba(255,107,0,0.15)' : '#222',
+                  background: isBestSet ? 'rgba(237, 116, 47,0.15)' : '#222',
                   color: isBestSet ? '#ff7a1a' : '#888',
                   fontFamily: 'var(--font-mono)',
-                  border: isBestSet ? '1px solid rgba(255,106,0,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                  border: isBestSet ? '1px solid rgba(237, 116, 47,0.55)' : '1px solid rgba(255,255,255,0.08)',
                   flexShrink: 0,
                 }}>
                 {set.set_number}
@@ -266,8 +266,8 @@ const ExerciseCard = memo(function ExerciseCard({
       {/* Stats summary — single line */}
       {stats && (
         <div style={{ padding: '5px 14px 9px' }}>
-          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
-            <span style={{ color: '#ff6b00', fontWeight: 700 }}>
+          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.58)', lineHeight: 1 }}>
+            <span style={{ color: '#ED742F', fontWeight: 700 }}>
               {formatVolumeWithUnit(stats.volume, weightUnit)}
             </span>
             {' vol · '}
@@ -281,20 +281,20 @@ const ExerciseCard = memo(function ExerciseCard({
       {/* + SET */}
       <button
         className="w-full py-1.5 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
-        style={{ color: '#ff6b00', borderTop: '1px solid rgba(255,255,255,0.09)' }}
+        style={{ color: '#ED742F', borderTop: '1px solid rgba(255,255,255,0.40)' }}
         onClick={() => onAddSet(ex.id)}>
         <Plus size={10} strokeWidth={3} />
         SET
       </button>
 
       {/* Note */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '7px 12px 10px' }}>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.13)', padding: '7px 12px 10px' }}>
         {ex.note ? (
           <button
             className="w-full text-left active:opacity-70 transition-opacity"
             onClick={() => onNoteTarget(ex.id)}>
             <div className="flex items-start gap-2"
-              style={{ borderRadius: 10, background: 'rgba(255,255,255,0.04)', padding: '7px 10px' }}>
+              style={{ borderRadius: 10, background: 'rgba(255,255,255,0.09)', padding: '7px 10px' }}>
               <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>📝</span>
               <p style={{
                 fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5,
@@ -309,7 +309,7 @@ const ExerciseCard = memo(function ExerciseCard({
           <button
             className="active:opacity-70 transition-opacity"
             onClick={() => onNoteTarget(ex.id)}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.47)' }}>
               {t(locale, 'record.addNote')}
             </span>
           </button>
@@ -557,15 +557,15 @@ export default function WorkoutRecorder({
 
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-20 px-4 pt-14"
-        style={{ background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.13)' }}>
 
         {/* Rest timer banner */}
         {(restRemaining !== null || restDone) && (
           <div
             className="-mx-4 px-4 flex items-center justify-between py-1.5 mb-1"
             style={{
-              background: restDone ? 'rgba(34,197,94,0.07)' : 'rgba(255,107,0,0.07)',
-              borderBottom: `1px solid ${restDone ? 'rgba(34,197,94,0.12)' : 'rgba(255,107,0,0.12)'}`,
+              background: restDone ? 'rgba(34,197,94,0.07)' : 'rgba(237, 116, 47,0.07)',
+              borderBottom: `1px solid ${restDone ? 'rgba(34,197,94,0.12)' : 'rgba(237, 116, 47,0.12)'}`,
             }}>
             {restDone ? (
               <span className="text-[11px] font-black tracking-wider" style={{ color: '#22c55e' }}>
@@ -574,16 +574,16 @@ export default function WorkoutRecorder({
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 11, color: '#ff6b00' }}>⏱</span>
+                  <span style={{ fontSize: 11, color: '#ED742F' }}>⏱</span>
                   <span
                     className="text-sm font-black tracking-widest"
-                    style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
+                    style={{ color: '#ED742F', fontFamily: 'var(--font-mono)' }}>
                     {Math.floor((restRemaining ?? 0) / 60)}:{String((restRemaining ?? 0) % 60).padStart(2, '0')}
                   </span>
                 </div>
                 <button
                   className="text-[10px] font-black tracking-wider px-2 py-0.5 rounded-full"
-                  style={{ color: '#555', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ color: '#555', background: 'rgba(255,255,255,0.40)', border: '1px solid rgba(255,255,255,0.40)' }}
                   onClick={() => setRestRemaining(null)}>
                   {t(locale, 'record.restSkip')}
                 </button>
@@ -610,7 +610,7 @@ export default function WorkoutRecorder({
                 onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle(locale)); setEditingTitle(false) }}
                 onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
                 className="text-sm font-black text-white bg-transparent outline-none min-w-0"
-                style={{ borderBottom: '1px solid #ff6b00', maxWidth: 160 }}
+                style={{ borderBottom: '1px solid #ED742F', maxWidth: 160 }}
               />
             ) : (
               <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1 min-w-0">
@@ -624,7 +624,7 @@ export default function WorkoutRecorder({
 
         {/* Row 2: stats summary + save status */}
         <div className="flex items-center justify-between pb-2">
-          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.32)' }}>
+          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.54)' }}>
             {[
               displayVolume > 0 ? formatVolumeWithUnit(displayVolume, weightUnit) : null,
               displaySetsCount > 0 ? `${displaySetsCount} sets` : null,
@@ -680,9 +680,9 @@ export default function WorkoutRecorder({
           <button
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black"
             style={{
-              background: restRemaining !== null ? 'rgba(255,107,0,0.1)' : 'rgba(255,255,255,0.04)',
-              color: restRemaining !== null ? '#ff6b00' : '#555',
-              border: `1px solid ${restRemaining !== null ? 'rgba(255,107,0,0.25)' : 'rgba(255,255,255,0.08)'}`,
+              background: restRemaining !== null ? 'rgba(237, 116, 47,0.1)' : 'rgba(255,255,255,0.04)',
+              color: restRemaining !== null ? '#ED742F' : '#555',
+              border: `1px solid ${restRemaining !== null ? 'rgba(237, 116, 47,0.25)' : 'rgba(255,255,255,0.08)'}`,
             }}
             onClick={() => setShowRestSheet(true)}>
             ⏱{' '}{t(locale, 'record.rest')}{' '}
@@ -695,7 +695,7 @@ export default function WorkoutRecorder({
         <div className="flex gap-2.5">
           <button
             className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
-            style={{ background: 'rgba(255,106,0,0.06)', color: '#ff6a00', border: '1px solid rgba(255,106,0,0.4)' }}
+            style={{ background: 'rgba(237, 116, 47,0.10)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.4)' }}
             onClick={() => setShowPicker(true)}>
             <Plus size={15} strokeWidth={2.5} />
             {t(locale, 'record.addExerciseBtn')}
@@ -705,17 +705,17 @@ export default function WorkoutRecorder({
               className="flex-1 py-3.5 rounded-2xl text-sm font-black"
               style={{
                 background: canFinish
-                  ? '#ff6b00'
+                  ? '#ED742F'
                   : isSavedState
                     ? 'rgba(34,197,94,0.12)'
-                    : 'rgba(255,107,0,0.22)',
+                    : 'rgba(237, 116, 47,0.22)',
                 color: canFinish
                   ? '#fff'
                   : isSavedState
                     ? '#22c55e'
                     : 'rgba(255,255,255,0.42)',
                 border: isSavedState ? '1px solid rgba(34,197,94,0.25)' : 'none',
-                boxShadow: canFinish ? '0 4px 20px rgba(255,107,0,0.3)' : 'none',
+                boxShadow: canFinish ? '0 4px 20px rgba(237, 116, 47,0.3)' : 'none',
                 transition: 'background 200ms, color 200ms, box-shadow 200ms',
               }}
               disabled={!canFinish}
@@ -733,24 +733,24 @@ export default function WorkoutRecorder({
         {isSavedState && isDateToday && sessionId && (
           <div className="mt-2">
             <button
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-70 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-75 transition-opacity"
               style={{
-                background: hasPhotoRecorded ? 'rgba(255,107,0,0.08)' : 'rgba(255,255,255,0.04)',
-                border: hasPhotoRecorded ? '1px solid rgba(255,107,0,0.2)' : '1px solid rgba(255,255,255,0.08)',
+                background: hasPhotoRecorded ? 'rgba(237, 116, 47,0.10)' : 'rgba(237, 116, 47,0.10)',
+                border: hasPhotoRecorded ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid rgba(237, 116, 47,0.45)',
               }}
               onClick={() => setShowPhotoSheet(true)}>
               {hasPhotoRecorded
-                ? <ImageIcon size={13} style={{ color: '#ff6b00' }} />
-                : <Camera size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
+                ? <ImageIcon size={13} style={{ color: '#ED742F' }} />
+                : <Camera size={13} style={{ color: '#ED742F' }} />
               }
               <span style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: hasPhotoRecorded ? '#ff6b00' : 'rgba(255,255,255,0.45)',
+                color: hasPhotoRecorded ? '#ED742F' : '#E8E8E8',
               }}>
                 {hasPhotoRecorded
                   ? t(locale, 'photo.viewPhoto')
-                  : t(locale, 'photo.addWorkoutPhoto')
+                  : t(locale, 'photo.addBodyPhoto')
                 }
               </span>
             </button>
@@ -815,14 +815,14 @@ export default function WorkoutRecorder({
       {showCancelConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.92)' }}>
-          <div className="w-full rounded-3xl p-6" style={{ background: '#131313', border: '1px solid rgba(255,255,255,0.14)' }}>
+          <div className="w-full rounded-3xl p-6" style={{ background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
             <p className="text-xl font-black text-white text-center mb-1 tracking-wide">{t(locale, 'record.cancelTitle')}</p>
             <p className="text-xs text-center mb-6 font-bold" style={{ color: '#aaa' }}>
               {isEditing ? t(locale, 'record.cancelSubEditing') : t(locale, 'record.cancelSub')}
             </p>
             <div className="flex gap-3">
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
-                style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.12)' }}
+                style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.19)' }}
                 onClick={() => setShowCancelConfirm(false)}>{t(locale, 'record.keepGoing')}</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}

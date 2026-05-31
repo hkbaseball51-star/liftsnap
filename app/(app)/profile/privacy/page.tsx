@@ -12,15 +12,15 @@ const T = {
   muted:     'rgba(255,255,255,0.42)',
   dim:       'rgba(255,255,255,0.34)',
   label:     'rgba(255,255,255,0.52)',
-  card:      { background: '#161616', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 20, overflow: 'hidden' } as const,
+  card:      { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
   divider:   '1px solid rgba(255,255,255,0.07)',
   soon: {
-    background: 'rgba(255,255,255,0.07)',
-    color:      'rgba(255,255,255,0.58)',
-    border:     '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(255,255,255,0.12)',
+    color: 'rgba(255,255,255,0.58)',
+    border:     '1px solid rgba(255,255,255,0.17)',
   },
   toggle: {
-    track: { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' } as const,
+    track: { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.17)' } as const,
     knob:  { background: 'rgba(255,255,255,0.22)' } as const,
   },
 }
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
         </Link>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>PRIVACY</h1>
       </div>
@@ -63,23 +63,23 @@ export default function PrivacyPage() {
 
           {/* Private — selected */}
           <div className="flex items-center gap-3 px-4 py-4"
-            style={{ borderBottom: T.divider, background: 'rgba(255,107,0,0.05)' }}>
+            style={{ borderBottom: T.divider, background: 'rgba(237, 116, 47,0.05)' }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(255,107,0,0.12)', border: '1px solid rgba(255,107,0,0.25)' }}>
-              <Lock size={14} style={{ color: '#ff6b00' }} />
+              style={{ background: 'rgba(237, 116, 47,0.15)', border: '1px solid rgba(237, 116, 47,0.42)' }}>
+              <Lock size={14} style={{ color: '#ED742F' }} />
             </div>
             <div className="flex-1">
               <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'privacy.privateOption')}</p>
               <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'privacy.privateSub')}</p>
             </div>
-            <Check size={16} style={{ color: '#ff6b00' }} />
+            <Check size={16} style={{ color: '#ED742F' }} />
           </div>
 
           {/* Followers Only — coming soon */}
           <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: T.divider }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Users size={14} style={{ color: 'rgba(255,255,255,0.28)' }} />
+              style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <Users size={14} style={{ color: 'rgba(255,255,255,0.68)' }} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -95,8 +95,8 @@ export default function PrivacyPage() {
           {/* Public — coming soon */}
           <div className="flex items-center gap-3 px-4 py-4">
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Globe size={14} style={{ color: 'rgba(255,255,255,0.28)' }} />
+              style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <Globe size={14} style={{ color: 'rgba(255,255,255,0.68)' }} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">

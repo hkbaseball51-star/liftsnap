@@ -10,6 +10,7 @@ import HomeBodyLogSection from '@/components/home/HomeBodyLogSection'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
+import { calcProofStreak } from '@/lib/proofStreak'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -233,8 +234,12 @@ export default async function HomePage() {
     : null
   const club = allTimeEst1rm ? getNextClub(allTimeEst1rm) : null
 
-  const streakDates = (streakSessionsRes.data ?? []).map((s: { trained_at: string }) => s.trained_at)
-  const { streak: weekStreak, thisWeekDone } = calcWeekStreak(streakDates, todayStr)
+  const workoutStreakDates = (streakSessionsRes.data ?? []).map((s: { trained_at: string }) => s.trained_at.slice(0, 10))
+  const photoStreakDates = rawPhotoLogs.map((p: { workout_date: string }) => p.workout_date)
+  const { streak: weekStreak, thisWeekDone } = calcProofStreak(workoutStreakDates, photoStreakDates, todayStr)
+
+  const weekStart = getWeekStart()
+  const thisWeekPhotosCount = rawPhotoLogs.filter(p => p.workout_date >= weekStart).length
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
@@ -242,8 +247,8 @@ export default async function HomePage() {
       {/* ── Header ── lifts count only, right-aligned */}
       <div className="flex justify-end px-4 pt-12 pb-2">
         <div className="flex items-center gap-1.5">
-          <Zap size={11} style={{ color: 'rgba(255,255,255,0.2)' }} />
-          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
+          <Zap size={11} style={{ color: 'rgba(255,255,255,0.44)' }} />
+          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.47)', letterSpacing: '0.04em' }}>
             {locale === 'ja' ? `${totalSessions90}回` : `${totalSessions90} lifts`}
           </span>
         </div>
@@ -252,7 +257,7 @@ export default async function HomePage() {
       {/* ── WELCOME ── */}
       <div className="px-4 pt-3 pb-6">
         <p style={{ fontSize: 30, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 28 }}>REPRA</p>
-        <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
+        <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.47)', marginBottom: 8 }}>
           {getGreeting()}
         </p>
         <div className="flex items-start justify-between gap-3">
@@ -261,19 +266,25 @@ export default async function HomePage() {
               Welcome back{displayName ? ',' : '.'}
             </p>
             {displayName && (
-              <p style={{ fontSize: 30, fontWeight: 600, color: '#FF6B00', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              <p style={{ fontSize: 30, fontWeight: 600, color: '#ED742F', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
                 {displayName}.
               </p>
             )}
           </div>
-          <StreakBadge streak={weekStreak} thisWeekDone={thisWeekDone} />
+          <StreakBadge
+            streak={weekStreak}
+            thisWeekDone={thisWeekDone}
+            locale={locale}
+            thisWeekWorkouts={thisWeekSessions.length}
+            thisWeekPhotos={thisWeekPhotosCount}
+          />
         </div>
         {todayWorked ? (
           <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
             Great work today.
           </p>
         ) : (
-          <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginTop: 10 }}>
+          <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginTop: 10 }}>
             {"No session today — let's change that."}
           </p>
         )}
@@ -284,40 +295,40 @@ export default async function HomePage() {
         <Link href={todayWorked ? `/share?type=today&date=${todayStr}` : `/record?date=${todayStr}`}>
           <div className="rounded-2xl overflow-hidden relative active:opacity-75 transition-opacity"
             style={{
-              background: '#181818',
+              background: '#1E1E1E',
               border: '1px solid rgba(255,255,255,0.1)',
             }}>
             {todayWorked && (
-              <div style={{ height: 1, background: 'linear-gradient(90deg, #ff6b00 0%, transparent 70%)', opacity: 0.7 }} />
+              <div style={{ height: 1, background: 'linear-gradient(90deg, #ED742F 0%, transparent 70%)', opacity: 0.7 }} />
             )}
             <div className="px-5 py-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <p style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 4,
-                  color: todayWorked ? 'rgba(255,107,0,0.8)' : 'rgba(255,255,255,0.18)',
+                  color: todayWorked ? 'rgba(237, 116, 47,0.8)' : 'rgba(255,255,255,0.44)',
                 }}>
                   {todayWorked ? t(locale, 'home.todaysWorkout') : t(locale, 'home.noSessionYet')}
                 </p>
                 <p style={{
                   fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 3,
-                  color: todayWorked ? '#ffffff' : 'rgba(255,255,255,0.3)',
+                  color: todayWorked ? '#ffffff' : 'rgba(255,255,255,0.52)',
                 }}>
                   {todayWorked ? t(locale, 'home.shareTodaysWorkout') : t(locale, 'home.logTodaysWorkout')}
                 </p>
                 <p style={{
                   fontSize: 11, fontWeight: 400,
-                  color: todayWorked ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.15)',
+                  color: todayWorked ? 'rgba(255,255,255,0.58)' : 'rgba(255,255,255,0.40)',
                 }}>
                   {todayWorked ? t(locale, 'home.postToStory') : t(locale, 'home.recordFirst')}
                 </p>
               </div>
               <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{
-                  background: todayWorked ? '#ff6b00' : 'rgba(255,255,255,0.04)',
+                  background: todayWorked ? '#ED742F' : 'rgba(255,255,255,0.04)',
                   border: todayWorked ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                  boxShadow: todayWorked ? '0 4px 16px rgba(255,107,0,0.4)' : 'none',
+                  boxShadow: todayWorked ? '0 4px 16px rgba(237, 116, 47,0.4)' : 'none',
                 }}>
-                <Share2 size={18} style={{ color: todayWorked ? '#fff' : 'rgba(255,255,255,0.18)' }} />
+                <Share2 size={18} style={{ color: todayWorked ? '#fff' : 'rgba(255,255,255,0.44)' }} />
               </div>
             </div>
           </div>
@@ -336,7 +347,7 @@ export default async function HomePage() {
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-4">
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)', marginBottom: 10 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)', marginBottom: 10 }}>
           {t(locale, 'home.weeklyEffort')}
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -352,7 +363,7 @@ export default async function HomePage() {
               label: 'SESSIONS',
               value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
               sub: t(locale, 'home.goalWeekly'),
-              subColor: 'rgba(255,255,255,0.32)' as string,
+              subColor: 'rgba(255,255,255,0.54)' as string,
               active: thisWeekSessions.length > 0,
             },
             {
@@ -365,21 +376,21 @@ export default async function HomePage() {
             },
           ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
             <div key={label} className="premium-card rounded-xl p-3">
-              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)', marginBottom: 8 }}>
+              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.58)', marginBottom: 8 }}>
                 {label}
               </p>
               <div className="flex items-baseline gap-0.5">
-                <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? '#fff' : 'rgba(255,255,255,0.1)' }}>
+                <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}>
                   {value}
                 </p>
                 {'unit' in rest && rest.unit && (
-                  <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.2)', marginLeft: 1 }}>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginLeft: 1 }}>
                     {rest.unit}
                   </span>
                 )}
               </div>
               {sub && (
-                <p style={{ fontSize: 9, fontWeight: 500, marginTop: 5, color: subColor ?? 'rgba(255,255,255,0.2)' }}>
+                <p style={{ fontSize: 9, fontWeight: 500, marginTop: 5, color: subColor ?? 'rgba(255,255,255,0.44)' }}>
                   {sub}
                 </p>
               )}
@@ -397,25 +408,25 @@ export default async function HomePage() {
       <div className="px-4 mb-4">
         <div className="premium-card rounded-xl px-4 py-3 flex items-center justify-between">
           <div>
-            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 5 }}>
+            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.56)', marginBottom: 5 }}>
               BODY WEIGHT
             </p>
             {todayWeight ? (
               <div className="flex items-baseline gap-1">
                 <p style={{ fontSize: 22, fontWeight: 600, color: '#fff' }}>{todayWeight}</p>
-                <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>kg</span>
+                <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.52)' }}>kg</span>
               </div>
             ) : (
-              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.32)' }}>{t(locale, 'home.notLogged')}</p>
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.54)' }}>{t(locale, 'home.notLogged')}</p>
             )}
           </div>
           <Link href="/analytics"
             className="rounded-xl"
             style={{
               padding: '7px 14px',
-              background: todayWeight ? 'rgba(255,255,255,0.04)' : '#ff6b00',
+              background: todayWeight ? 'rgba(255,255,255,0.04)' : '#ED742F',
               border: todayWeight ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              color: todayWeight ? 'rgba(255,255,255,0.4)' : '#fff',
+              color: todayWeight ? 'rgba(255,255,255,0.60)' : '#fff',
               fontSize: 11,
               fontWeight: 500,
             }}>
@@ -436,19 +447,19 @@ function ClubCard({ club, allTimeEst1rm, locale }: { club: ClubInfo | null; allT
   if (!club || !allTimeEst1rm) {
     return (
       <div className="premium-card rounded-xl px-4 py-3">
-        <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+        <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.56)', marginBottom: 10 }}>
           {t(locale, 'home.strengthClub')}
         </p>
         <div className="flex items-center gap-3 mb-3">
           <span style={{ fontSize: 16 }}>🏅</span>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>100KG Club</p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.38)' }}>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.58)' }}>
               {t(locale, 'home.logFirstLift')}
             </p>
           </div>
         </div>
-        <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }} />
+        <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
       </div>
     )
   }
@@ -459,7 +470,7 @@ function ClubCard({ club, allTimeEst1rm, locale }: { club: ClubInfo | null; allT
 
   return (
     <div className="premium-card rounded-xl px-4 py-3">
-      <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+      <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.56)', marginBottom: 10 }}>
         {t(locale, 'home.strengthClub')}
       </p>
       <div className="flex items-center justify-between mb-3">
@@ -472,11 +483,11 @@ function ClubCard({ club, allTimeEst1rm, locale }: { club: ClubInfo | null; allT
         </div>
         <div className="flex items-baseline gap-1">
           <span style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>{current}</span>
-          <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.3)' }}>/ {club.target} kg</span>
+          <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.52)' }}>/ {club.target} kg</span>
         </div>
       </div>
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#ff6b00' }} />
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.11)' }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#ED742F' }} />
       </div>
     </div>
   )
@@ -524,34 +535,7 @@ function getStreakWindowStart(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function getMondayOfWeek(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  const day = d.getDay()
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function subtractWeek(mondayStr: string): string {
-  const d = new Date(mondayStr + 'T00:00:00')
-  d.setDate(d.getDate() - 7)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function settled(r: PromiseSettledResult<any>): { data: any; error: any } {
   return r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
-}
-
-function calcWeekStreak(dates: string[], todayStr: string): { streak: number; thisWeekDone: boolean } {
-  if (dates.length === 0) return { streak: 0, thisWeekDone: false }
-  const weekSet = new Set(dates.map(d => getMondayOfWeek(d)))
-  const thisMonday = getMondayOfWeek(todayStr)
-  const thisWeekDone = weekSet.has(thisMonday)
-  let streak = 0
-  let cur = thisWeekDone ? thisMonday : subtractWeek(thisMonday)
-  while (weekSet.has(cur)) {
-    streak++
-    cur = subtractWeek(cur)
-  }
-  return { streak, thisWeekDone }
 }

@@ -35,7 +35,7 @@ const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
   cardBorder: string; topLine: string
 }> = {
-  orange: { hex: '#ff6b00', badgeBg: '#ff6b00',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(255,107,0,0.35)',  topLine: '#ff6b00'                   },
+  orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(237, 116, 47,0.35)',  topLine: '#ED742F'                   },
   purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(110,56,212,0.35)', topLine: '#6E38D4'                   },
   dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)',cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)'   },
   black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff',              cardBorder: 'rgba(255,255,255,0.04)', topLine: 'rgba(255,255,255,0.08)'   },
@@ -265,16 +265,16 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setStatus(t(locale, 'story.generating'))
     try {
       const blob = await captureStory(captureRef.current, theme, !!photoDataUrl)
-      const file = new File([blob], 'liftsnap-today.png', { type: 'image/png' })
+      const file = new File([blob], 'repra-today.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
-        await navigator.share({ files: [file], title: "LIFTSNAP Today's Workout" })
+        await navigator.share({ files: [file], title: "REPRA Today's Workout" })
         const next = incrementShareCount(); setShareCount(next)
         setStatus('')
       } else {
         const url = URL.createObjectURL(blob)
         const a   = document.createElement('a')
-        a.href = url; a.download = 'liftsnap-today.png'; a.click()
+        a.href = url; a.download = 'repra-today.png'; a.click()
         URL.revokeObjectURL(url)
         const next = incrementShareCount(); setShareCount(next)
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
@@ -387,7 +387,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 8,
                     background: ac.badgeBg, color: ac.badgeText,
                     border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
-                  }}>LIFTSNAP</span>
+                  }}>REPRA</span>
                 </div>
 
                 <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', margin: '0 0 2px', lineHeight: 1.2 }}>
@@ -474,8 +474,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   </span>
                 )}
 
-                <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.50)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
-                  Made with LIFTSNAP · liftsnap.app
+                <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.68)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
+                  Made with REPRA
                 </p>
 
               </div>
@@ -486,7 +486,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
       {/* ── Photo loading indicator ── */}
       {photoLoading && !photoDataUrl && (
-        <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.52)' }}>
           {t(locale, 'story.loadingPhoto')}
         </p>
       )}
@@ -495,16 +495,16 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       {!localPhotoPath && !photoLoading && canShare && (
         <div className="px-4 mb-3">
           <div className="rounded-2xl px-4 py-3.5"
-            style={{ background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.16)' }}>
+            style={{ background: 'rgba(237, 116, 47,0.10)', border: '1px solid rgba(237, 116, 47,0.16)' }}>
             <div className="flex items-center gap-2.5 mb-3">
-              <Camera size={14} style={{ color: '#ff6b00', flexShrink: 0 }} />
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <Camera size={14} style={{ color: '#ED742F', flexShrink: 0 }} />
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.68)' }}>
                 {t(locale, 'story.addPhotoForBetterStory')}
               </p>
             </div>
             <button
               className="w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2"
-              style={{ background: '#ff6b00', color: '#fff' }}
+              style={{ background: '#ED742F', color: '#fff' }}
               onClick={() => setShowPhotoSheet(true)}>
               <ImageIcon size={14} />
               {t(locale, 'story.addWorkoutPhoto')}
@@ -516,7 +516,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       {/* ── Photo loaded: drag hint + reset + change button ── */}
       {hasPhoto && (
         <>
-          <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.44)' }}>
             {t(locale, 'story.dragHint')}
           </p>
           <div className="px-4 mb-3 flex gap-2">
@@ -567,7 +567,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             value={cardScale}
             onChange={e => setCardScale(parseFloat(e.target.value))}
             className="w-full"
-            style={{ accentColor: '#ff6b00' }}
+            style={{ accentColor: '#ED742F' }}
           />
         </div>
       )}
@@ -582,9 +582,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             {(['dark', 'transparent'] as Theme[]).map(th => (
               <button key={th} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: theme === th ? '#ff6b00' : '#1a1a1a',
+                  background: theme === th ? '#ED742F' : '#1a1a1a',
                   color:      theme === th ? '#fff' : '#666',
-                  border:     `1px solid ${theme === th ? '#ff6b00' : '#2a2a2a'}`,
+                  border:     `1px solid ${theme === th ? '#ED742F' : '#2a2a2a'}`,
                 }}
                 onClick={() => setTheme(th)}>
                 {th === 'dark' ? t(locale, 'story.bgDark') : t(locale, 'story.bgTransparent')}
@@ -606,7 +606,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               const info     = shareThemes.find(entry => entry.accent === a)!
               const unlocked = info.unlocked
               const sel      = accent === a
-              const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
+              const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
               const bg       = sel ? selBg : '#1a1a1a'
               return (
                 <button key={a}
@@ -629,7 +629,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       {/* ── Main action button ── */}
       <div className="px-4 space-y-2 mb-4">
         {status && (
-          <p className="text-center text-sm" style={{ color: hasPhoto ? '#ff6b00' : '#888' }}>
+          <p className="text-center text-sm" style={{ color: hasPhoto ? '#ED742F' : '#888' }}>
             {status}
           </p>
         )}
@@ -650,8 +650,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           <button
             className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
             style={{
-              background: mainBtnLoading ? 'rgba(255,107,0,0.4)' : '#ff6b00',
-              boxShadow: mainBtnLoading ? 'none' : '0 4px 20px rgba(255,107,0,0.3)',
+              background: mainBtnLoading ? 'rgba(237, 116, 47,0.4)' : '#ED742F',
+              boxShadow: mainBtnLoading ? 'none' : '0 4px 20px rgba(237, 116, 47,0.3)',
             }}
             disabled={mainBtnLoading}
             onClick={handleShare}>

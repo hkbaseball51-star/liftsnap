@@ -60,12 +60,12 @@ export default function HomeBodyLogSection({ recentPhotos, locale }: Props) {
     <div className="mb-5">
       {/* Section header */}
       <div className="flex items-center justify-between px-4 mb-2">
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.32)' }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)' }}>
           {t(locale, 'bodyLog.sectionTitle')}
         </p>
         <button
           className="flex items-center gap-0.5 active:opacity-70"
-          style={{ color: 'rgba(255,255,255,0.32)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }}
+          style={{ color: 'rgba(255,255,255,0.54)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' }}
           onClick={() => router.push('/body-log')}
         >
           {locale === 'ja' ? 'すべて見る' : 'See all'}

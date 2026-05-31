@@ -261,8 +261,8 @@ export default function WorkoutPhotoSheet({
       <div
         className="w-full rounded-t-3xl overflow-y-auto"
         style={{
-          background: '#111',
-          border: '1px solid rgba(255,255,255,0.09)',
+          background: '#171717',
+          border: '1px solid rgba(255,255,255,0.15)',
           borderBottom: 'none',
           // Full height when in crop state so 9:16 frame fits
           maxHeight: isCrop ? '100dvh' : 'calc(100dvh - 80px)',
@@ -290,14 +290,14 @@ export default function WorkoutPhotoSheet({
         {state.type === 'loading' && (
           <div className="flex items-center justify-center py-16">
             <div className="w-6 h-6 rounded-full border-2 animate-spin"
-              style={{ borderColor: 'rgba(255,255,255,0.12)', borderTopColor: '#ff6b00' }} />
+              style={{ borderColor: 'rgba(255,255,255,0.19)', borderTopColor: '#ED742F' }} />
           </div>
         )}
 
         {/* ── Past date, no photo ── */}
         {state.type === 'past_no_photo' && (
           <div className="px-5 pb-6 text-center">
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.58)' }}>
               {t(locale, 'photo.photoUnavailablePastDate')}
             </p>
           </div>
@@ -312,7 +312,7 @@ export default function WorkoutPhotoSheet({
             </div>
             <button
               className="w-full py-4 rounded-2xl text-sm font-black"
-              style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+              style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
               onClick={onClose}>
               {t(locale, 'photo.cancel')}
             </button>
@@ -322,18 +322,18 @@ export default function WorkoutPhotoSheet({
         {/* ── Select: camera / library ── */}
         {state.type === 'select' && (
           <div className="px-5 pb-6 space-y-3">
-            <p className="text-sm text-center mb-5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="text-sm text-center mb-5" style={{ color: 'rgba(255,255,255,0.65)' }}>
               {locale === 'ja'
                 ? '今日のトレーニングを写真で残しましょう。'
                 : "Save today's workout with a photo."}
             </p>
             <button
               className="w-full flex items-center gap-3 py-4 px-5 rounded-2xl active:opacity-70 transition-opacity"
-              style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.1)' }}
               onClick={() => cameraInputRef.current?.click()}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,107,0,0.1)', border: '1px solid rgba(255,107,0,0.2)' }}>
-                <Camera size={16} style={{ color: '#ff6b00' }} />
+                style={{ background: 'rgba(237, 116, 47,0.1)', border: '1px solid rgba(237, 116, 47,0.2)' }}>
+                <Camera size={16} style={{ color: '#ED742F' }} />
               </div>
               <span className="text-sm font-black" style={{ color: '#f5f5f5' }}>
                 {t(locale, 'photo.takePhoto')}
@@ -341,11 +341,11 @@ export default function WorkoutPhotoSheet({
             </button>
             <button
               className="w-full flex items-center gap-3 py-4 px-5 rounded-2xl active:opacity-70 transition-opacity"
-              style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.1)' }}
               onClick={() => libraryInputRef.current?.click()}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}>
-                <ImageIcon size={16} style={{ color: 'rgba(255,255,255,0.55)' }} />
+                style={{ background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <ImageIcon size={16} style={{ color: 'rgba(255,255,255,0.72)' }} />
               </div>
               <span className="text-sm font-black" style={{ color: '#f5f5f5' }}>
                 {t(locale, 'photo.chooseFromLibrary')}
@@ -353,7 +353,7 @@ export default function WorkoutPhotoSheet({
             </button>
             <button
               className="w-full py-3 text-sm font-bold"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'rgba(255,255,255,0.56)' }}
               onClick={onClose}>
               {t(locale, 'photo.cancel')}
             </button>
@@ -363,7 +363,7 @@ export default function WorkoutPhotoSheet({
         {/* ── 9:16 Crop UI ── */}
         {state.type === 'crop' && (
           <div className="px-5 pb-6">
-            <p className="text-xs text-center mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-xs text-center mb-3" style={{ color: 'rgba(255,255,255,0.56)' }}>
               {t(locale, 'photo.dragToAdjust')}
             </p>
 
@@ -411,8 +411,8 @@ export default function WorkoutPhotoSheet({
                 <span style={{
                   fontSize: 9, fontWeight: 900, letterSpacing: '0.08em',
                   padding: '2px 6px', borderRadius: 6,
-                  background: 'rgba(0,0,0,0.6)', color: 'rgba(255,255,255,0.55)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(0,0,0,0.6)', color: 'rgba(255,255,255,0.72)',
+                  border: '1px solid rgba(255,255,255,0.19)',
                 }}>9:16</span>
               </div>
             </div>
@@ -438,7 +438,7 @@ export default function WorkoutPhotoSheet({
                 value={state.cropScale}
                 onChange={e => handleCropScaleChange(parseFloat(e.target.value))}
                 className="w-full"
-                style={{ accentColor: '#ff6b00' }}
+                style={{ accentColor: '#ED742F' }}
               />
             </div>
 
@@ -446,20 +446,20 @@ export default function WorkoutPhotoSheet({
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
                 onClick={() => setState({ type: 'select' })}>
                 {t(locale, 'photo.cropRetake')}
               </button>
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black text-white"
-                style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
+                style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
                 onClick={handleCropSave}>
                 {t(locale, 'photo.cropSave')}
               </button>
             </div>
             <button
               className="w-full py-3 mt-2 text-sm font-bold"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'rgba(255,255,255,0.56)' }}
               onClick={onClose}>
               {t(locale, 'photo.cropCancel')}
             </button>
@@ -470,8 +470,8 @@ export default function WorkoutPhotoSheet({
         {state.type === 'uploading' && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <div className="w-8 h-8 rounded-full border-2 animate-spin"
-              style={{ borderColor: 'rgba(255,255,255,0.12)', borderTopColor: '#ff6b00' }} />
-            <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              style={{ borderColor: 'rgba(255,255,255,0.19)', borderTopColor: '#ED742F' }} />
+            <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.65)' }}>
               {t(locale, 'photo.uploading')}
             </p>
           </div>
@@ -495,7 +495,7 @@ export default function WorkoutPhotoSheet({
               <div className="flex gap-3 mb-2">
                 <button
                   className="flex-1 py-4 rounded-2xl text-sm font-black"
-                  style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                  style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
                   onClick={() => setState({ type: 'delete_confirm', signedUrl: state.signedUrl, imagePath: state.imagePath })}>
                   <div className="flex items-center justify-center gap-1.5">
                     <Trash2 size={14} />
@@ -504,7 +504,7 @@ export default function WorkoutPhotoSheet({
                 </button>
                 <button
                   className="flex-1 py-4 rounded-2xl text-sm font-black"
-                  style={{ background: '#ff6b00', color: '#fff', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
+                  style={{ background: '#ED742F', color: '#fff', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
                   onClick={() => setState({ type: 'select' })}>
                   <div className="flex items-center justify-center gap-1.5">
                     <RotateCcw size={14} />
@@ -516,16 +516,16 @@ export default function WorkoutPhotoSheet({
             <Link
               href={`/body-log?start=${sessionDate}`}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl mb-1 active:opacity-70 transition-opacity"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.15)' }}
               onClick={onClose}>
-              <Images size={14} style={{ color: 'rgba(255,255,255,0.45)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
+              <Images size={14} style={{ color: 'rgba(255,255,255,0.65)' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>
                 {t(locale, 'bodyLog.viewInBodyLog')}
               </span>
             </Link>
             <button
               className="w-full py-3 text-sm font-bold"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'rgba(255,255,255,0.56)' }}
               onClick={onClose}>
               {t(locale, 'photo.cancel')}
             </button>
@@ -544,13 +544,13 @@ export default function WorkoutPhotoSheet({
             <p className="text-base font-black text-center mb-2" style={{ color: '#f5f5f5' }}>
               {t(locale, 'photo.deletePhotoConfirmTitle')}
             </p>
-            <p className="text-sm text-center mb-6" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <p className="text-sm text-center mb-6" style={{ color: 'rgba(255,255,255,0.72)' }}>
               {t(locale, 'photo.deletePhotoConfirmDescription')}
             </p>
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
                 onClick={() => setState({ type: 'view', signedUrl: state.signedUrl, imagePath: state.imagePath })}>
                 {t(locale, 'photo.cancel')}
               </button>

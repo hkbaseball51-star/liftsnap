@@ -120,13 +120,13 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: '#050505' }}>
         <button
           className="absolute top-14 left-4 w-10 h-10 flex items-center justify-center rounded-full"
-          style={{ background: 'rgba(255,255,255,0.08)' }}
+          style={{ background: 'rgba(255,255,255,0.12)' }}
           onClick={() => router.back()}>
           <X size={18} style={{ color: '#fff' }} />
         </button>
-        <BookImage size={48} style={{ color: 'rgba(255,255,255,0.15)', marginBottom: 20 }} />
+        <BookImage size={48} style={{ color: 'rgba(255,255,255,0.60)', marginBottom: 20 }} />
         <p className="text-base font-black text-white mb-2">{t(locale, 'bodyLog.empty')}</p>
-        <p className="text-sm text-center px-8" style={{ color: 'rgba(255,255,255,0.38)' }}>
+        <p className="text-sm text-center px-8" style={{ color: 'rgba(255,255,255,0.58)' }}>
           {t(locale, 'bodyLog.emptyHint')}
         </p>
       </div>
@@ -235,12 +235,12 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
       {/* Left / Right arrow indicators (subtle) */}
       {index > 0 && (
         <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
-          <ChevronLeft size={24} style={{ color: 'rgba(255,255,255,0.35)' }} />
+          <ChevronLeft size={24} style={{ color: 'rgba(255,255,255,0.56)' }} />
         </div>
       )}
       {index < entries.length - 1 && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-          <ChevronRight size={24} style={{ color: 'rgba(255,255,255,0.35)' }} />
+          <ChevronRight size={24} style={{ color: 'rgba(255,255,255,0.56)' }} />
         </div>
       )}
 
@@ -286,12 +286,12 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
           {showDetail && (
             <div className="flex gap-4 mt-3 mb-3">
               <div>
-                <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.07em', marginBottom: 2 }}>SETS</p>
+                <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.07em', marginBottom: 2 }}>SETS</p>
                 <p style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{entry.totalSets}</p>
               </div>
               {entry.totalVolume > 0 && (
                 <div>
-                  <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.07em', marginBottom: 2 }}>VOLUME</p>
+                  <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.07em', marginBottom: 2 }}>VOLUME</p>
                   <p style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{formatVolume(entry.totalVolume)}</p>
                 </div>
               )}
@@ -303,7 +303,7 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
             <Link
               href={`/share?type=today&date=${entry.date}`}
               className="block w-full py-3 rounded-xl text-center font-black text-sm mt-2"
-              style={{ background: '#ff6b00', color: '#fff', boxShadow: '0 4px 16px rgba(255,107,0,0.35)' }}
+              style={{ background: '#ED742F', color: '#fff', boxShadow: '0 4px 16px rgba(237, 116, 47,0.35)' }}
             >
               {t(locale, 'bodyLog.createStory')}
             </Link>

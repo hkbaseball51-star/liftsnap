@@ -1,7 +1,7 @@
 export default function ProfileLoading() {
-  const card = { background: '#151515', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20 }
-  const shimmer = { background: '#1a1a1a' }
-  const shimmerDim = { background: '#141414' }
+  const card = { background: '#222222', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20 }
+  const shimmer = { background: '#222222' }
+  const shimmerDim = { background: '#222222' }
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
@@ -9,7 +9,7 @@ export default function ProfileLoading() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-14 pb-4">
         <div className="h-6 w-20 rounded-full" style={shimmer} />
-        <div className="w-9 h-9 rounded-xl" style={{ background: '#111' }} />
+        <div className="w-9 h-9 rounded-xl" style={{ background: '#171717' }} />
       </div>
 
       {/* Profile Hero */}
@@ -18,7 +18,7 @@ export default function ProfileLoading() {
         <div className="h-5 w-32 rounded-full" style={shimmer} />
         <div className="h-3 w-20 rounded-full" style={shimmerDim} />
         <div className="h-3 w-44 rounded-full mt-1" style={shimmerDim} />
-        <div className="h-6 w-28 rounded-full mt-2" style={{ background: '#111' }} />
+        <div className="h-6 w-28 rounded-full mt-2" style={{ background: '#171717' }} />
       </div>
 
       {/* Quick Stats */}
@@ -53,7 +53,7 @@ export default function ProfileLoading() {
             <div className="h-7 w-28 rounded-full" style={shimmer} />
             <div className="h-5 w-16 rounded-full" style={shimmerDim} />
           </div>
-          <div className="h-1.5 rounded-full mb-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div className="h-1.5 rounded-full mb-2" style={{ background: 'rgba(255,255,255,0.11)' }}>
             <div className="h-full w-3/5 rounded-full" style={{ background: '#2a2a2a' }} />
           </div>
           <div className="h-2.5 w-32 rounded-full" style={shimmerDim} />

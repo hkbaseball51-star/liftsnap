@@ -28,7 +28,7 @@ export default function RestTimerSheet({ defaultSeconds = 120, onStart, onClose 
       onClick={onClose}>
       <div
         className="w-full rounded-t-3xl p-6 pb-10"
-        style={{ background: '#111', border: '1px solid #1e1e1e' }}
+        style={{ background: '#171717', border: '1px solid #1e1e1e' }}
         onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between mb-5">
@@ -43,7 +43,7 @@ export default function RestTimerSheet({ defaultSeconds = 120, onStart, onClose 
             <button key={s}
               className="flex-1 py-3 rounded-xl text-xs font-black tracking-wider"
               style={{
-                background: selected === s ? '#ff6b00' : '#1a1a1a',
+                background: selected === s ? '#ED742F' : '#222222',
                 color: selected === s ? '#fff' : '#555',
                 border: selected === s ? 'none' : '1px solid #1e1e1e',
               }}
@@ -55,7 +55,7 @@ export default function RestTimerSheet({ defaultSeconds = 120, onStart, onClose 
 
         <button
           className="w-full py-4 rounded-2xl text-sm font-black tracking-widest text-white"
-          style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
+          style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
           onClick={() => { onStart(selected); onClose() }}>
           {t(locale, 'record.restStart')}
         </button>

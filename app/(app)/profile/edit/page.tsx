@@ -12,9 +12,9 @@ import { t } from '@/lib/i18n'
 const TRAINING_STYLES = ['PPL', 'Push/Pull', 'Strength', 'Hypertrophy', 'HIIT', 'General']
 
 const soonBadgeStyle = {
-  background: 'rgba(255,255,255,0.07)',
-  color:      'rgba(255,255,255,0.52)',
-  border:     '1px solid rgba(255,255,255,0.08)',
+  background: 'rgba(255,255,255,0.12)',
+  color: 'rgba(255,255,255,0.52)',
+  border:     '1px solid rgba(255,255,255,0.15)',
 } as const
 
 const labelStyle: React.CSSProperties = {
@@ -108,7 +108,7 @@ export default function EditProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
         </Link>
         <h1 className="flex-1 text-base font-black tracking-widest" style={{ color: '#f5f5f5' }}>
           EDIT PROFILE
@@ -121,7 +121,7 @@ export default function EditProfilePage() {
           {[80, 60, 100, 80].map((w, i) => (
             <div key={i}>
               <div className="h-2.5 rounded-full mb-2" style={{ background: '#1e1e1e', width: `${w}px` }} />
-              <div className="h-12 rounded-2xl" style={{ background: '#141414' }} />
+              <div className="h-12 rounded-2xl" style={{ background: '#222222' }} />
             </div>
           ))}
         </div>
@@ -142,9 +142,9 @@ export default function EditProfilePage() {
               maxLength={50}
               className="w-full px-4 py-3.5 rounded-2xl text-sm font-bold outline-none placeholder:text-white/40"
               style={{
-                background:  '#181818',
-                border:      nameFocused ? '1px solid #ff6a00' : '1px solid rgba(255,255,255,0.15)',
-                boxShadow:   nameFocused ? '0 0 0 1px rgba(255,106,0,0.28)' : 'none',
+                background:  '#1E1E1E',
+                border:      nameFocused ? '1px solid #ED742F' : '1px solid rgba(255,255,255,0.15)',
+                boxShadow:   nameFocused ? '0 0 0 1px rgba(237, 116, 47,0.28)' : 'none',
                 color:       '#f5f5f5',
                 transition:  'border-color 140ms, box-shadow 140ms',
               }}
@@ -160,14 +160,14 @@ export default function EditProfilePage() {
             <div
               className="flex items-center rounded-2xl overflow-hidden"
               style={{
-                background: '#181818',
+                background: '#1E1E1E',
                 border:     userFocused
-                  ? `1px solid ${usernameError ? '#ef4444' : '#ff6a00'}`
+                  ? `1px solid ${usernameError ? '#ef4444' : '#ED742F'}`
                   : `1px solid ${usernameError ? 'rgba(239,68,68,0.55)' : 'rgba(255,255,255,0.15)'}`,
-                boxShadow:  userFocused && !usernameError ? '0 0 0 1px rgba(255,106,0,0.28)' : 'none',
+                boxShadow:  userFocused && !usernameError ? '0 0 0 1px rgba(237, 116, 47,0.28)' : 'none',
                 transition: 'border-color 140ms, box-shadow 140ms',
               }}>
-              <span className="pl-4 pr-1 text-sm font-bold select-none" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              <span className="pl-4 pr-1 text-sm font-bold select-none" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 @
               </span>
               <input
@@ -192,10 +192,10 @@ export default function EditProfilePage() {
               </p>
             ) : (
               <div className="mt-1.5 px-1 space-y-0.5">
-                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   {t(locale, 'profileEdit.usernameDescriptionLine1')}
                 </p>
-                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.52)' }}>
                   {t(locale, 'profileEdit.usernameDescriptionLine2')}
                 </p>
               </div>
@@ -216,9 +216,9 @@ export default function EditProfilePage() {
               placeholder={t(locale, 'profileEdit.bioPlaceholder')}
               className="w-full px-4 py-3.5 rounded-2xl text-sm outline-none resize-none placeholder:text-white/35"
               style={{
-                background: '#141414',
-                border:     '1px solid rgba(255,255,255,0.08)',
-                color:      'rgba(255,255,255,0.38)',
+                background: '#222222',
+                border:     '1px solid rgba(255,255,255,0.15)',
+                color: 'rgba(255,255,255,0.58)',
               }}
             />
           </div>
@@ -236,9 +236,9 @@ export default function EditProfilePage() {
                 <button key={s} disabled
                   className="px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
                   style={{
-                    background: '#141414',
-                    color:      'rgba(255,255,255,0.42)',
-                    border:     '1px solid rgba(255,255,255,0.08)',
+                    background: '#222222',
+                    color: 'rgba(255,255,255,0.62)',
+                    border:     '1px solid rgba(255,255,255,0.15)',
                     cursor:     'not-allowed',
                   }}>
                   {s}
@@ -263,17 +263,17 @@ export default function EditProfilePage() {
           <button
             className="w-full py-4 rounded-2xl text-sm font-black tracking-widest transition-all"
             style={{
-              background: canSave ? '#ff6a00' : 'rgba(255,106,0,0.22)',
-              color:      canSave ? '#ffffff' : 'rgba(255,255,255,0.42)',
+              background: canSave ? '#ED742F' : 'rgba(237, 116, 47,0.22)',
+              color:      canSave ? '#ffffff' : 'rgba(255,255,255,0.62)',
               marginTop:  8,
-              boxShadow:  canSave ? '0 4px 18px rgba(255,106,0,0.28)' : 'none',
+              boxShadow:  canSave ? '0 4px 18px rgba(237, 116, 47,0.28)' : 'none',
             }}
             disabled={!canSave}
             onClick={handleSave}>
             {saving ? t(locale, 'profileEdit.savingBtn') : t(locale, 'profileEdit.saveChanges')}
           </button>
 
-          <p className="text-center text-[10px] pb-4" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <p className="text-center text-[10px] pb-4" style={{ color: 'rgba(255,255,255,0.44)' }}>
             {t(locale, 'profileEdit.moreFieldsSoon')}
           </p>
 
