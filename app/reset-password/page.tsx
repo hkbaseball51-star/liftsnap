@@ -1,144 +1,92 @@
 'use client'
 
-// Supabase Dashboard → Authentication → URL Configuration → Redirect URLs must include:
-//   http://localhost:3000/reset-password
-//   https://<your-production-domain>/reset-password
-
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-type Stage = 'loading' | 'invalid' | 'form' | 'done'
+// Supabase Dashboard → Authentication → URL Configuration → Redirect URLs must include:
+//   http://localhost:3000/reset-password
+//   https://liftsnap.vercel.app/reset-password
+// Set NEXT_PUBLIC_SITE_URL=https://liftsnap.vercel.app in Vercel project settings.
+
+type Stage = 'checking' | 'valid' | 'invalid' | 'updating' | 'done'
 
 export default function ResetPasswordPage() {
-  const [stage,       setStage]       = useState<Stage>('loading')
+  const [stage,       setStage]       = useState<Stage>('checking')
   const [password,    setPassword]    = useState('')
   const [confirm,     setConfirm]     = useState('')
   const [fieldError,  setFieldError]  = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitting,  setSubmitting]  = useState(false)
+  const settled = useRef(false)
 
   useEffect(() => {
     const supabase = createClient()
-    let settled = false
 
-    function settle(next: Stage) {
-      if (settled) return
-      settled = true
-      console.log('[reset-password] settle →', next)
+    function settle(next: 'valid' | 'invalid') {
+      if (settled.current) return
+      settled.current = true
       setStage(next)
     }
 
-    // Capture URL params immediately.
-    // iPhone Gmail in-app browser can strip the hash on navigation,
-    // so we read hash/search before any async work.
-    const rawHash   = window.location.hash
-    const rawSearch = window.location.search
-    const hashParams   = new URLSearchParams(rawHash.slice(1))
-    const searchParams = new URLSearchParams(rawSearch)
-
-    const hasCode        = searchParams.has('code')
-    const code           = searchParams.get('code') ?? ''
-    const hasAccessToken = hashParams.has('access_token')
-    const hasHashError   = hashParams.has('error')
-    const hashType       = hashParams.get('type') ?? ''
-    // Implicit flow:  #access_token=...&type=recovery
-    const isRecoveryHash = hasAccessToken && hashType === 'recovery'
-    // Any signal that this might be a valid recovery link
-    const hasRecoverySignal =
-      hasCode ||
-      isRecoveryHash ||
-      rawSearch.includes('type=recovery') ||
-      rawHash.includes('type=recovery')
-
-    console.log('[reset-password] url state', {
-      hasCode,
-      hasAccessToken,
-      hasHashError,
-      hashType,
-      isRecoveryHash,
-      hasRecoverySignal,
-      search: rawSearch,
-      hash:   rawHash.substring(0, 100),
+    // Fast path: Supabase auto-exchanges the PKCE code and fires PASSWORD_RECOVERY
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        settle('valid')
+      }
     })
 
-    // Supabase returns #error=... when the link is genuinely expired/invalid
-    if (hasHashError) {
-      console.error('[reset-password] hash error', {
-        error: hashParams.get('error'),
-        desc:  hashParams.get('error_description'),
-      })
-      settle('invalid')
-      return
+    // Safety net: if nothing resolves in 8 s the link is truly invalid
+    const timeout = setTimeout(() => settle('invalid'), 8000)
+
+    async function check() {
+      try {
+        // Read URL params immediately before any async work.
+        // iPhone Gmail in-app browser can strip hash on navigation, so capture first.
+        const rawHash      = window.location.hash
+        const rawSearch    = window.location.search
+        const hashParams   = new URLSearchParams(rawHash.slice(1))
+        const searchParams = new URLSearchParams(rawSearch)
+
+        // A. Explicit error in URL → definitely invalid
+        if (searchParams.has('error') || hashParams.has('error')) {
+          settle('invalid')
+          return
+        }
+
+        // B. PKCE code flow: /reset-password?code=xxxxx
+        const code = searchParams.get('code')
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          settle(error ? 'invalid' : 'valid')
+          return
+        }
+
+        // C. Implicit hash flow: #access_token=...&refresh_token=...&type=recovery
+        const accessToken  = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token:  accessToken,
+            refresh_token: refreshToken,
+          })
+          settle(error ? 'invalid' : 'valid')
+          return
+        }
+
+        // D. Session already established (auto-exchange completed before useEffect ran)
+        const { data: { session } } = await supabase.auth.getSession()
+        settle(session ? 'valid' : 'invalid')
+      } catch (err) {
+        console.error('[reset-password] check error', err)
+        settle('invalid')
+      }
     }
 
-    // ── onAuthStateChange ──────────────────────────────────────────────────
-    // PASSWORD_RECOVERY fires after Supabase exchanges the recovery token
-    // (both implicit hash flow and PKCE code flow).
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[reset-password] auth event', { event, hasSession: !!session })
-
-      if (event === 'PASSWORD_RECOVERY') {
-        // Recovery session is established — show the password form
-        settle('form')
-        return
-      }
-
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        if (!hasRecoverySignal) {
-          // No recovery params in URL → bare page visit or already-used link
-          settle('invalid')
-        }
-        // Recovery signal present → keep loading; wait for PASSWORD_RECOVERY
-        // or the explicit exchange fallback below
-      }
-    })
-
-    // ── Explicit PKCE ?code= exchange fallback ─────────────────────────────
-    // When the user opens the reset link in Gmail's in-app browser on iPhone,
-    // the PKCE code-verifier cookie set in the original browser is absent.
-    // createBrowserClient tries to exchange the code automatically, but may
-    // fail silently, so PASSWORD_RECOVERY never fires.
-    // After giving onAuthStateChange 1.5 s to handle it, we try explicitly.
-    let exchangeAttempted = false
-    const exchangeTimer = hasCode
-      ? setTimeout(async () => {
-          if (settled || exchangeAttempted) return
-          exchangeAttempted = true
-          console.log('[reset-password] explicit exchangeCodeForSession')
-          try {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-            if (error) {
-              console.error('[reset-password] exchangeCodeForSession error', {
-                message: error.message,
-                status:  (error as { status?: number }).status,
-              })
-              // Don't settle invalid yet — let the hard timeout decide.
-              // (The auto-exchange via onAuthStateChange might still succeed.)
-            } else if (data?.session) {
-              console.log('[reset-password] explicit exchange ok')
-              // PASSWORD_RECOVERY should fire through onAuthStateChange.
-              // If it hasn't arrived within 500 ms, settle form directly.
-              setTimeout(() => settle('form'), 500)
-            }
-          } catch (err) {
-            console.error('[reset-password] exchangeCodeForSession threw', err)
-          }
-        }, 1500)
-      : null
-
-    // ── Hard timeout ───────────────────────────────────────────────────────
-    // If nothing settles in 10 s (no PASSWORD_RECOVERY, no explicit exchange
-    // success), the link is truly invalid or expired.
-    const timeout = setTimeout(() => {
-      console.log('[reset-password] hard timeout, hasRecoverySignal:', hasRecoverySignal)
-      settle('invalid')
-    }, 10000)
+    check().finally(() => clearTimeout(timeout))
 
     return () => {
       subscription.unsubscribe()
       clearTimeout(timeout)
-      if (exchangeTimer) clearTimeout(exchangeTimer)
     }
   }, [])
 
@@ -156,23 +104,16 @@ export default function ResetPasswordPage() {
       return
     }
 
-    setSubmitting(true)
+    setStage('updating')
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
-      console.error('[reset-password] updateUser error', {
-        message: error.message,
-        status:  (error as { status?: number }).status,
-        name:    error.name,
-        code:    (error as { code?: string }).code,
-      })
       setSubmitError('Could not update password. Please try again.')
-      setSubmitting(false)
+      setStage('valid')
       return
     }
 
-    // Sign out so the user re-authenticates fresh with the new password
     await supabase.auth.signOut()
     setStage('done')
   }
@@ -197,8 +138,8 @@ export default function ResetPasswordPage() {
         </div>
         <div style={{ height: 28 }} />
 
-        {/* ── Loading ── */}
-        {stage === 'loading' && (
+        {/* ── Checking ── */}
+        {stage === 'checking' && (
           <div className="text-center">
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
               Checking reset link…
@@ -206,7 +147,7 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        {/* ── Invalid / expired link ── */}
+        {/* ── Invalid / expired ── */}
         {stage === 'invalid' && (
           <div className="text-center flex flex-col gap-4">
             <p className="text-sm font-bold" style={{ color: '#ef4444' }}>
@@ -225,7 +166,7 @@ export default function ResetPasswordPage() {
         )}
 
         {/* ── Password form ── */}
-        {stage === 'form' && (
+        {(stage === 'valid' || stage === 'updating') && (
           <>
             <p className="text-center text-sm font-bold mb-6" style={{ color: '#888' }}>
               Set new password
@@ -271,10 +212,10 @@ export default function ResetPasswordPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={stage === 'updating'}
                 className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-                style={{ background: submitting ? '#333' : '#ED742F' }}>
-                {submitting ? 'UPDATING…' : 'UPDATE PASSWORD'}
+                style={{ background: stage === 'updating' ? '#333' : '#ED742F' }}>
+                {stage === 'updating' ? 'UPDATING…' : 'UPDATE PASSWORD'}
               </button>
             </form>
 

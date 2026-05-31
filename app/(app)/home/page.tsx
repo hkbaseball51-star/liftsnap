@@ -255,12 +255,12 @@ export default async function HomePage() {
       {/* ── WELCOME ── */}
       <div className="px-4 pt-3 pb-6">
         <Image
-          src="/brand/repra-logo.png"
+          src="/brand/repra-logo-cropped.png"
           alt="REPRA"
-          width={1200}
-          height={300}
+          width={949}
+          height={188}
           priority
-          style={{ width: 100, height: 'auto', display: 'block', marginBottom: 28 }}
+          style={{ width: 120, height: 'auto', display: 'block', marginBottom: 28 }}
         />
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.47)', marginBottom: 8 }}>
           {getGreeting()}

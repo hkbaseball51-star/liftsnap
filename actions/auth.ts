@@ -43,17 +43,16 @@ export async function logout() {
 // ── Password reset ───────────────────────────────────────────────────────────
 //
 // Required env var (set in Vercel project settings for production):
-//   NEXT_PUBLIC_SITE_URL=https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app
+//   NEXT_PUBLIC_SITE_URL=https://liftsnap.vercel.app
 //
 // Supabase Dashboard → Authentication → URL Configuration:
 //   Site URL:
-//     https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app
+//     https://liftsnap.vercel.app
 //   Redirect URLs (add all that apply):
-//     https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/**
-//     https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/reset-password
+//     https://liftsnap.vercel.app/**
+//     https://liftsnap.vercel.app/reset-password
 //     http://localhost:3000/**
 //     http://localhost:3000/reset-password
-//     (add custom domain once configured)
 //
 // SMTP: Supabase free-tier SMTP has low rate limits. Use Custom SMTP in production.
 //   Recommended providers: Resend, SendGrid, Postmark
