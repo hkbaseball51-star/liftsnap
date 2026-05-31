@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Info, Check } from 'lucide-react'
+import { Info, Check, X } from 'lucide-react'
 import type { Locale } from '@/lib/i18n'
 
 type Props = {
@@ -73,51 +73,74 @@ export default function StreakBadge({
       {/* ── Bottom Sheet ──────────────────────────────── */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end"
+          className="fixed inset-0 z-50 flex items-end justify-center"
           style={{ background: 'rgba(0,0,0,0.78)' }}
           onClick={close}>
           <div
             ref={sheetRef}
-            className="w-full"
+            className="w-full flex flex-col"
             style={{
+              maxWidth: 600,
               background: '#222222',
               border: '1px solid rgba(255,255,255,0.17)',
               borderBottom: 'none',
               borderRadius: '24px 24px 0 0',
-              maxHeight: '90dvh',
-              overflowY: 'auto',
+              maxHeight: '80dvh',
             }}
             onClick={e => e.stopPropagation()}>
 
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-8 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.18)' }} />
-            </div>
-
-            <div className="px-5 pt-3 pb-10">
-
-              {/* Header */}
-              <div className="flex items-center gap-2.5 mb-1">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(237, 116, 47,0.15)', border: '1px solid rgba(237, 116, 47,0.38)' }}>
-                  <span style={{ fontSize: 18, lineHeight: 1 }}>🔥</span>
-                </div>
-                <div>
-                  <p className="text-base font-black" style={{ color: '#fff' }}>
-                    {locale === 'ja' ? 'Proof Streakの仕組み' : 'How Proof Streak works'}
-                  </p>
-                  {streak > 0 && (
-                    <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                      {locale === 'ja'
-                        ? `現在 ${streak}週間継続中`
-                        : `Currently ${streak} ${streak === 1 ? 'week' : 'weeks'} strong`}
-                    </p>
-                  )}
-                </div>
+            {/* ── Fixed header ── */}
+            <div className="flex-shrink-0">
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-8 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.18)' }} />
               </div>
 
+              {/* Title row */}
+              <div className="flex items-center justify-between px-5 pt-2 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(237, 116, 47,0.15)', border: '1px solid rgba(237, 116, 47,0.38)' }}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>🔥</span>
+                  </div>
+                  <div>
+                    <p className="text-base font-black" style={{ color: '#fff' }}>
+                      {locale === 'ja' ? 'Proof Streakの仕組み' : 'How Proof Streak works'}
+                    </p>
+                    {streak > 0 && (
+                      <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                        {locale === 'ja'
+                          ? `現在 ${streak}週間継続中`
+                          : `Currently ${streak} ${streak === 1 ? 'week' : 'weeks'} strong`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Close button */}
+                <button
+                  onClick={close}
+                  aria-label={locale === 'ja' ? '閉じる' : 'Close'}
+                  className="flex items-center justify-center w-8 h-8 rounded-full active:opacity-60 transition-opacity flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)' }}>
+                  <X size={14} style={{ color: 'rgba(255,255,255,0.72)' }} />
+                </button>
+              </div>
+
+              {/* Header divider */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginInline: 20 }} />
+            </div>
+
+            {/* ── Scrollable content ── */}
+            <div
+              className="flex-1 overflow-y-auto px-5 pt-4"
+              style={{
+                WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
+                paddingBottom: 'calc(116px + env(safe-area-inset-bottom))',
+              }}>
+
               {/* Intro */}
-              <p className="text-[12px] leading-relaxed mt-4 mb-3" style={{ color: 'rgba(255,255,255,0.72)' }}>
+              <p className="text-[12px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.72)' }}>
                 {locale === 'ja'
                   ? '1週間のうち、以下のどれかを達成するとProof Weekになります。'
                   : 'A Proof Week is completed when you do at least one of these in a week:'}
@@ -125,7 +148,7 @@ export default function StreakBadge({
 
               {/* Rule bullets */}
               <div className="rounded-2xl p-4 mb-3 space-y-3"
-                style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.14)' }}>
+                style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.14)' }}>
                 {[
                   { en: 'Log 2 workouts',         ja: 'ワークアウトを2回記録' },
                   { en: 'Add 1 body photo',        ja: '体写真を1回追加'       },
