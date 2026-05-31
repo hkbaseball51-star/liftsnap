@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { login, resetPassword } from '@/actions/auth'
 import type { ResetErrorCode } from '@/actions/auth'
+import AuthBackButton from '@/components/auth/AuthBackButton'
 
 type Mode = 'login' | 'reset'
 
@@ -63,6 +64,7 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-sm">
+      <AuthBackButton />
       <div className="mb-3 flex flex-col items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { signup } from '@/actions/auth'
+import AuthBackButton from '@/components/auth/AuthBackButton'
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
@@ -21,6 +22,7 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-sm">
+      <AuthBackButton />
       {/* Logo */}
       <div className="mb-3 flex flex-col items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}

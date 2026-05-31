@@ -32,11 +32,17 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+  // Redirect only REAL (non-anonymous) logged-in users away from auth pages.
+  // Anonymous sessions are created by AutoAuthClient for all visitors —
+  // blocking them here would prevent guests from reaching /login or /signup.
+  const isRealUser = !!user && !user.is_anonymous
+  const isAuthPage =
+    request.nextUrl.pathname === '/login' ||
+    request.nextUrl.pathname === '/signup'
+
+  if (isRealUser && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/home'
     return NextResponse.redirect(url)

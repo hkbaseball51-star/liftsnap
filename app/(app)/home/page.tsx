@@ -8,7 +8,6 @@ import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
 import HomeBodyLogSection from '@/components/home/HomeBodyLogSection'
-import SplashScreen from '@/components/SplashScreen'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
@@ -19,13 +18,10 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: '#080808' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/repra-wordmark-header.png" alt="REPRA" style={{ height: 32, width: 'auto', objectFit: 'contain', marginBottom: 12 }} />
-        <p className="text-xs font-bold tracking-widest" style={{ color: '#333' }}>LOADING...</p>
-      </div>
-    )
+    // Anonymous session not yet created (AutoAuthClient hasn't run yet).
+    // SplashScreen in the layout already covers the UI; plain black keeps
+    // this branch invisible until router.refresh() brings a real user.
+    return <div className="fixed inset-0 bg-black" />
   }
 
   const todayStr = today()
@@ -245,7 +241,6 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
-      <SplashScreen />
 
       {/* ── Header ── lifts count only, right-aligned */}
       <div className="flex justify-end px-4 pt-12 pb-2">
