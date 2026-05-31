@@ -2,11 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Zap, Share2 } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
 import HomeBodyLogSection from '@/components/home/HomeBodyLogSection'
+import SplashScreen from '@/components/SplashScreen'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
@@ -243,6 +245,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
+      <SplashScreen />
 
       {/* ── Header ── lifts count only, right-aligned */}
       <div className="flex justify-end px-4 pt-12 pb-2">
@@ -256,7 +259,14 @@ export default async function HomePage() {
 
       {/* ── WELCOME ── */}
       <div className="px-4 pt-3 pb-6">
-        <p style={{ fontSize: 30, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 28 }}>REPRA</p>
+        <Image
+          src="/brand/repra-logo.png"
+          alt="REPRA"
+          width={1200}
+          height={300}
+          priority
+          style={{ width: 100, height: 'auto', display: 'block', marginBottom: 28 }}
+        />
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.47)', marginBottom: 8 }}>
           {getGreeting()}
         </p>
