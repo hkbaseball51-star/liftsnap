@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, ImageIcon } from 'lucide-react'
+import { Camera, ImageIcon, Images } from 'lucide-react'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
@@ -221,6 +221,20 @@ export default function SelectedDaySummary({
                     }
                   </span>
                 </button>
+                {localHasPhoto && (
+                  <button
+                    className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl active:opacity-70 transition-opacity mt-2"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}
+                    onClick={() => router.push(`/body-log?start=${selectedDate}`)}>
+                    <Images size={14} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
+                      {t(locale, 'bodyLog.viewFromThisDay')}
+                    </span>
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -38,10 +38,18 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="mb-8 flex items-center overflow-hidden" style={{ height: 88 }}>
+      <div className="mb-3 flex flex-col items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/liftsnap-hero.png" alt="LIFTSNAP" style={{ width: '100%', height: 'auto', display: 'block' }} />
+        <img
+          src="/repra-wordmark-header.png"
+          alt="REPRA"
+          style={{ height: 40, width: 'auto', display: 'block', objectFit: 'contain' }}
+        />
+        <p style={{ fontSize: 12, fontWeight: 500, color: '#B8B8B8', marginTop: 10, letterSpacing: '0.02em' }}>
+          Every rep becomes proof.
+        </p>
       </div>
+      <div style={{ height: 28 }} />
 
       {mode === 'reset' ? (
         resetSent ? (
@@ -55,7 +63,7 @@ export default function LoginPage() {
             <button
               onClick={() => { setMode('login'); setResetSent(false); setError(null) }}
               className="text-sm font-black"
-              style={{ color: '#ff6b00' }}>
+              style={{ color: '#BF5C24' }}>
               Back to Sign In
             </button>
           </div>
@@ -86,7 +94,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-              style={{ background: loading ? '#333' : '#ff6b00' }}>
+              style={{ background: loading ? '#333' : '#BF5C24' }}>
               {loading ? 'SENDING...' : 'SEND RESET LINK'}
             </button>
 
@@ -123,7 +131,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => { setMode('reset'); setError(null) }}
                 className="text-[10px] font-black tracking-widest"
-                style={{ color: '#ff6b00' }}>
+                style={{ color: '#BF5C24' }}>
                 FORGOT PASSWORD?
               </button>
             </div>
@@ -145,7 +153,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-            style={{ background: loading ? '#333' : '#ff6b00' }}>
+            style={{ background: loading ? '#333' : '#BF5C24' }}>
             {loading ? 'SIGNING IN...' : 'SIGN IN'}
           </button>
         </form>
@@ -154,7 +162,7 @@ export default function LoginPage() {
       {mode === 'login' && (
         <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
           Don't have an account?{' '}
-          <Link href="/signup" className="font-black" style={{ color: '#ff6b00' }}>
+          <Link href="/signup" className="font-black" style={{ color: '#BF5C24' }}>
             Sign up
           </Link>
         </p>

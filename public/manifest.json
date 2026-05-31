@@ -1,13 +1,19 @@
 {
-  "name": "LIFTSNAP",
-  "short_name": "LIFTSNAP",
-  "description": "筋トレ記録をInstagramストーリーでシェアしよう",
+  "name": "REPRA",
+  "short_name": "REPRA",
+  "description": "Every rep becomes proof.",
   "start_url": "/home",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#080808",
+  "theme_color": "#080808",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/repra-app-icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",

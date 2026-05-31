@@ -6,6 +6,7 @@ import { Zap, Share2 } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
+import HomeBodyLogSection from '@/components/home/HomeBodyLogSection'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
@@ -16,8 +17,9 @@ export default async function HomePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: '#050505' }}>
-        <p className="text-xl font-black tracking-widest text-white mb-1">LIFTSNAP</p>
+      <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: '#080808' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/repra-wordmark-header.png" alt="REPRA" style={{ height: 32, width: 'auto', objectFit: 'contain', marginBottom: 12 }} />
         <p className="text-xs font-bold tracking-widest" style={{ color: '#333' }}>LOADING...</p>
       </div>
     )
@@ -186,6 +188,17 @@ export default async function HomePage() {
     if (best?.image_path) photoPathsByDate[date] = best.image_path
   }
 
+  // Recent body log entries for horizontal scroll (newest first, up to 8)
+  type RecentPhoto = { date: string; imagePath: string; muscleGroup: string }
+  const recentBodyLogPhotos: RecentPhoto[] = Object.entries(photoPathsByDate)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 8)
+    .map(([date, imagePath]) => ({
+      date,
+      imagePath,
+      muscleGroup: daySummaries[date]?.muscleGroup ?? 'full body',
+    }))
+
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessions.length
@@ -224,11 +237,12 @@ export default async function HomePage() {
   const { streak: weekStreak, thisWeekDone } = calcWeekStreak(streakDates, todayStr)
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#050505' }}>
+    <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-14 pb-2">
-        <h1 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.12em', color: '#fff' }}>LIFTSNAP</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/repra-wordmark-header.png" alt="REPRA" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
         <div className="flex items-center gap-1.5">
           <Zap size={11} style={{ color: 'rgba(255,255,255,0.2)' }} />
           <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
@@ -315,6 +329,11 @@ export default async function HomePage() {
       <div className="px-4 mb-5">
         <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} photoPathsByDate={photoPathsByDate} />
       </div>
+
+      {/* ── BODY LOG HORIZONTAL SCROLL ── */}
+      {recentBodyLogPhotos.length > 0 && (
+        <HomeBodyLogSection recentPhotos={recentBodyLogPhotos} locale={locale} />
+      )}
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-4">

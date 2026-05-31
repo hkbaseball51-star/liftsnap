@@ -15,7 +15,7 @@ type CardData = {
 type Theme = 'clear' | 'dark'
 type Accent = 'orange' | 'purple'
 
-const ACCENT_COLOR = { orange: '#ff6b00', purple: '#6E38D4' }
+const ACCENT_COLOR = { orange: '#BF5C24', purple: '#6E38D4' }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
@@ -47,13 +47,13 @@ async function generateCard(data: CardData, theme: Theme, accent: Accent): Promi
   const shadow = () => { ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 24 }
   const noShadow = () => { ctx.shadowBlur = 0 }
 
-  // LIFTSNAP badge
+  // REPRA badge
   ctx.fillStyle = accentColor
   roundRect(ctx, 80, 110, 300, 80, 14)
   ctx.fill()
   ctx.fillStyle = 'white'
   ctx.font = 'bold 34px system-ui, -apple-system, sans-serif'
-  ctx.fillText('LIFTSNAP', 112, 162)
+  ctx.fillText('REPRA', 112, 162)
 
   // Date
   const d = new Date(data.date + 'T00:00:00')
@@ -154,16 +154,16 @@ export default function ShareView({ data }: { data: CardData }) {
     setStatus('Generating card...')
     try {
       const blob = await generateCard(data, theme, accent)
-      const file = new File([blob], 'liftsnap-workout.png', { type: 'image/png' })
+      const file = new File([blob], 'repra-workout.png', { type: 'image/png' })
 
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
-        await navigator.share({ files: [file], title: 'LIFTSNAP Workout' })
+        await navigator.share({ files: [file], title: 'REPRA Workout' })
         setStatus('')
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
-        a.href = url; a.download = 'liftsnap-workout.png'; a.click()
+        a.href = url; a.download = 'repra-workout.png'; a.click()
         URL.revokeObjectURL(url)
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
       }
@@ -213,7 +213,7 @@ export default function ShareView({ data }: { data: CardData }) {
             <div className="inline-flex mb-4">
               <span className="px-3 py-1.5 rounded-lg text-xs font-black text-white"
                 style={{ background: accentColor, letterSpacing: '0.15em' }}>
-                LIFTSNAP
+                REPRA
               </span>
             </div>
             {/* Date */}
@@ -258,7 +258,7 @@ export default function ShareView({ data }: { data: CardData }) {
           {(['dark', 'clear'] as Theme[]).map(t => (
             <button key={t}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: theme === t ? '#ff6b00' : '#1a1a1a', color: theme === t ? '#fff' : '#888', border: '1px solid #2a2a2a' }}
+              style={{ background: theme === t ? '#BF5C24' : '#1a1a1a', color: theme === t ? '#fff' : '#888', border: '1px solid #2a2a2a' }}
               onClick={() => setTheme(t)}>
               {t === 'dark' ? 'Dark' : 'Clear'}
             </button>
@@ -291,7 +291,7 @@ export default function ShareView({ data }: { data: CardData }) {
         )}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-          style={{ background: '#ff6b00' }}
+          style={{ background: '#BF5C24' }}
           disabled={sharing}
           onClick={handleShare}>
           <Share2 size={20} />

@@ -22,11 +22,18 @@ export default function SignupPage() {
   return (
     <div className="w-full max-w-sm">
       {/* Logo */}
-      <div className="mb-4 flex items-center overflow-hidden" style={{ height: 88 }}>
+      <div className="mb-3 flex flex-col items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/liftsnap-hero.png" alt="LIFTSNAP" style={{ width: '100%', height: 'auto', display: 'block' }} />
+        <img
+          src="/repra-wordmark-header.png"
+          alt="REPRA"
+          style={{ height: 40, width: 'auto', display: 'block', objectFit: 'contain' }}
+        />
+        <p style={{ fontSize: 12, fontWeight: 500, color: '#B8B8B8', marginTop: 10, letterSpacing: '0.02em' }}>
+          Every rep becomes proof.
+        </p>
       </div>
-      <p className="text-center text-sm mb-8 font-bold" style={{ color: '#555' }}>Create your account</p>
+      <p className="text-center text-sm mb-6 font-bold" style={{ color: '#555', marginTop: 20 }}>Create your account</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
@@ -78,7 +85,7 @@ export default function SignupPage() {
           type="submit"
           disabled={loading}
           className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-          style={{ background: loading ? '#333' : '#ff6b00' }}
+          style={{ background: loading ? '#333' : '#BF5C24' }}
         >
           {loading ? 'CREATING...' : 'CREATE ACCOUNT'}
         </button>
@@ -86,7 +93,7 @@ export default function SignupPage() {
 
       <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
         Already have an account?{' '}
-        <Link href="/login" className="font-black" style={{ color: '#ff6b00' }}>
+        <Link href="/login" className="font-black" style={{ color: '#BF5C24' }}>
           Sign in
         </Link>
       </p>

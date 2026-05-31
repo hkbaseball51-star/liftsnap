@@ -60,7 +60,7 @@ export default function BottomNav() {
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                   style={{
-                    background: '#ff6b00',
+                    background: '#BF5C24',
                     boxShadow: '0 4px 20px rgba(255,107,0,0.45)',
                   }}
                 >
@@ -79,13 +79,13 @@ export default function BottomNav() {
             >
               <Icon
                 size={22}
-                color={active ? '#ff6b00' : '#444'}
+                color={active ? '#BF5C24' : '#444'}
                 strokeWidth={active ? 2.5 : 2}
               />
               {label && (
                 <span
                   className="text-[8px] font-black tracking-widest"
-                  style={{ color: active ? '#ff6b00' : '#444' }}
+                  style={{ color: active ? '#BF5C24' : '#444' }}
                 >
                   {label}
                 </span>

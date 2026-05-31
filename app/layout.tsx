@@ -22,13 +22,13 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'LIFTSNAP',
-  description: 'Log your lifts. Share your story.',
+  title: 'REPRA',
+  description: 'Every rep becomes proof.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'LIFTSNAP',
+    title: 'REPRA',
   },
 }
 
@@ -37,13 +37,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0a0a0a',
+  themeColor: '#080808',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`h-full ${inter.variable} ${interTight.variable} ${geistMono.variable}`}>
-      <body className="h-full bg-[#0a0a0a] text-white">
+      <body className="h-full bg-[#080808] text-white">
         {children}
       </body>
     </html>

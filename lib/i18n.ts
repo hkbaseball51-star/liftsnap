@@ -449,6 +449,16 @@ const translations = {
       cardSize: 'Card size',
       resetAll: 'Reset all',
     },
+    bodyLog: {
+      title: 'Body Log',
+      sectionTitle: 'BODY LOG',
+      empty: 'No workout photos yet.',
+      emptyHint: 'Add a photo after your workout to start your body log.',
+      viewFromThisDay: 'View from this day',
+      viewInBodyLog: 'View in Body Log',
+      createStory: 'Create Story',
+      back: 'Back',
+    },
   },
 
   ja: {
@@ -877,6 +887,16 @@ const translations = {
       addWorkoutPhoto: 'ワークアウト写真を追加',
       cardSize: 'カードサイズ',
       resetAll: 'すべてリセット',
+    },
+    bodyLog: {
+      title: 'ボディログ',
+      sectionTitle: 'BODY LOG',
+      empty: 'まだワークアウト写真がありません。',
+      emptyHint: 'ワークアウト後に写真を追加して記録を始めましょう。',
+      viewFromThisDay: 'この日から見る',
+      viewInBodyLog: 'ボディログで見る',
+      createStory: 'ストーリーを作成',
+      back: '戻る',
     },
   },
 } as const
