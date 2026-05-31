@@ -455,6 +455,7 @@ export async function getTodayWorkoutForShare(date: string) {
     .maybeSingle()
 
   return {
+    sessionId: session.id as string,
     title: (session.title ?? "Today's Workout") as string,
     date: session.trained_at as string,
     volume: totalVolume,

@@ -18,8 +18,9 @@ type Props = {
   sessionDate: string   // YYYY-MM-DD
   todayStr: string
   onClose: () => void
-  onPhotoSaved?: () => void
+  onPhotoSaved?: (imagePath: string) => void
   onPhotoDeleted?: () => void
+  autoCloseOnSave?: boolean
 }
 
 type SheetState =
@@ -41,6 +42,7 @@ export default function WorkoutPhotoSheet({
   onClose,
   onPhotoSaved,
   onPhotoDeleted,
+  autoCloseOnSave = false,
 }: Props) {
   const { locale } = useLocale()
   const [state, setState] = useState<SheetState>({ type: 'loading' })
@@ -122,16 +124,22 @@ export default function WorkoutPhotoSheet({
 
       await saveWorkoutPhotoRecord(sessionId, sessionDate, imagePath, w, h)
 
+      onPhotoSaved?.(imagePath)
+
+      if (autoCloseOnSave) {
+        onClose()
+        return
+      }
+
       const signedUrl = await getWorkoutPhotoSignedUrl(imagePath)
       setState(signedUrl
         ? { type: 'view', signedUrl, imagePath }
         : { type: 'error', message: t(locale, 'photo.photoLoadError') }
       )
-      onPhotoSaved?.()
     } catch {
       setState({ type: 'error', message: t(locale, 'photo.photoSaveError') })
     }
-  }, [state, sessionId, sessionDate, locale, onPhotoSaved])
+  }, [state, sessionId, sessionDate, locale, onPhotoSaved, autoCloseOnSave, onClose])
 
   const handleDelete = useCallback(async () => {
     setState({ type: 'uploading' })

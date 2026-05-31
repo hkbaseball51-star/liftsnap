@@ -437,6 +437,9 @@ const translations = {
       color: 'Color',
       resetPosition: 'Reset Position',
       dragHint: 'Drag the card to reposition',
+      photoSavedCreateStory: 'Photo saved. Create your story!',
+      changePhoto: 'Change photo',
+      addWorkoutPhoto: 'Add workout photo',
     },
   },
 
@@ -855,6 +858,9 @@ const translations = {
       color: 'カラー',
       resetPosition: '位置をリセット',
       dragHint: 'カードをドラッグして位置を調整',
+      photoSavedCreateStory: '写真を保存しました。Storyを作成できます！',
+      changePhoto: '写真を変更',
+      addWorkoutPhoto: 'ワークアウト写真を追加',
     },
   },
 } as const

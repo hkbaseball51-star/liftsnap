@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Share2, ArrowLeft, Camera, RotateCcw } from 'lucide-react'
+import { Share2, ArrowLeft, Camera, RotateCcw, ImageIcon } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
+import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
 
 export type TodayData = {
+  sessionId?: string
   title: string
   date: string
   volume: number
@@ -92,7 +94,6 @@ async function captureStory(captureEl: HTMLDivElement, theme: Theme, hasPhoto: b
   const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
 
   const prevBg = captureEl.style.background
-  // For transparent mode without a photo, remove the checker so the PNG has true alpha
   if (theme === 'transparent' && !hasPhoto) captureEl.style.background = 'transparent'
   await new Promise(r => requestAnimationFrame(r))
 
@@ -120,30 +121,40 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const { locale } = useLocale()
   const unitLabel  = weightUnitLabel(unit)
 
-  const [theme,        setTheme]        = useState<Theme>('dark')
-  const [accent,       setAccent]       = useState<Accent>('dark')
-  const [sharing,      setSharing]      = useState(false)
-  const [status,       setStatus]       = useState('')
-  const [shareCount,   setShareCount]   = useState(0)
-  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
-  const [photoLoading, setPhotoLoading] = useState(typeof data.photoPath === 'string')
-  const [cardPos,      setCardPos]      = useState({ x: 16, y: 180 })
+  // todayStr in Asia/Tokyo for canEdit check in WorkoutPhotoSheet
+  const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
+
+  const [theme,          setTheme]          = useState<Theme>('dark')
+  const [accent,         setAccent]         = useState<Accent>('dark')
+  const [sharing,        setSharing]        = useState(false)
+  const [status,         setStatus]         = useState('')
+  const [shareCount,     setShareCount]     = useState(0)
+  const [photoDataUrl,   setPhotoDataUrl]   = useState<string | null>(null)
+  const [photoLoading,   setPhotoLoading]   = useState(false)
+  const [localPhotoPath, setLocalPhotoPath] = useState<string | null>(data.photoPath ?? null)
+  const [showPhotoSheet, setShowPhotoSheet] = useState(false)
+  const [cardPos,        setCardPos]        = useState({ x: 16, y: 180 })
 
   const isDragging = useRef(false)
   const dragOffset = useRef({ x: 0, y: 0 })
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
-  // Load workout photo as data URL for html-to-image CORS compatibility
+  // Load photo as data URL whenever localPhotoPath changes
   useEffect(() => {
-    if (!data.photoPath) return
+    if (!localPhotoPath) {
+      setPhotoDataUrl(null)
+      setPhotoLoading(false)
+      return
+    }
+    setPhotoDataUrl(null)
     setPhotoLoading(true)
     let cancelled = false
     async function loadPhoto() {
       const supabase = createClient()
       const { data: urlData } = await supabase.storage
         .from('workout-photos')
-        .createSignedUrl(data.photoPath!, 3600)
+        .createSignedUrl(localPhotoPath!, 3600)
       if (cancelled || !urlData?.signedUrl) { if (!cancelled) setPhotoLoading(false); return }
       try {
         const res  = await fetch(urlData.signedUrl)
@@ -158,7 +169,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     }
     loadPhoto()
     return () => { cancelled = true }
-  }, [data.photoPath])
+  }, [localPhotoPath])
 
   // Center card after initial render
   useEffect(() => {
@@ -192,6 +203,20 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     })
   }
 
+  // Called by WorkoutPhotoSheet after successful save
+  const handlePhotoSaved = (imagePath: string) => {
+    setLocalPhotoPath(imagePath)
+    setShowPhotoSheet(false)
+    setStatus(t(locale, 'story.photoSavedCreateStory'))
+    setTimeout(() => setStatus(''), 3000)
+  }
+
+  // Called by WorkoutPhotoSheet after deletion
+  const handlePhotoDeleted = () => {
+    setLocalPhotoPath(null)
+    setShowPhotoSheet(false)
+  }
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
@@ -211,7 +236,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     const cH    = container.offsetHeight
     let newX = e.clientX - cRect.left - dragOffset.current.x
     let newY = e.clientY - cRect.top  - dragOffset.current.y
-    // Keep at least 60% of card inside the frame
     newX = Math.max(-cardW * 0.4, Math.min(cW - cardW * 0.6, newX))
     newY = Math.max(-cardH * 0.4, Math.min(cH - cardH * 0.6, newY))
     setCardPos({ x: newX, y: newY })
@@ -263,6 +287,11 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
   const cardBg = hasPhoto ? 'rgba(0,0,0,0.72)' : isT ? 'rgba(0,0,0,0.55)' : '#111111'
 
+  // Main button props driven by state
+  const canShare        = !!data.sessionId
+  const mainBtnLoading  = sharing || photoLoading
+  const mainBtnIsAdd    = !localPhotoPath && !hasPhoto
+
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
@@ -277,10 +306,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       {/* ── 9:16 Story preview ──────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 8px' }}>
         <div style={{ width: 'min(94vw, 420px)' }}>
-          {/*
-            captureRef: fixed 9:16 container — html-to-image captures this element.
-            Photo img covers the background; draggable card floats above.
-          */}
           <div
             ref={captureRef}
             style={{
@@ -335,13 +360,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 overflow: 'hidden',
               }}
             >
-              {/* Accent top line */}
               <div style={{ height: 2, background: ac.topLine }} />
 
-              {/* Card content */}
               <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: tsh }}>
 
-                {/* Badge */}
                 <div style={{ display: 'inline-flex', marginBottom: 8 }}>
                   <span style={{
                     fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 8,
@@ -350,7 +372,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   }}>LIFTSNAP</span>
                 </div>
 
-                {/* Header labels */}
                 <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', margin: '0 0 2px', lineHeight: 1.2 }}>
                   TODAY&apos;S WORKOUT
                 </p>
@@ -363,7 +384,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
                 <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
-                {/* Total Volume */}
                 <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 2px', lineHeight: 1.2 }}>
                   TOTAL VOLUME
                 </p>
@@ -381,7 +401,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
                 <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
-                {/* Exercises */}
                 <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 10px', lineHeight: 1.2 }}>
                   EXERCISES
                 </p>
@@ -426,7 +445,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   })}
                 </div>
 
-                {/* Muscle chip */}
                 {data.muscleFocus && (
                   <span style={{
                     alignSelf: 'flex-start', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
@@ -438,54 +456,74 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   </span>
                 )}
 
-                {/* Watermark */}
                 <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.50)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
                   Made with LIFTSNAP · liftsnap.app
                 </p>
 
-              </div>{/* /card content */}
+              </div>
             </div>{/* /draggable card */}
           </div>{/* /captureRef */}
         </div>
       </div>
 
-      {/* Photo status notices */}
+      {/* ── Photo loading indicator ── */}
       {photoLoading && !photoDataUrl && (
         <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
           {t(locale, 'story.loadingPhoto')}
         </p>
       )}
-      {!data.photoPath && !photoLoading && (
+
+      {/* ── No-photo state: CTA with add button ── */}
+      {!localPhotoPath && !photoLoading && canShare && (
         <div className="px-4 mb-3">
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+          <div className="rounded-2xl px-4 py-3.5"
             style={{ background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.16)' }}>
-            <Camera size={14} style={{ color: '#ff6b00', flexShrink: 0 }} />
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {t(locale, 'story.addPhotoForBetterStory')}
-            </p>
+            <div className="flex items-center gap-2.5 mb-3">
+              <Camera size={14} style={{ color: '#ff6b00', flexShrink: 0 }} />
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                {t(locale, 'story.addPhotoForBetterStory')}
+              </p>
+            </div>
+            <button
+              className="w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2"
+              style={{ background: '#ff6b00', color: '#fff' }}
+              onClick={() => setShowPhotoSheet(true)}>
+              <ImageIcon size={14} />
+              {t(locale, 'story.addWorkoutPhoto')}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Drag hint */}
-      <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
-        {t(locale, 'story.dragHint')}
-      </p>
+      {/* ── Photo loaded: drag hint + reset + change button ── */}
+      {hasPhoto && (
+        <>
+          <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            {t(locale, 'story.dragHint')}
+          </p>
+          <div className="px-4 mb-3 flex gap-2">
+            <button
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+              style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
+              onClick={resetPosition}>
+              <RotateCcw size={12} />
+              {t(locale, 'story.resetPosition')}
+            </button>
+            {canShare && (
+              <button
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
+                onClick={() => setShowPhotoSheet(true)}>
+                <Camera size={12} />
+                {t(locale, 'story.changePhoto')}
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
-      {/* Reset position */}
-      <div className="px-4 mb-3">
-        <button
-          className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-          style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
-          onClick={resetPosition}
-        >
-          <RotateCcw size={12} />
-          {t(locale, 'story.resetPosition')}
-        </button>
-      </div>
-
-      {/* Background selector — hidden when photo exists */}
-      {!hasPhoto && (
+      {/* ── Background selector (no-photo mode only) ── */}
+      {!hasPhoto && !photoLoading && (
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
             {t(locale, 'story.background')}
@@ -506,7 +544,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       )}
 
-      {/* Color accent selector */}
+      {/* ── Color accent selector ── */}
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
           {t(locale, 'story.color')}
@@ -538,21 +576,69 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Share button */}
+      {/* ── Main action button ── */}
       <div className="px-4 space-y-2 mb-4">
-        {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
-        <button
-          className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-          style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
-          disabled={sharing}
-          onClick={handleShare}>
-          <Share2 size={20} />
-          {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
-        </button>
+        {status && (
+          <p className="text-center text-sm" style={{ color: hasPhoto ? '#ff6b00' : '#888' }}>
+            {status}
+          </p>
+        )}
+
+        {mainBtnIsAdd ? (
+          /* State A: no photo — main button opens photo sheet */
+          canShare && (
+            <button
+              className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
+              style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}
+              onClick={() => setShowPhotoSheet(true)}>
+              <Camera size={20} />
+              {t(locale, 'story.addWorkoutPhoto')}
+            </button>
+          )
+        ) : (
+          /* State C: photo loaded — main button shares */
+          <button
+            className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
+            style={{
+              background: mainBtnLoading ? 'rgba(255,107,0,0.4)' : '#ff6b00',
+              boxShadow: mainBtnLoading ? 'none' : '0 4px 20px rgba(255,107,0,0.3)',
+            }}
+            disabled={mainBtnLoading}
+            onClick={handleShare}>
+            <Share2 size={20} />
+            {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
+          </button>
+        )}
+
+        {/* Secondary share button when no photo (skip-photo path) */}
+        {mainBtnIsAdd && (
+          <button
+            className="w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
+            style={{ background: 'transparent', color: '#555', border: '1px solid #222' }}
+            disabled={sharing}
+            onClick={handleShare}>
+            <Share2 size={16} />
+            {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
+          </button>
+        )}
+
         <p className="text-center text-xs" style={{ color: '#444' }}>
           {t(locale, 'story.mobileOnly')}
         </p>
       </div>
+
+      {/* ── WorkoutPhotoSheet modal ── */}
+      {showPhotoSheet && data.sessionId && (
+        <WorkoutPhotoSheet
+          sessionId={data.sessionId}
+          sessionDate={data.date}
+          todayStr={todayStr}
+          onClose={() => setShowPhotoSheet(false)}
+          onPhotoSaved={handlePhotoSaved}
+          onPhotoDeleted={handlePhotoDeleted}
+          autoCloseOnSave={true}
+        />
+      )}
 
     </div>
   )
