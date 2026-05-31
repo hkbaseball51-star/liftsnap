@@ -251,8 +251,7 @@ export default async function HomePage() {
 
       {/* ── WELCOME ── */}
       <div className="px-4 pt-3 pb-6">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/repra-wordmark-header.png" alt="REPRA" style={{ height: 42, width: 'auto', objectFit: 'contain', display: 'block', marginBottom: 14 }} />
+        <p style={{ fontSize: 30, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 28 }}>REPRA</p>
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
           {getGreeting()}
         </p>
