@@ -2,8 +2,7 @@
 
 // Supabase Dashboard → Authentication → URL Configuration → Redirect URLs must include:
 //   http://localhost:3000/reset-password
-//   https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/reset-password
-//   (add custom domain once configured)
+//   https://<your-production-domain>/reset-password
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -23,33 +22,123 @@ export default function ResetPasswordPage() {
     const supabase = createClient()
     let settled = false
 
-    const settle = (next: Stage) => {
-      if (!settled) { settled = true; setStage(next) }
+    function settle(next: Stage) {
+      if (settled) return
+      settled = true
+      console.log('[reset-password] settle →', next)
+      setStage(next)
     }
 
-    // Supabase browser client auto-exchanges the recovery token in the URL
-    // (both hash-based implicit flow and PKCE code flow).
-    // PASSWORD_RECOVERY fires once the session is established from the reset link.
+    // Capture URL params immediately.
+    // iPhone Gmail in-app browser can strip the hash on navigation,
+    // so we read hash/search before any async work.
+    const rawHash   = window.location.hash
+    const rawSearch = window.location.search
+    const hashParams   = new URLSearchParams(rawHash.slice(1))
+    const searchParams = new URLSearchParams(rawSearch)
+
+    const hasCode        = searchParams.has('code')
+    const code           = searchParams.get('code') ?? ''
+    const hasAccessToken = hashParams.has('access_token')
+    const hasHashError   = hashParams.has('error')
+    const hashType       = hashParams.get('type') ?? ''
+    // Implicit flow:  #access_token=...&type=recovery
+    const isRecoveryHash = hasAccessToken && hashType === 'recovery'
+    // Any signal that this might be a valid recovery link
+    const hasRecoverySignal =
+      hasCode ||
+      isRecoveryHash ||
+      rawSearch.includes('type=recovery') ||
+      rawHash.includes('type=recovery')
+
+    console.log('[reset-password] url state', {
+      hasCode,
+      hasAccessToken,
+      hasHashError,
+      hashType,
+      isRecoveryHash,
+      hasRecoverySignal,
+      search: rawSearch,
+      hash:   rawHash.substring(0, 100),
+    })
+
+    // Supabase returns #error=... when the link is genuinely expired/invalid
+    if (hasHashError) {
+      console.error('[reset-password] hash error', {
+        error: hashParams.get('error'),
+        desc:  hashParams.get('error_description'),
+      })
+      settle('invalid')
+      return
+    }
+
+    // ── onAuthStateChange ──────────────────────────────────────────────────
+    // PASSWORD_RECOVERY fires after Supabase exchanges the recovery token
+    // (both implicit hash flow and PKCE code flow).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[reset-password] auth event', { event, hasSession: !!session })
+
       if (event === 'PASSWORD_RECOVERY') {
+        // Recovery session is established — show the password form
         settle('form')
-      } else if (event === 'INITIAL_SESSION') {
-        const hasToken = typeof window !== 'undefined'
-          && (window.location.hash.includes('access_token') || window.location.search.includes('code='))
-        if (!hasToken) {
-          // No recovery token in URL — link is missing, invalid, or already used
-          settle(session ? 'form' : 'invalid')
+        return
+      }
+
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        if (!hasRecoverySignal) {
+          // No recovery params in URL → bare page visit or already-used link
+          settle('invalid')
         }
-        // Token present → wait for PASSWORD_RECOVERY to fire after exchange
+        // Recovery signal present → keep loading; wait for PASSWORD_RECOVERY
+        // or the explicit exchange fallback below
       }
     })
 
-    // Safety net: if auth state event never fires in 5s, show invalid
-    const timer = setTimeout(() => settle('invalid'), 5000)
+    // ── Explicit PKCE ?code= exchange fallback ─────────────────────────────
+    // When the user opens the reset link in Gmail's in-app browser on iPhone,
+    // the PKCE code-verifier cookie set in the original browser is absent.
+    // createBrowserClient tries to exchange the code automatically, but may
+    // fail silently, so PASSWORD_RECOVERY never fires.
+    // After giving onAuthStateChange 1.5 s to handle it, we try explicitly.
+    let exchangeAttempted = false
+    const exchangeTimer = hasCode
+      ? setTimeout(async () => {
+          if (settled || exchangeAttempted) return
+          exchangeAttempted = true
+          console.log('[reset-password] explicit exchangeCodeForSession')
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+            if (error) {
+              console.error('[reset-password] exchangeCodeForSession error', {
+                message: error.message,
+                status:  (error as { status?: number }).status,
+              })
+              // Don't settle invalid yet — let the hard timeout decide.
+              // (The auto-exchange via onAuthStateChange might still succeed.)
+            } else if (data?.session) {
+              console.log('[reset-password] explicit exchange ok')
+              // PASSWORD_RECOVERY should fire through onAuthStateChange.
+              // If it hasn't arrived within 500 ms, settle form directly.
+              setTimeout(() => settle('form'), 500)
+            }
+          } catch (err) {
+            console.error('[reset-password] exchangeCodeForSession threw', err)
+          }
+        }, 1500)
+      : null
+
+    // ── Hard timeout ───────────────────────────────────────────────────────
+    // If nothing settles in 10 s (no PASSWORD_RECOVERY, no explicit exchange
+    // success), the link is truly invalid or expired.
+    const timeout = setTimeout(() => {
+      console.log('[reset-password] hard timeout, hasRecoverySignal:', hasRecoverySignal)
+      settle('invalid')
+    }, 10000)
 
     return () => {
       subscription.unsubscribe()
-      clearTimeout(timer)
+      clearTimeout(timeout)
+      if (exchangeTimer) clearTimeout(exchangeTimer)
     }
   }, [])
 
@@ -72,7 +161,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
-      console.error('Password update error:', {
+      console.error('[reset-password] updateUser error', {
         message: error.message,
         status:  (error as { status?: number }).status,
         name:    error.name,
@@ -111,7 +200,9 @@ export default function ResetPasswordPage() {
         {/* ── Loading ── */}
         {stage === 'loading' && (
           <div className="text-center">
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Verifying reset link…</p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Checking reset link…
+            </p>
           </div>
         )}
 
@@ -138,9 +229,6 @@ export default function ResetPasswordPage() {
           <>
             <p className="text-center text-sm font-bold mb-6" style={{ color: '#888' }}>
               Set new password
-            </p>
-            <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Enter your new password below.
             </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -186,7 +274,7 @@ export default function ResetPasswordPage() {
                 disabled={submitting}
                 className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
                 style={{ background: submitting ? '#333' : '#ED742F' }}>
-                {submitting ? 'UPDATING...' : 'UPDATE PASSWORD'}
+                {submitting ? 'UPDATING…' : 'UPDATE PASSWORD'}
               </button>
             </form>
 

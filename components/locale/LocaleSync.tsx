@@ -5,33 +5,29 @@ import { resolveLocale, type LangPref } from '@/lib/i18n'
 import { saveLanguage, getUserLanguage } from '@/actions/settings'
 
 const STORAGE_KEY = 'liftsnap_lang'
-const COOKIE_KEY  = 'liftsnap_lang'
 
 export default function LocaleSync() {
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-
-    if (stored) {
-      const resolved = resolveLocale(stored as LangPref)
-      const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith(`${COOKIE_KEY}=`))
-        ?.split('=')[1]
-
-      // Cookie should hold the resolved locale, not raw pref
-      if (cookieValue !== resolved) {
-        saveLanguage(stored, resolved).catch(() => {})
-      }
-    } else {
-      getUserLanguage()
-        .then(pref => {
-          if (pref) {
-            localStorage.setItem(STORAGE_KEY, pref)
-            saveLanguage(pref, resolveLocale(pref as LangPref)).catch(() => {})
+    // Always sync from DB — restores the user's language preference after
+    // re-login and handles cross-device / cross-user scenarios.
+    getUserLanguage()
+      .then(pref => {
+        if (pref) {
+          // DB has a value for this user — update localStorage + cookie
+          const resolved = resolveLocale(pref as LangPref)
+          localStorage.setItem(STORAGE_KEY, pref)
+          saveLanguage(pref, resolved).catch(() => {})
+        } else {
+          // No signed-in user or no DB preference — sync existing
+          // localStorage to cookie so server rendering stays consistent
+          const stored = localStorage.getItem(STORAGE_KEY)
+          if (stored) {
+            const resolved = resolveLocale(stored as LangPref)
+            saveLanguage(stored, resolved).catch(() => {})
           }
-        })
-        .catch(() => {})
-    }
+        }
+      })
+      .catch(() => {})
   }, [])
 
   return null

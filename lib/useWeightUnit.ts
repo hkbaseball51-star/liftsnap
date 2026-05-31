@@ -11,17 +11,21 @@ export function useWeightUnit() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Use localStorage for instant initial render (avoids layout shift)
     const stored = localStorage.getItem(STORAGE_KEY) as WeightUnit | null
     if (stored === 'kg' || stored === 'lbs') {
       setUnitState(stored)
-      setMounted(true)
-      return
     }
-    getUserWeightUnit().then(u => {
-      setUnitState(u)
-      localStorage.setItem(STORAGE_KEY, u)
-      setMounted(true)
-    }).catch(() => setMounted(true))
+
+    // Always sync from DB — restores correct unit after re-login
+    // and handles cross-device / cross-user scenarios
+    getUserWeightUnit()
+      .then(u => {
+        setUnitState(u)
+        localStorage.setItem(STORAGE_KEY, u)
+        setMounted(true)
+      })
+      .catch(() => setMounted(true))
   }, [])
 
   const setUnit = async (u: WeightUnit) => {

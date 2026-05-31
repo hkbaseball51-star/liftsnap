@@ -210,12 +210,17 @@ export default function SupportPage() {
       {/* Delete Account Modal — Step 1: data list */}
       {deleteStep === 'confirm' && (
         <div
-          className="fixed inset-0 z-50 flex items-end"
+          className="fixed inset-0 z-[60] flex items-end"
           style={{ background: 'rgba(0,0,0,0.82)' }}
           onClick={closeModal}>
           <div
-            className="w-full p-5 rounded-t-3xl pb-10"
-            style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}
+            className="w-full p-5 rounded-t-3xl"
+            style={{
+              background: '#1D1D1D',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderBottom: 'none',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+            }}
             onClick={e => e.stopPropagation()}>
 
             <div className="flex justify-center mb-4">
@@ -266,12 +271,17 @@ export default function SupportPage() {
       {/* Delete Account Modal — Step 2: type DELETE */}
       {deleteStep === 'type' && (
         <div
-          className="fixed inset-0 z-50 flex items-end"
+          className="fixed inset-0 z-[60] flex items-end"
           style={{ background: 'rgba(0,0,0,0.82)' }}
           onClick={closeModal}>
           <div
-            className="w-full p-5 rounded-t-3xl pb-10"
-            style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}
+            className="w-full p-5 rounded-t-3xl"
+            style={{
+              background: '#1D1D1D',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderBottom: 'none',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+            }}
             onClick={e => e.stopPropagation()}>
 
             <div className="flex justify-center mb-4">

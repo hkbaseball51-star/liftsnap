@@ -27,8 +27,12 @@ export default function RestTimerSheet({ defaultSeconds = 120, onStart, onClose 
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
       <div
-        className="w-full rounded-t-3xl p-6 pb-10"
-        style={{ background: '#171717', border: '1px solid #1e1e1e' }}
+        className="w-full rounded-t-3xl p-6"
+        style={{
+          background: '#171717',
+          border: '1px solid #1e1e1e',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+        }}
         onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between mb-5">

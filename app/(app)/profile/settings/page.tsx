@@ -9,7 +9,7 @@ import {
   Ruler, Palette, Globe,
   Crown, CreditCard,
   HelpCircle, FileText, UserX,
-  LogOut, Database,
+  LogOut, Database, LogIn, UserPlus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
@@ -35,6 +35,7 @@ type LiveRow = {
   icon:    React.ComponentType<{ size: number; style: React.CSSProperties }>
   href:    string
   danger?: boolean
+  accent?: boolean  // orange highlight for sign-in CTA
 }
 
 type SoonRow = {
@@ -49,21 +50,27 @@ const SectionLabel = ({ text }: { text: string }) => (
 
 function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
   const Icon = row.icon
+  const iconStyle = row.danger
+    ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.14)' }
+    : row.accent
+    ? { background: 'rgba(237,116,47,0.12)', border: '1px solid rgba(237,116,47,0.35)' }
+    : T.iconWrap
+  const iconColor   = row.danger ? '#f87171' : row.accent ? '#ED742F' : T.secondary
+  const labelColor  = row.danger ? '#f87171' : row.accent ? '#ED742F' : T.main
+  const chevronColor = row.danger ? 'rgba(248,113,113,0.4)' : row.accent ? 'rgba(237,116,47,0.4)' : T.chevron
+
   return (
     <Link href={row.href}
       className="flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity"
-      style={{ borderBottom: last ? 'none' : T.divider, display: 'flex' }}>
-      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-        style={row.danger
-          ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.14)' }
-          : T.iconWrap}>
-        <Icon size={14} style={{ color: row.danger ? '#f87171' : T.secondary }} />
+      style={{ borderBottom: last ? 'none' : T.divider }}>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={iconStyle}>
+        <Icon size={14} style={{ color: iconColor }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold" style={{ color: row.danger ? '#f87171' : T.main }}>{row.label}</p>
+        <p className="text-sm font-bold" style={{ color: labelColor }}>{row.label}</p>
         {row.sub && <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{row.sub}</p>}
       </div>
-      <ChevronRight size={13} style={{ color: row.danger ? 'rgba(248,113,113,0.4)' : T.chevron }} />
+      <ChevronRight size={13} style={{ color: chevronColor }} />
     </Link>
   )
 }
@@ -90,18 +97,25 @@ function SoonRowEl({ row, last, soonLabel }: { row: SoonRow; last: boolean; soon
 /* ── Page ────────────────────────────────────────────── */
 export default function SettingsPage() {
   const { locale } = useLocale()
-  const [isPro, setIsPro]               = useState(false)
-  const [email, setEmail]               = useState<string | null>(null)
+  const [authReady,        setAuthReady]        = useState(false)
+  const [isPro,            setIsPro]            = useState(false)
+  const [email,            setEmail]            = useState<string | null>(null)
   const [showSignOutModal, setShowSignOutModal] = useState(false)
-  const [signingOut, setSigningOut]     = useState(false)
+  const [signingOut,       setSigningOut]       = useState(false)
+
+  // authReady=true means getUser() has returned (user may or may not be logged in)
+  const isLoggedIn = authReady && !!email
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      setEmail(user.email ?? null)
-      supabase.from('profiles').select('plan').eq('id', user.id).single()
-        .then(({ data }) => { if (data?.plan === 'pro') setIsPro(true) })
+      // Anonymous users (auto-signed in) have no email — treat as guest
+      if (user?.email) {
+        setEmail(user.email)
+        supabase.from('profiles').select('plan').eq('id', user.id).single()
+          .then(({ data }) => { if (data?.plan === 'pro') setIsPro(true) })
+      }
+      setAuthReady(true)
     })
   }, [])
 
@@ -110,10 +124,29 @@ export default function SettingsPage() {
     await logout()
   }
 
+  /* ── Row definitions ── */
+
   const ACCOUNT_ROWS: LiveRow[] = [
     { label: t(locale, 'settings.editProfile'),   sub: t(locale, 'settings.accountEditSub'),   icon: User,   href: '/profile/edit' },
     { label: t(locale, 'settings.privacy'),       sub: t(locale, 'settings.privacySub'),       icon: Shield, href: '/profile/privacy' },
     { label: t(locale, 'settings.notifications'), sub: t(locale, 'settings.notificationsSub'), icon: Bell,   href: '/profile/notifications' },
+  ]
+
+  // Shown in ACCOUNT section when user is NOT logged in
+  const GUEST_ROWS: LiveRow[] = [
+    {
+      label:  t(locale, 'settings.guestSignIn'),
+      sub:    t(locale, 'settings.guestSignInSub'),
+      icon:   LogIn,
+      href:   '/login',
+      accent: true,
+    },
+    {
+      label: t(locale, 'settings.guestCreateAccount'),
+      sub:   t(locale, 'settings.guestCreateAccountSub'),
+      icon:  UserPlus,
+      href:  '/signup',
+    },
   ]
 
   const APP_LIVE_ROWS: LiveRow[] = [
@@ -125,11 +158,12 @@ export default function SettingsPage() {
     { label: t(locale, 'settings.theme'), sub: t(locale, 'settings.themeSub'), icon: Palette },
   ]
 
+  // Delete Account only shown to logged-in users
   const SUPPORT_ROWS: LiveRow[] = [
     { label: t(locale, 'settings.helpSupport'),    sub: t(locale, 'settings.helpSub'),          icon: HelpCircle, href: '/profile/support' },
     { label: t(locale, 'settings.termsOfService'), sub: t(locale, 'settings.termsSub'),         icon: FileText,   href: '/profile/support' },
     { label: t(locale, 'settings.privacyPolicy'),  sub: t(locale, 'settings.privacyPolicySub'), icon: Shield,     href: '/profile/support' },
-    { label: t(locale, 'settings.deleteAccount'),  sub: t(locale, 'settings.deleteAccountSub'), icon: UserX,      href: '/profile/support', danger: true },
+    ...(isLoggedIn ? [{ label: t(locale, 'settings.deleteAccount'), sub: t(locale, 'settings.deleteAccountSub'), icon: UserX, href: '/profile/support', danger: true }] : []),
   ]
 
   return (
@@ -143,17 +177,20 @@ export default function SettingsPage() {
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'settings.settingsTitle')}</h1>
       </div>
 
-      {/* ACCOUNT */}
-      <div className="mx-4 mb-4">
-        <SectionLabel text={t(locale, 'settings.sectionAccount')} />
-        <div style={T.card}>
-          {ACCOUNT_ROWS.map((row, i) => (
-            <LiveRowEl key={row.label} row={row} last={i === ACCOUNT_ROWS.length - 1} />
-          ))}
+      {/* ── ACCOUNT ── */}
+      {/* Shows sign-in/create-account for guests; edit-profile etc. for logged-in users */}
+      {authReady && (
+        <div className="mx-4 mb-4">
+          <SectionLabel text={t(locale, 'settings.sectionAccount')} />
+          <div style={T.card}>
+            {(isLoggedIn ? ACCOUNT_ROWS : GUEST_ROWS).map((row, i, arr) => (
+              <LiveRowEl key={row.label} row={row} last={i === arr.length - 1} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* APP */}
+      {/* ── APP ── */}
       <div className="mx-4 mb-4">
         <SectionLabel text={t(locale, 'settings.sectionApp')} />
         <div style={T.card}>
@@ -166,65 +203,63 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* PLAN */}
-      <div className="mx-4 mb-4">
-        <SectionLabel text={t(locale, 'settings.sectionPlan')} />
-        {isPro ? (
-          <div style={T.card}>
-            {/* Pro active status */}
-            <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(237, 116, 47,0.14)', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                <Crown size={14} style={{ color: '#ED742F' }} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
-                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.proActive')}</p>
-              </div>
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                ACTIVE
-              </span>
-            </div>
-            <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
-          </div>
-        ) : (
-          <>
-            {/* Upgrade card */}
-            <div className="rounded-2xl p-4 mb-2"
-              style={{ background: '#1D1D1D', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.upgradeTitle')}</p>
-                  <p className="text-xs mt-0.5" style={{ color: T.secondary }}>
-                    {t(locale, 'settings.upgradeSub')}
-                  </p>
+      {/* ── PLAN — logged-in only ── */}
+      {isLoggedIn && (
+        <div className="mx-4 mb-4">
+          <SectionLabel text={t(locale, 'settings.sectionPlan')} />
+          {isPro ? (
+            <div style={T.card}>
+              <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(237, 116, 47,0.14)', border: '1px solid rgba(237, 116, 47,0.35)' }}>
+                  <Crown size={14} style={{ color: '#ED742F' }} />
                 </div>
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5"
+                <div className="flex-1">
+                  <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.proActive')}</p>
+                </div>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
                   style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                  PRO
+                  ACTIVE
                 </span>
               </div>
-              <div className="flex gap-2">
-                <button className="flex-1 py-2.5 rounded-xl text-xs font-black"
-                  style={{ background: 'rgba(255,255,255,0.11)', color: T.secondary, border: '1px solid rgba(255,255,255,0.40)' }}>
-                  ¥480 / mo
-                </button>
-                <button className="flex-1 py-2.5 rounded-xl text-xs font-black text-white"
-                  style={{ background: '#ED742F' }}>
-                  ¥2,980 / yr ★
-                </button>
-              </div>
-            </div>
-            {/* Manage Subscription */}
-            <div style={T.card}>
               <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
             </div>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <div className="rounded-2xl p-4 mb-2"
+                style={{ background: '#1D1D1D', border: '1px solid rgba(237, 116, 47,0.35)' }}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.upgradeTitle')}</p>
+                    <p className="text-xs mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.upgradeSub')}</p>
+                  </div>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5"
+                    style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
+                    PRO
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button className="flex-1 py-2.5 rounded-xl text-xs font-black"
+                    style={{ background: 'rgba(255,255,255,0.11)', color: T.secondary, border: '1px solid rgba(255,255,255,0.40)' }}>
+                    ¥480 / mo
+                  </button>
+                  <button className="flex-1 py-2.5 rounded-xl text-xs font-black text-white"
+                    style={{ background: '#ED742F' }}>
+                    ¥2,980 / yr ★
+                  </button>
+                </div>
+              </div>
+              <div style={T.card}>
+                <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-      {/* SUPPORT */}
+      {/* ── SUPPORT ── */}
+      {/* Delete Account row is excluded when not logged in (see SUPPORT_ROWS computed above) */}
       <div className="mx-4 mb-4">
         <SectionLabel text={t(locale, 'settings.sectionSupport')} />
         <div style={T.card}>
@@ -234,57 +269,64 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* SESSION */}
-      <div className="mx-4 mb-4">
-        <SectionLabel text={t(locale, 'settings.sectionSession')} />
-        <div style={T.card}>
-          {/* Signed in as */}
-          {email && (
-            <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={T.iconWrap}>
-                <User size={14} style={{ color: T.secondary }} />
+      {/* ── SESSION — logged-in only ── */}
+      {isLoggedIn && (
+        <div className="mx-4 mb-4">
+          <SectionLabel text={t(locale, 'settings.sectionSession')} />
+          <div style={T.card}>
+            {email && (
+              <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={T.iconWrap}>
+                  <User size={14} style={{ color: T.secondary }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black tracking-widest" style={{ color: T.label }}>
+                    {t(locale, 'settings.signedInAs').toUpperCase()}
+                  </p>
+                  <p className="text-sm font-bold truncate mt-0.5" style={{ color: T.main }}>{email}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black tracking-widest" style={{ color: T.label }}>
-                  {t(locale, 'settings.signedInAs').toUpperCase()}
-                </p>
-                <p className="text-sm font-bold truncate mt-0.5" style={{ color: T.main }}>{email}</p>
+            )}
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity text-left"
+              onClick={() => setShowSignOutModal(true)}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}>
+                <LogOut size={14} style={{ color: '#f87171' }} />
               </div>
-            </div>
-          )}
-          {/* Sign out */}
-          <button
-            className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity text-left"
-            onClick={() => setShowSignOutModal(true)}>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}>
-              <LogOut size={14} style={{ color: '#f87171' }} />
-            </div>
-            <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>{t(locale, 'settings.signOut')}</span>
-          </button>
+              <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>{t(locale, 'settings.signOut')}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Your data note */}
-      <div className="mx-4 mb-10">
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.14)' }}>
-          <Database size={12} style={{ color: 'rgba(255,255,255,0.58)', flexShrink: 0 }} />
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.58)' }}>
-            {t(locale, 'settings.yourDataSaved')}
-          </p>
+      {/* ── Your data note — logged-in only ── */}
+      {isLoggedIn && (
+        <div className="mx-4 mb-10">
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.14)' }}>
+            <Database size={12} style={{ color: 'rgba(255,255,255,0.58)', flexShrink: 0 }} />
+            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.58)' }}>
+              {t(locale, 'settings.yourDataSaved')}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Sign Out Confirmation Modal */}
+      {/* ── Sign Out Confirmation Modal ── */}
       {showSignOutModal && (
         <div
-          className="fixed inset-0 z-50 flex items-end"
+          className="fixed inset-0 z-[60] flex items-end"
           style={{ background: 'rgba(0,0,0,0.82)' }}
           onClick={() => !signingOut && setShowSignOutModal(false)}>
           <div
-            className="w-full p-5 rounded-t-3xl pb-10"
-            style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}
+            className="w-full p-5 rounded-t-3xl"
+            style={{
+              background: '#1D1D1D',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderBottom: 'none',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+            }}
             onClick={e => e.stopPropagation()}>
 
             <div className="flex justify-center mb-4">
@@ -311,10 +353,7 @@ export default function SettingsPage() {
               </button>
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{
-                  background: signingOut ? 'rgba(239,68,68,0.3)' : '#dc2626',
-                  color: '#fff',
-                }}
+                style={{ background: signingOut ? 'rgba(239,68,68,0.3)' : '#dc2626', color: '#fff' }}
                 disabled={signingOut}
                 onClick={handleSignOut}>
                 {signingOut ? '...' : t(locale, 'settings.signOutConfirmBtn')}
