@@ -384,6 +384,12 @@ const translations = {
       deleting: 'Deleting...',
       uploading: 'Saving...',
       noPhotoYet: 'No photo for this day',
+      adjustStorySize: 'Adjust to Story size',
+      dragToAdjust: 'Drag to adjust position',
+      cropSave: 'Save',
+      cropCancel: 'Cancel',
+      cropRetake: 'Retake',
+      cropZoom: 'Zoom',
     },
     support: {
       title: 'HELP & SUPPORT',
@@ -440,6 +446,8 @@ const translations = {
       photoSavedCreateStory: 'Photo saved. Create your story!',
       changePhoto: 'Change photo',
       addWorkoutPhoto: 'Add workout photo',
+      cardSize: 'Card size',
+      resetAll: 'Reset all',
     },
   },
 
@@ -805,6 +813,12 @@ const translations = {
       deleting: '削除中...',
       uploading: '保存中...',
       noPhotoYet: 'この日の写真はありません',
+      adjustStorySize: 'Storyサイズに調整',
+      dragToAdjust: '写真をドラッグして位置を調整',
+      cropSave: '保存',
+      cropCancel: 'キャンセル',
+      cropRetake: '撮り直す',
+      cropZoom: '拡大',
     },
     support: {
       title: 'ヘルプ & サポート',
@@ -861,6 +875,8 @@ const translations = {
       photoSavedCreateStory: '写真を保存しました。Storyを作成できます！',
       changePhoto: '写真を変更',
       addWorkoutPhoto: 'ワークアウト写真を追加',
+      cardSize: 'カードサイズ',
+      resetAll: 'すべてリセット',
     },
   },
 } as const

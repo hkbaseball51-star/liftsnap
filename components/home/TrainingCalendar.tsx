@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Camera } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
+import { createClient } from '@/lib/supabase/client'
 
 export type CalendarSession = {
   date: string       // YYYY-MM-DD
@@ -83,14 +84,14 @@ export default function TrainingCalendar({
   selectedDate: controlledSelectedDate,
   onSelectDate,
   onNavigate,
-  photoDates = new Set(),
+  photoPathsByDate = {},
 }: {
   sessions: CalendarSession[]
   todayStr: string
   selectedDate?: string | null
   onSelectDate?: (date: string) => void
   onNavigate?: (date: string) => void
-  photoDates?: Set<string>
+  photoPathsByDate?: Record<string, string>
 }) {
   const router = useRouter()
   const { locale } = useLocale()
@@ -98,6 +99,48 @@ export default function TrainingCalendar({
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
   const [internalSelectedDate, setInternalSelectedDate] = useState<string | null>(null)
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({})
+
+  // Generate signed URLs for photos in the currently displayed month
+  useEffect(() => {
+    const datesInMonth: { date: string; path: string }[] = []
+    const d = new Date(year, month, 1)
+    while (d.getMonth() === month) {
+      const dateStr = localDateStr(d)
+      const path = photoPathsByDate[dateStr]
+      if (path) datesInMonth.push({ date: dateStr, path })
+      d.setDate(d.getDate() + 1)
+    }
+
+    if (datesInMonth.length === 0) {
+      setPhotoSignedUrls({})
+      return
+    }
+
+    let cancelled = false
+    const supabase = createClient()
+
+    Promise.allSettled(
+      datesInMonth.map(({ date, path }) =>
+        supabase.storage
+          .from('workout-photos')
+          .createSignedUrl(path, 3600)
+          .then(({ data }) => ({ date, url: data?.signedUrl ?? null }))
+      )
+    ).then(results => {
+      if (cancelled) return
+      const urls: Record<string, string> = {}
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value.url) {
+          urls[r.value.date] = r.value.url
+        }
+      }
+      setPhotoSignedUrls(urls)
+    }).catch(() => { /* fail silently — fallback to muscle color */ })
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month, photoPathsByDate])
 
   const isControlled = controlledSelectedDate !== undefined
   const selectedDate = isControlled ? controlledSelectedDate : internalSelectedDate
@@ -201,10 +244,12 @@ export default function TrainingCalendar({
             const isToday = dateStr === clientToday
             const isSelected = dateStr === selectedDate
             const isFuture = dateStr > clientToday
-            const hasPhoto = muscle !== null && photoDates.has(dateStr)
 
             const color = muscle ? (MUSCLE_COLORS[muscle] ?? '#ec4899') : null
             const abbrev = muscle ? (ABBREV[muscle] ?? 'F') : null
+
+            const signedUrl = photoSignedUrls[dateStr] ?? null
+            const hasPhoto = muscle !== null && !!signedUrl
 
             // ── Visual state matrix ──────────────────────────
             let bg: string
@@ -243,6 +288,16 @@ export default function TrainingCalendar({
               textColor = isFuture ? '#2a2a2a' : '#5a5a5a'
             }
 
+            // Photo overrides: show thumbnail as circle background
+            if (hasPhoto) {
+              bg = 'transparent'
+              textColor = '#ffffff'
+              if (!isSelected && !isToday) {
+                border = `2px solid ${color!}`
+                shadow = 'none'
+              }
+            }
+
             // Date font size by state
             const dateFontSize = isSelected || isToday ? 15 : muscle ? 14 : 13
 
@@ -252,6 +307,8 @@ export default function TrainingCalendar({
                 <button
                   className="rounded-full flex items-center justify-center active:scale-90 transition-transform"
                   style={{
+                    position: 'relative',
+                    overflow: 'hidden',
                     width: 34, height: 34,
                     background: bg, border, boxShadow: shadow,
                     cursor: isFuture ? 'default' : 'pointer',
@@ -274,7 +331,30 @@ export default function TrainingCalendar({
                       router.push(`/record?date=${dateStr}`)
                     }
                   }}>
+                  {signedUrl && (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={signedUrl}
+                        alt=""
+                        loading="lazy"
+                        style={{
+                          position: 'absolute', inset: 0,
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'rgba(0,0,0,0.40)',
+                        pointerEvents: 'none',
+                      }} />
+                    </>
+                  )}
                   <span style={{
+                    position: 'relative',
+                    zIndex: 1,
                     color: textColor,
                     fontSize: dateFontSize,
                     fontWeight: isToday || muscle || isSelected ? 900 : 600,
@@ -284,14 +364,9 @@ export default function TrainingCalendar({
                   </span>
                 </button>
                 {abbrev ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 1, marginTop: 2 }}>
-                    <span style={{ fontSize: 10, fontWeight: 900, lineHeight: 1, color: color! }}>
-                      {abbrev}
-                    </span>
-                    {hasPhoto && (
-                      <Camera size={7} style={{ color: color!, opacity: 0.8, flexShrink: 0 }} />
-                    )}
-                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 900, lineHeight: 1, color: color!, marginTop: 2 }}>
+                    {abbrev}
+                  </span>
                 ) : (
                   <div style={{ height: 12 }} />
                 )}

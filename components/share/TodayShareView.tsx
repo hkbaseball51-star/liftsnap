@@ -134,6 +134,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [localPhotoPath, setLocalPhotoPath] = useState<string | null>(data.photoPath ?? null)
   const [showPhotoSheet, setShowPhotoSheet] = useState(false)
   const [cardPos,        setCardPos]        = useState({ x: 16, y: 180 })
+  const [cardScale,      setCardScale]      = useState(1.0)
 
   const isDragging = useRef(false)
   const dragOffset = useRef({ x: 0, y: 0 })
@@ -195,6 +196,21 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     if (!container || !card) return
     const cW    = container.clientWidth
     const cH    = container.clientHeight
+    const cardW = card.clientWidth  * cardScale
+    const cardH = card.clientHeight * cardScale
+    setCardPos({
+      x: (cW - cardW) / 2,
+      y: Math.max(16, Math.min(cH - cardH - 16, Math.round(cH * 0.45 - cardH / 2))),
+    })
+  }
+
+  const resetAll = () => {
+    setCardScale(1.0)
+    const container = captureRef.current
+    const card      = cardRef.current
+    if (!container || !card) return
+    const cW    = container.clientWidth
+    const cH    = container.clientHeight
     const cardW = card.clientWidth
     const cardH = card.clientHeight
     setCardPos({
@@ -230,8 +246,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     const container = captureRef.current
     if (!container) return
     const cRect = container.getBoundingClientRect()
-    const cardW = e.currentTarget.offsetWidth
-    const cardH = e.currentTarget.offsetHeight
+    const cardW = e.currentTarget.offsetWidth  * cardScale
+    const cardH = e.currentTarget.offsetHeight * cardScale
     const cW    = container.offsetWidth
     const cH    = container.offsetHeight
     let newX = e.clientX - cRect.left - dragOffset.current.x
@@ -358,6 +374,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 border: `1px solid ${ac.cardBorder}`,
                 borderRadius: 16,
                 overflow: 'hidden',
+                transform: `scale(${cardScale})`,
+                transformOrigin: 'top left',
               }}
             >
               <div style={{ height: 2, background: ac.topLine }} />
@@ -520,6 +538,38 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             )}
           </div>
         </>
+      )}
+
+      {/* ── Card size slider ── */}
+      {canShare && (
+        <div className="px-4 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold" style={{ color: '#555', letterSpacing: '0.08em' }}>
+              {t(locale, 'story.cardSize').toUpperCase()}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono" style={{ color: '#555' }}>
+                {Math.round(cardScale * 100)}%
+              </span>
+              <button
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md"
+                style={{ background: '#1a1a1a', color: '#555', border: '1px solid #2a2a2a' }}
+                onClick={resetAll}>
+                {t(locale, 'story.resetAll')}
+              </button>
+            </div>
+          </div>
+          <input
+            type="range"
+            min="0.65"
+            max="1.15"
+            step="0.05"
+            value={cardScale}
+            onChange={e => setCardScale(parseFloat(e.target.value))}
+            className="w-full"
+            style={{ accentColor: '#ff6b00' }}
+          />
+        </div>
       )}
 
       {/* ── Background selector (no-photo mode only) ── */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import TrainingCalendar, { type CalendarSession } from './TrainingCalendar'
 import SelectedDaySummary from './SelectedDaySummary'
@@ -26,17 +26,18 @@ export default function CalendarWithSummary({
   todayStr,
   daySummaries,
   bodyWeightByDate = {},
-  photoDates = new Set(),
+  photoPathsByDate = {},
 }: {
   sessions: CalendarSession[]
   todayStr: string
   daySummaries: Record<string, DaySummary>
   bodyWeightByDate?: Record<string, number>
-  photoDates?: Set<string>
+  photoPathsByDate?: Record<string, string>
 }) {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
+  const photoDates = useMemo(() => new Set(Object.keys(photoPathsByDate)), [photoPathsByDate])
   const selectedSummary = selectedDate ? (daySummaries[selectedDate] ?? null) : null
 
   return (
@@ -47,7 +48,7 @@ export default function CalendarWithSummary({
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
         onNavigate={(date) => router.push(`/record?date=${date}`)}
-        photoDates={photoDates}
+        photoPathsByDate={photoPathsByDate}
       />
       {selectedDate && (
         <div style={{ marginTop: 12 }}>

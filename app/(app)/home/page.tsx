@@ -74,7 +74,7 @@ export default async function HomePage() {
       .gte('trained_at', getStreakWindowStart()),
 
     supabase.from('workout_photo_logs')
-      .select('workout_date')
+      .select('workout_date, image_path, workout_session_id, created_at')
       .eq('user_id', user.id)
       .gte('workout_date', ninetyDaysAgoStr),
   ])
@@ -163,9 +163,28 @@ export default async function HomePage() {
     }
   }
 
-  const photoDates = new Set<string>(
-    ((photoLogsRes.data ?? []) as { workout_date: string }[]).map(p => p.workout_date)
-  )
+  type PhotoLogRow = {
+    workout_date: string
+    image_path: string
+    workout_session_id: string
+    created_at: string
+  }
+  const rawPhotoLogs = (photoLogsRes.data ?? []) as PhotoLogRow[]
+
+  // Group by date, pick best photo (session-matching first, then most recent)
+  const photosByDate = new Map<string, PhotoLogRow[]>()
+  for (const log of rawPhotoLogs) {
+    if (!photosByDate.has(log.workout_date)) photosByDate.set(log.workout_date, [])
+    photosByDate.get(log.workout_date)!.push(log)
+  }
+
+  const photoPathsByDate: Record<string, string> = {}
+  for (const [date, logs] of photosByDate.entries()) {
+    const summary = daySummaries[date]
+    const match = summary ? logs.find(l => l.workout_session_id === summary.sessionId) : null
+    const best = match ?? [...logs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    if (best?.image_path) photoPathsByDate[date] = best.image_path
+  }
 
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
@@ -294,7 +313,7 @@ export default async function HomePage() {
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
       <div className="px-4 mb-5">
-        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} photoDates={photoDates} />
+        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} photoPathsByDate={photoPathsByDate} />
       </div>
 
       {/* ── WEEKLY EFFORT ── */}
