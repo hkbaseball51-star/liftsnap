@@ -58,7 +58,7 @@ export default function SplashScreen({ ready = true }: { ready?: boolean }) {
         pointerEvents:  fadingOut ? 'none' : 'auto',
       }}>
       <Image
-        src="/brand/splash-screen.png"
+        src="/brand/splash-screen-v2.png"
         alt="REPRA"
         fill
         priority
