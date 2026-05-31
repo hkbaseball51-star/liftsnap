@@ -53,7 +53,7 @@ export async function resetPassword(email: string) {
   const host = headersList.get('host') ?? 'localhost:3000'
   const proto = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https'
   const origin = `${proto}://${host}`
-  const redirectTo = `${origin}/login`
+  const redirectTo = `${origin}/reset-password`
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
