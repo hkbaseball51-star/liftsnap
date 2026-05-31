@@ -10,19 +10,22 @@ export default function LoginPage() {
   const [mode, setMode]       = useState<Mode>('login')
   const [error, setError]     = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
+  const [resetSent, setResetSent]     = useState(false)
+  const [devError,  setDevError]      = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setDevError(null)
 
     if (mode === 'reset') {
       const email = (e.currentTarget.elements.namedItem('email') as HTMLInputElement).value
       const result = await resetPassword(email)
       setLoading(false)
       if (result?.error) {
-        setError('Could not send reset email. Please try again.')
+        setError(result.error)
+        setDevError(result.devMessage ?? null)
       } else {
         setResetSent(true)
       }
@@ -55,10 +58,10 @@ export default function LoginPage() {
         resetSent ? (
           <div className="text-center">
             <p className="text-sm font-bold mb-2" style={{ color: '#22c55e' }}>
-              Password reset email sent.
+              Reset link sent. Please check your email.
             </p>
             <p className="text-sm mb-6" style={{ color: '#555' }}>
-              Check your inbox and follow the link to reset your password.
+              Follow the link in your inbox to reset your password.
             </p>
             <button
               onClick={() => { setMode('login'); setResetSent(false); setError(null) }}
@@ -88,6 +91,11 @@ export default function LoginPage() {
 
             {error && (
               <p className="text-sm text-center font-bold" style={{ color: '#ef4444' }}>{error}</p>
+            )}
+            {devError && (
+              <p className="text-[10px] text-center break-all" style={{ color: '#888' }}>
+                dev: {devError}
+              </p>
             )}
 
             <button
