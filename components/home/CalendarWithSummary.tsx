@@ -7,6 +7,7 @@ import SelectedDaySummary from './SelectedDaySummary'
 
 export type DaySummary = {
   date: string
+  sessionId: string
   muscleGroup: string
   allMuscleGroups: string[]
   totalSets: number
@@ -25,14 +26,18 @@ export default function CalendarWithSummary({
   todayStr,
   daySummaries,
   bodyWeightByDate = {},
+  photoDates = new Set(),
 }: {
   sessions: CalendarSession[]
   todayStr: string
   daySummaries: Record<string, DaySummary>
   bodyWeightByDate?: Record<string, number>
+  photoDates?: Set<string>
 }) {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  const selectedSummary = selectedDate ? (daySummaries[selectedDate] ?? null) : null
 
   return (
     <>
@@ -42,14 +47,18 @@ export default function CalendarWithSummary({
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
         onNavigate={(date) => router.push(`/record?date=${date}`)}
+        photoDates={photoDates}
       />
       {selectedDate && (
         <div style={{ marginTop: 12 }}>
           <SelectedDaySummary
             key={selectedDate}
             selectedDate={selectedDate}
-            summary={daySummaries[selectedDate] ?? null}
+            summary={selectedSummary}
             bodyWeight={bodyWeightByDate[selectedDate] ?? null}
+            sessionId={selectedSummary?.sessionId ?? null}
+            hasPhoto={photoDates.has(selectedDate)}
+            todayStr={todayStr}
           />
         </div>
       )}

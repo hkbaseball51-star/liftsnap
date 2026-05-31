@@ -72,11 +72,16 @@ export default async function HomePage() {
       .eq('user_id', user.id)
       .not('completed_at', 'is', null)
       .gte('trained_at', getStreakWindowStart()),
+
+    supabase.from('workout_photo_logs')
+      .select('workout_date')
+      .eq('user_id', user.id)
+      .gte('workout_date', ninetyDaysAgoStr),
   ])
   const [
     thisWeekRes, calendarSessionsRes, profileRes,
     lastWeekRes, bwHistoryRes, atbRes,
-    streakSessionsRes,
+    streakSessionsRes, photoLogsRes,
   ] = rawResults.map(settled)
 
   /* ── Calendar sessions + day summaries (all from embedded query) ── */
@@ -88,6 +93,16 @@ export default async function HomePage() {
 
   for (const session of (calendarSessionsRes.data as SessionRow[] ?? [])) {
     const sets = session.workout_sets ?? []
+
+    // Skip sessions with no valid sets (empty drafts, exercise cards with no weight/reps)
+    const hasValidWorkout = sets.some(s =>
+      s.exercise_name &&
+      (
+        (typeof s.weight_kg === 'number' && s.weight_kg > 0) ||
+        (typeof s.reps === 'number' && s.reps > 0)
+      )
+    )
+    if (!hasValidWorkout) continue
 
     // Muscle group counts for calendar dot + badge
     const mgMap = new Map<string, number>()
@@ -133,6 +148,7 @@ export default async function HomePage() {
 
     daySummaries[session.trained_at] = {
       date: session.trained_at,
+      sessionId: session.id,
       muscleGroup: topMuscle,
       allMuscleGroups,
       totalSets,
@@ -147,10 +163,15 @@ export default async function HomePage() {
     }
   }
 
+  const photoDates = new Set<string>(
+    ((photoLogsRes.data ?? []) as { workout_date: string }[]).map(p => p.workout_date)
+  )
+
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
-  const totalSessions90 = calendarSessionsRes.data?.length ?? 0
-  const todayWorked = thisWeekSessions.some((s: { trained_at: string }) => s.trained_at === todayStr)
+  const totalSessions90 = calendarSessions.length
+  const validWorkoutDates = new Set(calendarSessions.map(s => s.date))
+  const todayWorked = validWorkoutDates.has(todayStr)
   const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null; language: string | null } | null
   if (profileData?.onboarding_completed === false && !user.is_anonymous) {
     redirect('/onboarding')
@@ -273,7 +294,7 @@ export default async function HomePage() {
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
       <div className="px-4 mb-5">
-        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} />
+        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} photoDates={photoDates} />
       </div>
 
       {/* ── WEEKLY EFFORT ── */}

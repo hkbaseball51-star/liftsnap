@@ -9,7 +9,7 @@ import {
   Ruler, Palette, Globe,
   Crown, CreditCard,
   HelpCircle, FileText, UserX,
-  LogOut,
+  LogOut, Database,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
@@ -90,16 +90,25 @@ function SoonRowEl({ row, last, soonLabel }: { row: SoonRow; last: boolean; soon
 /* ── Page ────────────────────────────────────────────── */
 export default function SettingsPage() {
   const { locale } = useLocale()
-  const [isPro, setIsPro] = useState(false)
+  const [isPro, setIsPro]               = useState(false)
+  const [email, setEmail]               = useState<string | null>(null)
+  const [showSignOutModal, setShowSignOutModal] = useState(false)
+  const [signingOut, setSigningOut]     = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
+      setEmail(user.email ?? null)
       supabase.from('profiles').select('plan').eq('id', user.id).single()
         .then(({ data }) => { if (data?.plan === 'pro') setIsPro(true) })
     })
   }, [])
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    await logout()
+  }
 
   const ACCOUNT_ROWS: LiveRow[] = [
     { label: t(locale, 'settings.editProfile'),   sub: t(locale, 'settings.accountEditSub'),   icon: User,   href: '/profile/edit' },
@@ -226,21 +235,94 @@ export default function SettingsPage() {
       </div>
 
       {/* SESSION */}
-      <div className="mx-4 mb-10">
+      <div className="mx-4 mb-4">
         <SectionLabel text={t(locale, 'settings.sectionSession')} />
         <div style={T.card}>
-          <form action={logout}>
-            <button type="submit"
-              className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity text-left">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}>
-                <LogOut size={14} style={{ color: '#f87171' }} />
+          {/* Signed in as */}
+          {email && (
+            <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={T.iconWrap}>
+                <User size={14} style={{ color: T.secondary }} />
               </div>
-              <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>{t(locale, 'settings.signOut')}</span>
-            </button>
-          </form>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black tracking-widest" style={{ color: T.label }}>
+                  {t(locale, 'settings.signedInAs').toUpperCase()}
+                </p>
+                <p className="text-sm font-bold truncate mt-0.5" style={{ color: T.main }}>{email}</p>
+              </div>
+            </div>
+          )}
+          {/* Sign out */}
+          <button
+            className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity text-left"
+            onClick={() => setShowSignOutModal(true)}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}>
+              <LogOut size={14} style={{ color: '#f87171' }} />
+            </div>
+            <span className="flex-1 text-sm font-bold" style={{ color: '#f87171' }}>{t(locale, 'settings.signOut')}</span>
+          </button>
         </div>
       </div>
+
+      {/* Your data note */}
+      <div className="mx-4 mb-10">
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <Database size={12} style={{ color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            {t(locale, 'settings.yourDataSaved')}
+          </p>
+        </div>
+      </div>
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignOutModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end"
+          style={{ background: 'rgba(0,0,0,0.82)' }}
+          onClick={() => !signingOut && setShowSignOutModal(false)}>
+          <div
+            className="w-full p-5 rounded-t-3xl pb-10"
+            style={{ background: '#161616', border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none' }}
+            onClick={e => e.stopPropagation()}>
+
+            <div className="flex justify-center mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.16)' }}>
+                <LogOut size={18} style={{ color: '#f87171' }} />
+              </div>
+            </div>
+
+            <p className="text-base font-black text-center mb-2" style={{ color: T.main }}>
+              {t(locale, 'settings.signOutConfirmTitle')}
+            </p>
+            <p className="text-sm text-center mb-6 leading-relaxed" style={{ color: T.secondary }}>
+              {t(locale, 'settings.signOutConfirmBody')}
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                className="flex-1 py-4 rounded-2xl text-sm font-black"
+                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.62)' }}
+                disabled={signingOut}
+                onClick={() => setShowSignOutModal(false)}>
+                {t(locale, 'settings.signOutConfirmCancel')}
+              </button>
+              <button
+                className="flex-1 py-4 rounded-2xl text-sm font-black"
+                style={{
+                  background: signingOut ? 'rgba(239,68,68,0.3)' : '#dc2626',
+                  color: '#fff',
+                }}
+                disabled={signingOut}
+                onClick={handleSignOut}>
+                {signingOut ? '...' : t(locale, 'settings.signOutConfirmBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

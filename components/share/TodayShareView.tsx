@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Share2, ArrowLeft } from 'lucide-react'
+import { Share2, ArrowLeft, Camera } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
+import { createClient } from '@/lib/supabase/client'
 
 export type TodayData = {
   title: string
@@ -20,6 +21,7 @@ export type TodayData = {
   }[]
   bestLift: { name: string; weight: number } | null
   muscleFocus: string | null
+  photoPath?: string | null
 }
 
 type Theme  = 'dark' | 'transparent'
@@ -142,13 +144,39 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const { unit }   = useWeightUnit()
   const unitLabel  = weightUnitLabel(unit)
 
-  const [theme,      setTheme]      = useState<Theme>('dark')
-  const [accent,     setAccent]     = useState<Accent>('dark')
-  const [sharing,    setSharing]    = useState(false)
-  const [status,     setStatus]     = useState('')
-  const [shareCount, setShareCount] = useState(0)
+  const [theme,        setTheme]        = useState<Theme>('dark')
+  const [accent,       setAccent]       = useState<Accent>('dark')
+  const [sharing,      setSharing]      = useState(false)
+  const [status,       setStatus]       = useState('')
+  const [shareCount,   setShareCount]   = useState(0)
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
+
+  // Load workout photo as data URL for html-to-image CORS compatibility
+  useEffect(() => {
+    if (!data.photoPath) return
+    let cancelled = false
+    async function loadPhoto() {
+      const supabase = createClient()
+      const { data: urlData } = await supabase.storage
+        .from('workout-photos')
+        .createSignedUrl(data.photoPath!, 3600)
+      if (cancelled || !urlData?.signedUrl) return
+      try {
+        const res = await fetch(urlData.signedUrl)
+        const blob = await res.blob()
+        const dataUrl = await new Promise<string>(resolve => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(blob)
+        })
+        if (!cancelled) setPhotoDataUrl(dataUrl)
+      } catch { /* ignore — fallback to no-photo background */ }
+    }
+    loadPhoto()
+    return () => { cancelled = true }
+  }, [data.photoPath])
 
   const handleShare = async () => {
     if (!captureRef.current) return
@@ -184,10 +212,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const dividerColor = 'rgba(255,255,255,0.22)'
   // text-shadow cascades to all children; natural shadow keeps white readable over photos
   const tsh = '0 2px 8px rgba(0,0,0,0.75)'
-  // Preview background (checker for transparent to indicate alpha)
-  const previewBg = isT
-    ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
-    : '#0a0a0a'
+  // Preview background — photo > transparent checker > dark solid
+  const previewBg = photoDataUrl
+    ? `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.5)), url("${photoDataUrl}") center/cover no-repeat`
+    : isT
+      ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
+      : '#0a0a0a'
 
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
@@ -337,6 +367,21 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>{/* /scroll container */}
         </div>
       </div>
+
+      {/* ── Photo CTA (when no photo) ── */}
+      {!photoDataUrl && (
+        <div className="px-4 mb-3">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+            style={{ background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.16)' }}>
+            <Camera size={14} style={{ color: '#ff6b00', flexShrink: 0 }} />
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {data.photoPath === undefined
+                ? 'Add a workout photo to create a better story.'
+                : 'Loading photo...'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Options ──────────────────────────────── */}
       <div className="px-4 mb-3">

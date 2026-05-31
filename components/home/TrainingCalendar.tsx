@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 
@@ -83,12 +83,14 @@ export default function TrainingCalendar({
   selectedDate: controlledSelectedDate,
   onSelectDate,
   onNavigate,
+  photoDates = new Set(),
 }: {
   sessions: CalendarSession[]
   todayStr: string
   selectedDate?: string | null
   onSelectDate?: (date: string) => void
   onNavigate?: (date: string) => void
+  photoDates?: Set<string>
 }) {
   const router = useRouter()
   const { locale } = useLocale()
@@ -199,6 +201,7 @@ export default function TrainingCalendar({
             const isToday = dateStr === clientToday
             const isSelected = dateStr === selectedDate
             const isFuture = dateStr > clientToday
+            const hasPhoto = muscle !== null && photoDates.has(dateStr)
 
             const color = muscle ? (MUSCLE_COLORS[muscle] ?? '#ec4899') : null
             const abbrev = muscle ? (ABBREV[muscle] ?? 'F') : null
@@ -281,16 +284,14 @@ export default function TrainingCalendar({
                   </span>
                 </button>
                 {abbrev ? (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 900,
-                      lineHeight: 1,
-                      marginTop: 2,
-                      color: color!,
-                    }}>
-                    {abbrev}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 1, marginTop: 2 }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, lineHeight: 1, color: color! }}>
+                      {abbrev}
+                    </span>
+                    {hasPhoto && (
+                      <Camera size={7} style={{ color: color!, opacity: 0.8, flexShrink: 0 }} />
+                    )}
+                  </div>
                 ) : (
                   <div style={{ height: 12 }} />
                 )}

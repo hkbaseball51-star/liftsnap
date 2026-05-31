@@ -41,6 +41,7 @@ export async function updateProfile(displayName: string, username: string | null
     throw new Error(error.message)
   }
   revalidatePath('/profile')
+  revalidatePath('/profile/edit')
 }
 
 export async function deleteAccount() {
@@ -48,10 +49,22 @@ export async function deleteAccount() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
+  // Delete Storage photos first (no cascade), then DB records
+  const { data: photoLogs } = await supabase
+    .from('workout_photo_logs')
+    .select('image_path')
+    .eq('user_id', user.id)
+  if (photoLogs && photoLogs.length > 0) {
+    const paths = photoLogs.map((p: { image_path: string }) => p.image_path)
+    await supabase.storage.from('workout-photos').remove(paths)
+  }
+
   await Promise.all([
-    supabase.from('workout_sessions').delete().eq('user_id', user.id),
+    supabase.from('workout_photo_logs').delete().eq('user_id', user.id),
+    supabase.from('workout_sessions').delete().eq('user_id', user.id), // cascades workout_sets
     supabase.from('user_badges').delete().eq('user_id', user.id),
     supabase.from('exercises').delete().eq('user_id', user.id).eq('is_custom', true),
+    supabase.from('body_weights').delete().eq('user_id', user.id),
   ])
   await supabase.from('profiles').delete().eq('id', user.id)
   await supabase.auth.signOut()

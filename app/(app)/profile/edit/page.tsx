@@ -85,7 +85,9 @@ export default function EditProfilePage() {
     try {
       await updateProfile(displayName, normalized)
       setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      // Navigate back after brief success state; revalidatePath('/profile') was called
+      // in the server action so the profile page will fetch fresh data on arrival.
+      setTimeout(() => router.push('/profile'), 800)
     } catch (e) {
       const msg = e instanceof Error ? e.message : ''
       if (msg === 'USERNAME_TAKEN') {

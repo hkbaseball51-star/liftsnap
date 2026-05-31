@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Pencil, Minus } from 'lucide-react'
+import { Plus, X, Pencil, Minus, Camera, ImageIcon } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
 import { createClient } from '@/lib/supabase/client'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import NoteInputSheet from './NoteInputSheet'
+import RestTimerSheet from './RestTimerSheet'
+import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
@@ -358,6 +360,17 @@ export default function WorkoutRecorder({
   const [isDirty, setIsDirty] = useState(false)
   const listEndRef = useRef<HTMLDivElement>(null)
 
+  const [showRestSheet, setShowRestSheet] = useState(false)
+  const [restPreset, setRestPreset] = useState(120)
+  const [restRemaining, setRestRemaining] = useState<number | null>(null)
+  const [restDone, setRestDone] = useState(false)
+
+  const [showPhotoSheet, setShowPhotoSheet] = useState(false)
+  const [hasPhotoRecorded, setHasPhotoRecorded] = useState(false)
+
+  const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
+  const isDateToday = date === todayStr
+
   // Fetch PR data for pre-loaded exercises
   useEffect(() => {
     for (const ex of existingExercises ?? []) {
@@ -371,6 +384,22 @@ export default function WorkoutRecorder({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Rest timer countdown
+  useEffect(() => {
+    if (restRemaining === null || restRemaining <= 0) return
+    const id = setTimeout(() => setRestRemaining(r => (r ?? 1) - 1), 1000)
+    return () => clearTimeout(id)
+  }, [restRemaining])
+
+  // Rest timer done
+  useEffect(() => {
+    if (restRemaining !== 0) return
+    setRestRemaining(null)
+    setRestDone(true)
+    const id = setTimeout(() => setRestDone(false), 3000)
+    return () => clearTimeout(id)
+  }, [restRemaining])
 
   /* ── Memoized derived values ── */
 
@@ -530,6 +559,39 @@ export default function WorkoutRecorder({
       <div className="sticky top-0 z-20 px-4 pt-14"
         style={{ background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
 
+        {/* Rest timer banner */}
+        {(restRemaining !== null || restDone) && (
+          <div
+            className="-mx-4 px-4 flex items-center justify-between py-1.5 mb-1"
+            style={{
+              background: restDone ? 'rgba(34,197,94,0.07)' : 'rgba(255,107,0,0.07)',
+              borderBottom: `1px solid ${restDone ? 'rgba(34,197,94,0.12)' : 'rgba(255,107,0,0.12)'}`,
+            }}>
+            {restDone ? (
+              <span className="text-[11px] font-black tracking-wider" style={{ color: '#22c55e' }}>
+                ✓ {t(locale, 'record.restDone')}
+              </span>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: 11, color: '#ff6b00' }}>⏱</span>
+                  <span
+                    className="text-sm font-black tracking-widest"
+                    style={{ color: '#ff6b00', fontFamily: 'var(--font-mono)' }}>
+                    {Math.floor((restRemaining ?? 0) / 60)}:{String((restRemaining ?? 0) % 60).padStart(2, '0')}
+                  </span>
+                </div>
+                <button
+                  className="text-[10px] font-black tracking-wider px-2 py-0.5 rounded-full"
+                  style={{ color: '#555', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  onClick={() => setRestRemaining(null)}>
+                  {t(locale, 'record.restSkip')}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Row 1: X | date · title | spacer */}
         <div className="flex items-center justify-between pb-1.5">
           <button
@@ -613,6 +675,23 @@ export default function WorkoutRecorder({
           bottom: 'calc(4rem + env(safe-area-inset-bottom))',
           background: 'linear-gradient(to top, #080808 70%, transparent)',
         }}>
+        {/* Rest button */}
+        <div className="flex justify-end mb-2">
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black"
+            style={{
+              background: restRemaining !== null ? 'rgba(255,107,0,0.1)' : 'rgba(255,255,255,0.04)',
+              color: restRemaining !== null ? '#ff6b00' : '#555',
+              border: `1px solid ${restRemaining !== null ? 'rgba(255,107,0,0.25)' : 'rgba(255,255,255,0.08)'}`,
+            }}
+            onClick={() => setShowRestSheet(true)}>
+            ⏱{' '}{t(locale, 'record.rest')}{' '}
+            {restRemaining !== null
+              ? `${Math.floor(restRemaining / 60)}:${String(restRemaining % 60).padStart(2, '0')}`
+              : `${Math.floor(restPreset / 60)}:${String(restPreset % 60).padStart(2, '0')}`}
+          </button>
+        </div>
+
         <div className="flex gap-2.5">
           <button
             className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
@@ -649,6 +728,34 @@ export default function WorkoutRecorder({
             </button>
           )}
         </div>
+
+        {/* Photo button — shown after save, today only */}
+        {isSavedState && isDateToday && sessionId && (
+          <div className="mt-2">
+            <button
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-70 transition-opacity"
+              style={{
+                background: hasPhotoRecorded ? 'rgba(255,107,0,0.08)' : 'rgba(255,255,255,0.04)',
+                border: hasPhotoRecorded ? '1px solid rgba(255,107,0,0.2)' : '1px solid rgba(255,255,255,0.08)',
+              }}
+              onClick={() => setShowPhotoSheet(true)}>
+              {hasPhotoRecorded
+                ? <ImageIcon size={13} style={{ color: '#ff6b00' }} />
+                : <Camera size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
+              }
+              <span style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: hasPhotoRecorded ? '#ff6b00' : 'rgba(255,255,255,0.45)',
+              }}>
+                {hasPhotoRecorded
+                  ? t(locale, 'photo.viewPhoto')
+                  : t(locale, 'photo.addWorkoutPhoto')
+                }
+              </span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Modals ── */}
@@ -683,6 +790,25 @@ export default function WorkoutRecorder({
           value={exerciseList.find(ex => ex.id === noteTarget)?.note ?? ''}
           onSave={note => updateNote(noteTarget, note)}
           onClose={() => setNoteTarget(null)}
+        />
+      )}
+
+      {showRestSheet && (
+        <RestTimerSheet
+          defaultSeconds={restPreset}
+          onStart={s => { setRestPreset(s); setRestRemaining(s); setRestDone(false) }}
+          onClose={() => setShowRestSheet(false)}
+        />
+      )}
+
+      {showPhotoSheet && sessionId && (
+        <WorkoutPhotoSheet
+          sessionId={sessionId}
+          sessionDate={date}
+          todayStr={todayStr}
+          onClose={() => setShowPhotoSheet(false)}
+          onPhotoSaved={() => setHasPhotoRecorded(true)}
+          onPhotoDeleted={() => setHasPhotoRecorded(false)}
         />
       )}
 

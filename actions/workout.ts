@@ -446,6 +446,14 @@ export async function getTodayWorkoutForShare(date: string) {
 
   const totalVolume = sets?.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0) ?? 0
 
+  // Fetch workout photo path for this session
+  const { data: photoLog } = await supabase
+    .from('workout_photo_logs')
+    .select('image_path')
+    .eq('user_id', user.id)
+    .eq('workout_session_id', session.id)
+    .maybeSingle()
+
   return {
     title: (session.title ?? "Today's Workout") as string,
     date: session.trained_at as string,
@@ -459,5 +467,6 @@ export async function getTodayWorkoutForShare(date: string) {
     })),
     bestLift: bestLiftName ? { name: bestLiftName, weight: bestLiftWeight } : null,
     muscleFocus: muscleFocus || null,
+    photoPath: (photoLog?.image_path as string | null) ?? null,
   }
 }

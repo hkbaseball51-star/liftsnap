@@ -38,3 +38,13 @@ export async function logout() {
   await supabase.auth.signOut()
   redirect('/login')
 }
+
+export async function resetPassword(email: string) {
+  const supabase = await createClient()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://liftsnap.app'
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/auth/callback?type=recovery`,
+  })
+  if (error) return { error: error.message }
+  return { success: true }
+}
