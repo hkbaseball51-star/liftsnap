@@ -1,33 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { login, resetPassword } from '@/actions/auth'
+import type { ResetErrorCode } from '@/actions/auth'
 
 type Mode = 'login' | 'reset'
 
+function resetErrorMessage(code: ResetErrorCode, devMessage?: string): string {
+  switch (code) {
+    case 'rate_limit':
+      return 'Too many reset emails were requested. Please wait a while and try again.'
+    case 'redirect_error':
+      return devMessage
+        ? `Could not send reset email. Please try again later. (dev: ${devMessage})`
+        : 'Could not send reset email. Please try again later.'
+    default:
+      return 'Could not send reset email. Please try again later.'
+  }
+}
+
 export default function LoginPage() {
-  const [mode, setMode]       = useState<Mode>('login')
-  const [error, setError]     = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [resetSent, setResetSent]     = useState(false)
-  const [devError,  setDevError]      = useState<string | null>(null)
+  const [mode,       setMode]       = useState<Mode>('login')
+  const [error,      setError]      = useState<string | null>(null)
+  const [loading,    setLoading]    = useState(false)
+  const [resetSent,  setResetSent]  = useState(false)
+  const [cooldown,   setCooldown]   = useState(0)  // seconds until resend is allowed
+
+  // Countdown timer
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(id)
+  }, [cooldown])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setDevError(null)
 
     if (mode === 'reset') {
       const email = (e.currentTarget.elements.namedItem('email') as HTMLInputElement).value
       const result = await resetPassword(email)
       setLoading(false)
-      if (result?.error) {
-        setError(result.error)
-        setDevError(result.devMessage ?? null)
+
+      if ('errorCode' in result) {
+        setError(resetErrorMessage(result.errorCode, result.devMessage))
+        if (result.errorCode === 'rate_limit') setCooldown(60)
       } else {
         setResetSent(true)
+        setCooldown(60)
       }
       return
     }
@@ -56,6 +78,7 @@ export default function LoginPage() {
 
       {mode === 'reset' ? (
         resetSent ? (
+          /* ── Reset success ── */
           <div className="text-center">
             <p className="text-sm font-bold mb-2" style={{ color: '#22c55e' }}>
               Reset link sent. Please check your email.
@@ -71,9 +94,10 @@ export default function LoginPage() {
             </button>
           </div>
         ) : (
+          /* ── Reset form ── */
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <p className="text-xs font-bold" style={{ color: '#888' }}>
-              Enter your email and we'll send a reset link.
+              Enter your email and we&apos;ll send a reset link.
             </p>
             <div>
               <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
@@ -92,18 +116,17 @@ export default function LoginPage() {
             {error && (
               <p className="text-sm text-center font-bold" style={{ color: '#ef4444' }}>{error}</p>
             )}
-            {devError && (
-              <p className="text-[10px] text-center break-all" style={{ color: '#888' }}>
-                dev: {devError}
-              </p>
-            )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || cooldown > 0}
               className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-              style={{ background: loading ? '#333' : '#ED742F' }}>
-              {loading ? 'SENDING...' : 'SEND RESET LINK'}
+              style={{ background: (loading || cooldown > 0) ? '#333' : '#ED742F' }}>
+              {loading
+                ? 'SENDING...'
+                : cooldown > 0
+                  ? `Send again in ${cooldown}s`
+                  : 'SEND RESET LINK'}
             </button>
 
             <button
@@ -116,6 +139,7 @@ export default function LoginPage() {
           </form>
         )
       ) : (
+        /* ── Login form ── */
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
@@ -169,7 +193,7 @@ export default function LoginPage() {
 
       {mode === 'login' && (
         <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/signup" className="font-black" style={{ color: '#ED742F' }}>
             Sign up
           </Link>

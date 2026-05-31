@@ -7,7 +7,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Stage = 'loading' | 'invalid' | 'form' | 'done'
@@ -19,7 +18,6 @@ export default function ResetPasswordPage() {
   const [fieldError,  setFieldError]  = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting,  setSubmitting]  = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     const supabase = createClient()
@@ -42,11 +40,11 @@ export default function ResetPasswordPage() {
           // No recovery token in URL — link is missing, invalid, or already used
           settle(session ? 'form' : 'invalid')
         }
-        // If token is present, wait for PASSWORD_RECOVERY to fire after exchange
+        // Token present → wait for PASSWORD_RECOVERY to fire after exchange
       }
     })
 
-    // Safety net: if the auth state event never fires in 5s, show invalid
+    // Safety net: if auth state event never fires in 5s, show invalid
     const timer = setTimeout(() => settle('invalid'), 5000)
 
     return () => {
@@ -85,7 +83,7 @@ export default function ResetPasswordPage() {
       return
     }
 
-    // Sign out so the user authenticates fresh with the new password
+    // Sign out so the user re-authenticates fresh with the new password
     await supabase.auth.signOut()
     setStage('done')
   }
@@ -125,7 +123,7 @@ export default function ResetPasswordPage() {
           </p>
           <Link
             href="/login"
-            className="inline-block h-12 rounded-xl font-black text-sm text-white tracking-widest flex items-center justify-center"
+            className="h-12 rounded-xl font-black text-sm text-white tracking-widest flex items-center justify-center"
             style={{ background: '#ED742F' }}>
             BACK TO SIGN IN
           </Link>

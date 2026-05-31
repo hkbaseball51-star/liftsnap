@@ -34,3 +34,51 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## REPRA Auth Setup
+
+### Required environment variables
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `NEXT_PUBLIC_SITE_URL` | Production base URL (e.g. `https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app`) |
+
+`NEXT_PUBLIC_SITE_URL` is used as the `redirectTo` base for password reset emails.
+In local dev it can be omitted — the request `host` header is used as a fallback.
+
+Set `NEXT_PUBLIC_SITE_URL` in **Vercel → Project → Settings → Environment Variables**.
+
+### Supabase Dashboard settings
+
+**Authentication → URL Configuration**
+
+| Setting | Value |
+|---|---|
+| Site URL | `https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app` |
+
+Redirect URLs (add all):
+```
+https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/**
+https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/reset-password
+https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/reset-password/**
+http://localhost:3000/**
+http://localhost:3000/reset-password
+http://localhost:3000/reset-password/**
+```
+Add custom domain entries once a custom domain is configured.
+
+### SMTP (required for production)
+
+Supabase's built-in SMTP has a very low sending rate limit and will return
+`email rate limit exceeded` under normal usage. **Configure Custom SMTP before launch.**
+
+Recommended providers:
+- [Resend](https://resend.com) — simple setup, generous free tier
+- [SendGrid](https://sendgrid.com)
+- [Postmark](https://postmarkapp.com)
+
+Configure at: **Supabase Dashboard → Project Settings → Authentication → SMTP Settings**

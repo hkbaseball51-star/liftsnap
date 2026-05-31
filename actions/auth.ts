@@ -40,33 +40,68 @@ export async function logout() {
   redirect('/login')
 }
 
-export async function resetPassword(email: string) {
+// ── Password reset ───────────────────────────────────────────────────────────
+//
+// Required env var (set in Vercel project settings for production):
+//   NEXT_PUBLIC_SITE_URL=https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app
+//
+// Supabase Dashboard → Authentication → URL Configuration:
+//   Site URL:
+//     https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app
+//   Redirect URLs (add all that apply):
+//     https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/**
+//     https://liftsnap-dpfso8sip-hkbaseball51-stars-projects.vercel.app/reset-password
+//     http://localhost:3000/**
+//     http://localhost:3000/reset-password
+//     (add custom domain once configured)
+//
+// SMTP: Supabase free-tier SMTP has low rate limits. Use Custom SMTP in production.
+//   Recommended providers: Resend, SendGrid, Postmark
+//   Dashboard → Project Settings → Authentication → SMTP Settings
+
+export type ResetErrorCode = 'rate_limit' | 'redirect_error' | 'generic'
+
+export async function resetPassword(email: string): Promise<
+  | { success: true }
+  | { errorCode: ResetErrorCode; devMessage?: string }
+> {
   const supabase = await createClient()
 
-  // Derive origin from request headers so this works in both dev and prod
-  // without relying on NEXT_PUBLIC_SITE_URL being set.
-  // Supabase Dashboard → Authentication → URL Configuration must allow:
-  //   http://localhost:3000/**
-  //   https://<your-vercel-domain>.vercel.app/**
-  //   https://<custom-domain>/** (once a custom domain is added)
-  const headersList = await headers()
-  const host = headersList.get('host') ?? 'localhost:3000'
-  const proto = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https'
-  const origin = `${proto}://${host}`
+  // NEXT_PUBLIC_SITE_URL takes priority (set this in Vercel for prod).
+  // Falls back to request host so dev/preview envs work without extra config.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  let origin: string
+  if (siteUrl) {
+    origin = siteUrl.replace(/\/$/, '')
+  } else {
+    const headersList = await headers()
+    const host = headersList.get('host') ?? 'localhost:3000'
+    const proto = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https'
+    origin = `${proto}://${host}`
+  }
   const redirectTo = `${origin}/reset-password`
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
   if (error) {
     console.error('Password reset error:', {
-      message: error.message,
-      status:  (error as { status?: number }).status,
-      name:    error.name,
-      code:    (error as { code?: string }).code,
+      message:    error.message,
+      status:     (error as { status?: number }).status,
+      name:       error.name,
+      code:       (error as { code?: string }).code,
       redirectTo,
     })
+
+    const msg        = error.message.toLowerCase()
     const devMessage = process.env.NODE_ENV !== 'production' ? error.message : undefined
-    return { error: 'Could not send reset email. Please try again.', devMessage }
+
+    if (msg.includes('rate limit') || msg.includes('email rate') || msg.includes('too many')) {
+      return { errorCode: 'rate_limit', devMessage }
+    }
+    if (msg.includes('redirect') || msg.includes('not allowed') || msg.includes('invalid url')) {
+      return { errorCode: 'redirect_error', devMessage }
+    }
+    return { errorCode: 'generic', devMessage }
   }
 
   return { success: true }
