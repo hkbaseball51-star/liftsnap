@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Share2, ArrowLeft, Camera } from 'lucide-react'
+import { Share2, ArrowLeft, Camera, RotateCcw } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import { createClient } from '@/lib/supabase/client'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 export type TodayData = {
   title: string
@@ -71,8 +73,7 @@ const JA_EN: Record<string, string> = {
 }
 const tname = (n: string) => JA_EN[n] ?? n
 
-const fmtVol = (v: number) => v >= 10000 ? `${(v/1000).toFixed(1)}k` : v.toLocaleString()
-const fmtKg  = (v: number) => v === Math.round(v) ? `${v}` : `${v.toFixed(1)}`
+const fmtKg = (v: number) => v === Math.round(v) ? `${v}` : `${v.toFixed(1)}`
 function fmtDate(s: string) {
   const d = new Date(s + 'T00:00:00')
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -80,50 +81,26 @@ function fmtDate(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${D[d.getDay()]}`
 }
 
-// Capture the preview DOM directly with html-to-image.
-// Temporarily unclips the scroll container so the full content height is captured.
-async function captureCard(captureEl: HTMLDivElement, theme: Theme): Promise<Blob> {
+async function captureStory(captureEl: HTMLDivElement, theme: Theme, hasPhoto: boolean): Promise<Blob> {
   const { toPng } = await import('html-to-image')
-
-  // 1. Fonts must be fully loaded before measuring
   await document.fonts.ready
-  // 2. Wait for layout to settle
   await new Promise(r => requestAnimationFrame(r))
   await new Promise(r => setTimeout(r, 60))
 
-  const scrollParent = captureEl.parentElement as HTMLElement
-
-  // Temporarily unclip the scroll container so the full content is captured
-  const prevMaxH    = scrollParent.style.maxHeight
-  const prevOvflow  = scrollParent.style.overflow
-  scrollParent.style.maxHeight = 'none'
-  scrollParent.style.overflow  = 'visible'
-
-  // For transparent mode: remove the checker preview bg so the PNG has true alpha
-  const prevBg = captureEl.style.background
-  captureEl.style.background = theme === 'transparent' ? 'transparent' : '#0a0a0a'
-
-  // One more frame for the layout change to propagate
-  await new Promise(r => requestAnimationFrame(r))
-
-  // Measure AFTER layout settles with scroll container unclipped
   const W = captureEl.offsetWidth
-  // scrollHeight = full content height (not clipped by maxHeight)
-  const H = captureEl.scrollHeight
+  const H = captureEl.offsetHeight
   const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
+
+  const prevBg = captureEl.style.background
+  // For transparent mode without a photo, remove the checker so the PNG has true alpha
+  if (theme === 'transparent' && !hasPhoto) captureEl.style.background = 'transparent'
+  await new Promise(r => requestAnimationFrame(r))
 
   try {
     const dataUrl = await toPng(captureEl, {
-      width:  W,
+      width: W,
       height: H,
-      // Force the clone to the measured width so the inherited ancestor
-      // width constraint (min(94vw,420px)) is not lost in html-to-image's
-      // cloning context. Without this, flex/text layout can reflow to 0.
-      style: {
-        width:     `${W}px`,
-        maxHeight: 'none',
-        overflow:  'visible',
-      },
+      style: { width: `${W}px`, height: `${H}px` },
       pixelRatio,
       cacheBust: true,
       skipFonts: true,
@@ -131,17 +108,16 @@ async function captureCard(captureEl: HTMLDivElement, theme: Theme): Promise<Blo
     const res = await fetch(dataUrl)
     return await res.blob()
   } finally {
-    // Always restore DOM state
-    captureEl.style.background   = prevBg
-    scrollParent.style.maxHeight = prevMaxH
-    scrollParent.style.overflow  = prevOvflow
+    captureEl.style.background = prevBg
   }
 }
 
 export default function TodayShareView({ data }: { data: TodayData }) {
   const router     = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
+  const cardRef    = useRef<HTMLDivElement>(null)
   const { unit }   = useWeightUnit()
+  const { locale } = useLocale()
   const unitLabel  = weightUnitLabel(unit)
 
   const [theme,        setTheme]        = useState<Theme>('dark')
@@ -150,39 +126,105 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [status,       setStatus]       = useState('')
   const [shareCount,   setShareCount]   = useState(0)
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
+  const [photoLoading, setPhotoLoading] = useState(typeof data.photoPath === 'string')
+  const [cardPos,      setCardPos]      = useState({ x: 16, y: 180 })
+
+  const isDragging = useRef(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
   // Load workout photo as data URL for html-to-image CORS compatibility
   useEffect(() => {
     if (!data.photoPath) return
+    setPhotoLoading(true)
     let cancelled = false
     async function loadPhoto() {
       const supabase = createClient()
       const { data: urlData } = await supabase.storage
         .from('workout-photos')
         .createSignedUrl(data.photoPath!, 3600)
-      if (cancelled || !urlData?.signedUrl) return
+      if (cancelled || !urlData?.signedUrl) { if (!cancelled) setPhotoLoading(false); return }
       try {
-        const res = await fetch(urlData.signedUrl)
+        const res  = await fetch(urlData.signedUrl)
         const blob = await res.blob()
         const dataUrl = await new Promise<string>(resolve => {
           const reader = new FileReader()
           reader.onloadend = () => resolve(reader.result as string)
           reader.readAsDataURL(blob)
         })
-        if (!cancelled) setPhotoDataUrl(dataUrl)
-      } catch { /* ignore — fallback to no-photo background */ }
+        if (!cancelled) { setPhotoDataUrl(dataUrl); setPhotoLoading(false) }
+      } catch { if (!cancelled) setPhotoLoading(false) }
     }
     loadPhoto()
     return () => { cancelled = true }
   }, [data.photoPath])
 
+  // Center card after initial render
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const container = captureRef.current
+      const card      = cardRef.current
+      if (!container || !card) return
+      const cW    = container.clientWidth
+      const cH    = container.clientHeight
+      const cardW = card.clientWidth
+      const cardH = card.clientHeight
+      if (cW === 0 || cH === 0) return
+      setCardPos({
+        x: (cW - cardW) / 2,
+        y: Math.max(16, Math.min(cH - cardH - 16, Math.round(cH * 0.45 - cardH / 2))),
+      })
+    })
+  }, [])
+
+  const resetPosition = () => {
+    const container = captureRef.current
+    const card      = cardRef.current
+    if (!container || !card) return
+    const cW    = container.clientWidth
+    const cH    = container.clientHeight
+    const cardW = card.clientWidth
+    const cardH = card.clientHeight
+    setCardPos({
+      x: (cW - cardW) / 2,
+      y: Math.max(16, Math.min(cH - cardH - 16, Math.round(cH * 0.45 - cardH / 2))),
+    })
+  }
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    isDragging.current = true
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current) return
+    const container = captureRef.current
+    if (!container) return
+    const cRect = container.getBoundingClientRect()
+    const cardW = e.currentTarget.offsetWidth
+    const cardH = e.currentTarget.offsetHeight
+    const cW    = container.offsetWidth
+    const cH    = container.offsetHeight
+    let newX = e.clientX - cRect.left - dragOffset.current.x
+    let newY = e.clientY - cRect.top  - dragOffset.current.y
+    // Keep at least 60% of card inside the frame
+    newX = Math.max(-cardW * 0.4, Math.min(cW - cardW * 0.6, newX))
+    newY = Math.max(-cardH * 0.4, Math.min(cH - cardH * 0.6, newY))
+    setCardPos({ x: newX, y: newY })
+  }
+
+  const handlePointerUp = () => { isDragging.current = false }
+
   const handleShare = async () => {
     if (!captureRef.current) return
-    setSharing(true); setStatus('Generating card...')
+    setSharing(true)
+    setStatus(t(locale, 'story.generating'))
     try {
-      const blob = await captureCard(captureRef.current, theme)
+      const blob = await captureStory(captureRef.current, theme, !!photoDataUrl)
       const file = new File([blob], 'liftsnap-today.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
@@ -203,21 +245,23 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSharing(false) }
   }
 
-  const ac    = AC[accent]
-  const acHex = ac.hex
-  const isT   = theme === 'transparent'
+  const ac       = AC[accent]
+  const acHex    = ac.hex
+  const isT      = theme === 'transparent'
+  const hasPhoto = !!photoDataUrl
 
   const volStr       = formatVolumeWithUnit(data.volume, unit)
   const g1rm         = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
   const dividerColor = 'rgba(255,255,255,0.22)'
-  // text-shadow cascades to all children; natural shadow keeps white readable over photos
-  const tsh = '0 2px 8px rgba(0,0,0,0.75)'
-  // Preview background — photo > transparent checker > dark solid
-  const previewBg = photoDataUrl
-    ? `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.5)), url("${photoDataUrl}") center/cover no-repeat`
+  const tsh          = '0 2px 8px rgba(0,0,0,0.75)'
+
+  const containerBg = hasPhoto
+    ? '#0a0a0a'
     : isT
       ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
       : '#0a0a0a'
+
+  const cardBg = hasPhoto ? 'rgba(0,0,0,0.72)' : isT ? 'rgba(0,0,0,0.55)' : '#111111'
 
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
@@ -227,29 +271,74 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={16} style={{ color: '#777' }} />
         </button>
-        <h1 className="text-sm font-black tracking-widest text-white">Share Story</h1>
+        <h1 className="text-sm font-black tracking-widest text-white">{t(locale, 'story.title')}</h1>
       </div>
 
-      {/* ── Story preview ────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 16px' }}>
+      {/* ── 9:16 Story preview ──────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 8px' }}>
         <div style={{ width: 'min(94vw, 420px)' }}>
-
           {/*
-            Outer: scroll container for preview UX (clips to maxHeight, rounded corners).
-            Does NOT hold the background — captureRef does.
+            captureRef: fixed 9:16 container — html-to-image captures this element.
+            Photo img covers the background; draggable card floats above.
           */}
-          <div style={{
-            maxHeight: '76vh', overflowY: 'auto', overflowX: 'hidden',
-            borderRadius: 24, position: 'relative',
-          }}>
-            {/*
-              captureRef: this is the element html-to-image captures.
-              Background lives here so the export picks it up.
-              No maxHeight / overflow — full content height is always rendered.
-            */}
-            <div ref={captureRef} style={{ background: previewBg }}>
+          <div
+            ref={captureRef}
+            style={{
+              position: 'relative',
+              aspectRatio: '9/16',
+              overflow: 'hidden',
+              borderRadius: 24,
+              background: containerBg,
+            }}
+          >
+            {/* Photo background */}
+            {photoDataUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photoDataUrl}
+                alt=""
+                style={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%',
+                  objectFit: 'cover',
+                  pointerEvents: 'none',
+                }}
+              />
+            )}
 
-              {/* All card content — textShadow inherited by every child */}
+            {/* Gradient overlay (photo mode only) */}
+            {photoDataUrl && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.52) 100%)',
+                pointerEvents: 'none',
+              }} />
+            )}
+
+            {/* Draggable record card */}
+            <div
+              ref={cardRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              style={{
+                position: 'absolute',
+                left: cardPos.x,
+                top: cardPos.y,
+                width: 'calc(100% - 32px)',
+                touchAction: 'none',
+                userSelect: 'none',
+                cursor: 'grab',
+                background: cardBg,
+                border: `1px solid ${ac.cardBorder}`,
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}
+            >
+              {/* Accent top line */}
+              <div style={{ height: 2, background: ac.topLine }} />
+
+              {/* Card content */}
               <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: tsh }}>
 
                 {/* Badge */}
@@ -274,11 +363,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
                 <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
 
-                {/* TOTAL VOLUME */}
+                {/* Total Volume */}
                 <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 2px', lineHeight: 1.2 }}>
                   TOTAL VOLUME
                 </p>
-                {/* flex keeps the number and unit on the same line — no absolute positioning */}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, margin: '0 0 3px', lineHeight: 1 }}>
                   <span style={{ fontSize: 42, fontWeight: 900, color: acHex, lineHeight: 1 }}>{volStr}</span>
                 </div>
@@ -303,12 +391,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
                     return (
                       <div key={ex.name}>
-                        {/* Exercise name */}
                         <p style={{ fontSize: 14, fontWeight: 800, color: '#ffffff', margin: '0 0 8px', letterSpacing: '0.005em', lineHeight: 1.1 }}>
                           {tname(ex.name)}
                         </p>
-
-                        {/* Meta row: N sets · est. 1RM — single line, no wrap */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 12px', flexWrap: 'nowrap', lineHeight: 1.1 }}>
                           <span style={{ fontSize: 10, color: '#EDEDED', fontWeight: 500, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                             {ex.setCount} sets
@@ -323,8 +408,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                             </>
                           )}
                         </div>
-
-                        {/* Set rows — hero data */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {visibleSets.map((s, si) => (
                             <p key={si} style={{ fontSize: 13, lineHeight: 1.3, margin: 0, fontWeight: 500 }}>
@@ -335,8 +418,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                             </p>
                           ))}
                         </div>
-
-                        {/* Thin divider between exercises, not after last */}
                         {idx < data.exercises.length - 1 && (
                           <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '10px 0' }} />
                         )}
@@ -357,60 +438,96 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   </span>
                 )}
 
-                {/* Watermark — opt-out of inherited text-shadow to keep it subtle */}
+                {/* Watermark */}
                 <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.50)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
                   Made with LIFTSNAP · liftsnap.app
                 </p>
 
-              </div>{/* /content */}
-            </div>{/* /captureRef */}
-          </div>{/* /scroll container */}
+              </div>{/* /card content */}
+            </div>{/* /draggable card */}
+          </div>{/* /captureRef */}
         </div>
       </div>
 
-      {/* ── Photo CTA (when no photo) ── */}
-      {!photoDataUrl && (
+      {/* Photo status notices */}
+      {photoLoading && !photoDataUrl && (
+        <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          {t(locale, 'story.loadingPhoto')}
+        </p>
+      )}
+      {!data.photoPath && !photoLoading && (
         <div className="px-4 mb-3">
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
             style={{ background: 'rgba(255,107,0,0.06)', border: '1px solid rgba(255,107,0,0.16)' }}>
             <Camera size={14} style={{ color: '#ff6b00', flexShrink: 0 }} />
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {data.photoPath === undefined
-                ? 'Add a workout photo to create a better story.'
-                : 'Loading photo...'}
+              {t(locale, 'story.addPhotoForBetterStory')}
             </p>
           </div>
         </div>
       )}
 
-      {/* ── Options ──────────────────────────────── */}
+      {/* Drag hint */}
+      <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        {t(locale, 'story.dragHint')}
+      </p>
+
+      {/* Reset position */}
       <div className="px-4 mb-3">
-        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Background</p>
-        <div className="flex gap-2">
-          {(['dark', 'transparent'] as Theme[]).map(t => (
-            <button key={t} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: theme === t ? '#ff6b00' : '#1a1a1a', color: theme === t ? '#fff' : '#666', border: `1px solid ${theme === t ? '#ff6b00' : '#2a2a2a'}` }}
-              onClick={() => setTheme(t)}>
-              {t === 'dark' ? 'Dark' : 'Transparent'}
-            </button>
-          ))}
-        </div>
+        <button
+          className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+          style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
+          onClick={resetPosition}
+        >
+          <RotateCcw size={12} />
+          {t(locale, 'story.resetPosition')}
+        </button>
       </div>
 
+      {/* Background selector — hidden when photo exists */}
+      {!hasPhoto && (
+        <div className="px-4 mb-3">
+          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+            {t(locale, 'story.background')}
+          </p>
+          <div className="flex gap-2">
+            {(['dark', 'transparent'] as Theme[]).map(th => (
+              <button key={th} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{
+                  background: theme === th ? '#ff6b00' : '#1a1a1a',
+                  color:      theme === th ? '#fff' : '#666',
+                  border:     `1px solid ${theme === th ? '#ff6b00' : '#2a2a2a'}`,
+                }}
+                onClick={() => setTheme(th)}>
+                {th === 'dark' ? t(locale, 'story.bgDark') : t(locale, 'story.bgTransparent')}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Color accent selector */}
       <div className="px-4 mb-3">
-        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
+        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+          {t(locale, 'story.color')}
+        </p>
         <div className="flex gap-2">
           {(() => {
             const shareThemes = getShareThemeUnlocks(shareCount)
             return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
-              const info     = shareThemes.find(t => t.accent === a)!
+              const info     = shareThemes.find(entry => entry.accent === a)!
               const unlocked = info.unlocked
               const sel      = accent === a
               const selBg    = a === 'orange' ? '#ff6b00' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
               const bg       = sel ? selBg : '#1a1a1a'
               return (
-                <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
-                  style={{ background: bg, color: unlocked ? '#fff' : '#444', border: `1px solid ${sel ? selBg : '#2a2a2a'}`, opacity: unlocked ? 1 : 0.55, minHeight: 44 }}
+                <button key={a}
+                  className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
+                  style={{
+                    background: bg, color: unlocked ? '#fff' : '#444',
+                    border: `1px solid ${sel ? selBg : '#2a2a2a'}`,
+                    opacity: unlocked ? 1 : 0.55, minHeight: 44,
+                  }}
                   onClick={() => unlocked && setAccent(a)}>
                   <span>{info.label}</span>
                   {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
@@ -421,17 +538,22 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
+      {/* Share button */}
       <div className="px-4 space-y-2 mb-4">
         {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
           style={{ background: '#ff6b00', boxShadow: '0 4px 20px rgba(255,107,0,0.3)' }}
-          disabled={sharing} onClick={handleShare}>
+          disabled={sharing}
+          onClick={handleShare}>
           <Share2 size={20} />
-          {sharing ? 'Generating...' : 'Share to Instagram Story'}
+          {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
         </button>
-        <p className="text-center text-xs" style={{ color: '#444' }}>Mobile only · Downloads as PNG on desktop</p>
+        <p className="text-center text-xs" style={{ color: '#444' }}>
+          {t(locale, 'story.mobileOnly')}
+        </p>
       </div>
+
     </div>
   )
 }
