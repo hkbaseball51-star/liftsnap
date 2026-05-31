@@ -239,10 +239,8 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/repra-wordmark-header.png" alt="REPRA" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+      {/* ── Header ── lifts count only, right-aligned */}
+      <div className="flex justify-end px-4 pt-12 pb-2">
         <div className="flex items-center gap-1.5">
           <Zap size={11} style={{ color: 'rgba(255,255,255,0.2)' }} />
           <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
@@ -252,7 +250,9 @@ export default async function HomePage() {
       </div>
 
       {/* ── WELCOME ── */}
-      <div className="px-4 pt-4 pb-6">
+      <div className="px-4 pt-3 pb-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/repra-wordmark-header.png" alt="REPRA" style={{ height: 42, width: 'auto', objectFit: 'contain', display: 'block', marginBottom: 14 }} />
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.25)', marginBottom: 8 }}>
           {getGreeting()}
         </p>
