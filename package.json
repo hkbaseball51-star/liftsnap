@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed:demo": "tsx --env-file .env.local scripts/seed-demo-training.ts",
-    "seed:repra": "tsx --env-file .env.local scripts/seed-repra-demo-data.ts"
+    "seed:repra": "tsx --env-file .env.local scripts/seed-repra-demo-data.ts",
+    "seed:user2": "tsx --env-file .env.local scripts/seed-user2-demo-data.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

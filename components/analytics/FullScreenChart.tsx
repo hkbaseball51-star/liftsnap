@@ -57,7 +57,9 @@ export default function FullScreenChart({
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [screenW, setScreenW] = useState(390)
   const [screenH, setScreenH] = useState(844)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [chartContainerH, setChartContainerH] = useState(0)
+  const scrollRef        = useRef<HTMLDivElement>(null)
+  const chartContainerRef = useRef<HTMLDivElement>(null)
 
   const isLandscape = screenW > screenH
 
@@ -68,9 +70,17 @@ export default function FullScreenChart({
     return () => window.removeEventListener('resize', upd)
   }, [])
 
-  // On iOS Safari, position:fixed inside overflow:auto can misbehave.
-  // Locking body/main overflow while this overlay is mounted ensures it
-  // always anchors to the viewport correctly.
+  // Measure the chart container so the Recharts SVG height can match exactly.
+  useEffect(() => {
+    if (!chartContainerRef.current) return
+    const obs = new ResizeObserver(entries => {
+      setChartContainerH(entries[0].contentRect.height)
+    })
+    obs.observe(chartContainerRef.current)
+    return () => obs.disconnect()
+  }, [])
+
+  // Lock body/main scroll to ensure iOS Safari position:fixed covers viewport correctly.
   useEffect(() => {
     const body = document.body
     const main = document.querySelector('main') as HTMLElement | null
@@ -84,9 +94,7 @@ export default function FullScreenChart({
     }
   }, [])
 
-  // Scroll to the latest (rightmost) data. screenW is used as the dependency
-  // so the scroll re-runs after the actual device width is measured on mount
-  // and after any orientation change.
+  // Scroll to the latest (rightmost) data after dimension changes.
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
   }, [screenW])
@@ -113,8 +121,13 @@ export default function FullScreenChart({
 
   // ── Dimensions ───────────────────────────────────────────────
 
-  const chartAreaW = isLandscape ? Math.round(screenW * 0.63) - 16 : screenW - 32
-  const chartH     = isLandscape ? Math.max(260, screenH - 54) : 280
+  // Portrait: chart fills flex:1 container; measure actual height with ResizeObserver.
+  // Landscape: chart fills the right panel.
+  const chartAreaW = isLandscape ? Math.round(screenW * 0.63) - 16 : screenW - 20
+  const portraitChartH = chartContainerH > 0
+    ? Math.max(380, chartContainerH - 20)
+    : Math.max(380, screenH - 220)
+  const chartH = isLandscape ? Math.max(260, screenH - 54) : portraitChartH
 
   const rmChartW  = computeChartWidth(rmDisplay.length,  chartAreaW, fsPointW(period, 'rm'))
   const volChartW = computeChartWidth(volDisplay.length, chartAreaW, fsPointW(period, 'bar'))
@@ -301,7 +314,7 @@ export default function FullScreenChart({
     )
   }
 
-  // ── Selected detail ───────────────────────────────────────────
+  // ── Full detail panel (landscape left column) ─────────────────
 
   const renderDetail = () => {
     if (selectedIdx === null) {
@@ -367,7 +380,6 @@ export default function FullScreenChart({
       )
     }
 
-    // body-weight
     const pt         = bwDisplay[selectedIdx]
     const sinceFirst = selectedIdx > 0 ? Math.round((pt.weight - bwDisplay[0].weight) * 10) / 10 : null
     const fromPrev   = selectedIdx > 0 ? Math.round((pt.weight - bwDisplay[selectedIdx-1].weight) * 10) / 10 : null
@@ -403,6 +415,74 @@ export default function FullScreenChart({
     )
   }
 
+  // ── Inline detail for portrait bottom bar ─────────────────────
+
+  const renderDetailInline = (): React.ReactNode => {
+    if (selectedIdx === null) return null
+
+    if (metric === 'max1rm') {
+      const pt         = rmDisplay[selectedIdx]
+      const sinceFirst = selectedIdx > 0 ? pt.est1rm - rmDisplay[0].est1rm : null
+      const fromPrev   = selectedIdx > 0 ? pt.est1rm - rmDisplay[selectedIdx - 1].est1rm : null
+      return (
+        <>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{formatTooltipDate(pt.date)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
+          <span style={{ color: '#ED742F', fontSize: 13, fontWeight: 800 }}>{pt.est1rm}{unitLabel}</span>
+          {sinceFirst !== null && (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
+              <span style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 11 }}>
+                {sinceFirst >= 0 ? '+' : ''}{sinceFirst}{unitLabel} since first
+              </span>
+            </>
+          )}
+          {fromPrev !== null && (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
+              <span style={{ color: fromPrev > 0 ? '#ED742F' : fromPrev < 0 ? '#888' : 'rgba(255,255,255,0.22)', fontSize: 11 }}>
+                {fromPrev > 0 ? '+' : ''}{fromPrev}{unitLabel} from prev
+              </span>
+            </>
+          )}
+        </>
+      )
+    }
+
+    if (metric === 'daily-volume') {
+      const pt  = volDisplay[selectedIdx]
+      const vol = pt.volume
+      return (
+        <>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{formatTooltipDate(pt.date)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
+          <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 13, fontWeight: 800 }}>
+            {vol >= 1000 ? `${(vol/1000).toFixed(1)}k` : vol.toLocaleString()}{unitLabel}
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11 }}> volume</span>
+        </>
+      )
+    }
+
+    const pt         = bwDisplay[selectedIdx]
+    const sinceFirst = selectedIdx > 0 ? Math.round((pt.weight - bwDisplay[0].weight) * 10) / 10 : null
+    return (
+      <>
+        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{formatTooltipDate(pt.date)}</span>
+        <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
+        <span style={{ color: '#94A3B8', fontSize: 13, fontWeight: 800 }}>{pt.weight}{unitLabel}</span>
+        {sinceFirst !== null && (
+          <>
+            <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
+            <span style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 11 }}>
+              {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)}{unitLabel} since first
+            </span>
+          </>
+        )}
+      </>
+    )
+  }
+
   // ── Chart content ─────────────────────────────────────────────
 
   const hasData =
@@ -430,7 +510,7 @@ export default function FullScreenChart({
           <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain no-scrollbar"
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
             <LineChart width={w} height={chartH} data={rmDisplay}
-              margin={{ top: 10, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
+              margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
               <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={rmXAxis.formatter}
                 tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
@@ -458,7 +538,7 @@ export default function FullScreenChart({
           <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain no-scrollbar"
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
             <BarChart width={w} height={chartH} data={volDisplay}
-              margin={{ top: 10, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
+              margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
               <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={volXAxis.formatter}
                 tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
@@ -473,7 +553,6 @@ export default function FullScreenChart({
       )
     }
 
-    // body-weight
     const w = bwChartW
     return (
       <div style={{ position: 'relative' }}>
@@ -484,7 +563,7 @@ export default function FullScreenChart({
         <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain no-scrollbar"
           style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
           <LineChart width={w} height={chartH} data={bwDisplay}
-            margin={{ top: 10, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
+            margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
             <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={bwXAxis.formatter}
               tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
@@ -513,46 +592,68 @@ export default function FullScreenChart({
 
   const Header = () => (
     <div style={{
-      position: 'sticky', top: 0, zIndex: 20,
+      flexShrink: 0,
       background: 'rgba(8,8,8,0.97)',
       backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
-      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: isLandscape ? '8px 16px' : '12px 16px 10px' }}>
-          <button onClick={goBack} aria-label="Back"
-            style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'rgba(255,255,255,0.65)', padding: '4px 4px 4px 0', flexShrink: 0 }}>
-            <ChevronLeft size={20} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Back</span>
-          </button>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <p style={{ color: '#f5f5f5', fontSize: isLandscape ? 12 : 14, fontWeight: 900, letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {titleMain}
-            </p>
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>
-              {titleSub}
-            </p>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: isLandscape ? '6px 16px' : '8px 16px' }}>
+        <button onClick={goBack} aria-label="Back"
+          style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'rgba(255,255,255,0.65)', padding: '4px 4px 4px 0', flexShrink: 0 }}>
+          <ChevronLeft size={20} />
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Back</span>
+        </button>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <p style={{ color: '#f5f5f5', fontSize: isLandscape ? 12 : 14, fontWeight: 900, letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {titleMain}
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em' }}>
+            {titleSub}
+          </p>
         </div>
       </div>
     </div>
   )
 
+  // Compact KPI row for portrait — supplementary info, not the focus.
   const KpiRow = () => (
-    <div className="no-scrollbar" style={{ overflowX: 'auto', padding: '10px 12px 0' }}>
-      <div style={{ display: 'flex', gap: 6, minWidth: 'max-content' }}>
+    <div className="no-scrollbar" style={{ flexShrink: 0, overflowX: 'auto', padding: '6px 10px 4px' }}>
+      <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
         {kpis.map((kpi, i) => (
-          <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '7px 12px', minWidth: 64 }}>
-            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2 }}>{kpi.label}</p>
+          <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '5px 10px', minWidth: 58 }}>
+            <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 1 }}>{kpi.label}</p>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-              <span style={{ color: kpi.accent ? '#ED742F' : '#f0f0f0', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>
+              <span style={{ color: kpi.accent ? '#ED742F' : '#f0f0f0', fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>
                 {kpi.value}
               </span>
-              {kpi.unit && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{kpi.unit}</span>}
+              {kpi.unit && <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 8 }}>{kpi.unit}</span>}
             </div>
           </div>
         ))}
       </div>
+    </div>
+  )
+
+  // Thin bottom bar: hint text when nothing selected, inline detail when a point is tapped.
+  const DetailBar = () => (
+    <div style={{
+      flexShrink: 0,
+      minHeight: 48,
+      display: 'flex',
+      alignItems: 'center',
+      padding: '8px 14px',
+      paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 8px)`,
+      background: 'rgba(255,255,255,0.02)',
+      borderTop: '1px solid rgba(255,255,255,0.05)',
+    }}>
+      {selectedIdx === null ? (
+        <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12 }}>Tap any point for details</p>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+          {renderDetailInline()}
+        </div>
+      )}
     </div>
   )
 
@@ -563,7 +664,7 @@ export default function FullScreenChart({
   )
 
   const ChartCard = ({ style }: { style?: React.CSSProperties }) => (
-    <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '10px 4px 6px', overflow: 'hidden', ...style }}>
+    <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 2px 4px', overflow: 'hidden', ...style }}>
       {chartContent()}
     </div>
   )
@@ -574,15 +675,12 @@ export default function FullScreenChart({
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#080808', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Header />
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <KpiRow />
-          <div style={{ margin: '10px 8px 0', position: 'relative' }}>
-            <ChartCard />
-          </div>
-          <div style={{ margin: '10px 8px 32px' }}>
-            <DetailPanel />
-          </div>
+        <KpiRow />
+        {/* Chart fills all remaining space between KPI row and detail bar */}
+        <div ref={chartContainerRef} style={{ flex: 1, overflow: 'hidden', padding: '6px 8px 0' }}>
+          <ChartCard style={{ height: '100%' }} />
         </div>
+        <DetailBar />
       </div>
     )
   }
@@ -608,7 +706,7 @@ export default function FullScreenChart({
           </div>
           <DetailPanel style={{ flex: 1 }} />
         </div>
-        {/* Right panel: chart */}
+        {/* Right panel: chart fills remaining width */}
         <div style={{ flex: 1, padding: '8px', overflow: 'hidden' }}>
           <ChartCard style={{ height: '100%' }} />
         </div>

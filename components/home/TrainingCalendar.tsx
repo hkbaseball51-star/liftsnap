@@ -155,17 +155,6 @@ export function getPPLDisplay(muscles: string[]): { label: string; color: string
   return classifyTraining(muscles)
 }
 
-// Sample data shown when no real sessions exist
-const SAMPLE_SESSIONS: CalendarSession[] = [
-  { date: '2026-05-03', muscleGroup: 'chest' },
-  { date: '2026-05-06', muscleGroup: 'back',  allMuscleGroups: ['back', 'biceps'] },
-  { date: '2026-05-09', muscleGroup: 'legs' },
-  { date: '2026-05-12', muscleGroup: 'chest', allMuscleGroups: ['chest', 'triceps'] },
-  { date: '2026-05-15', muscleGroup: 'shoulders' },
-  { date: '2026-05-18', muscleGroup: 'chest', allMuscleGroups: ['chest', 'back', 'legs'] },
-  { date: '2026-05-21', muscleGroup: 'chest', allMuscleGroups: ['chest', 'shoulders'] },
-]
-
 const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
@@ -322,7 +311,7 @@ export default function TrainingCalendar({
   const firstDayOfMonth = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-  const activeSessions = sessions.length > 0 ? sessions : SAMPLE_SESSIONS
+  const activeSessions = sessions
   const sessionMap = new Map<string, { label: string; color: string }>()
   activeSessions.forEach(s => {
     const rawMuscles = s.allMuscleGroups && s.allMuscleGroups.length > 0
@@ -551,6 +540,18 @@ export default function TrainingCalendar({
               )
             })}
           </div>
+
+          {/* Empty state — shown only when the user has no recorded sessions */}
+          {sessions.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '14px 0 4px' }}>
+              <p style={{ color: 'rgba(255,255,255,0.22)', fontSize: 12, fontWeight: 700 }}>
+                {locale === 'ja' ? 'まだ記録がありません' : 'No workouts yet'}
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.14)', fontSize: 11, marginTop: 4 }}>
+                {locale === 'ja' ? '今日のワークアウトを記録して始めましょう' : 'Start by logging today\'s workout'}
+              </p>
+            </div>
+          )}
 
           {/* Legend */}
           <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.14)' }}>
