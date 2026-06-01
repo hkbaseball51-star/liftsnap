@@ -14,12 +14,17 @@ interface LegalPageLayoutProps {
 export default function LegalPageLayout({ title, updatedDate, children }: LegalPageLayoutProps) {
   const router = useRouter()
 
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back()
+    else router.push('/profile/settings')
+  }
+
   return (
-    <div className="min-h-screen pb-32" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-16" style={{ background: '#0a0a0a' }}>
       {/* Header */}
-      <div className="pt-14 pb-2 px-4 flex items-center gap-3">
+      <div className="pt-14 pb-3 px-4 flex items-center gap-3">
         <button
-          onClick={() => router.back()}
+          onClick={handleBack}
           aria-label="戻る"
           className="p-1 -ml-1 active:opacity-70"
         >
@@ -32,7 +37,7 @@ export default function LegalPageLayout({ title, updatedDate, children }: LegalP
 
       {/* Content */}
       <div className="px-5 max-w-2xl mx-auto">
-        <p className="text-xs mb-8" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <p className="text-xs mb-8 mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
           {updatedDate}
         </p>
         {children}
@@ -85,7 +90,7 @@ interface LegalListProps {
 
 export function LegalList({ items }: LegalListProps) {
   return (
-    <ul className="flex flex-col gap-1.5 pl-2">
+    <ul className="flex flex-col gap-2 pl-2 mb-3">
       {items.map((item, i) => (
         <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.60)' }}>
           <span style={{ color: '#ED742F', flexShrink: 0 }}>·</span>
@@ -101,32 +106,30 @@ export function LegalList({ items }: LegalListProps) {
 interface LegalContactProps {
   operator: string
   email: string
-  note?: string
 }
 
-export function LegalContact({ operator, email, note }: LegalContactProps) {
+export function LegalContact({ operator, email }: LegalContactProps) {
   return (
     <div
       className="rounded-2xl"
       style={{
         background: '#111',
-        border: '1px solid #222',
-        padding: '16px',
+        border: '1px solid #1e1e1e',
+        padding: '16px 18px',
       }}
     >
-      <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.60)' }}>
+      <p className="text-xs font-black tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        運営者
+      </p>
+      <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.70)' }}>
         {operator}
       </p>
-      <p className="text-sm leading-relaxed mt-1">
-        <a href={`mailto:${email}`} style={{ color: '#ED742F' }}>
-          {email}
-        </a>
+      <p className="text-xs font-black tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        メールアドレス
       </p>
-      {note && (
-        <p className="text-xs mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          {note}
-        </p>
-      )}
+      <a href={`mailto:${email}`} className="text-sm font-bold break-all" style={{ color: '#ED742F' }}>
+        {email}
+      </a>
     </div>
   )
 }

@@ -23,7 +23,8 @@ export default function BottomNav() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  if (pathname === '/analytics/chart') return null
+  const HIDE_NAV: string[] = ['/analytics/chart', '/profile/terms', '/profile/privacy', '/profile/support/faq']
+  if (HIDE_NAV.includes(pathname)) return null
 
   useEffect(() => {
     PREFETCH_ROUTES.forEach(r => router.prefetch(r))

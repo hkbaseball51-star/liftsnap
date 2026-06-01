@@ -79,11 +79,10 @@ export default function SupportPage() {
 
   const generalRows: Row[] = [
     {
-      label:   t(locale, 'support.faqLabel'),
-      icon:    BookOpen,
-      sub:     t(locale, 'support.faqSub'),
-      soon:    true,
-      onClick: () => {},
+      label: t(locale, 'support.faqLabel'),
+      icon:  BookOpen,
+      sub:   t(locale, 'support.faqSub'),
+      href:  '/profile/support/faq',
     },
     {
       label: t(locale, 'support.contactLabel'),

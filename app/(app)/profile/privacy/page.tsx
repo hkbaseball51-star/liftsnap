@@ -5,6 +5,7 @@ import LegalPageLayout, {
   LegalList,
   LegalContact,
 } from '@/components/legal/LegalPageLayout'
+import { SUPPORT_EMAIL } from '@/constants/legal'
 
 export const metadata: Metadata = {
   title: 'プライバシーポリシー | REPRA',
@@ -304,8 +305,7 @@ export default function PrivacyPolicyPage() {
       <LegalSection title="18. お問い合わせ">
         <LegalContact
           operator="REPRA運営者"
-          email="support@example.com"
-          note="※ 上記メールアドレスは仮の連絡先です。正式なサポート用メールアドレス取得後、差し替えます。"
+          email={SUPPORT_EMAIL}
         />
       </LegalSection>
 
