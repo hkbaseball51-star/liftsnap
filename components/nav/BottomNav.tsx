@@ -18,17 +18,28 @@ const tabs = [
 
 const PREFETCH_ROUTES = ['/home', '/analytics', '/record', '/rewards', '/profile']
 
+// Paths where the bottom nav should be hidden entirely.
+// IMPORTANT: this list must be defined outside the component so it's stable
+// across renders and never placed between hook calls.
+const HIDE_NAV = new Set([
+  '/analytics/chart',
+  '/profile/terms',
+  '/profile/privacy',
+  '/profile/support/faq',
+])
+
 export default function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  const HIDE_NAV: string[] = ['/analytics/chart', '/profile/terms', '/profile/privacy', '/profile/support/faq']
-  if (HIDE_NAV.includes(pathname)) return null
-
+  // All hooks must be called unconditionally before any early return.
   useEffect(() => {
     PREFETCH_ROUTES.forEach(r => router.prefetch(r))
   }, [router])
+
+  // Early return AFTER all hooks — React rules require stable hook call order.
+  if (HIDE_NAV.has(pathname)) return null
 
   const navigate = (href: string) => {
     startTransition(() => router.push(href))

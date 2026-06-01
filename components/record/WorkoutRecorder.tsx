@@ -165,7 +165,7 @@ const ExerciseCard = memo(function ExerciseCard({
               </span>
             ) : (
               <span className="px-1.5 py-px rounded-full text-[8px] font-black tracking-widest"
-                style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.10)' }}>
                 FIRST LOG
               </span>
             )}
@@ -223,11 +223,11 @@ const ExerciseCard = memo(function ExerciseCard({
             <button
               className="col-span-4 active:scale-95 transition-transform"
               style={{
-                height: 44, borderRadius: 10,
+                height: 40, borderRadius: 10,
                 background: '#1e1e1e',
                 border: '1px solid rgba(255,255,255,0.11)',
                 color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
-                fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-mono)',
+                fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
@@ -238,25 +238,25 @@ const ExerciseCard = memo(function ExerciseCard({
             <button
               className="col-span-3 active:scale-95 transition-transform"
               style={{
-                height: 44, borderRadius: 10,
+                height: 40, borderRadius: 10,
                 background: '#1e1e1e',
                 border: '1px solid rgba(255,255,255,0.11)',
                 color: set.reps !== null ? '#fff' : '#6a6a6a',
-                fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-mono)',
+                fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
               {set.reps ?? '—'}
             </button>
 
-            {/* Set 1RM */}
+            {/* Set 1RM — orange for best set, gray otherwise. Never purple. */}
             <div className="col-span-3 flex items-center justify-center">
               {setEst1rm !== null ? (
-                <span style={{ color: isBestSet ? '#9B72E8' : '#9a9a9a', fontSize: 13, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: isBestSet ? '#ED742F' : '#666', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                   {toDisplayWeight(setEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
                 </span>
               ) : (
-                <span style={{ color: '#666', fontSize: 14, fontWeight: 900 }}>—</span>
+                <span style={{ color: '#444', fontSize: 13, fontWeight: 700 }}>—</span>
               )}
             </div>
           </div>
@@ -266,14 +266,19 @@ const ExerciseCard = memo(function ExerciseCard({
       {/* Stats summary — single line */}
       {stats && (
         <div style={{ padding: '5px 14px 9px' }}>
-          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.58)', lineHeight: 1 }}>
-            <span style={{ color: '#ED742F', fontWeight: 700 }}>
+          <p style={{ fontSize: 11, lineHeight: 1 }}>
+            <span style={{ color: '#666', fontWeight: 500 }}>Volume </span>
+            <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
               {formatVolumeWithUnit(stats.volume, weightUnit)}
             </span>
-            {' vol · '}
-            <span style={{ color: '#9B72E8', fontWeight: 700 }}>{toDisplayWeight(stats.est1rm, weightUnit)}{weightUnitLabel(weightUnit)}</span>
-            {' 1RM · Best '}
-            <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{toDisplayWeight(stats.bestWeight, weightUnit)}×{stats.bestReps}</span>
+            <span style={{ color: '#555', fontWeight: 500 }}> · Est. 1RM </span>
+            <span style={{ color: isNewPR ? '#ED742F' : 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+              {toDisplayWeight(stats.est1rm, weightUnit)}{weightUnitLabel(weightUnit)}
+            </span>
+            <span style={{ color: '#555', fontWeight: 500 }}> · Best </span>
+            <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+              {toDisplayWeight(stats.bestWeight, weightUnit)}×{stats.bestReps}
+            </span>
           </p>
         </div>
       )}

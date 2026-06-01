@@ -68,9 +68,28 @@ export default function FullScreenChart({
     return () => window.removeEventListener('resize', upd)
   }, [])
 
+  // On iOS Safari, position:fixed inside overflow:auto can misbehave.
+  // Locking body/main overflow while this overlay is mounted ensures it
+  // always anchors to the viewport correctly.
+  useEffect(() => {
+    const body = document.body
+    const main = document.querySelector('main') as HTMLElement | null
+    const prevBodyOverflow = body.style.overflow
+    const prevMainOverflow = main?.style.overflowY ?? ''
+    body.style.overflow = 'hidden'
+    if (main) main.style.overflowY = 'hidden'
+    return () => {
+      body.style.overflow = prevBodyOverflow
+      if (main) main.style.overflowY = prevMainOverflow
+    }
+  }, [])
+
+  // Scroll to the latest (rightmost) data. screenW is used as the dependency
+  // so the scroll re-runs after the actual device width is measured on mount
+  // and after any orientation change.
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
-  }, [])
+  }, [screenW])
 
   const goBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back()

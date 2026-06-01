@@ -41,9 +41,12 @@ function matchesMuscleGroup(mg: string, filter: MuscleGroup): boolean {
   switch (filter) {
     case 'CHEST':     return m.includes('chest')
     case 'BACK':      return m.includes('back')
-    case 'LEGS':      return m.includes('leg') || m.includes('lower') || m.includes('glute')
+    // 'LEGS' covers all lower-body groups stored in the DB: QUADS, HAMSTRINGS, GLUTES, CALVES
+    case 'LEGS':      return m.includes('quad') || m.includes('hamstring') || m.includes('glute')
+                          || m.includes('calf') || m.includes('calve') || m.includes('leg')
+                          || m.includes('lower')
     case 'SHOULDERS': return m.includes('shoulder')
-    case 'ARMS':      return m.includes('arm') || m.includes('bicep') || m.includes('tricep')
+    case 'ARMS':      return m.includes('bicep') || m.includes('tricep') || m.includes('forearm')
     case 'ABS':       return m.includes('abs') || m.includes('core')
     default:          return true
   }
