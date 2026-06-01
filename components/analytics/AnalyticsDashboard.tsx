@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef, useTransition } from 'react'
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar,
+  LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
 import Link from 'next/link'
-import { Share2, Lock } from 'lucide-react'
+import { Share2, Lock, Maximize2 } from 'lucide-react'
 import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analytics'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
@@ -16,6 +16,7 @@ import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units
 import { t, type Locale } from '@/lib/i18n'
 import { EXERCISE_GRAPH_REQUIRED, EXERCISE_PROGRESS_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
 import { type Period, PERIODS, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
+import { type MetricType, smartYAxis, yAxisTicks, computeChartWidth, getPointWidth, buildXAxisConfig, formatTooltipDate } from '@/lib/chartUtils'
 
 type WeightPoint = { date: string; label: string; weight: number }
 type Exercise = { name: string; muscle_group: string; logCount: number }
@@ -49,33 +50,13 @@ function matchesMuscleGroup(mg: string, filter: MuscleGroup): boolean {
 }
 
 const CARD = {
-  background: 'linear-gradient(135deg, rgba(237, 116, 47,0.05), rgba(255,255,255,0.01) 40%, rgba(237, 116, 47,0.03))',
-  border: '1px solid rgba(237, 116, 47,0.38)',
-  boxShadow: '0 0 30px rgba(237, 116, 47,0.04)',
+  background: 'linear-gradient(135deg, rgba(237,116,47,0.025), rgba(255,255,255,0.01) 50%, rgba(237,116,47,0.015))',
+  border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 18,
 } as const
 
-const tooltipStyle = {
-  contentStyle: { background: '#171717', border: '1px solid rgba(237, 116, 47,0.38)', borderRadius: 12, color: '#fff' },
-  labelStyle: { color: '#555', fontSize: 10 },
-  itemStyle: { color: '#ED742F', fontWeight: 'bold' as const },
-  cursor: { stroke: '#222222' },
-}
-
-// px per data point for scrollable chart
-const SCROLL_PX: Record<string, number> = { '90D': 20, '6M': 36, '1Y': 28, 'All': 40 }
-
-function scrollChartWidth(n: number, period: string): number {
-  const ppx = SCROLL_PX[period] ?? 20
-  return Math.max(400, n * ppx)
-}
-
-function xAxisInterval(n: number, period: string): number {
-  if (period === '30D') return Math.max(0, Math.floor(n / 6) - 1)
-  if (period === '90D') return 6   // weekly label ticks on daily data
-  if (period === '6M') return 0    // every weekly bucket
-  if (period === '1Y') return 1    // every other weekly bucket
-  return Math.max(0, Math.floor(n / 6) - 1) // All
+function periodToRange(p: Period): string {
+  return ({ '30D':'30d','90D':'90d','6M':'6m','1Y':'1y','All':'all' } as Record<Period,string>)[p]
 }
 
 export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
@@ -107,6 +88,15 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   })
   const [bwSaving, setBwSaving] = useState(false)
   const [bwToast, setBwToast]   = useState<{ msg: string; ok: boolean } | null>(null)
+
+  const [innerW, setInnerW] = useState(316)
+
+  useEffect(() => {
+    const update = () => setInnerW(Math.max(280, window.innerWidth - 64))
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
@@ -192,11 +182,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   // Period-filtered + aggregated data
   const periodStart = getStartDate(period)
   const bwDataForPeriod = periodStart ? bwData.filter(p => p.date >= periodStart) : bwData
-  const bwDataAggregated = aggregateBodyWeight(bwDataForPeriod, period)
+  const bwDataAggregated = aggregateBodyWeight(bwDataForPeriod)
   const bwDataDisplay = bwDataAggregated.map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
 
-  const rmDataAggregated = aggregate1RM(rmData, period)
-  const volDataAggregated = aggregateVolume(volData, period)
+  const rmDataAggregated = aggregate1RM(rmData)
+  const volDataAggregated = aggregateVolume(volData)
 
   const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
   const totalVol = volData.reduce((s, p) => s + p.volume, 0)
@@ -212,11 +202,144 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const lineChartUnlocked     = isTrainingFeatureUnlocked('basic_chart', totalSessions)
   const exerciseProgressUnlocked = isTrainingFeatureUnlocked('exercise_progress', totalSessions, maxExerciseLogCount)
 
-  const isScrollable = period !== '30D'
   const periodLabel  = { '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' }[period] ?? period
-  const rmXInterval  = xAxisInterval(rmDataDisplay.length, period)
-  const volXInterval = xAxisInterval(volDataDisplay.length, period)
-  const bwXInterval  = xAxisInterval(bwDataDisplay.length, period)
+
+  const innerW_forChart = innerW  // alias for clarity
+
+  // RM chart
+  const rmValues = rmDataDisplay.map(p => p.est1rm)
+  const rmAxis = smartYAxis(rmValues, 'rm')
+  const rmTicks = yAxisTicks(rmAxis.yMin, rmAxis.yMax, rmAxis.step)
+  const rmChartW = computeChartWidth(rmDataDisplay.length, innerW_forChart, getPointWidth(period, 'line'))
+  const rmGrowth = rmDataDisplay.length >= 2
+    ? rmDataDisplay[rmDataDisplay.length - 1].est1rm - rmDataDisplay[0].est1rm
+    : null
+
+  // Volume chart (28px per bar = more bars visible per screen)
+  const volValues = volDataDisplay.map(p => p.volume)
+  const volAxis = smartYAxis(volValues, 'volume')
+  const volTicks = yAxisTicks(0, volAxis.yMax, volAxis.step)
+  const volChartW = computeChartWidth(volDataDisplay.length, innerW_forChart, getPointWidth(period, 'bar'))
+
+  // BW chart
+  const bwValues = bwDataDisplay.map(p => p.weight)
+  const bwAxis = smartYAxis(bwValues, 'bw')
+  const bwTicks = yAxisTicks(bwAxis.yMin, bwAxis.yMax, bwAxis.step)
+  const bwChartW = computeChartWidth(bwDataDisplay.length, innerW_forChart, getPointWidth(period, 'line'))
+
+  // XAxis tick lists + formatters (explicit ticks, no duplicate-month labels)
+  const rmXAxis  = buildXAxisConfig(rmDataDisplay,  rmChartW,  period)
+  const volXAxis = buildXAxisConfig(volDataDisplay, volChartW, period)
+  const bwXAxis  = buildXAxisConfig(bwDataDisplay,  bwChartW,  period)
+
+  // Custom dot renderer — latest point is larger with white ring
+  const rmDot = (props: any) => {
+    const { cx, cy, index } = props
+    if (index === rmDataDisplay.length - 1) {
+      return (
+        <g key="rm-dot-l">
+          <circle cx={cx} cy={cy} r={9} fill="#ED742F" fillOpacity={0.12} />
+          <circle cx={cx} cy={cy} r={5} fill="#ED742F" stroke="rgba(255,255,255,0.88)" strokeWidth={1.5} />
+        </g>
+      )
+    }
+    return <circle key={`rm-dot-${index}`} cx={cx} cy={cy} r={2} fill="#ED742F" fillOpacity={0.6} />
+  }
+
+  const bwDot = (props: any) => {
+    const { cx, cy, index } = props
+    if (index === bwDataDisplay.length - 1) {
+      return (
+        <g key="bw-dot-l">
+          <circle cx={cx} cy={cy} r={7} fill="#94A3B8" fillOpacity={0.15} />
+          <circle cx={cx} cy={cy} r={4} fill="#94A3B8" stroke="rgba(255,255,255,0.75)" strokeWidth={1.5} />
+        </g>
+      )
+    }
+    return <circle key={`bw-dot-${index}`} cx={cx} cy={cy} r={1} fill="#94A3B8" fillOpacity={0.5} />
+  }
+
+  const rmTooltip = (tProps: any) => {
+    const { active, payload, label } = tProps
+    if (!active || !payload?.length) return null
+    const point = payload[0].payload as { date: string; est1rm: number }
+    const idx = rmDataDisplay.findIndex(d => d.date === point.date)
+    const current = point.est1rm
+    const sinceFirst = idx > 0 ? current - rmDataDisplay[0].est1rm : null
+    const fromPrev   = idx > 0 ? current - rmDataDisplay[idx - 1].est1rm : null
+    return (
+      <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{formatTooltipDate(label)}</p>
+        <div style={{ marginBottom: sinceFirst !== null ? 4 : 0 }}>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>EST. 1RM  </span>
+          <span style={{ color: '#ED742F', fontSize: 14, fontWeight: 900 }}>{current}</span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+        </div>
+        {sinceFirst !== null && (
+          <p style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 4 }}>
+            {sinceFirst >= 0 ? '+' : ''}{sinceFirst} {unitLabel}
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>since first</span>
+          </p>
+        )}
+        {fromPrev !== null && fromPrev !== 0 && (
+          <p style={{ color: fromPrev > 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 1 }}>
+            {fromPrev > 0 ? '+' : ''}{fromPrev} {unitLabel}
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>from prev</span>
+          </p>
+        )}
+        {fromPrev === 0 && (
+          <p style={{ color: 'rgba(255,255,255,0.16)', fontSize: 10, marginTop: 1 }}>
+            ±0 {unitLabel}<span style={{ marginLeft: 4 }}>from prev</span>
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const bwTooltip = (tProps: any) => {
+    const { active, payload, label } = tProps
+    if (!active || !payload?.length) return null
+    const point = payload[0].payload as { date: string; weight: number }
+    const idx = bwDataDisplay.findIndex(d => d.date === point.date)
+    const current = point.weight
+    const sinceFirst = idx > 0
+      ? Math.round((current - bwDataDisplay[0].weight) * 10) / 10
+      : null
+    return (
+      <div style={{ background: '#0d0d0d', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{formatTooltipDate(label)}</p>
+        <div style={{ marginBottom: sinceFirst !== null ? 4 : 0 }}>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>BODY WEIGHT  </span>
+          <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 900 }}>{current}</span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+        </div>
+        {sinceFirst !== null && (
+          <p style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 10, marginTop: 4 }}>
+            {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)} {unitLabel}
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>since first</span>
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const volTooltip = (tProps: any) => {
+    const { active, payload, label } = tProps
+    if (!active || !payload?.length) return null
+    const vol = payload[0].value as number
+    return (
+      <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{formatTooltipDate(label)}</p>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>VOLUME  </span>
+          <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 14, fontWeight: 900 }}>
+            {vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : vol.toLocaleString()}
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
@@ -344,35 +467,57 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
               {/* 1RM chart */}
               <div className="rounded-2xl p-4 mb-3" style={CARD}>
-                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#ED742F' }}>1RM PROGRESSION</p>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>1RM PROGRESSION</p>
+                    {rmDataDisplay.length >= 2 && (
+                      <p className="text-[9px] mt-0.5 tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        Since {rmDataDisplay[0].label}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {rmGrowth !== null && (
+                      <span className="text-[11px] font-black" style={{ color: rmGrowth > 0 ? '#ED742F' : 'rgba(255,255,255,0.42)' }}>
+                        {rmGrowth > 0 ? '+' : ''}{rmGrowth}{unitLabel}
+                      </span>
+                    )}
+                    <Link
+                      href={`/analytics/chart?metric=max1rm&range=${periodToRange(period)}&exercise=${encodeURIComponent(selectedExercise)}`}
+                      aria-label="Open full screen chart"
+                      className="p-1.5 rounded-lg active:opacity-60"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
+                    </Link>
+                  </div>
+                </div>
                 {rmLoading ? (
                   <LoadingChart />
                 ) : rmData.length === 0 ? (
                   <ChartEmpty />
-                ) : isScrollable ? (
-                  <div ref={rmScrollRef} className="overflow-x-auto no-scrollbar">
-                    <LineChart width={scrollChartWidth(rmDataDisplay.length, period)} height={200} data={rmDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
-                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={rmXInterval} />
-                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
-                      <Line type="monotone" dataKey="est1rm" stroke="#ED742F" strokeWidth={2.5}
-                        dot={{ fill: '#ED742F', r: 4, strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: '#ED742F' }} />
-                    </LineChart>
-                  </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={rmDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
-                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={rmXInterval} />
-                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Est. 1RM']} />
-                      <Line type="monotone" dataKey="est1rm" stroke="#ED742F" strokeWidth={2.5}
-                        dot={{ fill: '#ED742F', r: 4, strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: '#ED742F' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div className="relative">
+                    {rmChartW > innerW && (
+                      <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+                        style={{ background: 'linear-gradient(to right, rgba(10,10,10,0.9), transparent)' }} />
+                    )}
+                    <div ref={rmScrollRef}
+                      className="overflow-x-auto overscroll-x-contain no-scrollbar"
+                      style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+                      <LineChart width={rmChartW} height={380} data={rmDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+                        <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={rmXAxis.formatter}
+                          tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false}
+                          width={40} domain={[rmAxis.yMin, rmAxis.yMax]} ticks={rmTicks} />
+                        <Tooltip content={rmTooltip} cursor={{ stroke: 'rgba(255,255,255,0.07)' }} />
+                        <Line type="linear" dataKey="est1rm" stroke="#ED742F" strokeWidth={2}
+                          dot={rmDot as any}
+                          activeDot={{ r: 5, fill: '#ED742F', stroke: 'rgba(255,255,255,0.75)', strokeWidth: 1.5 }}
+                          isAnimationActive={true} animationDuration={400} />
+                      </LineChart>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -483,33 +628,41 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
               {/* Volume chart */}
               <div className="rounded-2xl p-4 mb-3" style={CARD}>
-                <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#ED742F' }}>DAILY VOLUME</p>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>DAILY VOLUME</p>
+                  <Link
+                    href={`/analytics/chart?metric=daily-volume&range=${periodToRange(period)}&exercise=${encodeURIComponent(selectedExercise)}`}
+                    aria-label="Open full screen chart"
+                    className="p-1.5 rounded-lg active:opacity-60"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
+                  </Link>
+                </div>
                 {volLoading ? (
                   <LoadingChart />
                 ) : volData.length === 0 ? (
                   <ChartEmpty />
-                ) : isScrollable ? (
-                  <div ref={volScrollRef} className="overflow-x-auto no-scrollbar">
-                    <BarChart width={scrollChartWidth(volDataDisplay.length, period)} height={200} data={volDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={volXInterval} />
-                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
-                        tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
-                      <Bar dataKey="volume" fill="#ED742F" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                    </BarChart>
-                  </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={volDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 9 }} tickLine={false} axisLine={false} interval={volXInterval} />
-                      <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false}
-                        tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                      <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString()} ${unitLabel}`, 'Volume']} />
-                      <Bar dataKey="volume" fill="#ED742F" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="relative">
+                    {volChartW > innerW && (
+                      <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+                        style={{ background: 'linear-gradient(to right, rgba(10,10,10,0.9), transparent)' }} />
+                    )}
+                    <div ref={volScrollRef}
+                      className="overflow-x-auto overscroll-x-contain no-scrollbar"
+                      style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+                      <BarChart width={volChartW} height={380} data={volDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+                        <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={volXAxis.formatter}
+                          tick={{ fill: '#4a4a4a', fontSize: 9 }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={44}
+                          domain={[0, volAxis.yMax]} ticks={volTicks}
+                          tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip content={volTooltip} cursor={{ stroke: 'rgba(255,255,255,0.05)', fill: 'rgba(255,255,255,0.02)' }} />
+                        <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2, 2, 0, 0]} maxBarSize={16} />
+                      </BarChart>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -659,37 +812,44 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
           )}
 
           <div className="rounded-2xl p-4" style={CARD}>
-            <p className="text-[10px] font-black tracking-widest mb-4" style={{ color: '#ED742F' }}>BODY WEIGHT · {periodLabel}</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>BODY WEIGHT · {periodLabel}</p>
+              <Link
+                href={`/analytics/chart?metric=body-weight&range=${periodToRange(period)}`}
+                aria-label="Open full screen chart"
+                className="p-1.5 rounded-lg active:opacity-60"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
+              </Link>
+            </div>
             {bwDataDisplay.length < 2 ? (
-              <div className="h-48 flex items-center justify-center">
+              <div className="h-[380px] flex items-center justify-center">
                 <p className="text-xs font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.bwChartEmpty')}</p>
               </div>
-            ) : isScrollable ? (
-              <div ref={bwScrollRef} className="overflow-x-auto no-scrollbar">
-                <LineChart width={scrollChartWidth(bwDataDisplay.length, period)} height={200} data={bwDataDisplay} margin={{ top: 5, right: 10, bottom: 5, left: 35 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
-                  <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={bwXInterval} />
-                  <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                  <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
-                  <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="#222" strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="weight" stroke="#9B72E8" strokeWidth={2.5}
-                    dot={{ fill: '#9B72E8', r: 3, strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: '#9B72E8' }} />
-                </LineChart>
-              </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={bwDataDisplay} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
-                  <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={bwXInterval} />
-                  <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-                  <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} ${unitLabel}`, 'Weight']} />
-                  <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="#222" strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="weight" stroke="#9B72E8" strokeWidth={2.5}
-                    dot={{ fill: '#9B72E8', r: 3, strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: '#9B72E8' }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="relative">
+                {bwChartW > innerW && (
+                  <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+                    style={{ background: 'linear-gradient(to right, rgba(10,10,10,0.9), transparent)' }} />
+                )}
+                <div ref={bwScrollRef}
+                  className="overflow-x-auto overscroll-x-contain no-scrollbar"
+                  style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+                  <LineChart width={bwChartW} height={380} data={bwDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+                    <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={bwXAxis.formatter}
+                      tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={40}
+                      domain={[bwAxis.yMin, bwAxis.yMax]} ticks={bwTicks} />
+                    <Tooltip content={bwTooltip} cursor={{ stroke: 'rgba(255,255,255,0.07)' }} />
+                    <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
+                    <Line type="linear" dataKey="weight" stroke="#94A3B8" strokeWidth={2}
+                      dot={bwDot as any}
+                      activeDot={{ r: 5, fill: '#94A3B8', stroke: 'rgba(255,255,255,0.7)', strokeWidth: 1.5 }}
+                      isAnimationActive={true} animationDuration={400} />
+                  </LineChart>
+                </div>
+              </div>
             )}
           </div>
           {bwData.length > 0 && (
@@ -744,7 +904,7 @@ function NoGroupData() {
 
 function LoadingChart() {
   return (
-    <div className="h-48 flex items-center justify-center">
+    <div className="h-[380px] flex items-center justify-center">
       <p className="text-xs font-black tracking-widest" style={{ color: '#444' }}>LOADING...</p>
     </div>
   )
@@ -753,7 +913,7 @@ function LoadingChart() {
 function ChartEmpty() {
   const { locale } = useLocale()
   return (
-    <div className="h-48 flex items-center justify-center flex-col gap-2">
+    <div className="h-[380px] flex items-center justify-center flex-col gap-2">
       <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noDataYet')}</p>
       <p className="text-xs font-bold" style={{ color: '#333' }}>{t(locale, 'analytics.chartNoData')}</p>
     </div>

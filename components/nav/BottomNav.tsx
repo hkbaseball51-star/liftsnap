@@ -23,6 +23,8 @@ export default function BottomNav() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  if (pathname === '/analytics/chart') return null
+
   useEffect(() => {
     PREFETCH_ROUTES.forEach(r => router.prefetch(r))
   }, [router])
