@@ -9,6 +9,7 @@ import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 import PersonalBests from '@/components/profile/PersonalBests'
 import { calcBestProofStreak } from '@/lib/proofStreak'
 import { getPersonalBests } from '@/actions/personalBests'
+import { ensureProfile, resolveDisplayName } from '@/lib/auth/ensureProfile'
 
 function fmtLargeVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)}M`
@@ -83,12 +84,30 @@ export default async function ProfilePage() {
     )
   }
 
+  // Ensure profile exists (creates one from auth metadata if missing)
+  const profile = await ensureProfile(supabase, user)
+
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()])
+  const cookieLang = cookieStore.get('liftsnap_lang')?.value
+  const locale: Locale = resolveServerLocale(
+    cookieLang,
+    profile?.language ?? null,
+    headerStore.get('accept-language') ?? ''
+  )
+  const weightUnit: WeightUnit = profile?.weight_unit === 'lbs' ? 'lbs' : 'kg'
+
+  // Display name: profiles.display_name → user_metadata → email prefix → 'User'
+  const displayName = resolveDisplayName(profile, user)
+  const profileUsername = profile?.username ?? null
+
+  // Short user ID for display when no username is available
+  const shortId = user.id.slice(0, 8)
+
   const [
-    profileRes, sessionsRes, recentRes,
+    sessionsRes, recentRes,
     personalBests,
     bestLiftRes, muscleGroupsRes, photoLogsRes,
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name, plan, language, username, weight_unit').eq('id', user.id).single(),
     supabase.from('workout_sessions')
       .select('total_volume_kg, trained_at')
       .eq('user_id', user.id)
@@ -112,17 +131,6 @@ export default async function ProfilePage() {
       .select('workout_date')
       .eq('user_id', user.id),
   ])
-
-  const profile      = profileRes.data
-  const displayName  = (profile?.display_name as string | null) ?? 'USER'
-  const profileUsername = (profile as { username?: string | null } | null)?.username ?? null
-
-  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()])
-  const cookieLang = cookieStore.get('liftsnap_lang')?.value
-  const dbLang     = (profile as { language?: string | null } | null)?.language
-  const locale: Locale = resolveServerLocale(cookieLang, dbLang, headerStore.get('accept-language') ?? '')
-  const dbWeightUnit = (profile as { weight_unit?: string | null } | null)?.weight_unit
-  const weightUnit: WeightUnit = dbWeightUnit === 'lbs' ? 'lbs' : 'kg'
 
   const allSessions  = sessionsRes.data ?? []
   const sessionCount = allSessions.length
@@ -157,23 +165,39 @@ export default async function ProfilePage() {
 
       {/* ── 2. Profile Hero ───────────────────────────── */}
       <div className="flex flex-col items-center px-4 pt-2 pb-6">
-        <div
-          className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white mb-4"
-          style={{
-            background: 'linear-gradient(135deg, #ED742F 0%, #6E38D4 100%)',
-            boxShadow: '0 0 36px rgba(237, 116, 47,0.18)',
-          }}>
-          {displayName[0].toUpperCase()}
-        </div>
+        {/* Avatar: image from avatar_url when available, otherwise initials */}
+        {profile?.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.avatar_url}
+            alt={displayName}
+            className="w-24 h-24 rounded-full object-cover mb-4"
+            style={{ boxShadow: '0 0 36px rgba(237,116,47,0.18)' }}
+          />
+        ) : (
+          <div
+            className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white mb-4"
+            style={{
+              background: 'linear-gradient(135deg, #ED742F 0%, #6E38D4 100%)',
+              boxShadow: '0 0 36px rgba(237, 116, 47,0.18)',
+            }}>
+            {displayName[0].toUpperCase()}
+          </div>
+        )}
 
         <p className="text-2xl font-black text-white tracking-tight leading-none">{displayName}</p>
 
-        <p className="text-xs mt-2" style={{
-          color: profileUsername ? T.secondary : 'rgba(255,255,255,0.68)',
-          fontFamily: 'var(--font-mono)',
-        }}>
-          {profileUsername ? `@${profileUsername}` : '@username'}
+        {/* Username or short ID fallback */}
+        <p className="text-xs mt-1.5" style={{ color: T.secondary, fontFamily: 'var(--font-mono)' }}>
+          {profileUsername ? `@${profileUsername}` : `ID: ${shortId}`}
         </p>
+
+        {/* Email — small and muted, never primary */}
+        {user.email && (
+          <p className="text-[10px] mt-0.5 truncate max-w-xs" style={{ color: 'rgba(255,255,255,0.32)' }}>
+            {user.email}
+          </p>
+        )}
 
         <div className="flex flex-col items-center mt-5 gap-2">
           <div className="flex items-center gap-2">

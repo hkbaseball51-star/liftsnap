@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,151 +12,127 @@ import { createClient } from '@/lib/supabase/client'
 
 type Stage = 'checking' | 'valid' | 'invalid' | 'updating' | 'done'
 
-// ── DEBUG: remove this block after diagnosis ──────────────────────────────────
-type DebugInfo = {
-  hrefHasCode:          boolean
-  search:               string
-  hashExists:           boolean
-  codeExists:           boolean
-  urlError:             string
-  urlErrorCode:         string
-  exchangeAttempted:    boolean
-  exchangeSuccess:      boolean
-  exchangeError:        string
-  getSessionAttempted:  boolean
-  getSessionSuccess:    boolean
-  authEvent:            string
-  finalStatus:          string
-  invalidReason:        string
+const DEV = process.env.NODE_ENV !== 'production'
+function dbg(msg: string)    { if (DEV) console.log(`[reset-password] ${msg}`) }
+function dbgErr(msg: string) { if (DEV) console.error(`[reset-password] ${msg}`) }
+
+/** Map Supabase error messages to user-safe strings without leaking internals. */
+function mapUpdateError(msg: string): string {
+  const m = msg.toLowerCase()
+  if (m.includes('session') || m.includes('missing') || m.includes('logged in') || m.includes('not authenticated')) {
+    return 'Session expired. Please request a new reset link.'
+  }
+  if (m.includes('different') || m.includes('same password')) {
+    return 'New password must be different from your current password.'
+  }
+  if (m.includes('password') && (m.includes('weak') || m.includes('strength') || m.includes('policy'))) {
+    return 'Password does not meet the minimum requirements. Please try a stronger password.'
+  }
+  return 'Could not update password. Please request a new reset link.'
 }
-const emptyDebug: DebugInfo = {
-  hrefHasCode:          false,
-  search:               '',
-  hashExists:           false,
-  codeExists:           false,
-  urlError:             '',
-  urlErrorCode:         '',
-  exchangeAttempted:    false,
-  exchangeSuccess:      false,
-  exchangeError:        '',
-  getSessionAttempted:  false,
-  getSessionSuccess:    false,
-  authEvent:            '',
-  finalStatus:          '',
-  invalidReason:        '',
-}
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ResetPasswordPage() {
+  const router = useRouter()
   const [stage,       setStage]       = useState<Stage>('checking')
   const [password,    setPassword]    = useState('')
   const [confirm,     setConfirm]     = useState('')
   const [fieldError,  setFieldError]  = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const settled    = useRef(false)
-  // DEBUG: remove after diagnosis
-  const [dbg, setDbg] = useState<DebugInfo>(emptyDebug)
-  const dbgRef = useRef<DebugInfo>(emptyDebug)
-  function patchDbg(patch: Partial<DebugInfo>) {
-    dbgRef.current = { ...dbgRef.current, ...patch }
-    setDbg({ ...dbgRef.current })
+
+  // Single Supabase client shared across useEffect and handleSubmit.
+  // createBrowserClient (from @supabase/ssr) stores the session in cookies,
+  // but sharing one instance ensures the in-memory session is never missed.
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
   }
 
-  useEffect(() => {
-    const supabase = createClient()
+  const settled = useRef(false)
 
-    function settle(next: 'valid' | 'invalid', reason = '') {
+  useEffect(() => {
+    const supabase = getSupabase()
+
+    function settle(next: 'valid' | 'invalid') {
       if (settled.current) return
       settled.current = true
-      patchDbg({ finalStatus: next, invalidReason: reason })
       setStage(next)
     }
 
-    // Fast path: Supabase auto-exchanges the PKCE code and fires PASSWORD_RECOVERY
+    // Fast path: Supabase fires PASSWORD_RECOVERY once the code is exchanged
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      patchDbg({ authEvent: event })
       if (event === 'PASSWORD_RECOVERY' && session) {
+        dbg('session exists (PASSWORD_RECOVERY event)')
         settle('valid')
       }
     })
 
-    // Safety net: if nothing resolves in 8 s the link is truly invalid
-    const timeout = setTimeout(() => settle('invalid', 'timeout_8s'), 8000)
+    // 8 s safety-net — only truly invalid/expired links need this
+    const timeout = setTimeout(() => {
+      dbgErr('timeout: no valid session after 8 s')
+      settle('invalid')
+    }, 8000)
 
     async function check() {
       try {
-        // Read URL params immediately — iPhone Gmail in-app browser can strip hash
-        const rawHash      = window.location.hash
-        const rawSearch    = window.location.search
-        const hashParams   = new URLSearchParams(rawHash.slice(1))
-        const searchParams = new URLSearchParams(rawSearch)
+        const rawHash    = window.location.hash
+        const rawSearch  = window.location.search
+        const hashParams = new URLSearchParams(rawHash.slice(1))
+        const srchParams = new URLSearchParams(rawSearch)
 
-        const urlErrorParam = searchParams.get('error') ?? hashParams.get('error') ?? ''
-        const urlErrorCode  = searchParams.get('error_code') ?? hashParams.get('error_code') ?? ''
-        const code          = searchParams.get('code') ?? ''
+        const urlError = srchParams.get('error') ?? hashParams.get('error') ?? ''
+        const code     = srchParams.get('code') ?? ''
 
-        patchDbg({
-          hrefHasCode: window.location.href.includes('code='),
-          search:      rawSearch.slice(0, 120),   // truncate for display, no token values
-          hashExists:  rawHash.length > 1,
-          codeExists:  !!code,
-          urlError:    urlErrorParam,
-          urlErrorCode,
-        })
-
-        // A. Explicit error in URL → invalid (only truly expired/denied links have this)
-        if (urlErrorParam) {
-          settle('invalid', `url_error:${urlErrorCode || urlErrorParam}`)
+        // A. Explicit error in URL (Supabase sets this for expired/denied links)
+        if (urlError) {
+          dbgErr(`url error param: ${urlError}`)
+          settle('invalid')
           return
         }
 
-        // B. PKCE code flow: /reset-password?code=xxxxx
+        // B. PKCE code: /reset-password?code=XXXX
         if (code) {
-          patchDbg({ exchangeAttempted: true })
+          dbg('code exists')
           const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          patchDbg({
-            exchangeSuccess: !!data?.session,
-            exchangeError:   error?.message ?? '',
-          })
           if (data?.session) {
+            dbg('exchange success')
             settle('valid')
             return
           }
-          // Exchange failed — @supabase/ssr may have auto-consumed the code.
-          // Fall through to getSession() which will find the established session.
+          // Log error but do NOT settle invalid yet — getSession() is the fallback.
+          // @supabase/ssr may have auto-consumed the code on the first render.
+          dbgErr(`exchange error: ${error?.message ?? 'unknown'}`)
         }
 
-        // C. Implicit hash flow: #access_token=...&refresh_token=...&type=recovery
-        // NOTE: we intentionally do NOT log token values
-        const hasHashTokens = hashParams.has('access_token') && hashParams.has('refresh_token')
-        if (hasHashTokens) {
-          const at = hashParams.get('access_token')!
-          const rt = hashParams.get('refresh_token')!
+        // C. Implicit / legacy hash flow: #access_token=…&refresh_token=…&type=recovery
+        // (Token values are intentionally not logged)
+        const at = hashParams.get('access_token')
+        const rt = hashParams.get('refresh_token')
+        if (at && rt) {
           const { error } = await supabase.auth.setSession({ access_token: at, refresh_token: rt })
-          if (error) {
-            settle('invalid', 'set_session_failed')
-          } else {
+          if (!error) {
+            dbg('session exists (hash tokens)')
             settle('valid')
+          } else {
+            dbgErr(`set_session error: ${error.message}`)
+            settle('invalid')
           }
           return
         }
 
-        // D. Session established via auto-exchange or PASSWORD_RECOVERY
-        patchDbg({ getSessionAttempted: true })
+        // D. Session may have been established by PASSWORD_RECOVERY event or a
+        //    prior auto-exchange — check before giving up.
         const { data: { session } } = await supabase.auth.getSession()
-        patchDbg({ getSessionSuccess: !!session })
         if (session) {
+          dbg('session exists (getSession fallback)')
           settle('valid')
         } else {
-          const reason = code
-            ? 'exchange_failed_no_session'
-            : 'no_code_no_hash_no_session'
-          settle('invalid', reason)
+          dbgErr(code ? 'exchange_failed_no_session' : 'no_code_no_hash_no_session')
+          settle('invalid')
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        patchDbg({ exchangeError: msg })
-        settle('invalid', 'exception')
+        dbgErr(`exception: ${err instanceof Error ? err.message : String(err)}`)
+        settle('invalid')
       }
     }
 
@@ -165,6 +142,7 @@ export default function ResetPasswordPage() {
       subscription.unsubscribe()
       clearTimeout(timeout)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -172,7 +150,8 @@ export default function ResetPasswordPage() {
     setFieldError(null)
     setSubmitError(null)
 
-    if (password.length < 8) {
+    const trimmed = password.trim()
+    if (trimmed.length < 8) {
       setFieldError('Password must be at least 8 characters.')
       return
     }
@@ -182,58 +161,38 @@ export default function ResetPasswordPage() {
     }
 
     setStage('updating')
-    const supabase = createClient()
-    const { error } = await supabase.auth.updateUser({ password })
 
-    if (error) {
-      setSubmitError('Could not update password. Please try again.')
+    // Use the same client that established the recovery session (in-memory + cookie).
+    const supabase = getSupabase()
+
+    // Pre-flight: confirm the recovery session is still active before updating.
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    dbg(`before update session exists: ${!!session}`)
+    if (sessionError) dbgErr(`getSession error: ${sessionError.message}`)
+
+    if (!session) {
+      dbgErr('no session before updateUser — recovery session expired or not established')
+      setSubmitError('Session expired. Please request a new reset link.')
       setStage('valid')
       return
     }
 
+    const { error } = await supabase.auth.updateUser({ password })
+    dbg(`update success: ${!error}`)
+
+    if (error) {
+      dbgErr(`update error: ${error.message}`)
+      setSubmitError(mapUpdateError(error.message))
+      setStage('valid')
+      return
+    }
+
+    // Sign out so the recovery session is invalidated and the user starts fresh.
     await supabase.auth.signOut()
     setStage('done')
+    // Give the user a moment to see the success message, then push to login
+    setTimeout(() => router.push('/login?reset=success'), 1500)
   }
-
-  // DEBUG panel — remove after diagnosis ──────────────────────────────────────
-  const DebugPanel = () => (
-    <div style={{
-      marginTop: 32,
-      padding: '10px 12px',
-      borderRadius: 8,
-      background: '#111',
-      border: '1px solid #222',
-      maxWidth: '90%',
-      margin: '32px auto 0',
-      wordBreak: 'break-all',
-    }}>
-      <p style={{ fontSize: 9, color: '#555', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>
-        DEBUG (remove after diagnosis)
-      </p>
-      {[
-        ['hrefHasCode',         String(dbg.hrefHasCode)],
-        ['search',              dbg.search || '(empty)'],
-        ['hashExists',          String(dbg.hashExists)],
-        ['codeExists',          String(dbg.codeExists)],
-        ['urlError',            dbg.urlError        || '—'],
-        ['urlErrorCode',        dbg.urlErrorCode    || '—'],
-        ['exchangeAttempted',   String(dbg.exchangeAttempted)],
-        ['exchangeSuccess',     String(dbg.exchangeSuccess)],
-        ['exchangeError',       dbg.exchangeError   || '—'],
-        ['getSessionAttempted', String(dbg.getSessionAttempted)],
-        ['getSessionSuccess',   String(dbg.getSessionSuccess)],
-        ['authEvent',           dbg.authEvent       || '(none yet)'],
-        ['finalStatus',         dbg.finalStatus     || 'pending'],
-        ['invalidReason',       dbg.invalidReason   || '—'],
-      ].map(([k, v]) => (
-        <div key={k} style={{ display: 'flex', gap: 6, fontSize: 10, lineHeight: 1.7 }}>
-          <span style={{ color: '#555', minWidth: 140, flexShrink: 0 }}>{k}:</span>
-          <span style={{ color: '#888' }}>{v}</span>
-        </div>
-      ))}
-    </div>
-  )
-  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -324,7 +283,7 @@ export default function ResetPasswordPage() {
                 <p className="text-sm text-center font-bold" style={{ color: '#ef4444' }}>{fieldError}</p>
               )}
               {submitError && (
-                <p className="text-sm text-center font-bold" style={{ color: '#ef4444' }}>{submitError}</p>
+                <p className="text-sm text-center" style={{ color: '#ef4444' }}>{submitError}</p>
               )}
 
               <button
@@ -351,7 +310,7 @@ export default function ResetPasswordPage() {
               Password updated successfully.
             </p>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Please sign in again with your new password.
+              Redirecting to sign in…
             </p>
             <Link
               href="/login"
@@ -361,9 +320,6 @@ export default function ResetPasswordPage() {
             </Link>
           </div>
         )}
-
-        {/* DEBUG: show on checking + invalid so we can see what happened — remove after diagnosis */}
-        {(stage === 'checking' || stage === 'invalid') && <DebugPanel />}
 
       </div>
     </div>

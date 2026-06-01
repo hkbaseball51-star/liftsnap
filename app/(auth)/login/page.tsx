@@ -37,9 +37,17 @@ function resetErrorMessage(code: ResetErrorCode, devMessage?: string): string {
 export default function LoginPage() {
   const [mode,      setMode]      = useState<Mode>('login')
   const [error,     setError]     = useState<string | null>(null)
+  const [notice,    setNotice]    = useState<string | null>(null)
   const [loading,   setLoading]   = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [cooldown,  setCooldown]  = useState(0)
+
+  // Show success notice when redirected from /reset-password?reset=success
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reset') === 'success') {
+      setNotice('Password updated. Please sign in with your new password.')
+    }
+  }, [])
 
   // Restore cooldown from localStorage on mount
   useEffect(() => {
@@ -112,6 +120,13 @@ export default function LoginPage() {
         </p>
       </div>
       <div style={{ height: 28 }} />
+
+      {/* Password-reset success notice */}
+      {notice && (
+        <div className="mb-4 rounded-xl px-4 py-3 text-center" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+          <p className="text-sm font-bold" style={{ color: '#22c55e' }}>{notice}</p>
+        </div>
+      )}
 
       {mode === 'reset' ? (
         resetSent ? (

@@ -12,6 +12,7 @@ import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
 import { calcProofStreak } from '@/lib/proofStreak'
+import HomeGreeting from '@/components/home/HomeGreeting'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -262,20 +263,7 @@ export default async function HomePage() {
           priority
           style={{ width: 120, height: 'auto', display: 'block', marginBottom: 28 }}
         />
-        <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.47)', marginBottom: 8 }}>
-          {getGreeting()}
-        </p>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p style={{ fontSize: 30, fontWeight: 600, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-              Welcome back{displayName ? ',' : '.'}
-            </p>
-            {displayName && (
-              <p style={{ fontSize: 30, fontWeight: 600, color: '#ED742F', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-                {displayName}.
-              </p>
-            )}
-          </div>
+        <HomeGreeting displayName={displayName}>
           <StreakBadge
             streak={weekStreak}
             thisWeekDone={thisWeekDone}
@@ -283,7 +271,7 @@ export default async function HomePage() {
             thisWeekWorkouts={thisWeekSessions.length}
             thisWeekPhotos={thisWeekPhotosCount}
           />
-        </div>
+        </HomeGreeting>
         {todayWorked ? (
           <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
             Great work today.
@@ -525,13 +513,6 @@ function getLastWeekStart() {
   const d = new Date(getWeekStart() + 'T00:00:00')
   d.setDate(d.getDate() - 7)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function getGreeting() {
-  const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', hour12: false }), 10)
-  if (h < 12) return 'GOOD MORNING'
-  if (h < 17) return 'GOOD AFTERNOON'
-  return 'GOOD EVENING'
 }
 
 function getStreakWindowStart(): string {
