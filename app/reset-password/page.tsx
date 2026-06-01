@@ -11,74 +11,151 @@ import { createClient } from '@/lib/supabase/client'
 
 type Stage = 'checking' | 'valid' | 'invalid' | 'updating' | 'done'
 
+// ── DEBUG: remove this block after diagnosis ──────────────────────────────────
+type DebugInfo = {
+  hrefHasCode:          boolean
+  search:               string
+  hashExists:           boolean
+  codeExists:           boolean
+  urlError:             string
+  urlErrorCode:         string
+  exchangeAttempted:    boolean
+  exchangeSuccess:      boolean
+  exchangeError:        string
+  getSessionAttempted:  boolean
+  getSessionSuccess:    boolean
+  authEvent:            string
+  finalStatus:          string
+  invalidReason:        string
+}
+const emptyDebug: DebugInfo = {
+  hrefHasCode:          false,
+  search:               '',
+  hashExists:           false,
+  codeExists:           false,
+  urlError:             '',
+  urlErrorCode:         '',
+  exchangeAttempted:    false,
+  exchangeSuccess:      false,
+  exchangeError:        '',
+  getSessionAttempted:  false,
+  getSessionSuccess:    false,
+  authEvent:            '',
+  finalStatus:          '',
+  invalidReason:        '',
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function ResetPasswordPage() {
   const [stage,       setStage]       = useState<Stage>('checking')
   const [password,    setPassword]    = useState('')
   const [confirm,     setConfirm]     = useState('')
   const [fieldError,  setFieldError]  = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const settled = useRef(false)
+  const settled    = useRef(false)
+  // DEBUG: remove after diagnosis
+  const [dbg, setDbg] = useState<DebugInfo>(emptyDebug)
+  const dbgRef = useRef<DebugInfo>(emptyDebug)
+  function patchDbg(patch: Partial<DebugInfo>) {
+    dbgRef.current = { ...dbgRef.current, ...patch }
+    setDbg({ ...dbgRef.current })
+  }
 
   useEffect(() => {
     const supabase = createClient()
 
-    function settle(next: 'valid' | 'invalid') {
+    function settle(next: 'valid' | 'invalid', reason = '') {
       if (settled.current) return
       settled.current = true
+      patchDbg({ finalStatus: next, invalidReason: reason })
       setStage(next)
     }
 
     // Fast path: Supabase auto-exchanges the PKCE code and fires PASSWORD_RECOVERY
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      patchDbg({ authEvent: event })
       if (event === 'PASSWORD_RECOVERY' && session) {
         settle('valid')
       }
     })
 
     // Safety net: if nothing resolves in 8 s the link is truly invalid
-    const timeout = setTimeout(() => settle('invalid'), 8000)
+    const timeout = setTimeout(() => settle('invalid', 'timeout_8s'), 8000)
 
     async function check() {
       try {
-        // Read URL params immediately before any async work.
-        // iPhone Gmail in-app browser can strip hash on navigation, so capture first.
+        // Read URL params immediately — iPhone Gmail in-app browser can strip hash
         const rawHash      = window.location.hash
         const rawSearch    = window.location.search
         const hashParams   = new URLSearchParams(rawHash.slice(1))
         const searchParams = new URLSearchParams(rawSearch)
 
-        // A. Explicit error in URL → definitely invalid
-        if (searchParams.has('error') || hashParams.has('error')) {
-          settle('invalid')
+        const urlErrorParam = searchParams.get('error') ?? hashParams.get('error') ?? ''
+        const urlErrorCode  = searchParams.get('error_code') ?? hashParams.get('error_code') ?? ''
+        const code          = searchParams.get('code') ?? ''
+
+        patchDbg({
+          hrefHasCode: window.location.href.includes('code='),
+          search:      rawSearch.slice(0, 120),   // truncate for display, no token values
+          hashExists:  rawHash.length > 1,
+          codeExists:  !!code,
+          urlError:    urlErrorParam,
+          urlErrorCode,
+        })
+
+        // A. Explicit error in URL → invalid (only truly expired/denied links have this)
+        if (urlErrorParam) {
+          settle('invalid', `url_error:${urlErrorCode || urlErrorParam}`)
           return
         }
 
         // B. PKCE code flow: /reset-password?code=xxxxx
-        const code = searchParams.get('code')
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          settle(error ? 'invalid' : 'valid')
-          return
+          patchDbg({ exchangeAttempted: true })
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          patchDbg({
+            exchangeSuccess: !!data?.session,
+            exchangeError:   error?.message ?? '',
+          })
+          if (data?.session) {
+            settle('valid')
+            return
+          }
+          // Exchange failed — @supabase/ssr may have auto-consumed the code.
+          // Fall through to getSession() which will find the established session.
         }
 
         // C. Implicit hash flow: #access_token=...&refresh_token=...&type=recovery
-        const accessToken  = hashParams.get('access_token')
-        const refreshToken = hashParams.get('refresh_token')
-        if (accessToken && refreshToken) {
-          const { error } = await supabase.auth.setSession({
-            access_token:  accessToken,
-            refresh_token: refreshToken,
-          })
-          settle(error ? 'invalid' : 'valid')
+        // NOTE: we intentionally do NOT log token values
+        const hasHashTokens = hashParams.has('access_token') && hashParams.has('refresh_token')
+        if (hasHashTokens) {
+          const at = hashParams.get('access_token')!
+          const rt = hashParams.get('refresh_token')!
+          const { error } = await supabase.auth.setSession({ access_token: at, refresh_token: rt })
+          if (error) {
+            settle('invalid', 'set_session_failed')
+          } else {
+            settle('valid')
+          }
           return
         }
 
-        // D. Session already established (auto-exchange completed before useEffect ran)
+        // D. Session established via auto-exchange or PASSWORD_RECOVERY
+        patchDbg({ getSessionAttempted: true })
         const { data: { session } } = await supabase.auth.getSession()
-        settle(session ? 'valid' : 'invalid')
+        patchDbg({ getSessionSuccess: !!session })
+        if (session) {
+          settle('valid')
+        } else {
+          const reason = code
+            ? 'exchange_failed_no_session'
+            : 'no_code_no_hash_no_session'
+          settle('invalid', reason)
+        }
       } catch (err) {
-        console.error('[reset-password] check error', err)
-        settle('invalid')
+        const msg = err instanceof Error ? err.message : String(err)
+        patchDbg({ exchangeError: msg })
+        settle('invalid', 'exception')
       }
     }
 
@@ -117,6 +194,46 @@ export default function ResetPasswordPage() {
     await supabase.auth.signOut()
     setStage('done')
   }
+
+  // DEBUG panel — remove after diagnosis ──────────────────────────────────────
+  const DebugPanel = () => (
+    <div style={{
+      marginTop: 32,
+      padding: '10px 12px',
+      borderRadius: 8,
+      background: '#111',
+      border: '1px solid #222',
+      maxWidth: '90%',
+      margin: '32px auto 0',
+      wordBreak: 'break-all',
+    }}>
+      <p style={{ fontSize: 9, color: '#555', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>
+        DEBUG (remove after diagnosis)
+      </p>
+      {[
+        ['hrefHasCode',         String(dbg.hrefHasCode)],
+        ['search',              dbg.search || '(empty)'],
+        ['hashExists',          String(dbg.hashExists)],
+        ['codeExists',          String(dbg.codeExists)],
+        ['urlError',            dbg.urlError        || '—'],
+        ['urlErrorCode',        dbg.urlErrorCode    || '—'],
+        ['exchangeAttempted',   String(dbg.exchangeAttempted)],
+        ['exchangeSuccess',     String(dbg.exchangeSuccess)],
+        ['exchangeError',       dbg.exchangeError   || '—'],
+        ['getSessionAttempted', String(dbg.getSessionAttempted)],
+        ['getSessionSuccess',   String(dbg.getSessionSuccess)],
+        ['authEvent',           dbg.authEvent       || '(none yet)'],
+        ['finalStatus',         dbg.finalStatus     || 'pending'],
+        ['invalidReason',       dbg.invalidReason   || '—'],
+      ].map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', gap: 6, fontSize: 10, lineHeight: 1.7 }}>
+          <span style={{ color: '#555', minWidth: 140, flexShrink: 0 }}>{k}:</span>
+          <span style={{ color: '#888' }}>{v}</span>
+        </div>
+      ))}
+    </div>
+  )
+  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -244,6 +361,9 @@ export default function ResetPasswordPage() {
             </Link>
           </div>
         )}
+
+        {/* DEBUG: show on checking + invalid so we can see what happened — remove after diagnosis */}
+        {(stage === 'checking' || stage === 'invalid') && <DebugPanel />}
 
       </div>
     </div>
