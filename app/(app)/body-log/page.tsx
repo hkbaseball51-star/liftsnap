@@ -33,16 +33,21 @@ export default async function BodyLogPage({
     headerStore.get('accept-language') ?? '',
   )
 
-  // Generate signed URLs server-side
+  // Generate signed URLs server-side (batch — one API call for all photos)
   const signedUrls: Record<string, string> = {}
-  await Promise.allSettled(
-    entries.map(async (entry) => {
-      const { data } = await supabase.storage
-        .from('workout-photos')
-        .createSignedUrl(entry.imagePath, 3600)
-      if (data?.signedUrl) signedUrls[entry.date] = data.signedUrl
-    })
-  )
+  if (entries.length > 0) {
+    const { data: batchData } = await supabase.storage
+      .from('workout-photos')
+      .createSignedUrls(entries.map(e => e.imagePath), 3600)
+    if (batchData) {
+      for (const item of batchData) {
+        if (item.signedUrl && !item.error) {
+          const entry = entries.find(e => e.imagePath === item.path)
+          if (entry) signedUrls[entry.date] = item.signedUrl
+        }
+      }
+    }
+  }
 
   // Determine initial index
   let initialIndex = 0

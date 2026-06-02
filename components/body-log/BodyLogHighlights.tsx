@@ -18,14 +18,16 @@ function formatDate(dateStr: string, locale: Locale): string {
   return `${MONTH_ABBREV[m - 1]} ${d}, ${y}`
 }
 
-function normalizeForDisplay(group: string): string {
+function normalizeForDisplay(group: string): string | null {
+  if (!group) return null
   const g = group.toLowerCase().trim()
   if (g === 'chest' || g === 'chest & triceps') return 'chest'
   if (['back', 'back & biceps', 'lats', 'traps', 'rear delts'].includes(g)) return 'back'
   if (['legs', 'quads', 'hamstrings', 'glutes', 'calves', 'lower body'].includes(g)) return 'legs'
   if (['shoulders', 'delts'].includes(g)) return 'shoulders'
   if (['arms', 'biceps', 'triceps', 'forearms'].includes(g)) return 'arms'
-  return 'full body'
+  if (g === 'full body' || g === 'full_body') return 'full body'
+  return null
 }
 
 function getExerciseDisplayName(name: string): string {
@@ -157,7 +159,7 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
   if (!entry) return null
   const signedUrl = signedUrls[entry.date] ?? null
   const muscleKey = normalizeForDisplay(entry.muscleGroup)
-  const muscleColor = MUSCLE_COLORS[muscleKey] ?? '#ec4899'
+  const muscleColor = (muscleKey ? MUSCLE_COLORS[muscleKey] : null) ?? '#666666'
 
   return (
     <div
@@ -211,7 +213,7 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
       >
         <button
           className="w-9 h-9 flex items-center justify-center rounded-full"
-          style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(4px)' }}
           onClick={() => router.back()}>
           <X size={16} style={{ color: '#fff' }} />
         </button>
@@ -282,21 +284,23 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
           <div
             className="rounded-2xl px-4 py-4"
             style={{
-              background: 'rgba(0,0,0,0.82)',
-              backdropFilter: 'blur(20px)',
+              background: 'rgba(0,0,0,0.88)',
+              backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,0.12)',
             }}
           >
             {/* Muscle badge */}
             <div className="flex items-center gap-2 mb-2.5">
-              <div
-                className="rounded-full px-2.5 py-0.5"
-                style={{ background: `${muscleColor}22`, border: `1px solid ${muscleColor}55` }}
-              >
-                <span style={{ fontSize: 10, fontWeight: 900, color: muscleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {muscleKey}
-                </span>
-              </div>
+              {muscleKey !== null && (
+                <div
+                  className="rounded-full px-2.5 py-0.5"
+                  style={{ background: `${muscleColor}22`, border: `1px solid ${muscleColor}55` }}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 900, color: muscleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {muscleKey}
+                  </span>
+                </div>
+              )}
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.50)', letterSpacing: '0.04em' }}>
                 {formatDate(entry.date, locale)}
               </span>
@@ -337,18 +341,20 @@ export default function BodyLogHighlights({ entries, signedUrls, initialIndex, l
         </div>
 
         {/* ── Muscle label + exercise name (always visible, collapses when detail opens) ── */}
-        {!showDetail && (
+        {!showDetail && (entry.mainExercise || muscleKey !== null) && (
           <div className="px-4 mb-3">
-            <div className="flex items-center gap-2 mb-1">
-              <div
-                className="rounded-full px-2 py-0.5"
-                style={{ background: `${muscleColor}22`, border: `1px solid ${muscleColor}55` }}
-              >
-                <span style={{ fontSize: 9, fontWeight: 900, color: muscleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {muscleKey}
-                </span>
+            {muscleKey !== null && (
+              <div className="flex items-center gap-2 mb-1">
+                <div
+                  className="rounded-full px-2 py-0.5"
+                  style={{ background: `${muscleColor}22`, border: `1px solid ${muscleColor}55` }}
+                >
+                  <span style={{ fontSize: 9, fontWeight: 900, color: muscleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {muscleKey}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
             {entry.mainExercise && (
               <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                 {getExerciseDisplayName(entry.mainExercise)}

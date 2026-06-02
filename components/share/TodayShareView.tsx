@@ -471,6 +471,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 transform: `translate3d(${cardPos.x}px, ${cardPos.y}px, 0) scale(${cardScale})`,
                 transformOrigin: 'top left',
                 transition: 'transform 120ms ease-out',
+                willChange: 'transform',
                 backdropFilter: isCardTransparent ? 'none' : undefined,
                 boxShadow: isCardTransparent ? 'none' : undefined,
               }}

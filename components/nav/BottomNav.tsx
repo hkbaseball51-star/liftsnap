@@ -51,7 +51,7 @@ export default function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-50"
       style={{
         background: 'rgba(10,10,10,0.96)',
-        backdropFilter: 'blur(16px)',
+        backdropFilter: 'blur(8px)',
         borderTop: '1px solid #1e1e1e',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}

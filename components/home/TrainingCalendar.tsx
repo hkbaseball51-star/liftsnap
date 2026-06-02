@@ -237,23 +237,21 @@ export default function TrainingCalendar({
     let cancelled = false
     const supabase = createClient()
 
-    Promise.allSettled(
-      datesInMonth.map(({ date, path }) =>
-        supabase.storage
-          .from('workout-photos')
-          .createSignedUrl(path, 3600)
-          .then(({ data }) => ({ date, url: data?.signedUrl ?? null }))
-      )
-    ).then(results => {
-      if (cancelled) return
-      const urls: Record<string, string> = {}
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value.url) {
-          urls[r.value.date] = r.value.url
+    supabase.storage
+      .from('workout-photos')
+      .createSignedUrls(datesInMonth.map(d => d.path), 3600)
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        const urls: Record<string, string> = {}
+        for (const item of data) {
+          if (item.signedUrl && !item.error) {
+            const entry = datesInMonth.find(d => d.path === item.path)
+            if (entry) urls[entry.date] = item.signedUrl
+          }
         }
-      }
-      setPhotoSignedUrls(urls)
-    }).catch(() => {})
+        setPhotoSignedUrls(urls)
+      })
+      .catch(() => {})
 
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps

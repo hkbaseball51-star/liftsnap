@@ -37,19 +37,19 @@ export async function getAllBodyLogEntries(): Promise<BodyLogEntry[]> {
       .not('completed_at', 'is', null),
     supabase
       .from('workout_sets')
-      .select('workout_session_id, exercise_name, muscle_group, weight_kg, reps')
-      .in('workout_session_id', sessionIds),
+      .select('session_id, exercise_name, muscle_group, weight_kg, reps')
+      .in('session_id', sessionIds),
   ])
 
   const sessions = (sessionsRes.data ?? []) as { id: string; trained_at: string }[]
-  type SetRow = { workout_session_id: string; exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null }
+  type SetRow = { session_id: string; exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null }
   const sets = (setsRes.data ?? []) as SetRow[]
 
   // Group sets by session
   const setsBySession = new Map<string, SetRow[]>()
   for (const s of sets) {
-    if (!setsBySession.has(s.workout_session_id)) setsBySession.set(s.workout_session_id, [])
-    setsBySession.get(s.workout_session_id)!.push(s)
+    if (!setsBySession.has(s.session_id)) setsBySession.set(s.session_id, [])
+    setsBySession.get(s.session_id)!.push(s)
   }
 
   // Build entry per photo log
@@ -78,7 +78,7 @@ export async function getAllBodyLogEntries(): Promise<BodyLogEntry[]> {
 
     const topMg = mgMap.size > 0
       ? [...mgMap.entries()].sort((a, b) => b[1] - a[1])[0][0]
-      : 'full body'
+      : ''
     const mainEx = exMap.size > 0
       ? [...exMap.entries()].sort((a, b) => b[1] - a[1])[0][0]
       : ''

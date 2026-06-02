@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { t, type Locale } from '@/lib/i18n'
 import { MUSCLE_COLORS } from './TrainingCalendar'
 import { ChevronRight } from 'lucide-react'
@@ -15,10 +13,12 @@ type RecentPhoto = {
 
 type Props = {
   recentPhotos: RecentPhoto[]
+  signedUrls: Record<string, string>
   locale: Locale
 }
 
 function normalizeForDisplay(group: string): string {
+  if (!group) return 'full body'
   const g = group.toLowerCase().trim()
   if (g === 'chest' || g === 'chest & triceps') return 'chest'
   if (['back', 'back & biceps', 'lats', 'traps', 'rear delts'].includes(g)) return 'back'
@@ -28,31 +28,8 @@ function normalizeForDisplay(group: string): string {
   return 'full body'
 }
 
-export default function HomeBodyLogSection({ recentPhotos, locale }: Props) {
+export default function HomeBodyLogSection({ recentPhotos, signedUrls, locale }: Props) {
   const router = useRouter()
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (recentPhotos.length === 0) return
-    let cancelled = false
-    const supabase = createClient()
-    Promise.allSettled(
-      recentPhotos.map(({ date, imagePath }) =>
-        supabase.storage
-          .from('workout-photos')
-          .createSignedUrl(imagePath, 3600)
-          .then(({ data }) => ({ date, url: data?.signedUrl ?? null }))
-      )
-    ).then(results => {
-      if (cancelled) return
-      const urls: Record<string, string> = {}
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value.url) urls[r.value.date] = r.value.url
-      }
-      setSignedUrls(urls)
-    })
-    return () => { cancelled = true }
-  }, [recentPhotos])
 
   if (recentPhotos.length === 0) return null
 

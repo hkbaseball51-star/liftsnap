@@ -200,6 +200,22 @@ export default async function HomePage() {
       muscleGroup: daySummaries[date]?.muscleGroup ?? 'full body',
     }))
 
+  // Batch-fetch signed URLs for thumbnails server-side (avoids client waterfall)
+  const thumbnailUrls: Record<string, string> = {}
+  if (recentBodyLogPhotos.length > 0) {
+    const { data: batchData } = await supabase.storage
+      .from('workout-photos')
+      .createSignedUrls(recentBodyLogPhotos.map(p => p.imagePath), 3600)
+    if (batchData) {
+      for (const item of batchData) {
+        if (item.signedUrl && !item.error) {
+          const photo = recentBodyLogPhotos.find(p => p.imagePath === item.path)
+          if (photo) thumbnailUrls[photo.date] = item.signedUrl
+        }
+      }
+    }
+  }
+
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessions.length
@@ -323,7 +339,7 @@ export default async function HomePage() {
 
       {/* ── BODY LOG HORIZONTAL SCROLL ── */}
       {recentBodyLogPhotos.length > 0 && (
-        <HomeBodyLogSection recentPhotos={recentBodyLogPhotos} locale={locale} />
+        <HomeBodyLogSection recentPhotos={recentBodyLogPhotos} signedUrls={thumbnailUrls} locale={locale} />
       )}
 
       {/* ── WEEKLY EFFORT ── */}

@@ -16,7 +16,7 @@ export default async function AnalyticsPage() {
     getExercisesWithHistory(),
     supabase
       .from('workout_sessions')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .not('completed_at', 'is', null),
   ])

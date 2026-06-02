@@ -95,10 +95,17 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const [innerW, setInnerW] = useState(316)
 
   useEffect(() => {
-    const update = () => setInnerW(Math.max(280, window.innerWidth - 64))
+    let raf: ReturnType<typeof requestAnimationFrame> | null = null
+    const update = () => {
+      if (raf !== null) cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => { setInnerW(Math.max(280, window.innerWidth - 64)) })
+    }
     update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    window.addEventListener('resize', update, { passive: true })
+    return () => {
+      window.removeEventListener('resize', update)
+      if (raf !== null) cancelAnimationFrame(raf)
+    }
   }, [])
 
   const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
