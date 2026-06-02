@@ -36,18 +36,35 @@ export async function getAllBodyLogPhotos(): Promise<BodyLogPhotoEntry[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data } = await supabase
+  type RawRow = { workout_date: string; image_path: string; thumbnail_path?: string | null; workout_session_id: string }
+
+  // Try with thumbnail_path; fall back gracefully if migration 008 is not yet applied
+  let rows: RawRow[] | null = null
+  const { data, error } = await supabase
     .from('workout_photo_logs')
     .select('workout_date, image_path, thumbnail_path, workout_session_id')
     .eq('user_id', user.id)
     .order('workout_date', { ascending: false })
     .limit(200)
 
-  if (!data) return []
+  if (error?.code === '42703' || error?.code === 'PGRST204') {
+    // thumbnail_path column doesn't exist yet — select without it
+    const { data: fallback } = await supabase
+      .from('workout_photo_logs')
+      .select('workout_date, image_path, workout_session_id')
+      .eq('user_id', user.id)
+      .order('workout_date', { ascending: false })
+      .limit(200)
+    rows = (fallback ?? []).map(r => ({ ...(r as Omit<RawRow, 'thumbnail_path'>), thumbnail_path: null }))
+  } else {
+    rows = (data ?? []) as RawRow[]
+  }
+
+  if (!rows) return []
 
   const seen = new Set<string>()
   const entries: BodyLogPhotoEntry[] = []
-  for (const row of data as { workout_date: string; image_path: string; thumbnail_path: string | null; workout_session_id: string }[]) {
+  for (const row of rows) {
     if (seen.has(row.workout_date)) continue
     seen.add(row.workout_date)
     entries.push({ date: row.workout_date, imagePath: row.image_path, thumbnailPath: row.thumbnail_path ?? null, sessionId: row.workout_session_id })

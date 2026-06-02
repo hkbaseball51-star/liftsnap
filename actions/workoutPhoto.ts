@@ -42,17 +42,32 @@ export async function getWorkoutPhotoRecord(sessionId: string): Promise<{
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data } = await supabase
+  let rawData: { image_path: string; thumbnail_path?: string | null } | null = null
+
+  const { data, error } = await supabase
     .from('workout_photo_logs')
     .select('image_path, thumbnail_path')
     .eq('user_id', user.id)
     .eq('workout_session_id', sessionId)
     .maybeSingle()
 
-  if (!data) return null
+  if (error?.code === '42703' || error?.code === 'PGRST204') {
+    // thumbnail_path column doesn't exist yet
+    const { data: fallback } = await supabase
+      .from('workout_photo_logs')
+      .select('image_path')
+      .eq('user_id', user.id)
+      .eq('workout_session_id', sessionId)
+      .maybeSingle()
+    rawData = fallback ? { image_path: (fallback as { image_path: string }).image_path, thumbnail_path: null } : null
+  } else {
+    rawData = data as typeof rawData
+  }
 
-  const imagePath = data.image_path as string
-  const thumbnailPath = (data.thumbnail_path as string | null) ?? null
+  if (!rawData) return null
+
+  const imagePath = rawData.image_path
+  const thumbnailPath = (rawData.thumbnail_path as string | null) ?? null
 
   if (!imagePath.startsWith(user.id + '/')) return null
 
@@ -104,21 +119,30 @@ export async function saveWorkoutPhotoRecord(
     if (toRemove.length > 0) await supabase.storage.from('workout-photos').remove(toRemove)
   }
 
-  const { error } = await supabase
+  const payload: Record<string, unknown> = {
+    user_id: user.id,
+    workout_session_id: sessionId,
+    workout_date: date,
+    image_path: imagePath,
+    thumbnail_path: thumbnailPath ?? null,
+    image_width: width ?? null,
+    image_height: height ?? null,
+    updated_at: new Date().toISOString(),
+  }
+
+  let { error } = await supabase
     .from('workout_photo_logs')
-    .upsert(
-      {
-        user_id: user.id,
-        workout_session_id: sessionId,
-        workout_date: date,
-        image_path: imagePath,
-        thumbnail_path: thumbnailPath ?? null,
-        image_width: width ?? null,
-        image_height: height ?? null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,workout_session_id' }
-    )
+    .upsert(payload, { onConflict: 'user_id,workout_session_id' })
+
+  if (error?.code === '42703' || error?.code === 'PGRST204') {
+    // thumbnail_path column doesn't exist yet — retry without it
+    const { thumbnail_path: _omit, ...payloadNoThumb } = payload
+    void _omit
+    const res2 = await supabase
+      .from('workout_photo_logs')
+      .upsert(payloadNoThumb, { onConflict: 'user_id,workout_session_id' })
+    error = res2.error
+  }
 
   if (error) throw new Error(error.message)
 }
