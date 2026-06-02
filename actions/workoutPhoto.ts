@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
 
 export async function getWorkoutPhotoPath(sessionId: string): Promise<string | null> {
   const supabase = await createClient()
@@ -36,6 +35,7 @@ export async function saveWorkoutPhotoRecord(
   sessionId: string,
   date: string,
   imagePath: string,
+  thumbnailPath: string | null,
   width?: number,
   height?: number,
 ): Promise<void> {
@@ -45,16 +45,19 @@ export async function saveWorkoutPhotoRecord(
 
   if (!imagePath.startsWith(user.id + '/')) throw new Error('Invalid image path')
 
-  // Delete old Storage file if path changed (upsert may replace it)
+  // Delete old Storage files if paths changed (upsert may replace them)
   const { data: existing } = await supabase
     .from('workout_photo_logs')
-    .select('image_path')
+    .select('image_path, thumbnail_path')
     .eq('user_id', user.id)
     .eq('workout_session_id', sessionId)
     .maybeSingle()
 
-  if (existing && existing.image_path !== imagePath) {
-    await supabase.storage.from('workout-photos').remove([existing.image_path])
+  if (existing) {
+    const toRemove: string[] = []
+    if (existing.image_path !== imagePath) toRemove.push(existing.image_path)
+    if (existing.thumbnail_path && existing.thumbnail_path !== thumbnailPath) toRemove.push(existing.thumbnail_path)
+    if (toRemove.length > 0) await supabase.storage.from('workout-photos').remove(toRemove)
   }
 
   const { error } = await supabase
@@ -65,6 +68,7 @@ export async function saveWorkoutPhotoRecord(
         workout_session_id: sessionId,
         workout_date: date,
         image_path: imagePath,
+        thumbnail_path: thumbnailPath ?? null,
         image_width: width ?? null,
         image_height: height ?? null,
         updated_at: new Date().toISOString(),
@@ -73,7 +77,6 @@ export async function saveWorkoutPhotoRecord(
     )
 
   if (error) throw new Error(error.message)
-  revalidatePath('/home')
 }
 
 export async function deleteWorkoutPhoto(sessionId: string): Promise<void> {
@@ -83,22 +86,23 @@ export async function deleteWorkoutPhoto(sessionId: string): Promise<void> {
 
   const { data: existing } = await supabase
     .from('workout_photo_logs')
-    .select('image_path')
+    .select('image_path, thumbnail_path')
     .eq('user_id', user.id)
     .eq('workout_session_id', sessionId)
     .maybeSingle()
 
   if (!existing) return
 
-  await supabase.storage.from('workout-photos').remove([existing.image_path])
+  const pathsToRemove = [existing.image_path, existing.thumbnail_path].filter(Boolean) as string[]
+  if (pathsToRemove.length > 0) {
+    await supabase.storage.from('workout-photos').remove(pathsToRemove)
+  }
 
   await supabase
     .from('workout_photo_logs')
     .delete()
     .eq('user_id', user.id)
     .eq('workout_session_id', sessionId)
-
-  revalidatePath('/home')
 }
 
 export async function getPhotoDatesForRange(startDate: string): Promise<string[]> {

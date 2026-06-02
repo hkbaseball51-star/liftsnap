@@ -10,7 +10,7 @@ import {
   saveWorkoutPhotoRecord,
   deleteWorkoutPhoto,
 } from '@/actions/workoutPhoto'
-import { cropTo916 } from '@/lib/imageUtils'
+import { cropTo916AndThumb } from '@/lib/imageUtils'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 
@@ -197,26 +197,47 @@ export default function WorkoutPhotoSheet({
 
     setState({ type: 'uploading' })
     try {
-      const { blob, width: w, height: h } = await cropTo916(file, offsetX, offsetY, cropScale, fW, fH)
+      const { full, thumb, width: w, height: h } = await cropTo916AndThumb(file, offsetX, offsetY, cropScale, fW, fH)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PhotoSave] Original:', (file.size / 1024).toFixed(0), 'KB')
+        console.log('[PhotoSave] Full:', (full.blob.size / 1024).toFixed(0), `KB (${full.ext})`,
+          `${Math.round((1 - full.blob.size / file.size) * 100)}% reduction`)
+        console.log('[PhotoSave] Thumb:', (thumb.blob.size / 1024).toFixed(0), `KB (${thumb.ext})`)
+      }
+
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Unauthorized')
 
-      const imagePath = `${user.id}/${sessionId}/original.jpg`
-      const { error: uploadError } = await supabase.storage
-        .from('workout-photos')
-        .upload(imagePath, blob, { contentType: 'image/jpeg', upsert: true })
-      if (uploadError) throw uploadError
+      const fullPath  = `${user.id}/${sessionId}/full.${full.ext}`
+      const thumbPath = `${user.id}/${sessionId}/thumb.${thumb.ext}`
 
-      await saveWorkoutPhotoRecord(sessionId, sessionDate, imagePath, w, h)
+      const uploadStart = performance.now()
+      const [{ error: fullErr }, { error: thumbErr }] = await Promise.all([
+        supabase.storage.from('workout-photos').upload(fullPath,  full.blob,  { contentType: full.mime,  upsert: true }),
+        supabase.storage.from('workout-photos').upload(thumbPath, thumb.blob, { contentType: thumb.mime, upsert: true }),
+      ])
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PhotoSave] Upload (both):', (performance.now() - uploadStart).toFixed(0), 'ms')
+      }
+      if (fullErr) throw fullErr
+      if (thumbErr) throw thumbErr
 
-      onPhotoSaved?.(imagePath)
+      const saveStart = performance.now()
+      await saveWorkoutPhotoRecord(sessionId, sessionDate, fullPath, thumbPath, w, h)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PhotoSave] SaveRecord:', (performance.now() - saveStart).toFixed(0), 'ms')
+        console.log('[PhotoSave] Post-save fetches: 1 (getWorkoutPhotoSignedUrl) — no full-page refetch')
+      }
+
+      onPhotoSaved?.(fullPath)
 
       if (autoCloseOnSave) { onClose(); return }
 
-      const signedUrl = await getWorkoutPhotoSignedUrl(imagePath)
+      const signedUrl = await getWorkoutPhotoSignedUrl(fullPath)
       setState(signedUrl
-        ? { type: 'view', signedUrl, imagePath }
+        ? { type: 'view', signedUrl, imagePath: fullPath }
         : { type: 'error', message: t(locale, 'photo.photoLoadError') }
       )
     } catch {

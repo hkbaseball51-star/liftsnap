@@ -79,3 +79,14 @@ input[type=number] { -moz-appearance: textfield; }
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Highlight viewer: progress bar auto-advance (CSS-only — zero JS re-renders) */
+@keyframes highlight-advance {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Generic spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

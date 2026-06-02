@@ -77,9 +77,11 @@ export default async function HomePage() {
       .gte('trained_at', getStreakWindowStart()),
 
     supabase.from('workout_photo_logs')
-      .select('workout_date, image_path, workout_session_id, created_at')
+      .select('workout_date, image_path, thumbnail_path, workout_session_id, created_at')
       .eq('user_id', user.id)
-      .gte('workout_date', ninetyDaysAgoStr),
+      .gte('workout_date', ninetyDaysAgoStr)
+      .order('workout_date', { ascending: false })
+      .limit(20),
   ])
   const [
     thisWeekRes, calendarSessionsRes, profileRes,
@@ -169,6 +171,7 @@ export default async function HomePage() {
   type PhotoLogRow = {
     workout_date: string
     image_path: string
+    thumbnail_path: string | null
     workout_session_id: string
     created_at: string
   }
@@ -182,35 +185,40 @@ export default async function HomePage() {
   }
 
   const photoPathsByDate: Record<string, string> = {}
+  const thumbPathsByDate: Record<string, string | null> = {}
   for (const [date, logs] of photosByDate.entries()) {
     const summary = daySummaries[date]
     const match = summary ? logs.find(l => l.workout_session_id === summary.sessionId) : null
     const best = match ?? [...logs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
     if (best?.image_path) photoPathsByDate[date] = best.image_path
+    thumbPathsByDate[date] = best?.thumbnail_path ?? null
   }
 
   // Recent body log entries for horizontal scroll (newest first, up to 8)
-  type RecentPhoto = { date: string; imagePath: string; muscleGroup: string }
+  type RecentPhoto = { date: string; imagePath: string; thumbnailPath: string | null; muscleGroup: string }
   const recentBodyLogPhotos: RecentPhoto[] = Object.entries(photoPathsByDate)
     .sort((a, b) => b[0].localeCompare(a[0]))
     .slice(0, 8)
     .map(([date, imagePath]) => ({
       date,
       imagePath,
+      thumbnailPath: thumbPathsByDate[date] ?? null,
       muscleGroup: daySummaries[date]?.muscleGroup ?? 'full body',
     }))
 
   // Batch-fetch signed URLs for thumbnails server-side (avoids client waterfall)
+  // Use thumbnailPath when available, fallback to imagePath for legacy photos
   const thumbnailUrls: Record<string, string> = {}
   if (recentBodyLogPhotos.length > 0) {
+    const pathsToSign = recentBodyLogPhotos.map(p => p.thumbnailPath ?? p.imagePath)
     const { data: batchData } = await supabase.storage
       .from('workout-photos')
-      .createSignedUrls(recentBodyLogPhotos.map(p => p.imagePath), 3600)
+      .createSignedUrls(pathsToSign, 3600)
     if (batchData) {
-      for (const item of batchData) {
+      for (let i = 0; i < batchData.length; i++) {
+        const item = batchData[i]
         if (item.signedUrl && !item.error) {
-          const photo = recentBodyLogPhotos.find(p => p.imagePath === item.path)
-          if (photo) thumbnailUrls[photo.date] = item.signedUrl
+          thumbnailUrls[recentBodyLogPhotos[i].date] = item.signedUrl
         }
       }
     }
