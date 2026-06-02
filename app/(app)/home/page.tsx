@@ -254,7 +254,7 @@ export default async function HomePage() {
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
 
       {/* ── Header ── Logo left · [lifts + streak] right ── */}
-      <div className="flex items-start justify-between px-4 pt-12 pb-2">
+      <div className="flex items-start justify-between px-4 pt-8 pb-2">
         <Image
           src="/brand/repra-logo-cropped.png"
           alt="REPRA"
@@ -263,8 +263,8 @@ export default async function HomePage() {
           priority
           style={{ width: 100, height: 'auto', display: 'block' }}
         />
-        {/* Status stack: lifts on top, streak below, settings at bottom — right-aligned */}
-        <div className="flex flex-col items-end gap-1.5" style={{ paddingTop: 2 }}>
+        {/* Status stack — hidden for MVP */}
+        {/* <div className="flex flex-col items-end gap-1.5" style={{ paddingTop: 2 }}>
           <div className="flex items-center gap-1">
             <Zap size={10} style={{ color: 'rgba(255,255,255,0.38)' }} />
             <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.44)', letterSpacing: '0.04em' }}>
@@ -279,20 +279,27 @@ export default async function HomePage() {
             thisWeekPhotos={thisWeekPhotosCount}
             compact
           />
-        </div>
+        </div> */}
       </div>
 
-      {/* ── WELCOME ── greeting + headline full width ── */}
-      <div className="px-4 pt-4 pb-6">
-        <HomeGreeting displayName={displayName} />
+      {/* ── WELCOME ── */}
+      <div className="px-4 pt-2 pb-4">
         {todayWorked ? (
-          <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
-            Great work today.
-          </p>
+          <>
+            <HomeGreeting displayName={displayName} />
+            <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 8 }}>
+              Great work today.
+            </p>
+          </>
         ) : (
-          <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginTop: 10 }}>
-            {"No session today — let's change that."}
-          </p>
+          <>
+            <p style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+              Don&apos;t skip the log.
+            </p>
+            <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginTop: 6 }}>
+              {"No session today — let's change that."}
+            </p>
+          </>
         )}
       </div>
 
