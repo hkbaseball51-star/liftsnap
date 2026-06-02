@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { X, Camera, ImageIcon, RotateCcw, Trash2, AlertTriangle, ZoomIn, Images } from 'lucide-react'
-import Link from 'next/link'
+import { X, Camera, ImageIcon, RotateCcw, Trash2, AlertTriangle, ZoomIn } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   getWorkoutPhotoRecord,
@@ -604,16 +603,6 @@ export default function WorkoutPhotoSheet({
                 </button>
               </div>
             )}
-            <Link
-              href={`/body-log?start=${sessionDate}`}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl mb-1 active:opacity-70 transition-opacity"
-              style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.15)' }}
-              onClick={onClose}>
-              <Images size={14} style={{ color: 'rgba(255,255,255,0.65)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>
-                {t(locale, 'bodyLog.viewInBodyLog')}
-              </span>
-            </Link>
             <button
               className="w-full py-3 text-sm font-bold"
               style={{ color: 'rgba(255,255,255,0.56)' }}

@@ -7,7 +7,6 @@ import { Zap } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
-import HomeBodyLogSection from '@/components/home/HomeBodyLogSection'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
@@ -194,36 +193,6 @@ export default async function HomePage() {
     thumbPathsByDate[date] = best?.thumbnail_path ?? null
   }
 
-  // Recent body log entries for horizontal scroll (newest first, up to 8)
-  type RecentPhoto = { date: string; imagePath: string; thumbnailPath: string | null; muscleGroup: string }
-  const recentBodyLogPhotos: RecentPhoto[] = Object.entries(photoPathsByDate)
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .slice(0, 8)
-    .map(([date, imagePath]) => ({
-      date,
-      imagePath,
-      thumbnailPath: thumbPathsByDate[date] ?? null,
-      muscleGroup: daySummaries[date]?.muscleGroup ?? 'full body',
-    }))
-
-  // Batch-fetch signed URLs for thumbnails server-side (avoids client waterfall)
-  // Use thumbnailPath when available, fallback to imagePath for legacy photos
-  const thumbnailUrls: Record<string, string> = {}
-  if (recentBodyLogPhotos.length > 0) {
-    const pathsToSign = recentBodyLogPhotos.map(p => p.thumbnailPath ?? p.imagePath)
-    const { data: batchData } = await supabase.storage
-      .from('workout-photos')
-      .createSignedUrls(pathsToSign, 3600)
-    if (batchData) {
-      for (let i = 0; i < batchData.length; i++) {
-        const item = batchData[i]
-        if (item.signedUrl && !item.error) {
-          thumbnailUrls[recentBodyLogPhotos[i].date] = item.signedUrl
-        }
-      }
-    }
-  }
-
   /* ── Derived values ──────────────────────────────────────── */
   const thisWeekSessions = thisWeekRes.data ?? []
   const totalSessions90 = calendarSessions.length
@@ -293,7 +262,7 @@ export default async function HomePage() {
           priority
           style={{ width: 100, height: 'auto', display: 'block' }}
         />
-        {/* Status stack: lifts on top, streak below — right-aligned */}
+        {/* Status stack: lifts on top, streak below, settings at bottom — right-aligned */}
         <div className="flex flex-col items-end gap-1.5" style={{ paddingTop: 2 }}>
           <div className="flex items-center gap-1">
             <Zap size={10} style={{ color: 'rgba(255,255,255,0.38)' }} />
@@ -345,10 +314,7 @@ export default async function HomePage() {
         <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} photoPathsByDate={photoPathsByDate} />
       </div>
 
-      {/* ── BODY LOG HORIZONTAL SCROLL ── */}
-      {recentBodyLogPhotos.length > 0 && (
-        <HomeBodyLogSection recentPhotos={recentBodyLogPhotos} signedUrls={thumbnailUrls} locale={locale} />
-      )}
+
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-4">

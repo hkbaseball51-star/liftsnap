@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getBodyWeightData, getExercisesWithHistory } from '@/actions/analytics'
-import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard'
+import AnalyticsDashboardClient from '@/components/analytics/AnalyticsDashboardClient'
 import FeatureTracker from '@/components/common/FeatureTracker'
 
 export default async function AnalyticsPage() {
@@ -8,7 +8,7 @@ export default async function AnalyticsPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    return <AnalyticsDashboard bodyWeightData={[]} exercises={[]} totalSessions={0} />
+    return <AnalyticsDashboardClient bodyWeightData={[]} exercises={[]} totalSessions={0} />
   }
 
   const [bodyWeightData, exercises, { count }] = await Promise.all([
@@ -24,7 +24,7 @@ export default async function AnalyticsPage() {
   return (
     <>
       <FeatureTracker feature="progress" />
-      <AnalyticsDashboard
+      <AnalyticsDashboardClient
         bodyWeightData={bodyWeightData}
         exercises={exercises}
         totalSessions={count ?? 0}

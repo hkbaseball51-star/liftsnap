@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus, Camera, Share2, TrendingUp, Maximize2,
-  Dumbbell, UserRound, Eye, CalendarDays,
+  Dumbbell, CalendarDays,
 } from 'lucide-react'
 import type { Locale } from '@/lib/i18n'
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
 type CTAIcon = 'plus' | 'camera' | 'share' | 'trending' | 'maximize'
-             | 'dumbbell' | 'user' | 'eye' | 'calendar'
+             | 'dumbbell' | 'calendar'
 
 /**
  * orange-solid : strongest orange (P1 record — solid icon bg)
@@ -55,15 +55,15 @@ function p1(locale: Locale, todayStr: string): CTAItem {
   }
 }
 
-function p2(locale: Locale): CTAItem {
+function p2(locale: Locale, storyHref: string): CTAItem {
   return locale === 'ja' ? {
-    sub: '記録が残りました', title: '写真も追加して変化を残す',
-    desc: '数字だけでなく、見た目の変化もProofにできます。',
-    href: '/body-log', icon: 'camera', accent: 'orange-muted',
+    sub: '記録が残りました', title: 'Workout Storyを作成する',
+    desc: '今日のトレーニングをストーリーカードにして保存できます。',
+    href: storyHref, icon: 'share', accent: 'orange-muted',
   } : {
-    sub: 'WORKOUT LOGGED', title: 'Add a Photo to Your Proof',
-    desc: "Document your body's visual progress.",
-    href: '/body-log', icon: 'camera', accent: 'orange-muted',
+    sub: 'WORKOUT LOGGED', title: 'Create Your Workout Story',
+    desc: "Turn today's session into a shareable story card.",
+    href: storyHref, icon: 'share', accent: 'orange-muted',
   }
 }
 
@@ -71,17 +71,15 @@ function p2(locale: Locale): CTAItem {
 
 function fallbacks(locale: Locale, todayStr: string, storyHref: string): CTAItem[] {
   return locale === 'ja' ? [
-    { sub: 'PROGRESS',  title: 'Progressで伸びを確認',  desc: '記録したデータから、成長の流れを見てみましょう。', href: '/analytics',               icon: 'trending',  accent: 'white' },
-    { sub: 'PROOF',     title: 'Proofを見返す',         desc: '写真と記録で、変化を確認しましょう。',            href: '/body-timeline',           icon: 'eye',       accent: 'white' },
-    { sub: 'CALENDAR',  title: 'カレンダーで継続を見る', desc: '継続した日が、ひと目で分かります。',              href: '/home',                    icon: 'calendar',  accent: 'white' },
-    { sub: 'NEXT SET',  title: '次回の重量を確認',       desc: '前回の記録をもとに、次のセットを決めましょう。',   href: '/record',                  icon: 'dumbbell',  accent: 'white' },
-    { sub: 'STORY',     title: 'Storyを作成',           desc: '今日のワークアウトをシェアできます。',            href: storyHref,                  icon: 'share',     accent: 'white' },
+    { sub: 'PROGRESS',  title: 'Progressで伸びを確認',  desc: '記録したデータから、成長の流れを見てみましょう。', href: '/analytics', icon: 'trending',  accent: 'white' },
+    { sub: 'CALENDAR',  title: 'カレンダーで継続を見る', desc: '継続した日が、ひと目で分かります。',              href: '/home',      icon: 'calendar',  accent: 'white' },
+    { sub: 'NEXT SET',  title: '次回の重量を確認',       desc: '前回の記録をもとに、次のセットを決めましょう。',   href: '/record',    icon: 'dumbbell',  accent: 'white' },
+    { sub: 'STORY',     title: 'Storyを作成',           desc: '今日のワークアウトをシェアできます。',            href: storyHref,    icon: 'share',     accent: 'white' },
   ] : [
-    { sub: 'PROGRESS',  title: 'Review Your Progress',  desc: "See how far you've come with your data.",   href: '/analytics',               icon: 'trending',  accent: 'white' },
-    { sub: 'PROOF',     title: 'Review Your Proof',     desc: 'Photos and logs — your proof of work.',     href: '/body-timeline',           icon: 'eye',       accent: 'white' },
-    { sub: 'CALENDAR',  title: 'Review Your Calendar',  desc: 'See your consistency at a glance.',         href: '/home',                    icon: 'calendar',  accent: 'white' },
-    { sub: 'NEXT SET',  title: 'Plan Your Next Session',desc: 'Use past data to set your next weights.',   href: '/record',                  icon: 'dumbbell',  accent: 'white' },
-    { sub: 'STORY',     title: 'Create a Workout Story',desc: "Share today's session to your Story.",      href: storyHref,                  icon: 'share',     accent: 'white' },
+    { sub: 'PROGRESS',  title: 'Review Your Progress',  desc: "See how far you've come with your data.",   href: '/analytics', icon: 'trending',  accent: 'white' },
+    { sub: 'CALENDAR',  title: 'Review Your Calendar',  desc: 'See your consistency at a glance.',         href: '/home',      icon: 'calendar',  accent: 'white' },
+    { sub: 'NEXT SET',  title: 'Plan Your Next Session',desc: 'Use past data to set your next weights.',   href: '/record',    icon: 'dumbbell',  accent: 'white' },
+    { sub: 'STORY',     title: 'Create a Workout Story',desc: "Turn today's session into a story card.",   href: storyHref,    icon: 'share',     accent: 'white' },
   ]
 }
 
@@ -141,17 +139,6 @@ function computeDynamic(props: HomeCTACardProps, seen: Seen, fallback: CTAItem):
     href: '/record?bodyPart=legs', icon: 'dumbbell', accent: 'orange-muted',
   }
 
-  // P7: Profile incomplete
-  if (!profileComplete) return ja ? {
-    sub: 'プロフィールを完成', title: '名前とアイコンを設定',
-    desc: '記録や共有に表示されるプロフィールを整えましょう。',
-    href: '/profile/edit', icon: 'user', accent: 'white',
-  } : {
-    sub: 'COMPLETE YOUR PROFILE', title: 'Set Your Name and Avatar',
-    desc: 'Your profile shows on logs and shares.',
-    href: '/profile/edit', icon: 'user', accent: 'white',
-  }
-
   return fallback
 }
 
@@ -175,8 +162,6 @@ function IconBox({ icon, accent }: { icon: CTAIcon; accent: Accent }) {
       {icon === 'trending' && <TrendingUp   size={20} style={{ color }} />}
       {icon === 'maximize' && <Maximize2    size={20} style={{ color }} />}
       {icon === 'dumbbell' && <Dumbbell     size={20} style={{ color }} />}
-      {icon === 'user'     && <UserRound    size={20} style={{ color }} />}
-      {icon === 'eye'      && <Eye          size={20} style={{ color }} />}
       {icon === 'calendar' && <CalendarDays size={20} style={{ color }} />}
     </div>
   )
@@ -237,7 +222,7 @@ export default function HomeCTACard(props: HomeCTACardProps) {
   // P1/P2: props-only — identical on server and client, no hydration mismatch
   const staticCTA: CTAItem | null =
     !hasTodayWorkout ? p1(locale, todayStr) :
-    !hasTodayPhoto   ? p2(locale) :
+    !hasTodayPhoto   ? p2(locale, storyHref) :
     null
 
   // P3-7 + fallback: resolved from localStorage after mount

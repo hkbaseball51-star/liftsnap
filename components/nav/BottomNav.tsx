@@ -2,49 +2,51 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useTransition } from 'react'
-import { Home, BarChart2, Plus, Trophy, User } from 'lucide-react'
+import { Dumbbell, CalendarDays, BarChart2, Share2 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 function getTodayJST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
 }
 
-const tabs = [
-  { href: '/home',      icon: Home,     label: 'HOME'    },
-  { href: '/analytics', icon: BarChart2, label: 'PROGRESS' },
-  { href: '/record',    icon: Plus,     label: '',         primary: true },
-  { href: '/rewards',   icon: Trophy,   label: 'PROOF'    },
-  { href: '/profile',   icon: User,     label: 'ME'      },
+type Tab = {
+  href: string
+  icon: LucideIcon
+  label: string
+  navigateTo?: () => string
+}
+
+const TABS: Tab[] = [
+  { href: '/record',    icon: Dumbbell,     label: 'RECORD',   navigateTo: () => `/record?date=${getTodayJST()}` },
+  { href: '/home',      icon: CalendarDays, label: 'CALENDAR'  },
+  { href: '/analytics', icon: BarChart2,    label: 'STATS'     },
+  { href: '/share',     icon: Share2,       label: 'SHARE'     },
 ]
 
-const PREFETCH_ROUTES = ['/home', '/analytics', '/record', '/rewards', '/profile']
+const PREFETCH_ROUTES = ['/home', '/analytics', '/share']
 
-// Paths where the bottom nav should be hidden entirely.
-// IMPORTANT: this list must be defined outside the component so it's stable
-// across renders and never placed between hook calls.
+// Full-screen pages where the bottom nav should not appear
 const HIDE_NAV = new Set([
   '/analytics/chart',
   '/body-log',
-  '/profile/terms',
-  '/profile/privacy',
-  '/profile/support/faq',
+  '/body-timeline',
+  '/rewards',
+  '/shop',
 ])
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const router = useRouter()
+  const router   = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // All hooks must be called unconditionally before any early return.
+  // Prefetch all main routes once on mount — hooks must be called unconditionally
   useEffect(() => {
     PREFETCH_ROUTES.forEach(r => router.prefetch(r))
   }, [router])
 
-  // Early return AFTER all hooks — React rules require stable hook call order.
   if (HIDE_NAV.has(pathname)) return null
 
-  const navigate = (href: string) => {
-    startTransition(() => router.push(href))
-  }
+  const navigate = (href: string) => startTransition(() => router.push(href))
 
   return (
     <nav
@@ -57,54 +59,28 @@ export default function BottomNav() {
       }}
     >
       <div className="flex items-center justify-around h-16">
-        {tabs.map(({ href, icon: Icon, label, primary }) => {
+        {TABS.map(({ href, icon: Icon, label, navigateTo }) => {
           const active = pathname.startsWith(href)
-
-          if (primary) {
-            // Hide FAB on record page — the page has its own "+ Exercise" CTA
-            if (pathname.startsWith('/record')) {
-              return <div key={href} style={{ width: 56 }} />
-            }
-            return (
-              <button
-                key={href}
-                className="flex flex-col items-center -mt-5"
-                style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 100ms' }}
-                onClick={() => navigate(`/record?date=${getTodayJST()}`)}
-              >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-                  style={{
-                    background: '#ED742F',
-                    boxShadow: '0 4px 20px rgba(237, 116, 47,0.45)',
-                  }}
-                >
-                  <Icon size={26} color="#fff" strokeWidth={2.5} />
-                </div>
-              </button>
-            )
-          }
+          const color  = active ? '#ED742F' : 'rgba(255,255,255,0.55)'
 
           return (
             <button
               key={href}
-              className="flex flex-col items-center gap-0.5 py-1 px-3 active:opacity-60 transition-opacity"
-              style={{ transform: 'translateY(-6px)' }}
-              onClick={() => navigate(href)}
+              className="flex flex-col items-center gap-0.5 py-2 px-5 active:opacity-60 transition-opacity"
+              style={{ opacity: isPending ? 0.7 : 1 }}
+              onClick={() => navigate(navigateTo ? navigateTo() : href)}
             >
               <Icon
                 size={22}
-                color={active ? '#ED742F' : 'rgba(255,255,255,0.65)'}
+                color={color}
                 strokeWidth={active ? 2.5 : 2}
               />
-              {label && (
-                <span
-                  className="text-[8px] font-black tracking-widest"
-                  style={{ color: active ? '#ED742F' : 'rgba(255,255,255,0.48)' }}
-                >
-                  {label}
-                </span>
-              )}
+              <span
+                className="text-[8px] font-black tracking-widest"
+                style={{ color }}
+              >
+                {label}
+              </span>
             </button>
           )
         })}
