@@ -53,6 +53,10 @@ export function isTrainingFeatureUnlocked(id: TrainingMilestoneId, totalSessions
 export const EXERCISE_GRAPH_REQUIRED = 10
 export const EXERCISE_PROGRESS_REQUIRED = 10
 
+// ─── Chart unlock thresholds ─────────────────────────────────
+export const VOLUME_CHART_SESSION_REQUIRED = 3
+export const BW_CHART_REQUIRED = 2
+
 export type ExerciseGraphProgress = {
   unlocked: boolean
   current: number

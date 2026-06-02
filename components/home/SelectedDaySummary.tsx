@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, ImageIcon, Images } from 'lucide-react'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
@@ -11,7 +10,6 @@ import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t } from '@/lib/i18n'
 import { getDisplayName } from '@/lib/exerciseNames'
-import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
 
 function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -31,26 +29,18 @@ export default function SelectedDaySummary({
   summary,
   bodyWeight = null,
   sessionId = null,
-  hasPhoto = false,
   todayStr,
 }: {
   selectedDate: string
   summary: DaySummary | null
   bodyWeight?: number | null
   sessionId?: string | null
-  hasPhoto?: boolean
   todayStr: string
 }) {
   const router = useRouter()
   const { locale } = useLocale()
   const { unit } = useWeightUnit()
   const [visible, setVisible] = useState(false)
-  const [showPhotoSheet, setShowPhotoSheet] = useState(false)
-  const [localHasPhoto, setLocalHasPhoto] = useState(hasPhoto)
-
-  useEffect(() => {
-    setLocalHasPhoto(hasPhoto)
-  }, [hasPhoto])
 
   // Component remounts on key change; double rAF ensures transition fires after paint
   useEffect(() => {
@@ -73,7 +63,6 @@ export default function SelectedDaySummary({
   const dateLabel = formatDateLabel(selectedDate)
 
   const isToday = selectedDate === todayStr
-  const showPhotoBtn = summary !== null && sessionId !== null && (localHasPhoto || isToday)
 
   const cardBase = {
     background: '#222222',
@@ -192,66 +181,9 @@ export default function SelectedDaySummary({
               )}
             </button>
 
-            {/* Photo button row */}
-            {showPhotoBtn && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.14)' }}>
-                <button
-                  className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl active:opacity-70 transition-opacity"
-                  style={{
-                    background: localHasPhoto
-                      ? 'rgba(237, 116, 47,0.08)'
-                      : 'rgba(255,255,255,0.04)',
-                    border: localHasPhoto
-                      ? '1px solid rgba(237, 116, 47,0.2)'
-                      : '1px solid rgba(255,255,255,0.08)',
-                  }}
-                  onClick={() => setShowPhotoSheet(true)}>
-                  {localHasPhoto
-                    ? <ImageIcon size={14} style={{ color: '#ED742F', flexShrink: 0 }} />
-                    : <Camera size={14} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0 }} />
-                  }
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: localHasPhoto ? '#ED742F' : 'rgba(255,255,255,0.65)',
-                  }}>
-                    {localHasPhoto
-                      ? t(locale, 'photo.viewPhoto')
-                      : t(locale, 'photo.addWorkoutPhoto')
-                    }
-                  </span>
-                </button>
-                {localHasPhoto && (
-                  <button
-                    className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl active:opacity-70 transition-opacity mt-2"
-                    style={{
-                      background: 'rgba(255,255,255,0.09)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                    }}
-                    onClick={() => router.push(`/body-log?start=${selectedDate}`)}>
-                    <Images size={14} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>
-                      {t(locale, 'bodyLog.viewFromThisDay')}
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
-
-      {/* Photo sheet modal */}
-      {showPhotoSheet && sessionId && (
-        <WorkoutPhotoSheet
-          sessionId={sessionId}
-          sessionDate={selectedDate}
-          todayStr={todayStr}
-          onClose={() => setShowPhotoSheet(false)}
-          onPhotoSaved={() => setLocalHasPhoto(true)}
-          onPhotoDeleted={() => setLocalHasPhoto(false)}
-        />
-      )}
     </>
   )
 }

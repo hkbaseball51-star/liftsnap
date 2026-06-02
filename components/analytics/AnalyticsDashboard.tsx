@@ -14,7 +14,7 @@ import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
-import { EXERCISE_GRAPH_REQUIRED, EXERCISE_PROGRESS_REQUIRED, isTrainingFeatureUnlocked } from '@/lib/unlocks'
+import { EXERCISE_GRAPH_REQUIRED, VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED } from '@/lib/unlocks'
 import { type Period, PERIODS, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
 import { type MetricType, smartYAxis, yAxisTicks, computeChartWidth, getPointWidth, buildXAxisConfig, formatTooltipDate } from '@/lib/chartUtils'
 
@@ -208,9 +208,6 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const exerciseLogCount      = exercises.find(e => e.name === selectedExercise)?.logCount ?? 0
   const exerciseShareUnlocked = exerciseLogCount >= EXERCISE_GRAPH_REQUIRED
-  const maxExerciseLogCount   = exercises.length > 0 ? Math.max(...exercises.map(e => e.logCount)) : 0
-  const lineChartUnlocked     = isTrainingFeatureUnlocked('basic_chart', totalSessions)
-  const exerciseProgressUnlocked = isTrainingFeatureUnlocked('exercise_progress', totalSessions, maxExerciseLogCount)
 
   const periodLabel  = { '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' }[period] ?? period
 
@@ -442,10 +439,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       {/* MAX 1RM Tab */}
       {tab === 'MAX 1RM' && (
         <div>
-          {!exerciseProgressUnlocked ? (
-            !lineChartUnlocked
-              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} locale={locale} />
-              : <MilestoneLock label="EXERCISE PROGRESS" current={maxExerciseLogCount} required={EXERCISE_PROGRESS_REQUIRED} locale={locale} lockUnit="logs" />
+          {totalSessions < 5 ? (
+            <MilestoneLock current={totalSessions} required={5} locale={locale} chartName="MAX 1RMグラフ" chartNameEn="MAX 1RM chart" />
           ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
@@ -591,10 +586,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       {/* DAILY VOLUME Tab */}
       {tab === 'DAILY VOLUME' && (
         <div>
-          {!exerciseProgressUnlocked ? (
-            !lineChartUnlocked
-              ? <MilestoneLock label="LINE CHART" current={totalSessions} required={5} locale={locale} />
-              : <MilestoneLock label="EXERCISE PROGRESS" current={maxExerciseLogCount} required={EXERCISE_PROGRESS_REQUIRED} locale={locale} lockUnit="logs" />
+          {totalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
+            <MilestoneLock current={totalSessions} required={VOLUME_CHART_SESSION_REQUIRED} locale={locale} chartName="Volumeグラフ" chartNameEn="Volume chart" />
           ) : exercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
@@ -833,16 +826,20 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               </Link>
             </div>
             {bwData.length === 0 ? (
-              <div className="h-[380px] flex items-center justify-center flex-col gap-2">
+              <div className="h-[380px] flex items-center justify-center">
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
                   {locale === 'ja'
-                    ? '体重を記録すると、\n変化をグラフで見られます'
-                    : 'Log your body weight\nto see progress over time'}
+                    ? '体重を記録すると、変化をグラフで見られます'
+                    : 'Log your body weight to see progress over time'}
                 </p>
               </div>
-            ) : bwDataDisplay.length < 2 ? (
+            ) : bwData.length < BW_CHART_REQUIRED ? (
               <div className="h-[380px] flex items-center justify-center">
-                <p className="text-xs font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.bwChartEmpty')}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
+                  {locale === 'ja'
+                    ? 'あと1回体重を記録すると、変化グラフが表示されます'
+                    : 'Log one more weight entry to see your progress graph'}
+                </p>
               </div>
             ) : (
               <div className="relative">
@@ -938,30 +935,22 @@ function ChartEmpty() {
   )
 }
 
-function MilestoneLock({ label, current, required, locale, lockUnit = 'sessions' }: {
-  label: string; current: number; required: number; locale: Locale; lockUnit?: 'sessions' | 'logs'
+function MilestoneLock({ current, required, locale, chartName = 'グラフ', chartNameEn = 'this chart' }: {
+  current: number; required: number; locale: Locale; chartName?: string; chartNameEn?: string
 }) {
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = Math.max(required - current, 0)
   const unlockText = locale === 'ja'
-    ? lockUnit === 'logs'
-      ? `同じ種目を${required}回記録すると、グラフが使えます`
-      : `${required}回のワークアウトで、成長グラフが使えます`
-    : lockUnit === 'logs'
-      ? `Log the same exercise ${required} times to unlock`
-      : `Log ${required} sessions to unlock this chart`
+    ? `ワークアウトを${required}回記録すると、${chartName}が使えます`
+    : `Log ${required} workouts to unlock ${chartNameEn}`
   const remainingText = locale === 'ja'
-    ? lockUnit === 'logs'
-      ? `あと${remaining}回の記録で解放されます`
-      : `あと${remaining}回の記録で、成長グラフが使えます`
-    : lockUnit === 'logs'
-      ? `${remaining} more log${remaining !== 1 ? 's' : ''} to go`
-      : `${remaining} more session${remaining !== 1 ? 's' : ''} to go`
+    ? `あと${remaining}回のワークアウト記録で、${chartName}が使えます`
+    : `${remaining} more workout${remaining !== 1 ? 's' : ''} to go`
   return (
     <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.17)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Lock size={13} strokeWidth={1.5} style={{ color: '#444' }} />
-        <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>{label}</p>
+        <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>LOCKED</p>
       </div>
       <p className="text-sm font-bold mb-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{unlockText}</p>
       <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.60)' }}>{remainingText}</p>

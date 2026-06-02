@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TrainingCalendar, { type CalendarSession } from './TrainingCalendar'
 import SelectedDaySummary from './SelectedDaySummary'
@@ -38,7 +38,6 @@ export default function CalendarWithSummary({
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  const photoDates = useMemo(() => new Set(Object.keys(photoPathsByDate)), [photoPathsByDate])
   const selectedSummary = selectedDate ? (daySummaries[selectedDate] ?? null) : null
 
   return (
@@ -59,7 +58,6 @@ export default function CalendarWithSummary({
             summary={selectedSummary}
             bodyWeight={bodyWeightByDate[selectedDate] ?? null}
             sessionId={selectedSummary?.sessionId ?? null}
-            hasPhoto={photoDates.has(selectedDate)}
             todayStr={todayStr}
           />
         </div>

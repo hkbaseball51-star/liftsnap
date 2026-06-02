@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Pencil, Minus, Camera, ImageIcon } from 'lucide-react'
+import { Plus, X, Pencil, Minus, Camera, ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { createClient } from '@/lib/supabase/client'
@@ -89,6 +89,19 @@ function formatDateLabel(date: string) {
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setDate(d.getDate() + n)
+  return d.toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
+}
+
+function formatNavDate(dateStr: string, locale: Locale): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (locale === 'ja') return `${y}年${m}月${d}日`
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${months[m-1]} ${d}, ${y}`
+}
+
 function est1rmOf(weightKg: number, reps: number): number {
   return reps === 1 ? weightKg : Math.round(weightKg * (1 + reps / 30))
 }
@@ -131,10 +144,11 @@ type ExerciseCardProps = {
   onRemoveSet: (exerciseId: string, setId: string) => void
   onSetTarget: (target: NumberTarget) => void
   onNoteTarget: (exerciseId: string) => void
+  onRenameExercise: (exerciseId: string) => void
 }
 
 const ExerciseCard = memo(function ExerciseCard({
-  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget,
+  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise,
 }: ExerciseCardProps) {
   const { locale } = useLocale()
   const stats = useMemo(() => calcExerciseStats(ex), [ex])
@@ -157,7 +171,14 @@ const ExerciseCard = memo(function ExerciseCard({
         <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
           style={{ background: isNewPR ? '#ED742F' : '#3a3a3a' }} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-white leading-tight truncate">{getDisplayName(ex.name, locale)}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-black text-white leading-tight truncate">{getDisplayName(ex.name, locale)}</p>
+            <button
+              className="flex-shrink-0 p-0.5 active:opacity-60 transition-opacity"
+              onClick={() => onRenameExercise(ex.id)}>
+              <Pencil size={10} style={{ color: '#444' }} />
+            </button>
+          </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[10px] font-black tracking-wider" style={{ color: '#ED742F' }}>
               {ex.muscle_group}
@@ -361,6 +382,7 @@ export default function WorkoutRecorder({
     }))
   )
   const [showPicker, setShowPicker] = useState(false)
+  const [renameTarget, setRenameTarget] = useState<string | null>(null)
   const [numberTarget, setNumberTarget] = useState<NumberTarget | null>(null)
   const [noteTarget, setNoteTarget] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -382,6 +404,9 @@ export default function WorkoutRecorder({
 
   const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
   const isDateToday = date === todayStr
+  const prevDate = addDays(date, -1)
+  const nextDate = addDays(date, 1)
+  const isNextDisabled = nextDate > todayJST
 
   // Fetch PR data for pre-loaded exercises
   useEffect(() => {
@@ -489,6 +514,11 @@ export default function WorkoutRecorder({
     setIsDirty(true)
   }, [])
 
+  const handleRenameTarget = useCallback((exerciseId: string) => {
+    setRenameTarget(exerciseId)
+    setShowPicker(false)
+  }, [])
+
   const updateSet = useCallback((exerciseId: string, setId: string, field: 'weight_kg' | 'reps', value: number) => {
     setExerciseList(prev => prev.map(ex =>
       ex.id !== exerciseId ? ex :
@@ -529,6 +559,30 @@ export default function WorkoutRecorder({
       if (pr !== null) {
         setExerciseList(prev => prev.map(ex =>
           ex.name === exercise.name && ex.allTimePR === null ? { ...ex, allTimePR: pr } : ex
+        ))
+      }
+    })
+  }
+
+  /* ── Exercise rename (keeps all sets/memo) ── */
+
+  const applyRename = (exercise: Exercise) => {
+    if (!renameTarget) return
+    const targetId = renameTarget
+    setRenameTarget(null)
+    setExerciseList(prev => prev.map(ex =>
+      ex.id !== targetId ? ex : {
+        ...ex,
+        name: exercise.name,
+        muscle_group: exercise.muscle_group,
+        allTimePR: null,
+      }
+    ))
+    setIsDirty(true)
+    getExercisePR(exercise.name).then(pr => {
+      if (pr !== null) {
+        setExerciseList(prev => prev.map(ex =>
+          ex.id === targetId ? { ...ex, allTimePR: pr } : ex
         ))
       }
     })
@@ -618,34 +672,48 @@ export default function WorkoutRecorder({
           </div>
         )}
 
-        {/* Row 1: X | date · title | spacer */}
-        <div className="flex items-center justify-between pb-1.5">
+        {/* Row 1: X | ← date → | spacer */}
+        <div className="flex items-center justify-between pb-1">
           <button
             className="p-1 -ml-1 flex-shrink-0"
             onClick={() => isDirty ? setShowCancelConfirm(true) : router.push('/home')}>
             <X size={18} style={{ color: '#555' }} />
           </button>
-          <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#555', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {formatDateLabel(date)}
+          <div className="flex items-center gap-1">
+            <button
+              className="p-1.5 active:opacity-60 transition-opacity"
+              onClick={() => router.push(`/record?date=${prevDate}`)}>
+              <ChevronLeft size={16} style={{ color: '#666' }} />
+            </button>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', minWidth: 120, textAlign: 'center' }}>
+              {formatNavDate(date, locale)}
             </span>
-            <span style={{ color: '#333', flexShrink: 0 }}>·</span>
-            {editingTitle ? (
-              <input autoFocus value={title}
-                onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
-                onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle(locale)); setEditingTitle(false) }}
-                onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
-                className="text-sm font-black text-white bg-transparent outline-none min-w-0"
-                style={{ borderBottom: '1px solid #ED742F', maxWidth: 160 }}
-              />
-            ) : (
-              <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1 min-w-0">
-                <span className="text-sm font-black text-white truncate" style={{ maxWidth: 150 }}>{title}</span>
-                <Pencil size={9} style={{ color: '#444', flexShrink: 0 }} />
-              </button>
-            )}
+            <button
+              className="p-1.5 active:opacity-60 transition-opacity"
+              disabled={isNextDisabled}
+              onClick={() => !isNextDisabled && router.push(`/record?date=${nextDate}`)}>
+              <ChevronRight size={16} style={{ color: isNextDisabled ? '#2a2a2a' : '#666' }} />
+            </button>
           </div>
           <div className="flex-shrink-0 w-9" />
+        </div>
+
+        {/* Row 1.5: session title */}
+        <div className="flex items-center justify-center pb-1.5">
+          {editingTitle ? (
+            <input autoFocus value={title}
+              onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
+              onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle(locale)); setEditingTitle(false) }}
+              onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
+              className="text-sm font-black text-white bg-transparent outline-none"
+              style={{ borderBottom: '1px solid #ED742F', maxWidth: 200 }}
+            />
+          ) : (
+            <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1">
+              <span className="text-sm font-black text-white truncate" style={{ maxWidth: 200 }}>{title}</span>
+              <Pencil size={9} style={{ color: '#444', flexShrink: 0 }} />
+            </button>
+          )}
         </div>
 
         {/* Row 2: stats summary + save status */}
@@ -671,11 +739,25 @@ export default function WorkoutRecorder({
 
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="text-5xl mb-4">{isEditing ? '✏️' : '⚡'}</div>
-            <p className="text-base font-black text-white mb-2 tracking-wide">
-              {isEditing ? t(locale, 'record.editSession') : t(locale, 'record.buildEffort')}
-            </p>
-            <p className="text-xs font-bold" style={{ color: '#777' }}>{t(locale, 'record.addExercise')}</p>
+            {!isToday && !isEditing ? (
+              <>
+                <div className="text-4xl mb-4">📅</div>
+                <p className="text-base font-black text-white mb-2 tracking-wide">
+                  {locale === 'ja' ? 'この日のワークアウト記録はありません' : 'No workout logged for this day'}
+                </p>
+                <p className="text-xs font-bold" style={{ color: '#777' }}>
+                  {locale === 'ja' ? '記録を追加して、努力を残しましょう' : 'Add a workout to log this day'}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-5xl mb-4">{isEditing ? '✏️' : '⚡'}</div>
+                <p className="text-base font-black text-white mb-2 tracking-wide">
+                  {isEditing ? t(locale, 'record.editSession') : t(locale, 'record.buildEffort')}
+                </p>
+                <p className="text-xs font-bold" style={{ color: '#777' }}>{t(locale, 'record.addExercise')}</p>
+              </>
+            )}
           </div>
         )}
 
@@ -689,45 +771,11 @@ export default function WorkoutRecorder({
             onRemoveSet={removeSet}
             onSetTarget={handleSetTarget}
             onNoteTarget={handleNoteTarget}
+            onRenameExercise={handleRenameTarget}
           />
         ))}
 
         <div ref={listEndRef} />
-
-        {/* Body weight — optional, today only */}
-        {isDateToday && (
-          <div className="pt-1 pb-1">
-            <div className="rounded-xl px-3 py-2.5"
-              style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#4a4a4a', marginBottom: 8 }}>
-                BODY WEIGHT · OPTIONAL
-              </p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder={weightUnit === 'lbs' ? '154.0' : '70.0'}
-                  value={bwInput}
-                  onChange={e => setBwInput(e.target.value)}
-                  className="flex-1 bg-transparent text-white text-sm font-bold outline-none"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', paddingBottom: 2 }}
-                />
-                <span style={{ fontSize: 11, color: '#555' }}>{weightUnitLabel(weightUnit)}</span>
-                <button
-                  disabled={!bwInput || bwSaving}
-                  onClick={handleBwSave}
-                  className="px-3 py-1 rounded-lg text-[10px] font-black tracking-wider"
-                  style={{
-                    background: bwSaved ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                    color: bwSaved ? '#22c55e' : '#555',
-                    border: `1px solid ${bwSaved ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.09)'}`,
-                  }}>
-                  {bwSaved ? '✓' : bwSaving ? '...' : 'LOG'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Bottom bar ── */}
@@ -752,6 +800,36 @@ export default function WorkoutRecorder({
               : `${Math.floor(restPreset / 60)}:${String(restPreset % 60).padStart(2, '0')}`}
           </button>
         </div>
+
+        {/* Body weight — compact optional row, today only */}
+        {isDateToday && (
+          <div className="flex items-center gap-2 mb-2.5 px-0.5">
+            <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.09em', color: '#3a3a3a', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              BODY WEIGHT · OPTIONAL
+            </p>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder={weightUnit === 'lbs' ? '154.0' : '70.0'}
+              value={bwInput}
+              onChange={e => setBwInput(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent text-white text-sm font-bold outline-none text-right"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.09)', paddingBottom: 1 }}
+            />
+            <span style={{ fontSize: 11, color: '#444', flexShrink: 0 }}>{weightUnitLabel(weightUnit)}</span>
+            <button
+              disabled={!bwInput || bwSaving}
+              onClick={handleBwSave}
+              className="px-3 py-1 rounded-lg text-[10px] font-black tracking-wider flex-shrink-0"
+              style={{
+                background: bwSaved ? 'rgba(34,197,94,0.12)' : (bwInput ? '#ED742F' : 'rgba(255,255,255,0.04)'),
+                color: bwSaved ? '#22c55e' : (bwInput ? '#fff' : '#3a3a3a'),
+                border: bwSaved ? '1px solid rgba(34,197,94,0.25)' : 'none',
+              }}>
+              {bwSaved ? '✓' : bwSaving ? '...' : (locale === 'ja' ? '記録' : 'Log')}
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-2.5">
           <button
@@ -822,6 +900,10 @@ export default function WorkoutRecorder({
       {/* ── Modals ── */}
       {showPicker && (
         <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />
+      )}
+
+      {renameTarget && (
+        <ExercisePicker onSelect={applyRename} onClose={() => setRenameTarget(null)} />
       )}
 
       {numberTarget && (
