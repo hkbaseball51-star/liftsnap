@@ -601,27 +601,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </p>
         )}
 
-        {/* No-photo CTA */}
-        {!localPhotoPath && !photoLoading && canShare && (
-          <div className="px-4 mb-3">
-            <div className="rounded-2xl px-4 py-3.5"
-              style={{ background: 'rgba(237,116,47,0.10)', border: '1px solid rgba(237,116,47,0.16)' }}>
-              <div className="flex items-center gap-2.5 mb-3">
-                <Camera size={14} style={{ color: '#ED742F', flexShrink: 0 }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.68)' }}>
-                  {t(locale, 'story.addPhotoForBetterStory')}
-                </p>
-              </div>
-              <button
-                className="w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2"
-                style={{ background: '#ED742F', color: '#fff' }}
-                onClick={() => setShowPhotoSheet(true)}>
-                <ImageIcon size={14} />
-                {t(locale, 'story.addWorkoutPhoto')}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* No-photo CTA hidden for MVP — photo is optional, Share is the main action */}
 
         {/* Photo loaded: drag hint + reset + change */}
         {hasPhoto && (
@@ -774,38 +754,27 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             </p>
           )}
 
-          {mainBtnIsAdd ? (
-            canShare && (
-              <button
-                className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-                style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}
-                onClick={() => setShowPhotoSheet(true)}>
-                <Camera size={20} />
-                {t(locale, 'story.addWorkoutPhoto')}
-              </button>
-            )
-          ) : (
-            <button
-              className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-              style={{
-                background: mainBtnLoading ? 'rgba(237,116,47,0.4)' : '#ED742F',
-                boxShadow:  mainBtnLoading ? 'none' : '0 4px 20px rgba(237,116,47,0.3)',
-              }}
-              disabled={mainBtnLoading}
-              onClick={handleShare}>
-              <Share2 size={20} />
-              {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
-            </button>
-          )}
+          {/* Share is always the primary action */}
+          <button
+            className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
+            style={{
+              background: mainBtnLoading ? 'rgba(237,116,47,0.4)' : '#ED742F',
+              boxShadow:  mainBtnLoading ? 'none' : '0 4px 20px rgba(237,116,47,0.3)',
+            }}
+            disabled={mainBtnLoading}
+            onClick={handleShare}>
+            <Share2 size={20} />
+            {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
+          </button>
 
-          {mainBtnIsAdd && (
+          {/* Photo as optional sub-action */}
+          {canShare && !hasPhoto && (
             <button
-              className="w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
-              style={{ background: 'transparent', color: '#555', border: '1px solid #222' }}
-              disabled={sharing}
-              onClick={handleShare}>
-              <Share2 size={16} />
-              {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
+              className="w-full py-2.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
+              style={{ background: 'transparent', color: '#444', border: '1px solid #1e1e1e' }}
+              onClick={() => setShowPhotoSheet(true)}>
+              <Camera size={14} />
+              {t(locale, 'story.addWorkoutPhoto')}
             </button>
           )}
 

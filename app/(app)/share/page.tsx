@@ -98,7 +98,7 @@ export default async function SharePage({
 
           {/* Stats Graph Story */}
           <Link
-            href="/analytics"
+            href="/share/stats"
             className="flex items-center gap-4 rounded-2xl px-4 py-4 active:opacity-70 transition-opacity"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
           >

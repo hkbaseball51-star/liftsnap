@@ -832,7 +832,15 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
               </Link>
             </div>
-            {bwDataDisplay.length < 2 ? (
+            {bwData.length === 0 ? (
+              <div className="h-[380px] flex items-center justify-center flex-col gap-2">
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
+                  {locale === 'ja'
+                    ? '体重を記録すると、\n変化をグラフで見られます'
+                    : 'Log your body weight\nto see progress over time'}
+                </p>
+              </div>
+            ) : bwDataDisplay.length < 2 ? (
               <div className="h-[380px] flex items-center justify-center">
                 <p className="text-xs font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.bwChartEmpty')}</p>
               </div>
@@ -936,12 +944,16 @@ function MilestoneLock({ label, current, required, locale, lockUnit = 'sessions'
   const pct       = Math.min((current / required) * 100, 100)
   const remaining = Math.max(required - current, 0)
   const unlockText = locale === 'ja'
-    ? `${required}${t(locale, 'analytics.lockSessions')}`
+    ? lockUnit === 'logs'
+      ? `同じ種目を${required}回記録すると、グラフが使えます`
+      : `${required}回のワークアウトで、成長グラフが使えます`
     : lockUnit === 'logs'
-      ? `Log the same exercise ${required} times`
-      : `${t(locale, 'analytics.lockUnlockAt')} ${required} ${t(locale, 'analytics.lockSessions')}`
+      ? `Log the same exercise ${required} times to unlock`
+      : `Log ${required} sessions to unlock this chart`
   const remainingText = locale === 'ja'
-    ? `あと${remaining}${t(locale, 'analytics.lockRemaining')}`
+    ? lockUnit === 'logs'
+      ? `あと${remaining}回の記録で解放されます`
+      : `あと${remaining}回の記録で、成長グラフが使えます`
     : lockUnit === 'logs'
       ? `${remaining} more log${remaining !== 1 ? 's' : ''} to go`
       : `${remaining} more session${remaining !== 1 ? 's' : ''} to go`

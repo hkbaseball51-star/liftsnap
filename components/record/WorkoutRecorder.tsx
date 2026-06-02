@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
+import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { createClient } from '@/lib/supabase/client'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
@@ -11,6 +12,7 @@ import NoteInputSheet from './NoteInputSheet'
 import RestTimerSheet from './RestTimerSheet'
 import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
 import { formatVolume } from '@/lib/utils'
+import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, formatVolumeWithUnit, weightUnitLabel } from '@/lib/units'
@@ -373,6 +375,10 @@ export default function WorkoutRecorder({
   const [showPhotoSheet, setShowPhotoSheet] = useState(false)
   const [hasPhotoRecorded, setHasPhotoRecorded] = useState(false)
 
+  const [bwInput, setBwInput]   = useState('')
+  const [bwSaving, setBwSaving] = useState(false)
+  const [bwSaved,  setBwSaved]  = useState(false)
+
   const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
   const isDateToday = date === todayStr
 
@@ -527,6 +533,20 @@ export default function WorkoutRecorder({
     })
   }
 
+  /* ── Body weight (optional) ── */
+
+  const handleBwSave = async () => {
+    const v = parseFlexibleNumber(bwInput)
+    const maxBw = weightUnit === 'lbs' ? 661 : 300
+    if (v === null || v <= 0 || v > maxBw) return
+    setBwSaving(true)
+    try {
+      await upsertBodyWeight(fromDisplayWeight(v, weightUnit))
+      setBwSaved(true)
+      setTimeout(() => setBwSaved(false), 2500)
+    } catch { /* silent */ } finally { setBwSaving(false) }
+  }
+
   /* ── Finish / save ── */
 
   const handleFinish = async () => {
@@ -672,6 +692,41 @@ export default function WorkoutRecorder({
         ))}
 
         <div ref={listEndRef} />
+
+        {/* Body weight — optional, today only */}
+        {isDateToday && (
+          <div className="pt-1 pb-1">
+            <div className="rounded-xl px-3 py-2.5"
+              style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#4a4a4a', marginBottom: 8 }}>
+                BODY WEIGHT · OPTIONAL
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder={weightUnit === 'lbs' ? '154.0' : '70.0'}
+                  value={bwInput}
+                  onChange={e => setBwInput(e.target.value)}
+                  className="flex-1 bg-transparent text-white text-sm font-bold outline-none"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', paddingBottom: 2 }}
+                />
+                <span style={{ fontSize: 11, color: '#555' }}>{weightUnitLabel(weightUnit)}</span>
+                <button
+                  disabled={!bwInput || bwSaving}
+                  onClick={handleBwSave}
+                  className="px-3 py-1 rounded-lg text-[10px] font-black tracking-wider"
+                  style={{
+                    background: bwSaved ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                    color: bwSaved ? '#22c55e' : '#555',
+                    border: `1px solid ${bwSaved ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.09)'}`,
+                  }}>
+                  {bwSaved ? '✓' : bwSaving ? '...' : 'LOG'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Bottom bar ── */}
@@ -734,8 +789,8 @@ export default function WorkoutRecorder({
           )}
         </div>
 
-        {/* Photo button — shown after save, today only */}
-        {isSavedState && isDateToday && sessionId && (
+        {/* Photo button — hidden for MVP (code preserved for re-enabling) */}
+        {false && isSavedState && isDateToday && sessionId && (
           <div className="mt-2">
             <button
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-75 transition-opacity"
