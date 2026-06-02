@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getBodyWeightData, getExercisesWithHistory } from '@/actions/analytics'
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard'
+import FeatureTracker from '@/components/common/FeatureTracker'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
@@ -21,10 +22,13 @@ export default async function AnalyticsPage() {
   ])
 
   return (
-    <AnalyticsDashboard
-      bodyWeightData={bodyWeightData}
-      exercises={exercises}
-      totalSessions={count ?? 0}
-    />
+    <>
+      <FeatureTracker feature="progress" />
+      <AnalyticsDashboard
+        bodyWeightData={bodyWeightData}
+        exercises={exercises}
+        totalSessions={count ?? 0}
+      />
+    </>
   )
 }

@@ -4,6 +4,7 @@ import { getTodayWorkoutForShare } from '@/actions/workout'
 import ShareView from '@/components/share/ShareView'
 import StatsShareView from '@/components/share/StatsShareView'
 import TodayShareView from '@/components/share/TodayShareView'
+import FeatureTracker from '@/components/common/FeatureTracker'
 import Link from 'next/link'
 
 export default async function SharePage({
@@ -33,7 +34,12 @@ export default async function SharePage({
         </div>
       )
     }
-    return <TodayShareView data={data} />
+    return (
+      <>
+        <FeatureTracker feature="story" />
+        <TodayShareView data={data} />
+      </>
+    )
   }
 
   if (params.type === 'stats') {

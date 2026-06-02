@@ -2,6 +2,7 @@ import { getExercise1RMData, getExerciseDailyVolumeData, getBodyWeightData } fro
 import { getStartDate } from '@/lib/chartAggregation'
 import { type Period } from '@/lib/chartAggregation'
 import FullScreenChart from '@/components/analytics/FullScreenChart'
+import FeatureTracker from '@/components/common/FeatureTracker'
 
 type PageProps = {
   searchParams: Promise<{ metric?: string; range?: string; exercise?: string }>
@@ -29,13 +30,16 @@ export default async function AnalyticsChartPage({ searchParams }: PageProps) {
   ])
 
   return (
-    <FullScreenChart
-      metric={metric}
-      range={range}
-      exercise={exercise}
-      initialRmData={rmData  as Awaited<ReturnType<typeof getExercise1RMData>>}
-      initialVolData={volData as Awaited<ReturnType<typeof getExerciseDailyVolumeData>>}
-      initialBwData={bwData  as Awaited<ReturnType<typeof getBodyWeightData>>}
-    />
+    <>
+      <FeatureTracker feature="fullscreen_chart" />
+      <FullScreenChart
+        metric={metric}
+        range={range}
+        exercise={exercise}
+        initialRmData={rmData  as Awaited<ReturnType<typeof getExercise1RMData>>}
+        initialVolData={volData as Awaited<ReturnType<typeof getExerciseDailyVolumeData>>}
+        initialBwData={bwData  as Awaited<ReturnType<typeof getBodyWeightData>>}
+      />
+    </>
   )
 }

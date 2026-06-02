@@ -78,11 +78,9 @@ function todayKey(): string {
 
 type Props = {
   displayName: string | null
-  /** Server-rendered StreakBadge, passed as a slot to keep layout intact. */
-  children?: React.ReactNode
 }
 
-export default function HomeGreeting({ displayName, children }: Props) {
+export default function HomeGreeting({ displayName }: Props) {
   // Safe placeholder values prevent hydration mismatch.
   // The real, time-based content is set after mount.
   const [greeting, setGreeting] = useState<string>('REPRA')
@@ -110,32 +108,27 @@ export default function HomeGreeting({ displayName, children }: Props) {
         {greeting}
       </p>
 
-      {/* Headline row: big text on left, StreakBadge slot on right */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <p style={{
-            fontSize: 30,
-            fontWeight: 600,
-            color: '#fff',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.15,
-          }}>
-            {headline}
-          </p>
-          {displayName && (
-            <p style={{
-              fontSize: 30,
-              fontWeight: 600,
-              color: '#ED742F',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.15,
-            }}>
-              {displayName}.
-            </p>
-          )}
-        </div>
-        {children}
-      </div>
+      {/* Headline — full width, no flex split */}
+      <p style={{
+        fontSize: 30,
+        fontWeight: 600,
+        color: '#fff',
+        letterSpacing: '-0.02em',
+        lineHeight: 1.15,
+      }}>
+        {headline}
+      </p>
+      {displayName && (
+        <p style={{
+          fontSize: 30,
+          fontWeight: 600,
+          color: '#ED742F',
+          letterSpacing: '-0.02em',
+          lineHeight: 1.15,
+        }}>
+          {displayName}.
+        </p>
+      )}
     </>
   )
 }

@@ -3,7 +3,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Zap, Share2 } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
@@ -13,6 +13,7 @@ import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import { t, type Locale, resolveServerLocale } from '@/lib/i18n'
 import { calcProofStreak } from '@/lib/proofStreak'
 import HomeGreeting from '@/components/home/HomeGreeting'
+import HomeCTACard from '@/components/home/HomeCTACard'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -44,7 +45,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('profiles')
-      .select('display_name, onboarding_completed, language')
+      .select('display_name, onboarding_completed, language, username, avatar_url')
       .eq('id', user.id)
       .single(),
 
@@ -204,11 +205,12 @@ export default async function HomePage() {
   const totalSessions90 = calendarSessions.length
   const validWorkoutDates = new Set(calendarSessions.map(s => s.date))
   const todayWorked = validWorkoutDates.has(todayStr)
-  const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null; language: string | null } | null
+  const profileData = profileRes.data as { display_name: string | null; onboarding_completed: boolean | null; language: string | null; username: string | null; avatar_url: string | null } | null
   if (profileData?.onboarding_completed === false && !user.is_anonymous) {
     redirect('/onboarding')
   }
   const displayName = profileData?.display_name ?? null
+  const profileComplete = !!(profileData?.display_name && profileData?.username)
 
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()])
   const cookieLang = cookieStore.get('liftsnap_lang')?.value
@@ -240,38 +242,55 @@ export default async function HomePage() {
   const weekStart = getWeekStart()
   const thisWeekPhotosCount = rawPhotoLogs.filter(p => p.workout_date >= weekStart).length
 
+  // hasTodayPhoto: derived from user's own photo logs (user_id already applied in the query)
+  const hasTodayPhoto = !!photoPathsByDate[todayStr]
+
+  // Days since last leg session (null = no leg session in 90-day window)
+  const legSessions = calendarSessions.filter(s => (s.allMuscleGroups ?? []).includes('legs') || s.muscleGroup === 'legs')
+  const lastLegDate = legSessions.length > 0
+    ? legSessions.reduce((latest, s) => s.date > latest ? s.date : latest, legSessions[0].date)
+    : null
+  const daysSinceLastLegDay = lastLegDate
+    ? Math.floor((new Date(todayStr + 'T00:00:00').getTime() - new Date(lastLegDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
+    : null
+
+  const storyHref = `/share?type=today&date=${todayStr}`
+
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
 
-      {/* ── Header ── lifts count only, right-aligned */}
-      <div className="flex justify-end px-4 pt-12 pb-2">
-        <div className="flex items-center gap-1.5">
-          <Zap size={11} style={{ color: 'rgba(255,255,255,0.44)' }} />
-          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.47)', letterSpacing: '0.04em' }}>
-            {locale === 'ja' ? `${totalSessions90}回` : `${totalSessions90} lifts`}
-          </span>
-        </div>
-      </div>
-
-      {/* ── WELCOME ── */}
-      <div className="px-4 pt-3 pb-6">
+      {/* ── Header ── Logo left · [lifts + streak] right ── */}
+      <div className="flex items-start justify-between px-4 pt-12 pb-2">
         <Image
           src="/brand/repra-logo-cropped.png"
           alt="REPRA"
           width={949}
           height={188}
           priority
-          style={{ width: 120, height: 'auto', display: 'block', marginBottom: 28 }}
+          style={{ width: 100, height: 'auto', display: 'block' }}
         />
-        <HomeGreeting displayName={displayName}>
+        {/* Status stack: lifts on top, streak below — right-aligned */}
+        <div className="flex flex-col items-end gap-1.5" style={{ paddingTop: 2 }}>
+          <div className="flex items-center gap-1">
+            <Zap size={10} style={{ color: 'rgba(255,255,255,0.38)' }} />
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.44)', letterSpacing: '0.04em' }}>
+              {locale === 'ja' ? `${totalSessions90}回` : `${totalSessions90} lifts`}
+            </span>
+          </div>
           <StreakBadge
             streak={weekStreak}
             thisWeekDone={thisWeekDone}
             locale={locale}
             thisWeekWorkouts={thisWeekSessions.length}
             thisWeekPhotos={thisWeekPhotosCount}
+            compact
           />
-        </HomeGreeting>
+        </div>
+      </div>
+
+      {/* ── WELCOME ── greeting + headline full width ── */}
+      <div className="px-4 pt-4 pb-6">
+        <HomeGreeting displayName={displayName} />
         {todayWorked ? (
           <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 10 }}>
             Great work today.
@@ -283,49 +302,18 @@ export default async function HomePage() {
         )}
       </div>
 
-      {/* ── SHARE TODAY'S WORKOUT CTA ── */}
+      {/* ── TODAY'S CTA ── */}
       <div className="px-4 mb-5">
-        <Link href={todayWorked ? `/share?type=today&date=${todayStr}` : `/record?date=${todayStr}`}>
-          <div className="rounded-2xl overflow-hidden relative active:opacity-75 transition-opacity"
-            style={{
-              background: '#1E1E1E',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}>
-            {todayWorked && (
-              <div style={{ height: 1, background: 'linear-gradient(90deg, #ED742F 0%, transparent 70%)', opacity: 0.7 }} />
-            )}
-            <div className="px-5 py-4 flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <p style={{
-                  fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 4,
-                  color: todayWorked ? 'rgba(237, 116, 47,0.8)' : 'rgba(255,255,255,0.44)',
-                }}>
-                  {todayWorked ? t(locale, 'home.todaysWorkout') : t(locale, 'home.noSessionYet')}
-                </p>
-                <p style={{
-                  fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 3,
-                  color: todayWorked ? '#ffffff' : 'rgba(255,255,255,0.52)',
-                }}>
-                  {todayWorked ? t(locale, 'home.shareTodaysWorkout') : t(locale, 'home.logTodaysWorkout')}
-                </p>
-                <p style={{
-                  fontSize: 11, fontWeight: 400,
-                  color: todayWorked ? 'rgba(255,255,255,0.58)' : 'rgba(255,255,255,0.40)',
-                }}>
-                  {todayWorked ? t(locale, 'home.postToStory') : t(locale, 'home.recordFirst')}
-                </p>
-              </div>
-              <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
-                style={{
-                  background: todayWorked ? '#ED742F' : 'rgba(255,255,255,0.04)',
-                  border: todayWorked ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                  boxShadow: todayWorked ? '0 4px 16px rgba(237, 116, 47,0.4)' : 'none',
-                }}>
-                <Share2 size={18} style={{ color: todayWorked ? '#fff' : 'rgba(255,255,255,0.44)' }} />
-              </div>
-            </div>
-          </div>
-        </Link>
+        <HomeCTACard
+          todayStr={todayStr}
+          hasTodayWorkout={todayWorked}
+          hasTodayPhoto={hasTodayPhoto}
+          workoutCount={totalSessions90}
+          daysSinceLastLegDay={daysSinceLastLegDay}
+          profileComplete={profileComplete}
+          storyHref={storyHref}
+          locale={locale}
+        />
       </div>
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
@@ -525,3 +513,4 @@ function getStreakWindowStart(): string {
 function settled(r: PromiseSettledResult<any>): { data: any; error: any } {
   return r.status === 'fulfilled' ? r.value : { data: null, error: r.reason }
 }
+

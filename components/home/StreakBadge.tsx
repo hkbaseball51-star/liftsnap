@@ -10,6 +10,8 @@ type Props = {
   locale?: Locale
   thisWeekWorkouts?: number
   thisWeekPhotos?: number
+  /** Compact header variant — pill is the tap target, no separate Info button */
+  compact?: boolean
 }
 
 export default function StreakBadge({
@@ -18,6 +20,7 @@ export default function StreakBadge({
   locale = 'en',
   thisWeekWorkouts = 0,
   thisWeekPhotos = 0,
+  compact = false,
 }: Props) {
   const [open, setOpen] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -40,35 +43,56 @@ export default function StreakBadge({
 
   return (
     <>
-      {/* ── Badge + info icon ──────────────────────────── */}
-      <div className="flex items-center gap-1.5 flex-shrink-0" style={{ marginTop: 4 }}>
-        <div
-          className="flex items-center gap-1"
-          style={{
-            background: 'rgba(237, 116, 47,0.15)',
-            border: '1px solid rgba(237, 116, 47,0.42)',
-            borderRadius: 999,
-            paddingInline: 10,
-            paddingBlock: 5,
-          }}>
-          <span style={{ fontSize: 12, lineHeight: 1 }}>🔥</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.02em' }}>
-            {label}
-          </span>
-        </div>
-
+      {/* ── Badge ─────────────────────────────────────── */}
+      {compact ? (
+        /* Compact header variant: pill itself is the tap target */
         <button
           onClick={() => setOpen(true)}
-          aria-label={locale === 'ja' ? 'Proof Streakの説明を表示' : 'About Proof Streak'}
-          className="flex items-center justify-center active:opacity-60 transition-opacity"
+          aria-label={locale === 'ja' ? 'Proof Streakの詳細' : 'Proof Streak details'}
+          className="flex items-center gap-1 active:opacity-60 transition-opacity"
           style={{
-            width: 22, height: 22, borderRadius: 999,
-            background: 'rgba(237, 116, 47,0.14)',
+            background: 'rgba(237, 116, 47,0.13)',
             border: '1px solid rgba(237, 116, 47,0.35)',
+            borderRadius: 999,
+            paddingInline: 8,
+            paddingBlock: 4,
           }}>
-          <Info size={11} style={{ color: '#ED742F', opacity: 0.75 }} />
+          <span style={{ fontSize: 11, lineHeight: 1 }}>🔥</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#ED742F', letterSpacing: '0.02em' }}>
+            {label}
+          </span>
         </button>
-      </div>
+      ) : (
+        /* Default full-size variant with separate Info button */
+        <div className="flex items-center gap-1.5 flex-shrink-0" style={{ marginTop: 4 }}>
+          <div
+            className="flex items-center gap-1"
+            style={{
+              background: 'rgba(237, 116, 47,0.15)',
+              border: '1px solid rgba(237, 116, 47,0.42)',
+              borderRadius: 999,
+              paddingInline: 10,
+              paddingBlock: 5,
+            }}>
+            <span style={{ fontSize: 12, lineHeight: 1 }}>🔥</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.02em' }}>
+              {label}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setOpen(true)}
+            aria-label={locale === 'ja' ? 'Proof Streakの説明を表示' : 'About Proof Streak'}
+            className="flex items-center justify-center active:opacity-60 transition-opacity"
+            style={{
+              width: 22, height: 22, borderRadius: 999,
+              background: 'rgba(237, 116, 47,0.14)',
+              border: '1px solid rgba(237, 116, 47,0.35)',
+            }}>
+            <Info size={11} style={{ color: '#ED742F', opacity: 0.75 }} />
+          </button>
+        </div>
+      )}
 
       {/* ── Bottom Sheet ──────────────────────────────── */}
       {open && (

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getAllBodyLogEntries } from '@/actions/bodyLog'
 import { resolveServerLocale, type Locale } from '@/lib/i18n'
 import BodyLogHighlights from '@/components/body-log/BodyLogHighlights'
+import FeatureTracker from '@/components/common/FeatureTracker'
 
 export default async function BodyLogPage({
   searchParams,
@@ -51,12 +52,15 @@ export default async function BodyLogPage({
   }
 
   return (
-    <BodyLogHighlights
-      entries={entries}
-      signedUrls={signedUrls}
-      initialIndex={initialIndex}
-      locale={locale}
-      todayStr={new Date().toLocaleDateString('sv')}
-    />
+    <>
+      <FeatureTracker feature="proof" />
+      <BodyLogHighlights
+        entries={entries}
+        signedUrls={signedUrls}
+        initialIndex={initialIndex}
+        locale={locale}
+        todayStr={new Date().toLocaleDateString('sv')}
+      />
+    </>
   )
 }
