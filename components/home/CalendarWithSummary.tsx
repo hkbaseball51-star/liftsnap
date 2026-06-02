@@ -7,6 +7,7 @@ import SelectedDaySummary from './SelectedDaySummary'
 
 export type DaySummary = {
   date: string
+  title?: string
   sessionId: string
   muscleGroup: string
   allMuscleGroups: string[]

@@ -11,8 +11,13 @@ export default async function AnalyticsPage() {
     return <AnalyticsDashboardClient bodyWeightData={[]} exercises={[]} totalSessions={0} />
   }
 
+  // Limit body weight to 2 years — covers all client-side period filters (30/90/365 day)
+  const twoYearsAgo = new Date()
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2)
+  const bwCutoff = twoYearsAgo.toISOString().split('T')[0]
+
   const [bodyWeightData, exercises, { count }] = await Promise.all([
-    getBodyWeightData(), // fetch all time for client-side period filtering
+    getBodyWeightData(bwCutoff),
     getExercisesWithHistory(),
     supabase
       .from('workout_sessions')

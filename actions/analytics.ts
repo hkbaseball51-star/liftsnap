@@ -117,9 +117,25 @@ export async function getExercisesWithHistory() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
+  // Fetch only the user's completed sessions within the last 2 years,
+  // then join to sets. This avoids a full-table scan on workout_sets.
+  const cutoff = new Date()
+  cutoff.setFullYear(cutoff.getFullYear() - 2)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  const { data: sessions } = await supabase
+    .from('workout_sessions')
+    .select('id')
+    .eq('user_id', user.id)
+    .gte('trained_at', cutoffStr)
+    .not('completed_at', 'is', null)
+
+  if (!sessions?.length) return []
+
   const { data } = await supabase
     .from('workout_sets')
     .select('exercise_name, muscle_group, session_id')
+    .in('session_id', sessions.map(s => s.id))
     .eq('is_completed', true)
 
   if (!data?.length) return []

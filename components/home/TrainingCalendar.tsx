@@ -551,50 +551,7 @@ export default function TrainingCalendar({
             </div>
           )}
 
-          {/* Legend */}
-          <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.14)' }}>
-
-            {/* SPLIT section */}
-            <div className="flex items-center gap-2 mb-1.5">
-              <p style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>
-                SPLIT
-              </p>
-              <div className="flex-1" style={{ height: 1, background: 'rgba(255,255,255,0.11)' }} />
-            </div>
-            <div className="flex flex-wrap mb-3" style={{ gap: '4px 14px' }}>
-              {SPLIT_LEGEND.map(({ label, name, color }) => (
-                <div key={label} className="flex items-center" style={{ gap: 5 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, color, letterSpacing: '0.04em', minWidth: 18 }}>
-                    {label}
-                  </span>
-                  <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.45)' }}>
-                    {name}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* MUSCLE section */}
-            <div className="flex items-center gap-2 mb-1.5">
-              <p style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.10em', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>
-                MUSCLE
-              </p>
-              <div className="flex-1" style={{ height: 1, background: 'rgba(255,255,255,0.11)' }} />
-            </div>
-            <div className="flex flex-wrap" style={{ gap: '4px 14px' }}>
-              {MUSCLE_LEGEND.map(({ label, name, color }) => (
-                <div key={label} className="flex items-center" style={{ gap: 5 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, color, letterSpacing: '0.04em', minWidth: 18 }}>
-                    {label}
-                  </span>
-                  <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.45)' }}>
-                    {name}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-          </div>
+          {/* Legend — hidden for MVP */}
         </div>
       </div>
     </div>

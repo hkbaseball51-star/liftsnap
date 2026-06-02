@@ -38,7 +38,7 @@ export default async function HomePage() {
       .not('completed_at', 'is', null),
 
     supabase.from('workout_sessions')
-      .select('id, trained_at, workout_sets(exercise_name, muscle_group, weight_kg, reps, note)')
+      .select('id, trained_at, title, workout_sets(exercise_name, muscle_group, weight_kg, reps, note)')
       .eq('user_id', user.id)
       .gte('trained_at', ninetyDaysAgoStr)
       .not('completed_at', 'is', null),
@@ -90,7 +90,7 @@ export default async function HomePage() {
 
   /* ── Calendar sessions + day summaries (all from embedded query) ── */
   type SetRow = { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null; note: string | null }
-  type SessionRow = { id: string; trained_at: string; workout_sets: SetRow[] }
+  type SessionRow = { id: string; trained_at: string; title: string | null; workout_sets: SetRow[] }
 
   const calendarSessions: CalendarSession[] = []
   const daySummaries: Record<string, DaySummary> = {}
@@ -152,6 +152,7 @@ export default async function HomePage() {
 
     daySummaries[session.trained_at] = {
       date: session.trained_at,
+      title: session.title ?? undefined,
       sessionId: session.id,
       muscleGroup: topMuscle,
       allMuscleGroups,
@@ -295,18 +296,22 @@ export default async function HomePage() {
         )}
       </div>
 
-      {/* ── TODAY'S CTA ── */}
+      {/* ── TODAY'S SUMMARY or CTA ── */}
       <div className="px-4 mb-5">
-        <HomeCTACard
-          todayStr={todayStr}
-          hasTodayWorkout={todayWorked}
-          hasTodayPhoto={hasTodayPhoto}
-          workoutCount={totalSessions90}
-          daysSinceLastLegDay={daysSinceLastLegDay}
-          profileComplete={profileComplete}
-          storyHref={storyHref}
-          locale={locale}
-        />
+        {todayWorked ? (
+          <TodaySummaryCard summary={daySummaries[todayStr]} storyHref={storyHref} locale={locale} />
+        ) : (
+          <HomeCTACard
+            todayStr={todayStr}
+            hasTodayWorkout={todayWorked}
+            hasTodayPhoto={hasTodayPhoto}
+            workoutCount={totalSessions90}
+            daysSinceLastLegDay={daysSinceLastLegDay}
+            profileComplete={profileComplete}
+            storyHref={storyHref}
+            locale={locale}
+          />
+        )}
       </div>
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
@@ -325,21 +330,21 @@ export default async function HomePage() {
           {([
             {
               label: 'VOLUME',
-              value: thisWeekVolume > 0 ? formatVolume(thisWeekVolume) : '—',
+              value: thisWeekVolume > 0 ? formatVolume(thisWeekVolume) : '0kg',
               sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}%` : null,
               subColor: volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined,
               active: thisWeekVolume > 0,
             },
             {
               label: 'SESSIONS',
-              value: thisWeekSessions.length > 0 ? String(thisWeekSessions.length) : '—',
-              sub: t(locale, 'home.goalWeekly'),
+              value: `${thisWeekSessions.length} / 3`,
+              sub: null,
               subColor: 'rgba(255,255,255,0.54)' as string,
               active: thisWeekSessions.length > 0,
             },
             {
               label: 'BEST 1RM',
-              value: allTimeEst1rm ? `${allTimeEst1rm}` : '—',
+              value: allTimeEst1rm ? `${allTimeEst1rm}` : (locale === 'ja' ? '未記録' : '—'),
               unit: allTimeEst1rm ? 'kg' : undefined,
               sub: null,
               subColor: undefined,
@@ -370,10 +375,10 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* ── STRENGTH CLUB ── */}
-      <div className="px-4 mb-4">
+      {/* ── STRENGTH CLUB ── hidden for MVP */}
+      {/* <div className="px-4 mb-4">
         <ClubCard club={club} allTimeEst1rm={allTimeEst1rm} locale={locale} />
-      </div>
+      </div> */}
 
       {/* ── BODY WEIGHT ── */}
       <div className="px-4 mb-4">
@@ -411,6 +416,48 @@ export default async function HomePage() {
 }
 
 /* ─── Sub-components ──────────────────────────────────────── */
+
+function TodaySummaryCard({ summary, storyHref, locale }: {
+  summary: DaySummary | undefined
+  storyHref: string
+  locale: Locale
+}) {
+  if (!summary) return null
+  const titleText = summary.title || (locale === 'ja' ? 'トレーニング' : "Today's Workout")
+  const statsLine = [
+    formatVolume(summary.totalVolume),
+    locale === 'ja' ? `${summary.totalSets} セット` : `${summary.totalSets} sets`,
+    summary.best1rm > 0 ? `Best 1RM ${summary.best1rm}kg` : null,
+  ].filter(Boolean).join('・')
+
+  return (
+    <div className="premium-card rounded-xl p-4">
+      <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)', marginBottom: 8 }}>
+        {locale === 'ja' ? '今日のワークアウト' : "TODAY'S WORKOUT"}
+      </p>
+      <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 5, lineHeight: 1.2 }}>
+        {titleText}
+      </p>
+      <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.54)', marginBottom: 14 }}>
+        {statsLine}
+      </p>
+      <Link
+        href={storyHref}
+        className="flex items-center justify-center rounded-xl"
+        style={{
+          background: '#ED742F',
+          color: '#fff',
+          fontSize: 13,
+          fontWeight: 600,
+          padding: '10px 0',
+          letterSpacing: '0.02em',
+        }}
+      >
+        {locale === 'ja' ? 'Storyを作成' : 'Create Story'}
+      </Link>
+    </div>
+  )
+}
 
 type ClubInfo = { name: string; target: number; gap: number; progress: number; prev: number }
 
