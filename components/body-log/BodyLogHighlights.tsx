@@ -479,15 +479,20 @@ export default function BodyLogHighlights({
         onComplete={handleAnimationComplete}
       />
 
-      {/* ── Top bar: close + date + count ── */}
+      {/* ── Top bar: close + date + count — z-index above gesture buttons ── */}
       <div
         className="absolute left-0 right-0 flex items-center justify-between px-4"
-        style={{ top: 'calc(env(safe-area-inset-top) + 22px)' }}
+        style={{ top: 'calc(env(safe-area-inset-top) + 22px)', zIndex: 30 }}
       >
+        {/* 44×44 tap target, icon stays 16px */}
         <button
-          className="w-9 h-9 flex items-center justify-center rounded-full"
+          className="w-11 h-11 flex items-center justify-center rounded-full flex-shrink-0"
           style={{ background: 'rgba(0,0,0,0.40)' }}
-          onClick={() => router.back()}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (DEV) console.log('[Highlight] Close tapped')
+            router.back()
+          }}
         >
           <X size={16} style={{ color: '#fff' }} />
         </button>
@@ -499,26 +504,26 @@ export default function BodyLogHighlights({
             {index + 1} / {entries.length}
           </p>
         </div>
-        <div style={{ width: 36 }} />
+        <div style={{ width: 44 }} />
       </div>
 
-      {/* ── Tap zones: Prev 30% | Toggle 40% | Next 30% ── */}
+      {/* ── Tap zones: Prev 30% | Toggle 40% | Next 30% — z-index below top bar ── */}
       <button
         aria-label="Previous"
         className="absolute left-0 top-0 h-full"
-        style={{ width: '30%', background: 'transparent' }}
+        style={{ width: '30%', background: 'transparent', zIndex: 10 }}
         onClick={goToPrev}
       />
       <button
         aria-label="Next"
         className="absolute right-0 top-0 h-full"
-        style={{ width: '30%', background: 'transparent' }}
+        style={{ width: '30%', background: 'transparent', zIndex: 10 }}
         onClick={goToNext}
       />
       <button
         aria-label="Toggle detail"
         className="absolute top-0 h-full"
-        style={{ left: '30%', width: '40%', background: 'transparent' }}
+        style={{ left: '30%', width: '40%', background: 'transparent', zIndex: 10 }}
         onClick={toggleDetail}
       />
 
