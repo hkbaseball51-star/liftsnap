@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Share2, ArrowLeft, Camera, RotateCcw, ImageIcon } from 'lucide-react'
+import { Share2, ArrowLeft, Camera } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
@@ -10,11 +10,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
-
-// ── Scale constants ───────────────────────────────────────────────
-const MIN_SCALE     = 0.35
-const MAX_SCALE     = 1.20
-const DEFAULT_SCALE = 0.65
 
 export type TodayData = {
   sessionId?: string
@@ -33,18 +28,14 @@ export type TodayData = {
   photoPath?: string | null
 }
 
-type Theme     = 'dark' | 'transparent'
-type Accent    = 'orange' | 'purple' | 'dark' | 'black'
-type CardStyle = 'glass' | 'transparent'
+type Theme  = 'dark' | 'transparent'
+type Accent = 'orange' | 'purple' | 'dark' | 'black'
 
-const AC: Record<Accent, {
-  hex: string; badgeBg: string; badgeBorder: string; badgeText: string
-  cardBorder: string; topLine: string
-}> = {
-  orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(237,116,47,0.35)',  topLine: '#ED742F'                   },
-  purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(110,56,212,0.35)', topLine: '#6E38D4'                   },
-  dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)',cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)'   },
-  black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff',              cardBorder: 'rgba(255,255,255,0.04)', topLine: 'rgba(255,255,255,0.08)'   },
+const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
+  orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
+  purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
+  dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.08)', badgeBorder: 'rgba(255,255,255,0.20)', badgeText: 'rgba(255,255,255,0.80)' },
+  black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff'               },
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -82,6 +73,7 @@ const JA_EN: Record<string, string> = {
 const tname = (n: string) => JA_EN[n] ?? n
 
 const fmtKg = (v: number) => v === Math.round(v) ? `${v}` : `${v.toFixed(1)}`
+
 function fmtDate(s: string) {
   const d = new Date(s + 'T00:00:00')
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -89,18 +81,18 @@ function fmtDate(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${D[d.getDay()]}`
 }
 
-async function captureStory(captureEl: HTMLDivElement, theme: Theme, hasPhoto: boolean): Promise<Blob> {
+async function captureStory(captureEl: HTMLDivElement, transparent: boolean): Promise<Blob> {
   const { toPng } = await import('html-to-image')
   await document.fonts.ready
   await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 60))
+  await new Promise(r => setTimeout(r, 80))
 
   const W = captureEl.offsetWidth
   const H = captureEl.offsetHeight
   const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
 
   const prevBg = captureEl.style.background
-  if (theme === 'transparent' && !hasPhoto) captureEl.style.background = 'transparent'
+  if (transparent) captureEl.style.background = 'transparent'
   await new Promise(r => requestAnimationFrame(r))
 
   try {
@@ -119,20 +111,47 @@ async function captureStory(captureEl: HTMLDivElement, theme: Theme, hasPhoto: b
   }
 }
 
+// ── Exercise density tiers ────────────────────────────────────────────
+// Tier 1: 1–4   two-line, spacious
+// Tier 2: 5–7   two-line, compact
+// Tier 3: 8–11  one-line, condensed
+// Tier 4: 12–15 one-line, dense
+// Tier 5: 16+   one-line, ultra-dense
+type Tier = 1 | 2 | 3 | 4 | 5
+
+function getTier(count: number): Tier {
+  if (count <= 4)  return 1
+  if (count <= 7)  return 2
+  if (count <= 11) return 3
+  if (count <= 15) return 4
+  return 5
+}
+
+const TIER_PARAMS: Record<Tier, {
+  nameSize: number
+  infoSize: number
+  rowGap: number
+  twoLine: boolean
+  sectionGap: number
+  volumeSize: number
+}> = {
+  1: { nameSize: 15, infoSize: 12, rowGap: 16, twoLine: true,  sectionGap: 18, volumeSize: 52 },
+  2: { nameSize: 14, infoSize: 11, rowGap: 11, twoLine: true,  sectionGap: 15, volumeSize: 48 },
+  3: { nameSize: 13, infoSize: 11, rowGap: 8,  twoLine: false, sectionGap: 13, volumeSize: 44 },
+  4: { nameSize: 12, infoSize: 10, rowGap: 6,  twoLine: false, sectionGap: 12, volumeSize: 42 },
+  5: { nameSize: 11, infoSize: 10, rowGap: 4,  twoLine: false, sectionGap: 11, volumeSize: 40 },
+}
+
 export default function TodayShareView({ data }: { data: TodayData }) {
   const router     = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
-  const cardRef    = useRef<HTMLDivElement>(null)
   const { unit }   = useWeightUnit()
   const { locale } = useLocale()
   const unitLabel  = weightUnitLabel(unit)
+  const todayStr   = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
-  const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
-
-  // ── React state (drives initial render + re-render after gesture ends) ──
   const [theme,          setTheme]          = useState<Theme>('dark')
   const [accent,         setAccent]         = useState<Accent>('dark')
-  const [cardStyle,      setCardStyle]      = useState<CardStyle>('glass')
   const [sharing,        setSharing]        = useState(false)
   const [status,         setStatus]         = useState('')
   const [shareCount,     setShareCount]     = useState(0)
@@ -140,33 +159,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [photoLoading,   setPhotoLoading]   = useState(false)
   const [localPhotoPath, setLocalPhotoPath] = useState<string | null>(data.photoPath ?? null)
   const [showPhotoSheet, setShowPhotoSheet] = useState(false)
-  const [cardPos,        setCardPos]        = useState({ x: 16, y: 180 })
-  const [cardScale,      setCardScale]      = useState(DEFAULT_SCALE)
-
-  // ── Refs for smooth drag/pinch (no re-render during gesture) ──────────
-  const posRef   = useRef({ x: 16, y: 180 })
-  const scaleRef = useRef(DEFAULT_SCALE)
-
-  // Drag state
-  const isDragging  = useRef(false)
-  const dragOffset  = useRef({ x: 0, y: 0 })
-
-  // Pinch state
-  type PinchState = { startDist: number; startScale: number }
-  const pinchState = useRef<PinchState | null>(null)
-
-  /** Apply transform directly to DOM — avoids React re-renders during gesture. */
-  function applyTransform(x: number, y: number, scale: number) {
-    posRef.current   = { x, y }
-    scaleRef.current = scale
-    if (cardRef.current) {
-      cardRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`
-    }
-  }
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
-  // Load photo as data URL
   useEffect(() => {
     if (!localPhotoPath) { setPhotoDataUrl(null); setPhotoLoading(false); return }
     setPhotoDataUrl(null)
@@ -193,146 +188,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     return () => { cancelled = true }
   }, [localPhotoPath])
 
-  // Center card on mount
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const container = captureRef.current
-      const card      = cardRef.current
-      if (!container || !card) return
-      const cW = container.clientWidth
-      const cH = container.clientHeight
-      if (cW === 0 || cH === 0) return
-      const unscaledW = card.offsetWidth
-      const unscaledH = card.offsetHeight
-      const scaledW   = unscaledW * DEFAULT_SCALE
-      const scaledH   = unscaledH * DEFAULT_SCALE
-      const x = (cW - scaledW) / 2
-      const y = Math.max(16, Math.min(cH - scaledH - 16, Math.round(cH * 0.45 - scaledH / 2)))
-      applyTransform(x, y, DEFAULT_SCALE)
-      setCardPos({ x, y })
-      setCardScale(DEFAULT_SCALE)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // ── Position / scale reset helpers ───────────────────────────────────
-  const resetPosition = () => {
-    const container = captureRef.current
-    const card      = cardRef.current
-    if (!container || !card) return
-    const cW      = container.clientWidth
-    const cH      = container.clientHeight
-    const scaledW = card.offsetWidth  * scaleRef.current
-    const scaledH = card.offsetHeight * scaleRef.current
-    const x = (cW - scaledW) / 2
-    const y = Math.max(16, Math.min(cH - scaledH - 16, Math.round(cH * 0.45 - scaledH / 2)))
-    applyTransform(x, y, scaleRef.current)
-    setCardPos({ x, y })
-  }
-
-  const resetAll = () => {
-    const container = captureRef.current
-    const card      = cardRef.current
-    if (!container || !card) return
-    const cW      = container.clientWidth
-    const cH      = container.clientHeight
-    const scaledW = card.offsetWidth  * DEFAULT_SCALE
-    const scaledH = card.offsetHeight * DEFAULT_SCALE
-    const x = (cW - scaledW) / 2
-    const y = Math.max(16, Math.min(cH - scaledH - 16, Math.round(cH * 0.45 - scaledH / 2)))
-    applyTransform(x, y, DEFAULT_SCALE)
-    setCardPos({ x, y })
-    setCardScale(DEFAULT_SCALE)
-  }
-
-  // ── Drag (pointer events — works for mouse and single-touch) ─────────
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (pinchState.current) return   // skip if pinch is active
-    e.preventDefault()
-    const container = captureRef.current
-    if (!container) return
-    const cRect = container.getBoundingClientRect()
-    dragOffset.current = {
-      x: e.clientX - cRect.left - posRef.current.x,
-      y: e.clientY - cRect.top  - posRef.current.y,
-    }
-    isDragging.current = true
-    if (cardRef.current) cardRef.current.style.transition = 'none'
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging.current) return
-    const container = captureRef.current
-    const card      = cardRef.current
-    if (!container || !card) return
-    const cRect   = container.getBoundingClientRect()
-    const scale   = scaleRef.current
-    const scaledW = card.offsetWidth  * scale
-    const scaledH = card.offsetHeight * scale
-    const cW      = container.offsetWidth
-    const cH      = container.offsetHeight
-    let newX = e.clientX - cRect.left - dragOffset.current.x
-    let newY = e.clientY - cRect.top  - dragOffset.current.y
-    newX = Math.max(-scaledW * 0.4, Math.min(cW - scaledW * 0.6, newX))
-    newY = Math.max(-scaledH * 0.4, Math.min(cH - scaledH * 0.6, newY))
-    applyTransform(newX, newY, scale)
-  }
-
-  const handlePointerUp = () => {
-    if (!isDragging.current) return
-    isDragging.current = false
-    if (cardRef.current) cardRef.current.style.transition = 'transform 120ms ease-out'
-    setCardPos({ ...posRef.current })
-  }
-
-  // ── Pinch (touch events — 2 fingers) ─────────────────────────────────
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length !== 2) return
-    // Cancel any ongoing drag
-    isDragging.current = false
-    const dist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY,
-    )
-    pinchState.current = { startDist: dist, startScale: scaleRef.current }
-    if (cardRef.current) cardRef.current.style.transition = 'none'
-  }
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!pinchState.current || e.touches.length !== 2) return
-    const dist  = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY,
-    )
-    const ratio    = dist / pinchState.current.startDist
-    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, pinchState.current.startScale * ratio))
-    applyTransform(posRef.current.x, posRef.current.y, newScale)
-  }
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!pinchState.current) return
-    if (e.touches.length < 2) {
-      pinchState.current = null
-      if (cardRef.current) cardRef.current.style.transition = 'transform 120ms ease-out'
-      // Sync React state so slider and reset reflect current scale
-      setCardScale(scaleRef.current)
-      setCardPos({ ...posRef.current })
-    }
-  }
-
-  // ── Slider sync → DOM ────────────────────────────────────────────────
-  const handleSliderChange = (newScale: number) => {
-    setCardScale(newScale)
-    scaleRef.current = newScale
-    if (cardRef.current) {
-      cardRef.current.style.transition = 'transform 80ms ease-out'
-      cardRef.current.style.transform  = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0) scale(${newScale})`
-    }
-  }
-
-  // ── Share ─────────────────────────────────────────────────────────────
-  const handlePhotoSaved   = (imagePath: string) => {
+  const handlePhotoSaved = (imagePath: string) => {
     setLocalPhotoPath(imagePath)
     setShowPhotoSheet(false)
     setStatus(t(locale, 'story.photoSavedCreateStory'))
@@ -345,7 +201,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setSharing(true)
     setStatus(t(locale, 'story.generating'))
     try {
-      const blob = await captureStory(captureRef.current, theme, !!photoDataUrl)
+      const isTransparent = theme === 'transparent' && !photoDataUrl
+      const blob = await captureStory(captureRef.current, isTransparent)
       const file = new File([blob], 'repra-today.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
@@ -366,43 +223,30 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSharing(false) }
   }
 
-  // ── Derived values ────────────────────────────────────────────────────
+  // ── Derived ──────────────────────────────────────────────────────────
   const ac       = AC[accent]
   const acHex    = ac.hex
-  const isT      = theme === 'transparent'
   const hasPhoto = !!photoDataUrl
-  const isCardTransparent = cardStyle === 'transparent'
+  const canShare = !!data.sessionId
 
   const volStr = formatVolumeWithUnit(data.volume, unit)
   const g1rm   = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
-  const containerBg = hasPhoto
+  const tier   = getTier(data.exercises.length)
+  const tp     = TIER_PARAMS[tier]
+
+  const cardBg = hasPhoto
     ? '#0a0a0a'
-    : isT
+    : theme === 'transparent'
       ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
-      : '#0a0a0a'
+      : '#0d0d0d'
 
-  const cardBg = isCardTransparent
-    ? 'transparent'
-    : hasPhoto ? 'rgba(0,0,0,0.72)' : isT ? 'rgba(0,0,0,0.55)' : '#111111'
-
-  const cardBorder = isCardTransparent
-    ? 'none'
-    : `1px solid ${ac.cardBorder}`
-
-  const dividerColor = isCardTransparent ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.22)'
-  const tsh          = isCardTransparent
-    ? '0 2px 10px rgba(0,0,0,0.90), 0 1px 3px rgba(0,0,0,0.95)'
-    : '0 2px 8px rgba(0,0,0,0.75)'
-
-  const canShare       = !!data.sessionId
-  const mainBtnLoading = sharing || photoLoading
-  const mainBtnIsAdd   = !localPhotoPath && !hasPhoto
+  const dividerColor = 'rgba(255,255,255,0.09)'
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-12 pb-3 flex-shrink-0">
         <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={16} style={{ color: '#777' }} />
@@ -410,8 +254,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         <h1 className="text-sm font-black tracking-widest text-white">{t(locale, 'story.title')}</h1>
       </div>
 
-      {/* ── 9:16 Story preview ── */}
-      <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 8px' }}>
+      {/* 9:16 Story card */}
+      <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
         <div style={{ width: 'min(94vw, 420px)' }}>
           <div
             ref={captureRef}
@@ -419,8 +263,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               position: 'relative',
               aspectRatio: '9/16',
               overflow: 'hidden',
-              borderRadius: 24,
-              background: containerBg,
+              borderRadius: 20,
+              background: cardBg,
             }}
           >
             {/* Photo background */}
@@ -432,267 +276,192 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 style={{
                   position: 'absolute', inset: 0,
                   width: '100%', height: '100%',
-                  objectFit: 'cover',
-                  pointerEvents: 'none',
+                  objectFit: 'cover', pointerEvents: 'none',
                 }}
               />
             )}
-
-            {/* Gradient overlay (photo mode) */}
             {photoDataUrl && (
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.52) 100%)',
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.78) 55%, rgba(0,0,0,0.92) 100%)',
                 pointerEvents: 'none',
               }} />
             )}
 
-            {/* ── Draggable record card ── */}
-            <div
-              ref={cardRef}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: 'calc(100% - 32px)',
-                touchAction: 'none',
-                userSelect: 'none',
-                cursor: 'grab',
-                background: cardBg,
-                border: cardBorder,
-                borderRadius: 16,
-                overflow: isCardTransparent ? 'visible' : 'hidden',
-                transform: `translate3d(${cardPos.x}px, ${cardPos.y}px, 0) scale(${cardScale})`,
-                transformOrigin: 'top left',
-                transition: 'transform 120ms ease-out',
-                willChange: 'transform',
-                backdropFilter: isCardTransparent ? 'none' : undefined,
-                boxShadow: isCardTransparent ? 'none' : undefined,
-              }}
-            >
-              {/* Top accent line (glass only) */}
-              {!isCardTransparent && (
-                <div style={{ height: 2, background: ac.topLine }} />
-              )}
+            {/* ── Card content ── */}
+            <div style={{
+              position: 'relative', zIndex: 1,
+              padding: '34px 26px 26px',
+              height: '100%',
+              display: 'flex', flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}>
 
-              <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: tsh }}>
+              {/* REPRA badge */}
+              <div>
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
+                  padding: '4px 11px', borderRadius: 5,
+                  background: ac.badgeBg, color: ac.badgeText,
+                  border: `1px solid ${ac.badgeBorder}`,
+                }}>REPRA</span>
+              </div>
 
-                <div style={{ display: 'inline-flex', marginBottom: 8 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 8,
-                    background: isCardTransparent ? 'rgba(0,0,0,0.45)' : ac.badgeBg,
-                    color: isCardTransparent ? '#fff' : ac.badgeText,
-                    border: isCardTransparent ? '1px solid rgba(255,255,255,0.3)' : `1px solid ${ac.badgeBorder}`,
-                    letterSpacing: '0.12em',
-                    backdropFilter: isCardTransparent ? 'blur(4px)' : undefined,
-                  }}>REPRA</span>
-                </div>
-
-                <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', margin: '0 0 2px', lineHeight: 1.2 }}>
+              {/* TODAY'S WORKOUT · date · title */}
+              <div style={{ marginTop: 16 }}>
+                <p style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+                  color: 'rgba(255,255,255,0.42)', margin: 0, lineHeight: 1,
+                }}>
                   TODAY&apos;S WORKOUT
                 </p>
-                <p style={{ fontSize: 10, color: '#F2F2F2', margin: '0 0 3px', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.52)', margin: '5px 0 0', lineHeight: 1 }}>
                   {fmtDate(data.date)}
                 </p>
-                <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.1, textTransform: 'uppercase', margin: '0 0 10px' }}>
+                <p style={{
+                  fontSize: 24, fontWeight: 900, color: '#fff',
+                  lineHeight: 1.1, margin: '7px 0 0', letterSpacing: '-0.01em',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  textTransform: 'uppercase',
+                }}>
                   {data.title}
                 </p>
+              </div>
 
-                <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
+              {/* Divider */}
+              <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
-                <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 2px', lineHeight: 1.2 }}>
+              {/* TOTAL VOLUME */}
+              <div>
+                <p style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+                  color: 'rgba(255,255,255,0.42)', margin: '0 0 6px', lineHeight: 1,
+                }}>
                   TOTAL VOLUME
                 </p>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, margin: '0 0 3px', lineHeight: 1 }}>
-                  <span style={{ fontSize: 42, fontWeight: 900, color: acHex, lineHeight: 1 }}>{volStr}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px', flexWrap: 'nowrap' }}>
-                  <span style={{ fontSize: 9, color: '#F2F2F2', lineHeight: 1.4, whiteSpace: 'nowrap' }}>{data.setsCount} SETS</span>
+                <p style={{
+                  fontSize: tp.volumeSize, fontWeight: 900, color: acHex,
+                  lineHeight: 1, margin: 0, letterSpacing: '-0.025em',
+                }}>
+                  {volStr}
+                </p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.48)', margin: '7px 0 0', lineHeight: 1 }}>
+                  {data.setsCount}&thinsp;SETS
                   {g1rm > 0 && (
-                    <span style={{ fontSize: 9, color: '#EDEDED', lineHeight: 1.4, whiteSpace: 'nowrap' }}>
-                      · BEST 1RM <span style={{ color: acHex, fontWeight: 700 }}>{toDisplayWeight(Math.round(g1rm), unit)}{unitLabel}</span>
-                    </span>
+                    <>
+                      {' · BEST 1RM '}
+                      <span style={{ color: acHex, fontWeight: 700 }}>
+                        {toDisplayWeight(Math.round(g1rm), unit)}{unitLabel}
+                      </span>
+                    </>
                   )}
-                </div>
+                </p>
+              </div>
 
-                <div style={{ height: 1, background: dividerColor, margin: '0 0 8px' }} />
+              {/* Divider */}
+              <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
-                <p style={{ fontSize: 8, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.08em', margin: '0 0 10px', lineHeight: 1.2 }}>
+              {/* EXERCISES — fills remaining height */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                <p style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+                  color: 'rgba(255,255,255,0.42)', margin: '0 0 12px', lineHeight: 1,
+                  flexShrink: 0,
+                }}>
                   EXERCISES
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {data.exercises.map((ex, idx) => {
-                    const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
+                {/* Exercise rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tp.rowGap, overflow: 'hidden' }}>
+                  {data.exercises.map((ex) => {
+                    const bestSet = ex.setList.reduce<{ weight: number; reps: number }>(
+                      (best, s) => (s.weight * s.reps > best.weight * best.reps ? s : best),
+                      ex.setList[0] ?? { weight: 0, reps: 0 }
+                    )
+                    const bestStr = bestSet.weight > 0
+                      ? `${fmtKg(toDisplayWeight(bestSet.weight, unit))}${unitLabel} × ${bestSet.reps}`
+                      : bestSet.reps > 0
+                        ? `BW × ${bestSet.reps}`
+                        : `${ex.setCount} sets`
+
+                    if (tp.twoLine) {
+                      // Two-line: name top-left, best set top-right, sets count bottom-left
+                      return (
+                        <div key={ex.name}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                            <p style={{
+                              fontSize: tp.nameSize, fontWeight: 800, color: '#fff',
+                              margin: 0, flex: 1, minWidth: 0,
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {tname(ex.name)}
+                            </p>
+                            <p style={{
+                              fontSize: tp.nameSize, color: acHex, fontWeight: 700,
+                              margin: 0, flexShrink: 0, whiteSpace: 'nowrap',
+                            }}>
+                              {bestStr}
+                            </p>
+                          </div>
+                          <p style={{
+                            fontSize: tp.infoSize, color: 'rgba(255,255,255,0.36)',
+                            margin: '2px 0 0', lineHeight: 1,
+                          }}>
+                            {ex.setCount} sets
+                          </p>
+                        </div>
+                      )
+                    }
+
+                    // One-line: name left, "N sets · bestStr" right
                     return (
-                      <div key={ex.name}>
-                        <p style={{ fontSize: 14, fontWeight: 800, color: '#ffffff', margin: '0 0 8px', letterSpacing: '0.005em', lineHeight: 1.1 }}>
+                      <div key={ex.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <p style={{
+                          fontSize: tp.nameSize, fontWeight: 700, color: '#fff',
+                          margin: 0, flex: 1, minWidth: 0,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
                           {tname(ex.name)}
                         </p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 12px', flexWrap: 'nowrap', lineHeight: 1.1 }}>
-                          <span style={{ fontSize: 10, color: '#EDEDED', fontWeight: 500, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-                            {ex.setCount} sets
-                          </span>
-                          {ex.best1RM > 0 && (
-                            <>
-                              <span style={{ fontSize: 9, color: '#EDEDED', lineHeight: 1.1 }}>·</span>
-                              <span style={{ fontSize: 10, color: '#F2F2F2', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-                                est. 1RM&nbsp;
-                                <span style={{ color: acHex, fontWeight: 700 }}>{toDisplayWeight(Math.round(ex.best1RM), unit)}{unitLabel}</span>
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {visibleSets.map((s, si) => (
-                            <p key={si} style={{ fontSize: 13, lineHeight: 1.3, margin: 0, fontWeight: 500 }}>
-                              <span style={{ color: '#F0F0F0' }}>
-                                {s.weight > 0 ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel}` : 'BW'}
-                              </span>
-                              <span style={{ color: '#F2F2F2' }}> × {s.reps}</span>
-                            </p>
-                          ))}
-                        </div>
-                        {idx < data.exercises.length - 1 && (
-                          <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '10px 0' }} />
-                        )}
+                        <p style={{
+                          fontSize: tp.infoSize, color: 'rgba(255,255,255,0.55)',
+                          margin: 0, flexShrink: 0, whiteSpace: 'nowrap', lineHeight: 1,
+                        }}>
+                          {ex.setCount}s&thinsp;·&thinsp;<span style={{ color: acHex, fontWeight: 700 }}>{bestStr}</span>
+                        </p>
                       </div>
                     )
                   })}
                 </div>
 
-                {data.muscleFocus && (
-                  <span style={{
-                    alignSelf: 'flex-start', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
-                    padding: '3px 8px', borderRadius: 99, marginTop: 12,
-                    background: `${acHex}18`, border: `1px solid ${acHex}44`, color: acHex,
-                    textTransform: 'uppercase', lineHeight: 1.6,
-                  }}>
-                    {data.muscleFocus}
-                  </span>
-                )}
-
-                <p style={{ fontSize: 6.5, color: 'rgba(255,255,255,0.68)', marginTop: 12, lineHeight: 1.4, textShadow: 'none' }}>
+                {/* Made with REPRA — anchored to bottom */}
+                <p style={{
+                  fontSize: 8, color: 'rgba(255,255,255,0.24)',
+                  margin: '0', marginTop: 'auto', paddingTop: 12,
+                  textAlign: 'right', letterSpacing: '0.06em', flexShrink: 0,
+                }}>
                   Made with REPRA
                 </p>
-
               </div>
-            </div>{/* /draggable card */}
-          </div>{/* /captureRef */}
+
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Scrollable edit panel ── */}
+      {/* ── Controls panel ── */}
       <div
         className="flex-1 overflow-y-auto"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
       >
-
-        {/* Photo loading indicator */}
         {photoLoading && !photoDataUrl && (
-          <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.52)' }}>
+          <p className="text-center text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.52)' }}>
             {t(locale, 'story.loadingPhoto')}
           </p>
         )}
 
-        {/* No-photo CTA hidden for MVP — photo is optional, Share is the main action */}
-
-        {/* Photo loaded: drag hint + reset + change */}
-        {hasPhoto && (
-          <>
-            <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.44)' }}>
-              {t(locale, 'story.dragHint')}
-            </p>
-            <div className="px-4 mb-3 flex gap-2">
-              <button
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
-                style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
-                onClick={resetPosition}>
-                <RotateCcw size={12} />
-                {t(locale, 'story.resetPosition')}
-              </button>
-              {canShare && (
-                <button
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
-                  style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
-                  onClick={() => setShowPhotoSheet(true)}>
-                  <Camera size={12} />
-                  {t(locale, 'story.changePhoto')}
-                </button>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── Card size slider ── */}
-        {canShare && (
-          <div className="px-4 mb-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-bold" style={{ color: '#555', letterSpacing: '0.08em' }}>
-                {t(locale, 'story.cardSize').toUpperCase()}
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono" style={{ color: '#555' }}>
-                  {Math.round(cardScale * 100)}%
-                </span>
-                <button
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-md"
-                  style={{ background: '#1a1a1a', color: '#555', border: '1px solid #2a2a2a' }}
-                  onClick={resetAll}>
-                  {t(locale, 'story.resetAll')}
-                </button>
-              </div>
-            </div>
-            <input
-              type="range"
-              min={MIN_SCALE}
-              max={MAX_SCALE}
-              step="0.05"
-              value={cardScale}
-              onChange={e => handleSliderChange(parseFloat(e.target.value))}
-              className="w-full"
-              style={{ accentColor: '#ED742F' }}
-            />
-            <div className="flex justify-between mt-1">
-              <span className="text-[9px]" style={{ color: '#444' }}>{Math.round(MIN_SCALE * 100)}%</span>
-              <span className="text-[9px]" style={{ color: '#444' }}>{Math.round(MAX_SCALE * 100)}%</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── Card style selector ── */}
-        {canShare && (
-          <div className="px-4 mb-3">
-            <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
-              {locale === 'ja' ? 'カードスタイル' : 'CARD STYLE'}
-            </p>
-            <div className="flex gap-2">
-              {(['glass', 'transparent'] as CardStyle[]).map(cs => (
-                <button
-                  key={cs}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                  style={{
-                    background: cardStyle === cs ? '#ED742F' : '#1a1a1a',
-                    color:      cardStyle === cs ? '#fff' : '#666',
-                    border:     `1px solid ${cardStyle === cs ? '#ED742F' : '#2a2a2a'}`,
-                  }}
-                  onClick={() => setCardStyle(cs)}>
-                  {cs === 'glass'
-                    ? (locale === 'ja' ? 'Glass' : 'Glass')
-                    : (locale === 'ja' ? '透過' : 'Transparent')}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Background selector (no-photo mode only) ── */}
+        {/* Background selector (no-photo mode only) */}
         {!hasPhoto && !photoLoading && (
           <div className="px-4 mb-3">
             <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
@@ -700,7 +469,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             </p>
             <div className="flex gap-2">
               {(['dark', 'transparent'] as Theme[]).map(th => (
-                <button key={th} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                <button key={th}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                   style={{
                     background: theme === th ? '#ED742F' : '#1a1a1a',
                     color:      theme === th ? '#fff' : '#666',
@@ -714,7 +484,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>
         )}
 
-        {/* ── Color accent selector ── */}
+        {/* Color accent */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
             {t(locale, 'story.color')}
@@ -727,14 +497,15 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 const unlocked = info.unlocked
                 const sel      = accent === a
                 const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
-                const bg       = sel ? selBg : '#1a1a1a'
                 return (
                   <button key={a}
                     className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
                     style={{
-                      background: bg, color: unlocked ? '#fff' : '#444',
-                      border: `1px solid ${sel ? selBg : '#2a2a2a'}`,
-                      opacity: unlocked ? 1 : 0.55, minHeight: 44,
+                      background: sel ? selBg : '#1a1a1a',
+                      color:      unlocked ? '#fff' : '#444',
+                      border:     `1px solid ${sel ? selBg : '#2a2a2a'}`,
+                      opacity:    unlocked ? 1 : 0.55,
+                      minHeight:  44,
                     }}
                     onClick={() => unlocked && setAccent(a)}>
                     <span>{info.label}</span>
@@ -746,35 +517,33 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>
         </div>
 
-        {/* ── Main action button ── */}
+        {/* Action buttons */}
         <div className="px-4 space-y-2 mb-4">
           {status && (
-            <p className="text-center text-sm" style={{ color: hasPhoto ? '#ED742F' : '#888' }}>
+            <p className="text-center text-sm" style={{ color: '#ED742F' }}>
               {status}
             </p>
           )}
 
-          {/* Share is always the primary action */}
           <button
             className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
             style={{
-              background: mainBtnLoading ? 'rgba(237,116,47,0.4)' : '#ED742F',
-              boxShadow:  mainBtnLoading ? 'none' : '0 4px 20px rgba(237,116,47,0.3)',
+              background: (sharing || photoLoading) ? 'rgba(237,116,47,0.40)' : '#ED742F',
+              boxShadow:  (sharing || photoLoading) ? 'none' : '0 4px 20px rgba(237,116,47,0.28)',
             }}
-            disabled={mainBtnLoading}
+            disabled={sharing || photoLoading}
             onClick={handleShare}>
             <Share2 size={20} />
             {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
           </button>
 
-          {/* Photo as optional sub-action */}
-          {canShare && !hasPhoto && (
+          {canShare && (
             <button
               className="w-full py-2.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
               style={{ background: 'transparent', color: '#444', border: '1px solid #1e1e1e' }}
               onClick={() => setShowPhotoSheet(true)}>
               <Camera size={14} />
-              {t(locale, 'story.addWorkoutPhoto')}
+              {hasPhoto ? t(locale, 'story.changePhoto') : t(locale, 'story.addWorkoutPhoto')}
             </button>
           )}
 
@@ -782,10 +551,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             {t(locale, 'story.mobileOnly')}
           </p>
         </div>
+      </div>
 
-      </div>{/* /scrollable panel */}
-
-      {/* ── WorkoutPhotoSheet modal ── */}
       {showPhotoSheet && data.sessionId && (
         <WorkoutPhotoSheet
           sessionId={data.sessionId}

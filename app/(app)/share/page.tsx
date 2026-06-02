@@ -28,10 +28,20 @@ export default async function SharePage({
     const data = await getTodayWorkoutForShare(date)
     if (!data) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
-          <p className="text-white mb-2">No workout found for {date}</p>
-          <p className="text-sm mb-6" style={{ color: '#555' }}>Log a session first</p>
-          <Link href={`/record?date=${date}`} className="text-sm font-bold" style={{ color: '#ED742F' }}>Log Workout →</Link>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#0a0a0a' }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10, lineHeight: 1.4 }}>
+            今日のワークアウト記録がありません
+          </p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.42)', textAlign: 'center', marginBottom: 28 }}>
+            まずRecordから記録してください
+          </p>
+          <Link
+            href={`/record?date=${date}`}
+            className="px-8 py-3 rounded-2xl text-sm font-black text-white"
+            style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237,116,47,0.30)' }}
+          >
+            Recordで記録する
+          </Link>
         </div>
       )
     }
