@@ -31,6 +31,50 @@ export async function getWorkoutPhotoSignedUrl(imagePath: string): Promise<strin
   return data?.signedUrl ?? null
 }
 
+// Single round-trip: DB lookup + batch signed URL in one call
+export async function getWorkoutPhotoRecord(sessionId: string): Promise<{
+  imagePath: string
+  thumbnailPath: string | null
+  fullUrl: string | null
+  thumbUrl: string | null
+} | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data } = await supabase
+    .from('workout_photo_logs')
+    .select('image_path, thumbnail_path')
+    .eq('user_id', user.id)
+    .eq('workout_session_id', sessionId)
+    .maybeSingle()
+
+  if (!data) return null
+
+  const imagePath = data.image_path as string
+  const thumbnailPath = (data.thumbnail_path as string | null) ?? null
+
+  if (!imagePath.startsWith(user.id + '/')) return null
+
+  const pathsToSign = thumbnailPath ? [imagePath, thumbnailPath] : [imagePath]
+  const { data: urls } = await supabase.storage
+    .from('workout-photos')
+    .createSignedUrls(pathsToSign, 3600)
+
+  const byPath = new Map((urls ?? []).map(u => [u.path, u]))
+  const fullEntry  = byPath.get(imagePath)
+  const thumbEntry = thumbnailPath ? byPath.get(thumbnailPath) : null
+
+  const fullUrl  = fullEntry?.signedUrl  && !fullEntry.error  ? fullEntry.signedUrl  : null
+  const thumbUrl = thumbEntry?.signedUrl && !thumbEntry.error ? thumbEntry.signedUrl : null
+
+  if (process.env.NODE_ENV === 'development' && !fullUrl) {
+    console.warn('[PhotoLoad] signed URL failed', { imagePath, error: fullEntry?.error })
+  }
+
+  return { imagePath, thumbnailPath, fullUrl, thumbUrl }
+}
+
 export async function saveWorkoutPhotoRecord(
   sessionId: string,
   date: string,

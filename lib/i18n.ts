@@ -420,6 +420,9 @@ const translations = {
       cropCancel: 'Cancel',
       cropRetake: 'Retake',
       cropZoom: 'Zoom',
+      addBodyPhoto: 'Add body photo',
+      loadingSlow: 'Loading photo...',
+      retryLoad: 'Retry',
     },
     support: {
       title: 'HELP & SUPPORT',
@@ -904,6 +907,9 @@ const translations = {
       cropCancel: 'キャンセル',
       cropRetake: '撮り直す',
       cropZoom: '拡大',
+      addBodyPhoto: '今日の体写真を追加',
+      loadingSlow: '写真を読み込んでいます...',
+      retryLoad: '再読み込み',
     },
     support: {
       title: 'ヘルプ & サポート',

@@ -5,8 +5,7 @@ import { X, Camera, ImageIcon, RotateCcw, Trash2, AlertTriangle, ZoomIn, Images 
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
-  getWorkoutPhotoPath,
-  getWorkoutPhotoSignedUrl,
+  getWorkoutPhotoRecord,
   saveWorkoutPhotoRecord,
   deleteWorkoutPhoto,
 } from '@/actions/workoutPhoto'
@@ -26,6 +25,7 @@ type Props = {
 
 type SheetState =
   | { type: 'loading' }
+  | { type: 'loading_slow' }
   | { type: 'past_no_photo' }
   | { type: 'select' }
   | {
@@ -41,7 +41,7 @@ type SheetState =
   | { type: 'uploading' }
   | { type: 'view'; signedUrl: string; imagePath: string }
   | { type: 'delete_confirm'; signedUrl: string; imagePath: string }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; retryable?: boolean }
 
 const isToday = (date: string, today: string) => date === today
 
@@ -56,6 +56,7 @@ export default function WorkoutPhotoSheet({
 }: Props) {
   const { locale } = useLocale()
   const [state, setState] = useState<SheetState>({ type: 'loading' })
+  const [retryCount, setRetryCount] = useState(0)
 
   const cameraInputRef  = useRef<HTMLInputElement>(null)
   const libraryInputRef = useRef<HTMLInputElement>(null)
@@ -81,27 +82,71 @@ export default function WorkoutPhotoSheet({
     setCropFrameSize({ w: frameW, h: Math.round(frameH) })
   }, [state.type])
 
-  // Load existing photo on mount
+  // Load existing photo — single round-trip with slow/timeout fallback
   useEffect(() => {
     let cancelled = false
+    setState({ type: 'loading' })
+
+    const slowTimer = setTimeout(() => {
+      if (!cancelled) setState({ type: 'loading_slow' })
+    }, 1500)
+
+    const timeoutTimer = setTimeout(() => {
+      if (!cancelled) {
+        cancelled = true
+        clearTimeout(slowTimer)
+        setState({ type: 'error', message: t(locale, 'photo.photoLoadError'), retryable: true })
+      }
+    }, 8000)
+
     async function load() {
-      const path = await getWorkoutPhotoPath(sessionId)
-      if (cancelled) return
-      if (path) {
-        const url = await getWorkoutPhotoSignedUrl(path)
+      try {
+        const record = await getWorkoutPhotoRecord(sessionId)
         if (cancelled) return
-        if (url) {
-          setState({ type: 'view', signedUrl: url, imagePath: path })
-        } else {
-          setState({ type: 'error', message: t(locale, 'photo.photoLoadError') })
+        clearTimeout(slowTimer)
+        clearTimeout(timeoutTimer)
+
+        if (!record) {
+          setState(canEdit ? { type: 'select' } : { type: 'past_no_photo' })
+          return
         }
-      } else {
-        setState(canEdit ? { type: 'select' } : { type: 'past_no_photo' })
+
+        // Prefer thumbnail for fast first display; upgrade to full after load
+        const displayUrl = record.thumbUrl ?? record.fullUrl
+        if (!displayUrl) {
+          setState({ type: 'error', message: t(locale, 'photo.photoLoadError'), retryable: true })
+          return
+        }
+
+        setState({ type: 'view', signedUrl: displayUrl, imagePath: record.imagePath })
+
+        // Silently upgrade from thumbnail to full-res
+        if (record.fullUrl && record.thumbUrl && record.fullUrl !== record.thumbUrl) {
+          const img = new window.Image()
+          img.onload = () => {
+            if (!cancelled) {
+              setState(prev =>
+                prev.type === 'view' ? { ...prev, signedUrl: record.fullUrl! } : prev
+              )
+            }
+          }
+          img.src = record.fullUrl
+        }
+      } catch {
+        if (cancelled) return
+        clearTimeout(slowTimer)
+        clearTimeout(timeoutTimer)
+        setState({ type: 'error', message: t(locale, 'photo.photoLoadError'), retryable: true })
       }
     }
+
     load()
-    return () => { cancelled = true }
-  }, [sessionId, locale, canEdit])
+    return () => {
+      cancelled = true
+      clearTimeout(slowTimer)
+      clearTimeout(timeoutTimer)
+    }
+  }, [sessionId, locale, canEdit, retryCount])
 
   // Revoke object URLs when leaving crop state
   useEffect(() => {
@@ -235,11 +280,23 @@ export default function WorkoutPhotoSheet({
 
       if (autoCloseOnSave) { onClose(); return }
 
-      const signedUrl = await getWorkoutPhotoSignedUrl(fullPath)
-      setState(signedUrl
-        ? { type: 'view', signedUrl, imagePath: fullPath }
-        : { type: 'error', message: t(locale, 'photo.photoLoadError') }
-      )
+      // Fetch signed URLs after save — one round-trip via merged action
+      const record = await getWorkoutPhotoRecord(sessionId)
+      if (record) {
+        const displayUrl = record.thumbUrl ?? record.fullUrl
+        if (displayUrl) {
+          setState({ type: 'view', signedUrl: displayUrl, imagePath: record.imagePath })
+          if (record.fullUrl && record.thumbUrl && record.fullUrl !== record.thumbUrl) {
+            const img = new window.Image()
+            img.onload = () => setState(prev =>
+              prev.type === 'view' ? { ...prev, signedUrl: record.fullUrl! } : prev
+            )
+            img.src = record.fullUrl
+          }
+          return
+        }
+      }
+      setState({ type: 'error', message: t(locale, 'photo.photoLoadError') })
     } catch {
       setState({ type: 'error', message: t(locale, 'photo.photoSaveError') })
     }
@@ -308,10 +365,15 @@ export default function WorkoutPhotoSheet({
         </div>
 
         {/* ── Loading ── */}
-        {state.type === 'loading' && (
-          <div className="flex items-center justify-center py-16">
+        {(state.type === 'loading' || state.type === 'loading_slow') && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-6 h-6 rounded-full border-2 animate-spin"
               style={{ borderColor: 'rgba(255,255,255,0.19)', borderTopColor: '#ED742F' }} />
+            {state.type === 'loading_slow' && (
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                {t(locale, 'photo.loadingSlow')}
+              </p>
+            )}
           </div>
         )}
 
@@ -331,6 +393,14 @@ export default function WorkoutPhotoSheet({
               style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.16)' }}>
               <p className="text-sm text-center" style={{ color: '#f87171' }}>{state.message}</p>
             </div>
+            {state.retryable && (
+              <button
+                className="w-full py-4 rounded-2xl text-sm font-black mb-2"
+                style={{ background: '#ED742F', color: '#fff' }}
+                onClick={() => setRetryCount(c => c + 1)}>
+                {t(locale, 'photo.retryLoad')}
+              </button>
+            )}
             <button
               className="w-full py-4 rounded-2xl text-sm font-black"
               style={{ background: 'rgba(255,255,255,0.40)', color: 'rgba(255,255,255,0.62)' }}
