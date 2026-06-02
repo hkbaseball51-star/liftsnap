@@ -11,6 +11,11 @@ import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
 
+// ── Scale constants ───────────────────────────────────────────────
+const MIN_SCALE     = 0.35
+const MAX_SCALE     = 1.20
+const DEFAULT_SCALE = 0.65
+
 export type TodayData = {
   sessionId?: string
   title: string
@@ -28,14 +33,15 @@ export type TodayData = {
   photoPath?: string | null
 }
 
-type Theme  = 'dark' | 'transparent'
-type Accent = 'orange' | 'purple' | 'dark' | 'black'
+type Theme     = 'dark' | 'transparent'
+type Accent    = 'orange' | 'purple' | 'dark' | 'black'
+type CardStyle = 'glass' | 'transparent'
 
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
   cardBorder: string; topLine: string
 }> = {
-  orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(237, 116, 47,0.35)',  topLine: '#ED742F'                   },
+  orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(237,116,47,0.35)',  topLine: '#ED742F'                   },
   purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff',              cardBorder: 'rgba(110,56,212,0.35)', topLine: '#6E38D4'                   },
   dark:   { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.06)', badgeBorder: 'rgba(255,255,255,0.18)', badgeText: 'rgba(255,255,255,0.75)',cardBorder: 'rgba(255,255,255,0.1)', topLine: 'rgba(255,255,255,0.25)'   },
   black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff',              cardBorder: 'rgba(255,255,255,0.04)', topLine: 'rgba(255,255,255,0.08)'   },
@@ -121,11 +127,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const { locale } = useLocale()
   const unitLabel  = weightUnitLabel(unit)
 
-  // todayStr in Asia/Tokyo for canEdit check in WorkoutPhotoSheet
   const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
+  // ── React state (drives initial render + re-render after gesture ends) ──
   const [theme,          setTheme]          = useState<Theme>('dark')
   const [accent,         setAccent]         = useState<Accent>('dark')
+  const [cardStyle,      setCardStyle]      = useState<CardStyle>('glass')
   const [sharing,        setSharing]        = useState(false)
   const [status,         setStatus]         = useState('')
   const [shareCount,     setShareCount]     = useState(0)
@@ -134,20 +141,34 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [localPhotoPath, setLocalPhotoPath] = useState<string | null>(data.photoPath ?? null)
   const [showPhotoSheet, setShowPhotoSheet] = useState(false)
   const [cardPos,        setCardPos]        = useState({ x: 16, y: 180 })
-  const [cardScale,      setCardScale]      = useState(1.0)
+  const [cardScale,      setCardScale]      = useState(DEFAULT_SCALE)
 
-  const isDragging = useRef(false)
-  const dragOffset = useRef({ x: 0, y: 0 })
+  // ── Refs for smooth drag/pinch (no re-render during gesture) ──────────
+  const posRef   = useRef({ x: 16, y: 180 })
+  const scaleRef = useRef(DEFAULT_SCALE)
+
+  // Drag state
+  const isDragging  = useRef(false)
+  const dragOffset  = useRef({ x: 0, y: 0 })
+
+  // Pinch state
+  type PinchState = { startDist: number; startScale: number }
+  const pinchState = useRef<PinchState | null>(null)
+
+  /** Apply transform directly to DOM — avoids React re-renders during gesture. */
+  function applyTransform(x: number, y: number, scale: number) {
+    posRef.current   = { x, y }
+    scaleRef.current = scale
+    if (cardRef.current) {
+      cardRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`
+    }
+  }
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
-  // Load photo as data URL whenever localPhotoPath changes
+  // Load photo as data URL
   useEffect(() => {
-    if (!localPhotoPath) {
-      setPhotoDataUrl(null)
-      setPhotoLoading(false)
-      return
-    }
+    if (!localPhotoPath) { setPhotoDataUrl(null); setPhotoLoading(false); return }
     setPhotoDataUrl(null)
     setPhotoLoading(true)
     let cancelled = false
@@ -158,8 +179,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         .createSignedUrl(localPhotoPath!, 3600)
       if (cancelled || !urlData?.signedUrl) { if (!cancelled) setPhotoLoading(false); return }
       try {
-        const res  = await fetch(urlData.signedUrl)
-        const blob = await res.blob()
+        const res     = await fetch(urlData.signedUrl)
+        const blob    = await res.blob()
         const dataUrl = await new Promise<string>(resolve => {
           const reader = new FileReader()
           reader.onloadend = () => resolve(reader.result as string)
@@ -172,92 +193,152 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     return () => { cancelled = true }
   }, [localPhotoPath])
 
-  // Center card after initial render
+  // Center card on mount
   useEffect(() => {
     requestAnimationFrame(() => {
       const container = captureRef.current
       const card      = cardRef.current
       if (!container || !card) return
-      const cW    = container.clientWidth
-      const cH    = container.clientHeight
-      const cardW = card.clientWidth
-      const cardH = card.clientHeight
+      const cW = container.clientWidth
+      const cH = container.clientHeight
       if (cW === 0 || cH === 0) return
-      setCardPos({
-        x: (cW - cardW) / 2,
-        y: Math.max(16, Math.min(cH - cardH - 16, Math.round(cH * 0.45 - cardH / 2))),
-      })
+      const unscaledW = card.offsetWidth
+      const unscaledH = card.offsetHeight
+      const scaledW   = unscaledW * DEFAULT_SCALE
+      const scaledH   = unscaledH * DEFAULT_SCALE
+      const x = (cW - scaledW) / 2
+      const y = Math.max(16, Math.min(cH - scaledH - 16, Math.round(cH * 0.45 - scaledH / 2)))
+      applyTransform(x, y, DEFAULT_SCALE)
+      setCardPos({ x, y })
+      setCardScale(DEFAULT_SCALE)
     })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── Position / scale reset helpers ───────────────────────────────────
   const resetPosition = () => {
     const container = captureRef.current
     const card      = cardRef.current
     if (!container || !card) return
-    const cW    = container.clientWidth
-    const cH    = container.clientHeight
-    const cardW = card.clientWidth  * cardScale
-    const cardH = card.clientHeight * cardScale
-    setCardPos({
-      x: (cW - cardW) / 2,
-      y: Math.max(16, Math.min(cH - cardH - 16, Math.round(cH * 0.45 - cardH / 2))),
-    })
+    const cW      = container.clientWidth
+    const cH      = container.clientHeight
+    const scaledW = card.offsetWidth  * scaleRef.current
+    const scaledH = card.offsetHeight * scaleRef.current
+    const x = (cW - scaledW) / 2
+    const y = Math.max(16, Math.min(cH - scaledH - 16, Math.round(cH * 0.45 - scaledH / 2)))
+    applyTransform(x, y, scaleRef.current)
+    setCardPos({ x, y })
   }
 
   const resetAll = () => {
-    setCardScale(1.0)
     const container = captureRef.current
     const card      = cardRef.current
     if (!container || !card) return
-    const cW    = container.clientWidth
-    const cH    = container.clientHeight
-    const cardW = card.clientWidth
-    const cardH = card.clientHeight
-    setCardPos({
-      x: (cW - cardW) / 2,
-      y: Math.max(16, Math.min(cH - cardH - 16, Math.round(cH * 0.45 - cardH / 2))),
-    })
+    const cW      = container.clientWidth
+    const cH      = container.clientHeight
+    const scaledW = card.offsetWidth  * DEFAULT_SCALE
+    const scaledH = card.offsetHeight * DEFAULT_SCALE
+    const x = (cW - scaledW) / 2
+    const y = Math.max(16, Math.min(cH - scaledH - 16, Math.round(cH * 0.45 - scaledH / 2)))
+    applyTransform(x, y, DEFAULT_SCALE)
+    setCardPos({ x, y })
+    setCardScale(DEFAULT_SCALE)
   }
 
-  // Called by WorkoutPhotoSheet after successful save
-  const handlePhotoSaved = (imagePath: string) => {
-    setLocalPhotoPath(imagePath)
-    setShowPhotoSheet(false)
-    setStatus(t(locale, 'story.photoSavedCreateStory'))
-    setTimeout(() => setStatus(''), 3000)
-  }
-
-  // Called by WorkoutPhotoSheet after deletion
-  const handlePhotoDeleted = () => {
-    setLocalPhotoPath(null)
-    setShowPhotoSheet(false)
-  }
-
+  // ── Drag (pointer events — works for mouse and single-touch) ─────────
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pinchState.current) return   // skip if pinch is active
     e.preventDefault()
-    const rect = e.currentTarget.getBoundingClientRect()
-    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    const container = captureRef.current
+    if (!container) return
+    const cRect = container.getBoundingClientRect()
+    dragOffset.current = {
+      x: e.clientX - cRect.left - posRef.current.x,
+      y: e.clientY - cRect.top  - posRef.current.y,
+    }
     isDragging.current = true
+    if (cardRef.current) cardRef.current.style.transition = 'none'
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current) return
     const container = captureRef.current
-    if (!container) return
-    const cRect = container.getBoundingClientRect()
-    const cardW = e.currentTarget.offsetWidth  * cardScale
-    const cardH = e.currentTarget.offsetHeight * cardScale
-    const cW    = container.offsetWidth
-    const cH    = container.offsetHeight
+    const card      = cardRef.current
+    if (!container || !card) return
+    const cRect   = container.getBoundingClientRect()
+    const scale   = scaleRef.current
+    const scaledW = card.offsetWidth  * scale
+    const scaledH = card.offsetHeight * scale
+    const cW      = container.offsetWidth
+    const cH      = container.offsetHeight
     let newX = e.clientX - cRect.left - dragOffset.current.x
     let newY = e.clientY - cRect.top  - dragOffset.current.y
-    newX = Math.max(-cardW * 0.4, Math.min(cW - cardW * 0.6, newX))
-    newY = Math.max(-cardH * 0.4, Math.min(cH - cardH * 0.6, newY))
-    setCardPos({ x: newX, y: newY })
+    newX = Math.max(-scaledW * 0.4, Math.min(cW - scaledW * 0.6, newX))
+    newY = Math.max(-scaledH * 0.4, Math.min(cH - scaledH * 0.6, newY))
+    applyTransform(newX, newY, scale)
   }
 
-  const handlePointerUp = () => { isDragging.current = false }
+  const handlePointerUp = () => {
+    if (!isDragging.current) return
+    isDragging.current = false
+    if (cardRef.current) cardRef.current.style.transition = 'transform 120ms ease-out'
+    setCardPos({ ...posRef.current })
+  }
+
+  // ── Pinch (touch events — 2 fingers) ─────────────────────────────────
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 2) return
+    // Cancel any ongoing drag
+    isDragging.current = false
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY,
+    )
+    pinchState.current = { startDist: dist, startScale: scaleRef.current }
+    if (cardRef.current) cardRef.current.style.transition = 'none'
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!pinchState.current || e.touches.length !== 2) return
+    const dist  = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY,
+    )
+    const ratio    = dist / pinchState.current.startDist
+    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, pinchState.current.startScale * ratio))
+    applyTransform(posRef.current.x, posRef.current.y, newScale)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!pinchState.current) return
+    if (e.touches.length < 2) {
+      pinchState.current = null
+      if (cardRef.current) cardRef.current.style.transition = 'transform 120ms ease-out'
+      // Sync React state so slider and reset reflect current scale
+      setCardScale(scaleRef.current)
+      setCardPos({ ...posRef.current })
+    }
+  }
+
+  // ── Slider sync → DOM ────────────────────────────────────────────────
+  const handleSliderChange = (newScale: number) => {
+    setCardScale(newScale)
+    scaleRef.current = newScale
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'transform 80ms ease-out'
+      cardRef.current.style.transform  = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0) scale(${newScale})`
+    }
+  }
+
+  // ── Share ─────────────────────────────────────────────────────────────
+  const handlePhotoSaved   = (imagePath: string) => {
+    setLocalPhotoPath(imagePath)
+    setShowPhotoSheet(false)
+    setStatus(t(locale, 'story.photoSavedCreateStory'))
+    setTimeout(() => setStatus(''), 3000)
+  }
+  const handlePhotoDeleted = () => { setLocalPhotoPath(null); setShowPhotoSheet(false) }
 
   const handleShare = async () => {
     if (!captureRef.current) return
@@ -285,15 +366,15 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSharing(false) }
   }
 
+  // ── Derived values ────────────────────────────────────────────────────
   const ac       = AC[accent]
   const acHex    = ac.hex
   const isT      = theme === 'transparent'
   const hasPhoto = !!photoDataUrl
+  const isCardTransparent = cardStyle === 'transparent'
 
-  const volStr       = formatVolumeWithUnit(data.volume, unit)
-  const g1rm         = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
-  const dividerColor = 'rgba(255,255,255,0.22)'
-  const tsh          = '0 2px 8px rgba(0,0,0,0.75)'
+  const volStr = formatVolumeWithUnit(data.volume, unit)
+  const g1rm   = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
   const containerBg = hasPhoto
     ? '#0a0a0a'
@@ -301,26 +382,36 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
       : '#0a0a0a'
 
-  const cardBg = hasPhoto ? 'rgba(0,0,0,0.72)' : isT ? 'rgba(0,0,0,0.55)' : '#111111'
+  const cardBg = isCardTransparent
+    ? 'transparent'
+    : hasPhoto ? 'rgba(0,0,0,0.72)' : isT ? 'rgba(0,0,0,0.55)' : '#111111'
 
-  // Main button props driven by state
-  const canShare        = !!data.sessionId
-  const mainBtnLoading  = sharing || photoLoading
-  const mainBtnIsAdd    = !localPhotoPath && !hasPhoto
+  const cardBorder = isCardTransparent
+    ? 'none'
+    : `1px solid ${ac.cardBorder}`
+
+  const dividerColor = isCardTransparent ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.22)'
+  const tsh          = isCardTransparent
+    ? '0 2px 10px rgba(0,0,0,0.90), 0 1px 3px rgba(0,0,0,0.95)'
+    : '0 2px 8px rgba(0,0,0,0.75)'
+
+  const canShare       = !!data.sessionId
+  const mainBtnLoading = sharing || photoLoading
+  const mainBtnIsAdd   = !localPhotoPath && !hasPhoto
 
   return (
-    <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
 
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 pt-12 pb-3">
+      {/* ── Header ── */}
+      <div className="flex items-center gap-2 px-4 pt-12 pb-3 flex-shrink-0">
         <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={16} style={{ color: '#777' }} />
         </button>
         <h1 className="text-sm font-black tracking-widest text-white">{t(locale, 'story.title')}</h1>
       </div>
 
-      {/* ── 9:16 Story preview ──────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 8px' }}>
+      {/* ── 9:16 Story preview ── */}
+      <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 8px' }}>
         <div style={{ width: 'min(94vw, 420px)' }}>
           <div
             ref={captureRef}
@@ -347,7 +438,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               />
             )}
 
-            {/* Gradient overlay (photo mode only) */}
+            {/* Gradient overlay (photo mode) */}
             {photoDataUrl && (
               <div style={{
                 position: 'absolute', inset: 0,
@@ -356,37 +447,49 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               }} />
             )}
 
-            {/* Draggable record card */}
+            {/* ── Draggable record card ── */}
             <div
               ref={cardRef}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               style={{
                 position: 'absolute',
-                left: cardPos.x,
-                top: cardPos.y,
+                left: 0,
+                top: 0,
                 width: 'calc(100% - 32px)',
                 touchAction: 'none',
                 userSelect: 'none',
                 cursor: 'grab',
                 background: cardBg,
-                border: `1px solid ${ac.cardBorder}`,
+                border: cardBorder,
                 borderRadius: 16,
-                overflow: 'hidden',
-                transform: `scale(${cardScale})`,
+                overflow: isCardTransparent ? 'visible' : 'hidden',
+                transform: `translate3d(${cardPos.x}px, ${cardPos.y}px, 0) scale(${cardScale})`,
                 transformOrigin: 'top left',
+                transition: 'transform 120ms ease-out',
+                backdropFilter: isCardTransparent ? 'none' : undefined,
+                boxShadow: isCardTransparent ? 'none' : undefined,
               }}
             >
-              <div style={{ height: 2, background: ac.topLine }} />
+              {/* Top accent line (glass only) */}
+              {!isCardTransparent && (
+                <div style={{ height: 2, background: ac.topLine }} />
+              )}
 
               <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', textShadow: tsh }}>
 
                 <div style={{ display: 'inline-flex', marginBottom: 8 }}>
                   <span style={{
                     fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 8,
-                    background: ac.badgeBg, color: ac.badgeText,
-                    border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
+                    background: isCardTransparent ? 'rgba(0,0,0,0.45)' : ac.badgeBg,
+                    color: isCardTransparent ? '#fff' : ac.badgeText,
+                    border: isCardTransparent ? '1px solid rgba(255,255,255,0.3)' : `1px solid ${ac.badgeBorder}`,
+                    letterSpacing: '0.12em',
+                    backdropFilter: isCardTransparent ? 'blur(4px)' : undefined,
                   }}>REPRA</span>
                 </div>
 
@@ -484,198 +587,233 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* ── Photo loading indicator ── */}
-      {photoLoading && !photoDataUrl && (
-        <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.52)' }}>
-          {t(locale, 'story.loadingPhoto')}
-        </p>
-      )}
+      {/* ── Scrollable edit panel ── */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+      >
 
-      {/* ── No-photo state: CTA with add button ── */}
-      {!localPhotoPath && !photoLoading && canShare && (
-        <div className="px-4 mb-3">
-          <div className="rounded-2xl px-4 py-3.5"
-            style={{ background: 'rgba(237, 116, 47,0.10)', border: '1px solid rgba(237, 116, 47,0.16)' }}>
-            <div className="flex items-center gap-2.5 mb-3">
-              <Camera size={14} style={{ color: '#ED742F', flexShrink: 0 }} />
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.68)' }}>
-                {t(locale, 'story.addPhotoForBetterStory')}
-              </p>
-            </div>
-            <button
-              className="w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2"
-              style={{ background: '#ED742F', color: '#fff' }}
-              onClick={() => setShowPhotoSheet(true)}>
-              <ImageIcon size={14} />
-              {t(locale, 'story.addWorkoutPhoto')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Photo loaded: drag hint + reset + change button ── */}
-      {hasPhoto && (
-        <>
-          <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.44)' }}>
-            {t(locale, 'story.dragHint')}
+        {/* Photo loading indicator */}
+        {photoLoading && !photoDataUrl && (
+          <p className="text-center text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.52)' }}>
+            {t(locale, 'story.loadingPhoto')}
           </p>
-          <div className="px-4 mb-3 flex gap-2">
-            <button
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
-              style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
-              onClick={resetPosition}>
-              <RotateCcw size={12} />
-              {t(locale, 'story.resetPosition')}
-            </button>
-            {canShare && (
+        )}
+
+        {/* No-photo CTA */}
+        {!localPhotoPath && !photoLoading && canShare && (
+          <div className="px-4 mb-3">
+            <div className="rounded-2xl px-4 py-3.5"
+              style={{ background: 'rgba(237,116,47,0.10)', border: '1px solid rgba(237,116,47,0.16)' }}>
+              <div className="flex items-center gap-2.5 mb-3">
+                <Camera size={14} style={{ color: '#ED742F', flexShrink: 0 }} />
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.68)' }}>
+                  {t(locale, 'story.addPhotoForBetterStory')}
+                </p>
+              </div>
+              <button
+                className="w-full py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2"
+                style={{ background: '#ED742F', color: '#fff' }}
+                onClick={() => setShowPhotoSheet(true)}>
+                <ImageIcon size={14} />
+                {t(locale, 'story.addWorkoutPhoto')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Photo loaded: drag hint + reset + change */}
+        {hasPhoto && (
+          <>
+            <p className="text-center text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.44)' }}>
+              {t(locale, 'story.dragHint')}
+            </p>
+            <div className="px-4 mb-3 flex gap-2">
               <button
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
                 style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
-                onClick={() => setShowPhotoSheet(true)}>
-                <Camera size={12} />
-                {t(locale, 'story.changePhoto')}
+                onClick={resetPosition}>
+                <RotateCcw size={12} />
+                {t(locale, 'story.resetPosition')}
               </button>
-            )}
-          </div>
-        </>
-      )}
+              {canShare && (
+                <button
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                  style={{ background: '#1a1a1a', color: '#666', border: '1px solid #2a2a2a' }}
+                  onClick={() => setShowPhotoSheet(true)}>
+                  <Camera size={12} />
+                  {t(locale, 'story.changePhoto')}
+                </button>
+              )}
+            </div>
+          </>
+        )}
 
-      {/* ── Card size slider ── */}
-      {canShare && (
-        <div className="px-4 mb-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-bold" style={{ color: '#555', letterSpacing: '0.08em' }}>
-              {t(locale, 'story.cardSize').toUpperCase()}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono" style={{ color: '#555' }}>
-                {Math.round(cardScale * 100)}%
-              </span>
-              <button
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md"
-                style={{ background: '#1a1a1a', color: '#555', border: '1px solid #2a2a2a' }}
-                onClick={resetAll}>
-                {t(locale, 'story.resetAll')}
-              </button>
+        {/* ── Card size slider ── */}
+        {canShare && (
+          <div className="px-4 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold" style={{ color: '#555', letterSpacing: '0.08em' }}>
+                {t(locale, 'story.cardSize').toUpperCase()}
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono" style={{ color: '#555' }}>
+                  {Math.round(cardScale * 100)}%
+                </span>
+                <button
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-md"
+                  style={{ background: '#1a1a1a', color: '#555', border: '1px solid #2a2a2a' }}
+                  onClick={resetAll}>
+                  {t(locale, 'story.resetAll')}
+                </button>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={MIN_SCALE}
+              max={MAX_SCALE}
+              step="0.05"
+              value={cardScale}
+              onChange={e => handleSliderChange(parseFloat(e.target.value))}
+              className="w-full"
+              style={{ accentColor: '#ED742F' }}
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-[9px]" style={{ color: '#444' }}>{Math.round(MIN_SCALE * 100)}%</span>
+              <span className="text-[9px]" style={{ color: '#444' }}>{Math.round(MAX_SCALE * 100)}%</span>
             </div>
           </div>
-          <input
-            type="range"
-            min="0.65"
-            max="1.15"
-            step="0.05"
-            value={cardScale}
-            onChange={e => setCardScale(parseFloat(e.target.value))}
-            className="w-full"
-            style={{ accentColor: '#ED742F' }}
-          />
-        </div>
-      )}
+        )}
 
-      {/* ── Background selector (no-photo mode only) ── */}
-      {!hasPhoto && !photoLoading && (
+        {/* ── Card style selector ── */}
+        {canShare && (
+          <div className="px-4 mb-3">
+            <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+              {locale === 'ja' ? 'カードスタイル' : 'CARD STYLE'}
+            </p>
+            <div className="flex gap-2">
+              {(['glass', 'transparent'] as CardStyle[]).map(cs => (
+                <button
+                  key={cs}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                  style={{
+                    background: cardStyle === cs ? '#ED742F' : '#1a1a1a',
+                    color:      cardStyle === cs ? '#fff' : '#666',
+                    border:     `1px solid ${cardStyle === cs ? '#ED742F' : '#2a2a2a'}`,
+                  }}
+                  onClick={() => setCardStyle(cs)}>
+                  {cs === 'glass'
+                    ? (locale === 'ja' ? 'Glass' : 'Glass')
+                    : (locale === 'ja' ? '透過' : 'Transparent')}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Background selector (no-photo mode only) ── */}
+        {!hasPhoto && !photoLoading && (
+          <div className="px-4 mb-3">
+            <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+              {t(locale, 'story.background')}
+            </p>
+            <div className="flex gap-2">
+              {(['dark', 'transparent'] as Theme[]).map(th => (
+                <button key={th} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                  style={{
+                    background: theme === th ? '#ED742F' : '#1a1a1a',
+                    color:      theme === th ? '#fff' : '#666',
+                    border:     `1px solid ${theme === th ? '#ED742F' : '#2a2a2a'}`,
+                  }}
+                  onClick={() => setTheme(th)}>
+                  {th === 'dark' ? t(locale, 'story.bgDark') : t(locale, 'story.bgTransparent')}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Color accent selector ── */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
-            {t(locale, 'story.background')}
+            {t(locale, 'story.color')}
           </p>
           <div className="flex gap-2">
-            {(['dark', 'transparent'] as Theme[]).map(th => (
-              <button key={th} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{
-                  background: theme === th ? '#ED742F' : '#1a1a1a',
-                  color:      theme === th ? '#fff' : '#666',
-                  border:     `1px solid ${theme === th ? '#ED742F' : '#2a2a2a'}`,
-                }}
-                onClick={() => setTheme(th)}>
-                {th === 'dark' ? t(locale, 'story.bgDark') : t(locale, 'story.bgTransparent')}
-              </button>
-            ))}
+            {(() => {
+              const shareThemes = getShareThemeUnlocks(shareCount)
+              return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
+                const info     = shareThemes.find(entry => entry.accent === a)!
+                const unlocked = info.unlocked
+                const sel      = accent === a
+                const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
+                const bg       = sel ? selBg : '#1a1a1a'
+                return (
+                  <button key={a}
+                    className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
+                    style={{
+                      background: bg, color: unlocked ? '#fff' : '#444',
+                      border: `1px solid ${sel ? selBg : '#2a2a2a'}`,
+                      opacity: unlocked ? 1 : 0.55, minHeight: 44,
+                    }}
+                    onClick={() => unlocked && setAccent(a)}>
+                    <span>{info.label}</span>
+                    {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
+                  </button>
+                )
+              })
+            })()}
           </div>
         </div>
-      )}
 
-      {/* ── Color accent selector ── */}
-      <div className="px-4 mb-3">
-        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
-          {t(locale, 'story.color')}
-        </p>
-        <div className="flex gap-2">
-          {(() => {
-            const shareThemes = getShareThemeUnlocks(shareCount)
-            return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
-              const info     = shareThemes.find(entry => entry.accent === a)!
-              const unlocked = info.unlocked
-              const sel      = accent === a
-              const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
-              const bg       = sel ? selBg : '#1a1a1a'
-              return (
-                <button key={a}
-                  className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
-                  style={{
-                    background: bg, color: unlocked ? '#fff' : '#444',
-                    border: `1px solid ${sel ? selBg : '#2a2a2a'}`,
-                    opacity: unlocked ? 1 : 0.55, minHeight: 44,
-                  }}
-                  onClick={() => unlocked && setAccent(a)}>
-                  <span>{info.label}</span>
-                  {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
-                </button>
-              )
-            })
-          })()}
-        </div>
-      </div>
+        {/* ── Main action button ── */}
+        <div className="px-4 space-y-2 mb-4">
+          {status && (
+            <p className="text-center text-sm" style={{ color: hasPhoto ? '#ED742F' : '#888' }}>
+              {status}
+            </p>
+          )}
 
-      {/* ── Main action button ── */}
-      <div className="px-4 space-y-2 mb-4">
-        {status && (
-          <p className="text-center text-sm" style={{ color: hasPhoto ? '#ED742F' : '#888' }}>
-            {status}
-          </p>
-        )}
-
-        {mainBtnIsAdd ? (
-          /* State A: no photo — main button opens photo sheet */
-          canShare && (
+          {mainBtnIsAdd ? (
+            canShare && (
+              <button
+                className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
+                style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}
+                onClick={() => setShowPhotoSheet(true)}>
+                <Camera size={20} />
+                {t(locale, 'story.addWorkoutPhoto')}
+              </button>
+            )
+          ) : (
             <button
               className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-              style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)' }}
-              onClick={() => setShowPhotoSheet(true)}>
-              <Camera size={20} />
-              {t(locale, 'story.addWorkoutPhoto')}
+              style={{
+                background: mainBtnLoading ? 'rgba(237,116,47,0.4)' : '#ED742F',
+                boxShadow:  mainBtnLoading ? 'none' : '0 4px 20px rgba(237,116,47,0.3)',
+              }}
+              disabled={mainBtnLoading}
+              onClick={handleShare}>
+              <Share2 size={20} />
+              {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
             </button>
-          )
-        ) : (
-          /* State C: photo loaded — main button shares */
-          <button
-            className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-            style={{
-              background: mainBtnLoading ? 'rgba(237, 116, 47,0.4)' : '#ED742F',
-              boxShadow: mainBtnLoading ? 'none' : '0 4px 20px rgba(237, 116, 47,0.3)',
-            }}
-            disabled={mainBtnLoading}
-            onClick={handleShare}>
-            <Share2 size={20} />
-            {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
-          </button>
-        )}
+          )}
 
-        {/* Secondary share button when no photo (skip-photo path) */}
-        {mainBtnIsAdd && (
-          <button
-            className="w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
-            style={{ background: 'transparent', color: '#555', border: '1px solid #222' }}
-            disabled={sharing}
-            onClick={handleShare}>
-            <Share2 size={16} />
-            {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
-          </button>
-        )}
+          {mainBtnIsAdd && (
+            <button
+              className="w-full py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
+              style={{ background: 'transparent', color: '#555', border: '1px solid #222' }}
+              disabled={sharing}
+              onClick={handleShare}>
+              <Share2 size={16} />
+              {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
+            </button>
+          )}
 
-        <p className="text-center text-xs" style={{ color: '#444' }}>
-          {t(locale, 'story.mobileOnly')}
-        </p>
-      </div>
+          <p className="text-center text-xs" style={{ color: '#444' }}>
+            {t(locale, 'story.mobileOnly')}
+          </p>
+        </div>
+
+      </div>{/* /scrollable panel */}
 
       {/* ── WorkoutPhotoSheet modal ── */}
       {showPhotoSheet && data.sessionId && (

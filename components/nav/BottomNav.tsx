@@ -23,6 +23,7 @@ const PREFETCH_ROUTES = ['/home', '/analytics', '/record', '/rewards', '/profile
 // across renders and never placed between hook calls.
 const HIDE_NAV = new Set([
   '/analytics/chart',
+  '/body-log',
   '/profile/terms',
   '/profile/privacy',
   '/profile/support/faq',
