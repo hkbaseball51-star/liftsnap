@@ -17,10 +17,15 @@ const DEV = process.env.NODE_ENV !== 'production'
 function dbg(msg: string)    { if (DEV) console.log(`[reset-password] ${msg}`) }
 function dbgErr(msg: string) { if (DEV) console.error(`[reset-password] ${msg}`) }
 
+function isRecoveryUser(user: { is_anonymous?: boolean; email?: string; phone?: string } | null | undefined): boolean {
+  if (!user) return false
+  if (user.is_anonymous) return false
+  return !!(user.email || user.phone)
+}
+
 /** Map Supabase error messages to user-safe strings without leaking internals. */
 function mapUpdateError(msg: string): string {
   const m = msg.toLowerCase()
-  // Exact Supabase error strings (checked first, most specific)
   if (m.includes('auth session missing')) {
     return 'Session expired. Please request a new reset link.'
   }
@@ -30,7 +35,6 @@ function mapUpdateError(msg: string): string {
   if (m.includes('password should be at least')) {
     return 'Password must be at least 8 characters.'
   }
-  // Broader fallbacks
   if (m.includes('session') || m.includes('missing') || m.includes('logged in') || m.includes('not authenticated')) {
     return 'Session expired. Please request a new reset link.'
   }
@@ -52,9 +56,8 @@ export default function ResetPasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  // Single Supabase client shared across useEffect and handleSubmit.
-  // createBrowserClient (from @supabase/ssr) stores the session in cookies,
-  // but sharing one instance ensures the in-memory session is never missed.
+  // Single Supabase client shared across useEffect and handleSubmit so the
+  // in-memory session established by exchangeCodeForSession is never missed.
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   function getSupabase() {
     if (!supabaseRef.current) supabaseRef.current = createClient()
@@ -72,17 +75,9 @@ export default function ResetPasswordPage() {
       setStage(next)
     }
 
-    // Fast path: Supabase fires PASSWORD_RECOVERY once the code is exchanged
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        dbg('session exists (PASSWORD_RECOVERY event)')
-        settle('valid')
-      }
-    })
-
-    // 8 s safety-net — only truly invalid/expired links need this
+    // Safety-net: truly invalid/expired links never resolve a code or session
     const timeout = setTimeout(() => {
-      dbgErr('timeout: no valid session after 8 s')
+      dbgErr('timeout: no valid recovery session after 8 s')
       settle('invalid')
     }, 8000)
 
@@ -96,29 +91,61 @@ export default function ResetPasswordPage() {
         const urlError = srchParams.get('error') ?? hashParams.get('error') ?? ''
         const code     = srchParams.get('code') ?? ''
 
-        // A. Explicit error in URL (Supabase sets this for expired/denied links)
+        // A. Supabase sets ?error= for expired or revoked links
         if (urlError) {
           dbgErr(`url error param: ${urlError}`)
           settle('invalid')
           return
         }
 
-        // B. PKCE code: /reset-password?code=XXXX
+        // B. PKCE code: /reset-password?code=XXXX  (primary path)
         if (code) {
-          dbg('code exists')
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          if (data?.session) {
-            dbg('exchange success')
+          dbg('code exists — starting exchange')
+
+          // If an anonymous session is active it will shadow the recovery session.
+          // Sign it out before exchanging so the exchange result is stored cleanly.
+          const { data: existing } = await supabase.auth.getSession()
+          if (existing.session?.user?.is_anonymous) {
+            dbg('existing anonymous session — signing out before code exchange')
+            await supabase.auth.signOut()
+          }
+
+          const { data, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (exchangeErr) {
+            // @supabase/ssr middleware may have already consumed the code on first
+            // render. Fall through to the getSession() check below.
+            dbgErr(`exchange error: ${exchangeErr.message}`)
+          }
+
+          // Exchange returned a valid recovery session
+          if (data?.session?.user) {
+            const user = data.session.user
+            if (!isRecoveryUser(user)) {
+              console.error('[reset-password] exchange returned anonymous/no-email user')
+              settle('invalid')
+              return
+            }
+            dbg(`exchange success — user has email: ${!!user.email}`)
             settle('valid')
             return
           }
-          // Log error but do NOT settle invalid yet — getSession() is the fallback.
-          // @supabase/ssr may have auto-consumed the code on the first render.
-          dbgErr(`exchange error: ${error?.message ?? 'unknown'}`)
+
+          // Exchange failed or returned no session — check if middleware already
+          // established the session (getSession() picks it up from cookies).
+          const { data: { session: existing2 } } = await supabase.auth.getSession()
+          if (existing2?.user && isRecoveryUser(existing2.user)) {
+            dbg('recovery session found via getSession fallback after exchange')
+            settle('valid')
+            return
+          }
+
+          dbgErr('exchange failed and no recovery session found')
+          settle('invalid')
+          return
         }
 
-        // C. Implicit / legacy hash flow: #access_token=…&refresh_token=…&type=recovery
-        // (Token values are intentionally not logged)
+        // C. Legacy implicit hash flow: #access_token=…&type=recovery
         const at = hashParams.get('access_token')
         const rt = hashParams.get('refresh_token')
         if (at && rt) {
@@ -133,14 +160,13 @@ export default function ResetPasswordPage() {
           return
         }
 
-        // D. Session may have been established by PASSWORD_RECOVERY event or a
-        //    prior auto-exchange — check before giving up.
+        // D. No code, no hash — last resort: check cookie session, reject anonymous
         const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          dbg('session exists (getSession fallback)')
+        if (session?.user && isRecoveryUser(session.user)) {
+          dbg('recovery session found via getSession (no code/hash)')
           settle('valid')
         } else {
-          dbgErr(code ? 'exchange_failed_no_session' : 'no_code_no_hash_no_session')
+          dbgErr('no code, no hash, no recovery session')
           settle('invalid')
         }
       } catch (err) {
@@ -151,18 +177,15 @@ export default function ResetPasswordPage() {
 
     check().finally(() => clearTimeout(timeout))
 
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
-    }
+    return () => { clearTimeout(timeout) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Derived validation state ──────────────────────────────────────
-  const trimmedPw   = password.trim()
-  const tooShort    = trimmedPw.length > 0 && trimmedPw.length < 8
-  const mismatch    = confirm.length > 0 && password !== confirm
-  const bothMatch   = confirm.length > 0 && password === confirm && trimmedPw.length >= 8
+  const trimmedPw = password.trim()
+  const tooShort  = trimmedPw.length > 0 && trimmedPw.length < 8
+  const mismatch  = confirm.length > 0 && password !== confirm
+  const bothMatch = confirm.length > 0 && password === confirm && trimmedPw.length >= 8
 
   const isDisabled =
     stage === 'updating' ||
@@ -175,17 +198,15 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setSubmitError(null)
 
-    // Guard 1: empty fields
+    // Input guards — these prevent reaching updateUser for client-side reasons
     if (!password || !confirm) {
       setSubmitError('Please enter your new password.')
       return
     }
-    // Guard 2: too short
     if (trimmedPw.length < 8) {
       setSubmitError('Password must be at least 8 characters.')
       return
     }
-    // Guard 3: mismatch — never reach updateUser
     if (password !== confirm) {
       setSubmitError('Passwords do not match.')
       return
@@ -193,23 +214,32 @@ export default function ResetPasswordPage() {
 
     setStage('updating')
 
-    // Use the same client that established the recovery session (in-memory + cookie).
     const supabase = getSupabase()
 
-    // ── Debug: URL state at submit time ──────────────────────────────
+    // Debug: URL state at submit time
     const codeParam = new URLSearchParams(window.location.search).get('code')
     console.log('[reset-password] pathname:', window.location.pathname)
     console.log('[reset-password] code param exists:', !!codeParam)
 
-    // Pre-flight: confirm the recovery session is still active before updating.
+    // Pre-flight: verify the recovery session is still active
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    console.log('[reset-password] before update session exists:', !!session)
-    console.log('[reset-password] before update user exists:', !!session?.user)
+    console.log('[reset-password] session exists:', !!session)
+    console.log('[reset-password] user exists:', !!session?.user)
+    console.log('[reset-password] user has email:', !!session?.user?.email)
+    console.log('[reset-password] user has phone:', !!session?.user?.phone)
+    console.log('[reset-password] user is anonymous:', !!session?.user?.is_anonymous)
     if (sessionError) console.error('[reset-password] session error:', sessionError.message)
 
-    if (!session) {
-      dbgErr('no session before updateUser — recovery session expired or not established')
+    if (sessionError || !session?.user) {
       setSubmitError('Session expired. Please request a new reset link.')
+      setStage('valid')
+      return
+    }
+
+    // Block anonymous users — updateUser({ password }) returns 422 for them
+    if (!isRecoveryUser(session.user)) {
+      console.error('[reset-password] blocked: anonymous user or no email/phone')
+      setSubmitError('This reset session is invalid. Please request a new reset link.')
       setStage('valid')
       return
     }
@@ -226,10 +256,9 @@ export default function ResetPasswordPage() {
       return
     }
 
-    // Sign out so the recovery session is invalidated and the user starts fresh.
+    // Invalidate the recovery session so it cannot be reused
     await supabase.auth.signOut()
     setStage('done')
-    // Give the user a moment to see the success message, then push to login
     setTimeout(() => router.push('/login?reset=success'), 1500)
   }
 
@@ -354,7 +383,6 @@ export default function ResetPasswordPage() {
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {/* Inline match/mismatch hint */}
                 {mismatch && (
                   <p className="mt-1.5 text-[11px]" style={{ color: '#ef4444' }}>
                     Passwords do not match.
@@ -377,9 +405,9 @@ export default function ResetPasswordPage() {
                 disabled={isDisabled}
                 className="h-12 rounded-xl font-black text-sm mt-2 tracking-widest transition-colors"
                 style={{
-                  background:  isDisabled ? '#222' : '#ED742F',
-                  color:       isDisabled ? 'rgba(255,255,255,0.28)' : '#fff',
-                  cursor:      isDisabled ? 'not-allowed' : 'pointer',
+                  background: isDisabled ? '#222' : '#ED742F',
+                  color:      isDisabled ? 'rgba(255,255,255,0.28)' : '#fff',
+                  cursor:     isDisabled ? 'not-allowed' : 'pointer',
                 }}>
                 {stage === 'updating' ? 'UPDATING…' : 'UPDATE PASSWORD'}
               </button>
