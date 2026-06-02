@@ -10,10 +10,13 @@ import { t, type Locale } from '@/lib/i18n'
 import { MUSCLE_COLORS } from '@/components/home/TrainingCalendar'
 import { formatVolume } from '@/lib/utils'
 
+// ─── Constants ────────────────────────────────────────────────────────────────
 const MONTH_ABBREV = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const AUTO_ADVANCE_MS = 5000
+const DEV = process.env.NODE_ENV === 'development'
 
+// ─── Pure helpers ─────────────────────────────────────────────────────────────
 function formatDate(dateStr: string, locale: Locale): string {
   const [y, m, d] = dateStr.split('-').map(Number)
   if (locale === 'ja') return `${y}年${m}月${d}日`
@@ -39,14 +42,13 @@ function getExerciseDisplayName(name: string): string {
 
 async function downloadHighlightImage(url: string | null, date: string): Promise<void> {
   if (!url) return
-  const filename = `repra-progress-${date}.png`
   try {
     const res = await fetch(url, { mode: 'cors' })
     const blob = await res.blob()
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
-    a.download = filename
+    a.download = `repra-progress-${date}.png`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -56,8 +58,7 @@ async function downloadHighlightImage(url: string | null, date: string): Promise
   }
 }
 
-// ── Progress bars: CSS animation only — zero JS re-renders per tick ───────────
-
+// ─── ProgressBars — CSS animation only, no JS per-tick ───────────────────────
 const ProgressBars = memo(function ProgressBars({
   count, index, paused, onComplete,
 }: {
@@ -77,6 +78,7 @@ const ProgressBars = memo(function ProgressBars({
           {i < index ? (
             <div style={{ height: '100%', width: '100%', background: '#fff' }} />
           ) : i === index ? (
+            // key={index} resets the animation when index changes
             <div
               key={index}
               style={{
@@ -95,12 +97,13 @@ const ProgressBars = memo(function ProgressBars({
   )
 })
 
-// ── Detail sheet ─────────────────────────────────────────────────────────────
-// Receives only what it needs to render — no workout queries triggered on open
+// ─── DetailSheet — only mounted when showDetail=true ─────────────────────────
+// No transition wrapper needed — CSS @keyframes detail-in handles enter animation.
+// Workout info (badge, exercise, stats) is hidden until this mounts.
 
 type DetailSheetProps = {
   date: string
-  detail: BodyLogDetail | null   // null = not yet loaded
+  detail: BodyLogDetail | null
   loading: boolean
   locale: Locale
   isToday: boolean
@@ -110,14 +113,18 @@ type DetailSheetProps = {
 const DetailSheet = memo(function DetailSheet({
   date, detail, loading, locale, isToday, onClose,
 }: DetailSheetProps) {
-  const muscleKey = detail ? normalizeForDisplay(detail.muscleGroup) : null
+  const muscleKey   = detail ? normalizeForDisplay(detail.muscleGroup) : null
   const muscleColor = (muscleKey ? MUSCLE_COLORS[muscleKey] : null) ?? '#666666'
-  const hasStats = detail && (detail.totalSets > 0 || detail.totalVolume > 0)
+  const hasStats    = !!(detail && (detail.totalSets > 0 || detail.totalVolume > 0))
 
   return (
     <div
       className="rounded-2xl px-4 py-4 mx-4"
-      style={{ background: 'rgba(8,8,8,0.97)', border: '1px solid rgba(255,255,255,0.10)' }}
+      style={{
+        background: 'rgba(8,8,8,0.97)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        animation: 'detail-in 0.15s ease-out',
+      }}
     >
       {/* Header: badge + date + close */}
       <div className="flex items-center justify-between mb-3">
@@ -127,7 +134,10 @@ const DetailSheet = memo(function DetailSheet({
               className="rounded-full px-2.5 py-0.5"
               style={{ background: `${muscleColor}22`, border: `1px solid ${muscleColor}55` }}
             >
-              <span style={{ fontSize: 10, fontWeight: 900, color: muscleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{
+                fontSize: 10, fontWeight: 900, color: muscleColor,
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
                 {muscleKey}
               </span>
             </div>
@@ -145,7 +155,7 @@ const DetailSheet = memo(function DetailSheet({
         </button>
       </div>
 
-      {/* Spinner while fetching detail */}
+      {/* Spinner while fetching */}
       {loading && (
         <div className="flex items-center justify-center py-4">
           <div style={{
@@ -158,9 +168,12 @@ const DetailSheet = memo(function DetailSheet({
         </div>
       )}
 
-      {/* Workout stats — only rendered once detail is loaded */}
-      {!loading && detail && detail.mainExercise && (
-        <p style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', marginBottom: hasStats ? 10 : 0, lineHeight: 1.2 }}>
+      {/* Workout stats — only when loaded */}
+      {!loading && detail?.mainExercise && (
+        <p style={{
+          fontSize: 16, fontWeight: 800, color: '#fff',
+          letterSpacing: '-0.01em', marginBottom: hasStats ? 10 : 0, lineHeight: 1.2,
+        }}>
           {getExerciseDisplayName(detail.mainExercise)}
         </p>
       )}
@@ -194,7 +207,7 @@ const DetailSheet = memo(function DetailSheet({
   )
 })
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 type Props = {
   entries: BodyLogPhotoEntry[]
@@ -205,45 +218,105 @@ type Props = {
   todayStr: string
 }
 
-export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, initialIndex, locale, todayStr }: Props) {
+export default function BodyLogHighlights({
+  entries, signedUrls, thumbnailUrls, initialIndex, locale, todayStr,
+}: Props) {
   const router = useRouter()
-  const [index, setIndex] = useState(initialIndex)
-  const [showDetail, setShowDetail] = useState(false)
-  const [firstLoaded, setFirstLoaded] = useState(false)
 
-  // Per-session detail cache. undefined = never fetched; null = fetched, no data.
-  const detailCache = useRef<Map<string, BodyLogDetail | null>>(new Map())
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [index, setIndex]               = useState(initialIndex)
+  const [showDetail, setShowDetail]     = useState(false)
+  const [firstLoaded, setFirstLoaded]   = useState(false)
+  const [activeUrl, setActiveUrl]       = useState<string | null>(
+    () => thumbnailUrls[entries[initialIndex]?.date ?? ''] ?? signedUrls[entries[initialIndex]?.date ?? ''] ?? null
+  )
   const [currentDetail, setCurrentDetail] = useState<BodyLogDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  // Sequence counter prevents stale async results from landing after navigation
-  const fetchSeqRef = useRef(0)
 
-  const touchStartRef = useRef<number | null>(null)
+  // ── Refs ───────────────────────────────────────────────────────────────────
+  const touchStartRef     = useRef<number | null>(null)
+  const fetchSeqRef       = useRef(0)
+  // Per-session detail cache: undefined=never fetched, null=fetched+empty
+  const detailCache       = useRef<Map<string, BodyLogDetail | null>>(new Map())
+  // Dev: render/fetch counters
+  const renderCountRef    = useRef(0)
+  const detailFetchCount  = useRef(0)
 
-  const entry = useMemo(() => entries[index] ?? null, [entries, index])
-  const isToday = entry?.date === todayStr
-  const fullUrl      = entry ? (signedUrls[entry.date] ?? null) : null
-  const thumbnailUrl = entry ? (thumbnailUrls[entry.date] ?? null) : null
-  const [activeUrl, setActiveUrl] = useState<string | null>(thumbnailUrl)
+  // ── Dev render tracking ────────────────────────────────────────────────────
+  if (DEV) renderCountRef.current++
 
-  // Reset to thumbnail when navigating to a new entry
+  // ── Derived values (useMemo to avoid recompute on unrelated renders) ───────
+  const entry       = useMemo(() => entries[index] ?? null, [entries, index])
+  const isToday     = entry?.date === todayStr
+  const fullUrl     = useMemo(() => entry ? (signedUrls[entry.date] ?? null) : null, [entry, signedUrls])
+  const thumbnailUrl = useMemo(() => entry ? (thumbnailUrls[entry.date] ?? null) : null, [entry, thumbnailUrls])
+
+  // ── Dev: log on mount ─────────────────────────────────────────────────────
   useEffect(() => {
-    setActiveUrl(thumbnailUrls[entry?.date ?? ''] ?? fullUrl)
+    if (!DEV) return
+    const fullCount  = Object.keys(signedUrls).length
+    const thumbCount = Object.keys(thumbnailUrls).length
+    console.log(`[Highlight] Mounted: ${entries.length} entries, ${fullCount} full URLs, ${thumbCount} thumb URLs`)
+    return () => { console.log('[Highlight] Unmounted') }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Dev: log on index change ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!DEV) return
+    console.log(`[Highlight] → index ${index} (render #${renderCountRef.current})`)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index])
+
+  // ── Reset display URL to thumbnail on navigation ──────────────────────────
+  useEffect(() => {
+    setActiveUrl(thumbnailUrl ?? fullUrl)
     setFirstLoaded(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry?.date])
 
-  // Load full image progressively — swap from thumbnail when ready
+  // ── Progressive full-image load — swap from thumbnail when ready ──────────
   useEffect(() => {
     if (!fullUrl || activeUrl === fullUrl) return
     const img = new window.Image()
     img.onload = () => setActiveUrl(fullUrl)
     img.src = fullUrl
+    return () => {
+      // Cancel in-flight load if user navigates before it completes
+      img.onload = null
+      img.src = ''
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullUrl, entry?.date])
 
-  // Navigate to next entry
-  const goNext = useCallback(() => {
+  // ── Preload thumbnails for ±1 adjacent only ───────────────────────────────
+  useEffect(() => {
+    for (const offset of [-1, 1]) {
+      const adj = entries[index + offset]
+      if (!adj) continue
+      // Prefer thumbnail; only preload one image per adjacent slot
+      const url = thumbnailUrls[adj.date] ?? signedUrls[adj.date]
+      if (!url) continue
+      const img = new window.Image()
+      img.src = url
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index])
+
+  // ── Keyboard navigation ────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') goToNext()
+      if (e.key === 'ArrowLeft')  goToPrev()
+      if (e.key === 'Escape')     router.back()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])   // handler captures goToNext/goPrev via closure — recreated on each render is fine
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  const goToNext = useCallback(() => {
     fetchSeqRef.current++
     setIndex(i => Math.min(i + 1, entries.length - 1))
     setShowDetail(false)
@@ -251,8 +324,7 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
     setDetailLoading(false)
   }, [entries.length])
 
-  // Navigate to previous entry
-  const goPrev = useCallback(() => {
+  const goToPrev = useCallback(() => {
     fetchSeqRef.current++
     setIndex(i => Math.max(i - 1, 0))
     setShowDetail(false)
@@ -262,21 +334,27 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
 
   const closeDetail = useCallback(() => setShowDetail(false), [])
 
-  // Open detail sheet: serve from cache or fetch from server
+  // ── Detail: open with cache ────────────────────────────────────────────────
   const openDetail = useCallback(async (sessionId: string) => {
     setShowDetail(true)
 
+    // Serve from cache if available
     const cached = detailCache.current.get(sessionId)
     if (cached !== undefined) {
       setCurrentDetail(cached)
       return
     }
 
+    if (DEV) {
+      detailFetchCount.current++
+      console.log(`[Highlight] Detail fetch #${detailFetchCount.current}: ${sessionId.slice(0, 8)}…`)
+    }
+
     const seq = ++fetchSeqRef.current
     setDetailLoading(true)
     try {
       const detail = await getBodyLogEntryDetail(sessionId)
-      if (fetchSeqRef.current !== seq) return // navigated away while fetching
+      if (fetchSeqRef.current !== seq) return
       detailCache.current.set(sessionId, detail)
       setCurrentDetail(detail)
     } catch {
@@ -291,29 +369,7 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
     if (entry) openDetail(entry.sessionId)
   }, [showDetail, closeDetail, openDetail, entry])
 
-  // Preload adjacent thumbnails into browser cache
-  useEffect(() => {
-    for (const offset of [-1, 1]) {
-      const adj = entries[index + offset]
-      if (!adj) continue
-      const url = thumbnailUrls[adj.date] ?? signedUrls[adj.date]
-      if (!url) continue
-      const img = new window.Image()
-      img.src = url
-    }
-  }, [index, entries, thumbnailUrls, signedUrls])
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') goNext()
-      if (e.key === 'ArrowLeft') goPrev()
-      if (e.key === 'Escape') router.back()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [goNext, goPrev, router])
-
+  // ── Touch handlers ────────────────────────────────────────────────────────
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartRef.current = e.touches[0].clientX
   }, [])
@@ -324,23 +380,29 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
     touchStartRef.current = null
     const dx = e.changedTouches[0].clientX - start
     if (Math.abs(dx) > 40) {
-      if (dx < 0) goNext()
-      else goPrev()
+      if (dx < 0) goToNext(); else goToPrev()
     }
-  }, [goNext, goPrev])
+  }, [goToNext, goToPrev])
 
   const handleAnimationComplete = useCallback(() => {
-    if (index < entries.length - 1) goNext()
-  }, [goNext, index, entries.length])
+    if (index < entries.length - 1) goToNext()
+  }, [goToNext, index, entries.length])
 
-  // ── Empty state ──────────────────────────────────────────────────────────
+  // Stable image load callback — no deps needed
+  const handleImageLoad = useCallback(() => {
+    setFirstLoaded(true)
+    if (DEV) console.log('[Highlight] Image loaded')
+  }, [])
+
+  // ── Empty state ────────────────────────────────────────────────────────────
   if (entries.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: '#050505' }}>
         <button
           className="absolute left-4 w-10 h-10 flex items-center justify-center rounded-full"
           style={{ top: 'calc(env(safe-area-inset-top) + 12px)', background: 'rgba(255,255,255,0.12)' }}
-          onClick={() => router.back()}>
+          onClick={() => router.back()}
+        >
           <X size={18} style={{ color: '#fff' }} />
         </button>
         <BookImage size={48} style={{ color: 'rgba(255,255,255,0.60)', marginBottom: 20 }} />
@@ -361,11 +423,14 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Full-screen photo */}
+      {/* ── Full-screen photo ── */}
       {activeUrl ? (
         <>
           {!firstLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ pointerEvents: 'none' }}
+            >
               <div style={{
                 width: 28, height: 28,
                 border: '2.5px solid rgba(255,255,255,0.20)',
@@ -379,7 +444,7 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
           <img
             src={activeUrl}
             alt=""
-            onLoad={() => setFirstLoaded(true)}
+            onLoad={handleImageLoad}
             style={{
               position: 'absolute', inset: 0,
               width: '100%', height: '100%',
@@ -392,21 +457,21 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
         <div style={{ position: 'absolute', inset: 0, background: '#0d0d0d' }} />
       )}
 
-      {/* Top gradient */}
+      {/* ── Top gradient ── */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 110,
         background: 'linear-gradient(to bottom, rgba(0,0,0,0.58) 0%, transparent 100%)',
         pointerEvents: 'none',
       }} />
 
-      {/* Bottom gradient */}
+      {/* ── Bottom gradient ── */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, height: 130,
         background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%)',
         pointerEvents: 'none',
       }} />
 
-      {/* Progress bars — CSS animation, no setState per tick */}
+      {/* ── Progress bars — CSS animation, zero setState per tick ── */}
       <ProgressBars
         count={entries.length}
         index={index}
@@ -414,7 +479,7 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
         onComplete={handleAnimationComplete}
       />
 
-      {/* Top bar: close + date + count */}
+      {/* ── Top bar: close + date + count ── */}
       <div
         className="absolute left-0 right-0 flex items-center justify-between px-4"
         style={{ top: 'calc(env(safe-area-inset-top) + 22px)' }}
@@ -422,7 +487,8 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
         <button
           className="w-9 h-9 flex items-center justify-center rounded-full"
           style={{ background: 'rgba(0,0,0,0.40)' }}
-          onClick={() => router.back()}>
+          onClick={() => router.back()}
+        >
           <X size={16} style={{ color: '#fff' }} />
         </button>
         <div className="text-center">
@@ -436,37 +502,51 @@ export default function BodyLogHighlights({ entries, signedUrls, thumbnailUrls, 
         <div style={{ width: 36 }} />
       </div>
 
-      {/* Tap zones: Prev (left 30%), Next (right 30%), Toggle (center 40%) */}
-      <button aria-label="Previous" className="absolute left-0 top-0 h-full" style={{ width: '30%', background: 'transparent' }} onClick={goPrev} />
-      <button aria-label="Next" className="absolute right-0 top-0 h-full" style={{ width: '30%', background: 'transparent' }} onClick={goNext} />
-      <button aria-label="Toggle detail" className="absolute top-0 h-full" style={{ left: '30%', width: '40%', background: 'transparent' }} onClick={toggleDetail} />
+      {/* ── Tap zones: Prev 30% | Toggle 40% | Next 30% ── */}
+      <button
+        aria-label="Previous"
+        className="absolute left-0 top-0 h-full"
+        style={{ width: '30%', background: 'transparent' }}
+        onClick={goToPrev}
+      />
+      <button
+        aria-label="Next"
+        className="absolute right-0 top-0 h-full"
+        style={{ width: '30%', background: 'transparent' }}
+        onClick={goToNext}
+      />
+      <button
+        aria-label="Toggle detail"
+        className="absolute top-0 h-full"
+        style={{ left: '30%', width: '40%', background: 'transparent' }}
+        onClick={toggleDetail}
+      />
 
-      {/* Bottom section: detail sheet + action bar */}
+      {/* ── Bottom section ── */}
       <div
         className="absolute left-0 right-0"
         style={{ bottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
         onTouchStart={e => e.stopPropagation()}
         onTouchEnd={e => e.stopPropagation()}
       >
-        {/* Detail sheet — slides up on open */}
-        <div
-          style={{
-            transition: 'opacity 0.20s ease-out, transform 0.20s ease-out',
-            opacity: showDetail ? 1 : 0,
-            transform: showDetail ? 'translateY(0)' : 'translateY(8px)',
-            pointerEvents: showDetail ? 'auto' : 'none',
-            marginBottom: 10,
-          }}
-        >
-          <DetailSheet
-            date={entry.date}
-            detail={currentDetail}
-            loading={detailLoading}
-            locale={locale}
-            isToday={isToday}
-            onClose={closeDetail}
-          />
-        </div>
+        {/*
+          DetailSheet is CONDITIONALLY MOUNTED — not just hidden.
+          When closed: zero DOM nodes, zero renders, zero CSS paint cost.
+          CSS @keyframes detail-in handles the enter animation on mount.
+          Workout info (muscle badge, exercise name, stats) is never in the DOM when closed.
+        */}
+        {showDetail && (
+          <div style={{ marginBottom: 10 }}>
+            <DetailSheet
+              date={entry.date}
+              detail={currentDetail}
+              loading={detailLoading}
+              locale={locale}
+              isToday={isToday}
+              onClose={closeDetail}
+            />
+          </div>
+        )}
 
         {/* Action bar: always visible */}
         <div className="flex items-center gap-2.5 px-4">
