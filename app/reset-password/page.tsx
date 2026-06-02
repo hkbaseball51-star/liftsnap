@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 // Supabase Dashboard → Authentication → URL Configuration → Redirect URLs must include:
@@ -19,14 +20,25 @@ function dbgErr(msg: string) { if (DEV) console.error(`[reset-password] ${msg}`)
 /** Map Supabase error messages to user-safe strings without leaking internals. */
 function mapUpdateError(msg: string): string {
   const m = msg.toLowerCase()
+  // Exact Supabase error strings (checked first, most specific)
+  if (m.includes('auth session missing')) {
+    return 'Session expired. Please request a new reset link.'
+  }
+  if (m.includes('new password should be different from the old password')) {
+    return 'Please use a different password from your current one.'
+  }
+  if (m.includes('password should be at least')) {
+    return 'Password must be at least 8 characters.'
+  }
+  // Broader fallbacks
   if (m.includes('session') || m.includes('missing') || m.includes('logged in') || m.includes('not authenticated')) {
     return 'Session expired. Please request a new reset link.'
   }
   if (m.includes('different') || m.includes('same password')) {
-    return 'New password must be different from your current password.'
+    return 'Please use a different password from your current one.'
   }
   if (m.includes('password') && (m.includes('weak') || m.includes('strength') || m.includes('policy'))) {
-    return 'Password does not meet the minimum requirements. Please try a stronger password.'
+    return 'Password must be at least 8 characters.'
   }
   return 'Could not update password. Please request a new reset link.'
 }
@@ -36,7 +48,8 @@ export default function ResetPasswordPage() {
   const [stage,       setStage]       = useState<Stage>('checking')
   const [password,    setPassword]    = useState('')
   const [confirm,     setConfirm]     = useState('')
-  const [fieldError,  setFieldError]  = useState<string | null>(null)
+  const [showNew,     setShowNew]     = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Single Supabase client shared across useEffect and handleSubmit.
@@ -145,18 +158,36 @@ export default function ResetPasswordPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── Derived validation state ──────────────────────────────────────
+  const trimmedPw   = password.trim()
+  const tooShort    = trimmedPw.length > 0 && trimmedPw.length < 8
+  const mismatch    = confirm.length > 0 && password !== confirm
+  const bothMatch   = confirm.length > 0 && password === confirm && trimmedPw.length >= 8
+
+  const isDisabled =
+    stage === 'updating' ||
+    trimmedPw.length < 8 ||
+    confirm.length < 8 ||
+    password !== confirm
+
+  // ── Submit ────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setFieldError(null)
     setSubmitError(null)
 
-    const trimmed = password.trim()
-    if (trimmed.length < 8) {
-      setFieldError('Password must be at least 8 characters.')
+    // Guard 1: empty fields
+    if (!password || !confirm) {
+      setSubmitError('Please enter your new password.')
       return
     }
+    // Guard 2: too short
+    if (trimmedPw.length < 8) {
+      setSubmitError('Password must be at least 8 characters.')
+      return
+    }
+    // Guard 3: mismatch — never reach updateUser
     if (password !== confirm) {
-      setFieldError('Passwords do not match.')
+      setSubmitError('Passwords do not match.')
       return
     }
 
@@ -165,10 +196,16 @@ export default function ResetPasswordPage() {
     // Use the same client that established the recovery session (in-memory + cookie).
     const supabase = getSupabase()
 
+    // ── Debug: URL state at submit time ──────────────────────────────
+    const codeParam = new URLSearchParams(window.location.search).get('code')
+    console.log('[reset-password] pathname:', window.location.pathname)
+    console.log('[reset-password] code param exists:', !!codeParam)
+
     // Pre-flight: confirm the recovery session is still active before updating.
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    dbg(`before update session exists: ${!!session}`)
-    if (sessionError) dbgErr(`getSession error: ${sessionError.message}`)
+    console.log('[reset-password] before update session exists:', !!session)
+    console.log('[reset-password] before update user exists:', !!session?.user)
+    if (sessionError) console.error('[reset-password] session error:', sessionError.message)
 
     if (!session) {
       dbgErr('no session before updateUser — recovery session expired or not established')
@@ -178,10 +215,12 @@ export default function ResetPasswordPage() {
     }
 
     const { error } = await supabase.auth.updateUser({ password })
-    dbg(`update success: ${!error}`)
+    console.log('[reset-password] update success:', !error)
 
     if (error) {
-      dbgErr(`update error: ${error.message}`)
+      console.error('[reset-password] update error message:', error.message)
+      console.error('[reset-password] update error status:', error.status)
+      console.error('[reset-password] update error name:', error.name)
       setSubmitError(mapUpdateError(error.message))
       setStage('valid')
       return
@@ -249,48 +288,99 @@ export default function ResetPasswordPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+              {/* New password */}
               <div>
                 <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
                   NEW PASSWORD <span style={{ color: '#333' }}>(8+ characters)</span>
                 </label>
-                <input
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-                  style={{ background: '#171717', border: '1px solid #1e1e1e' }}
-                />
+                <div className="relative">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    required
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setSubmitError(null) }}
+                    className="w-full h-12 rounded-xl text-white text-sm outline-none"
+                    style={{
+                      background: '#171717',
+                      border: `1px solid ${tooShort ? 'rgba(239,68,68,0.50)' : '#1e1e1e'}`,
+                      paddingLeft: 16,
+                      paddingRight: 44,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(v => !v)}
+                    aria-label={showNew ? 'Hide new password' : 'Show new password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                    style={{ color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
+                    {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {tooShort && (
+                  <p className="mt-1.5 text-[11px]" style={{ color: '#ef4444' }}>
+                    Password must be at least 8 characters.
+                  </p>
+                )}
               </div>
 
+              {/* Confirm password */}
               <div>
                 <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
                   CONFIRM PASSWORD
                 </label>
-                <input
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none"
-                  style={{ background: '#171717', border: '1px solid #1e1e1e' }}
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    required
+                    autoComplete="new-password"
+                    value={confirm}
+                    onChange={e => { setConfirm(e.target.value); setSubmitError(null) }}
+                    className="w-full h-12 rounded-xl text-white text-sm outline-none"
+                    style={{
+                      background: '#171717',
+                      border: `1px solid ${mismatch ? 'rgba(239,68,68,0.50)' : '#1e1e1e'}`,
+                      paddingLeft: 16,
+                      paddingRight: 44,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(v => !v)}
+                    aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                    style={{ color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {/* Inline match/mismatch hint */}
+                {mismatch && (
+                  <p className="mt-1.5 text-[11px]" style={{ color: '#ef4444' }}>
+                    Passwords do not match.
+                  </p>
+                )}
+                {bothMatch && (
+                  <p className="mt-1.5 text-[11px]" style={{ color: '#22c55e' }}>
+                    Passwords match.
+                  </p>
+                )}
               </div>
 
-              {fieldError && (
-                <p className="text-sm text-center font-bold" style={{ color: '#ef4444' }}>{fieldError}</p>
-              )}
+              {/* Submit-level error (session / updateUser errors) */}
               {submitError && (
                 <p className="text-sm text-center" style={{ color: '#ef4444' }}>{submitError}</p>
               )}
 
               <button
                 type="submit"
-                disabled={stage === 'updating'}
-                className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
-                style={{ background: stage === 'updating' ? '#333' : '#ED742F' }}>
+                disabled={isDisabled}
+                className="h-12 rounded-xl font-black text-sm mt-2 tracking-widest transition-colors"
+                style={{
+                  background:  isDisabled ? '#222' : '#ED742F',
+                  color:       isDisabled ? 'rgba(255,255,255,0.28)' : '#fff',
+                  cursor:      isDisabled ? 'not-allowed' : 'pointer',
+                }}>
                 {stage === 'updating' ? 'UPDATING…' : 'UPDATE PASSWORD'}
               </button>
             </form>
