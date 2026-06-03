@@ -22,7 +22,7 @@ export type TodayData = {
 
 export type CardStyle  = 'glass' | 'transparent'
 export type Accent     = 'orange' | 'purple' | 'teal' | 'blue' | 'white' | 'red'
-export type ShadowMode = 'none' | 'soft' | 'strong'
+export type ShadowMode = 'none' | 'soft' | 'strong' | 'extra-strong'
 
 // accent hex + badge styling per color
 export const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
@@ -34,21 +34,11 @@ export const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: str
   red:    { hex: '#EF4444', badgeBg: '#EF4444',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
 }
 
-// Base shadows applied by user selection
 const SHADOW: Record<ShadowMode, string> = {
-  none:   'none',
-  soft:   '0 2px 10px rgba(0,0,0,0.45)',
-  strong: '0 3px 16px rgba(0,0,0,0.75)',
-}
-
-// Extra shadow boost applied on top of user selection in transparent mode.
-// Glass mode has a dark card background so legibility is already guaranteed.
-// Transparent mode has no card — the boost ensures text stays readable over any background.
-const TRANSPARENT_SHADOW_BOOST = '0 3px 14px rgba(0,0,0,0.75)'
-
-function mergeTextShadow(base: string, extra: string): string {
-  if (base === 'none') return extra
-  return `${base}, ${extra}`
+  none:           'none',
+  soft:           '0 2px 10px rgba(0,0,0,0.55)',
+  strong:         '0 2px 6px rgba(0,0,0,0.85), 0 6px 18px rgba(0,0,0,0.65)',
+  'extra-strong': '0 2px 4px rgba(0,0,0,0.95), 0 6px 18px rgba(0,0,0,0.8), 0 12px 32px rgba(0,0,0,0.65)',
 }
 
 // ── Hex → rgba helper ─────────────────────────────────────────────────
@@ -159,11 +149,7 @@ export default function WorkoutStoryCardContent({
   const tier = getTier(totalRows)
   const tp   = TIER_PARAMS[tier]
 
-  // Transparent mode gets an extra shadow boost on top of user-selected shadow
-  // so text stays readable regardless of background image
-  const ts = isTransparent
-    ? mergeTextShadow(SHADOW[shadowMode], TRANSPARENT_SHADOW_BOOST)
-    : SHADOW[shadowMode]
+  const ts = SHADOW[shadowMode]
 
   // Accent-tinted divider: accent color at 25% (glass) or 35% (transparent)
   const dividerColor = isTransparent
@@ -227,7 +213,7 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* Divider — accent-tinted */}
-      <div style={{ height: 1, width: '75%', background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
+      <div style={{ height: 1, width: '60%', background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
       {/* TOTAL VOLUME */}
       <div>
@@ -259,7 +245,7 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* Divider — accent-tinted */}
-      <div style={{ height: 1, width: '75%', background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
+      <div style={{ height: 1, width: '60%', background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
       {/* EXERCISES — full set detail, no truncation */}
       <div>

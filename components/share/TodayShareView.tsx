@@ -67,9 +67,10 @@ const COLOR_OPTIONS: {
 
 // ── Shadow options ────────────────────────────────────────────────────
 const SHADOW_OPTIONS: { value: ShadowMode; labelJa: string; labelEn: string }[] = [
-  { value: 'none',   labelJa: 'なし',   labelEn: 'None'   },
-  { value: 'soft',   labelJa: 'ソフト', labelEn: 'Soft'   },
-  { value: 'strong', labelJa: '強め',   labelEn: 'Strong' },
+  { value: 'none',         labelJa: 'なし',       labelEn: 'None'         },
+  { value: 'soft',         labelJa: '標準',       labelEn: 'Soft'         },
+  { value: 'strong',       labelJa: '強め',       labelEn: 'Strong'       },
+  { value: 'extra-strong', labelJa: 'かなり強め', labelEn: 'Extra Strong' },
 ]
 
 export default function TodayShareView({ data }: { data: TodayData }) {
@@ -81,18 +82,18 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
   const [cardStyle,  setCardStyleState] = useState<CardStyle>('glass')
   const [accent,     setAccent]         = useState<Accent>('white')
-  const [shadowMode, setShadowMode]     = useState<ShadowMode>('none')
+  const [shadowMode, setShadowMode]     = useState<ShadowMode>('soft')
   const [saving,     setSaving]         = useState(false)
   const [status,     setStatus]         = useState('')
   const [shareCount, setShareCount]     = useState(0)
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
-  // Switch card style; auto-enable soft shadow when going transparent
+  // Switch card style; auto-upgrade shadow when going transparent
   function handleSetCardStyle(style: CardStyle) {
     setCardStyleState(style)
-    if (style === 'transparent' && shadowMode === 'none') {
-      setShadowMode('soft')
+    if (style === 'transparent' && (shadowMode === 'none' || shadowMode === 'soft')) {
+      setShadowMode('strong')
     }
   }
 
