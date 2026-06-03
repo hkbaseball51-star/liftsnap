@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Plus, Camera, Share2, TrendingUp, Maximize2,
   Dumbbell, CalendarDays,
@@ -55,15 +55,15 @@ function p1(locale: Locale, todayStr: string): CTAItem {
   }
 }
 
-function p2(locale: Locale, storyHref: string): CTAItem {
+function p2(locale: Locale, todayStr: string): CTAItem {
   return locale === 'ja' ? {
-    sub: '記録が残りました', title: 'Workout Storyを作成する',
-    desc: '今日のトレーニングをストーリーカードにして保存できます。',
-    href: storyHref, icon: 'share', accent: 'orange-muted',
+    sub: '記録済み', title: '今日の記録を確認',
+    desc: '内容を見返して、Storyにできます。',
+    href: `/record?date=${todayStr}`, icon: 'dumbbell', accent: 'orange-muted',
   } : {
-    sub: 'WORKOUT LOGGED', title: 'Create Your Workout Story',
-    desc: "Turn today's session into a shareable story card.",
-    href: storyHref, icon: 'share', accent: 'orange-muted',
+    sub: 'WORKOUT LOGGED', title: "View Today's Session",
+    desc: 'Review your session and create a Story from there.',
+    href: `/record?date=${todayStr}`, icon: 'dumbbell', accent: 'orange-muted',
   }
 }
 
@@ -170,16 +170,42 @@ function IconBox({ icon, accent }: { icon: CTAIcon; accent: Accent }) {
 /* ── Card ────────────────────────────────────────────────────── */
 
 function CTACard({ cta }: { cta: CTAItem }) {
+  const router = useRouter()
+  const [pressed, setPressed] = useState(false)
+  const navigatingRef = useRef(false)
   const isOrange = cta.accent !== 'white'
+
+  function handleClick() {
+    if (navigatingRef.current) return
+    navigatingRef.current = true
+    router.push(cta.href)
+    setTimeout(() => { navigatingRef.current = false }, 1200)
+  }
+
   return (
-    <Link href={cta.href}>
+    <button
+      className="w-full text-left"
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      onClick={handleClick}
+      style={{
+        display: 'block',
+        transform: pressed ? 'scale(0.98)' : 'scale(1)',
+        transition: 'transform 120ms ease-out',
+      }}
+    >
       <div
-        className="rounded-2xl overflow-hidden active:opacity-80 transition-opacity"
+        className="rounded-2xl overflow-hidden"
         style={{
           background: isOrange ? '#1C1C1C' : '#181818',
           border: isOrange
             ? '1px solid rgba(237,116,47,0.28)'
             : '1px solid rgba(255,255,255,0.09)',
+          boxShadow: pressed && isOrange
+            ? '0 0 28px rgba(237,116,47,0.28), 0 0 8px rgba(237,116,47,0.14)'
+            : 'none',
+          transition: 'box-shadow 120ms ease-out',
         }}>
         {/* Top accent line */}
         <div style={{
@@ -210,66 +236,19 @@ function CTACard({ cta }: { cta: CTAItem }) {
           <IconBox icon={cta.icon} accent={cta.accent} />
         </div>
       </div>
-    </Link>
+    </button>
   )
 }
 
 /* ── Main component ──────────────────────────────────────────── */
 
 export default function HomeCTACard(props: HomeCTACardProps) {
-  const { todayStr, hasTodayWorkout, hasTodayPhoto, locale, storyHref } = props
+  const { todayStr, hasTodayWorkout, locale } = props
 
-  // P1/P2: props-only — identical on server and client, no hydration mismatch
-  const staticCTA: CTAItem | null =
-    !hasTodayWorkout ? p1(locale, todayStr) :
-    !hasTodayPhoto   ? p2(locale, storyHref) :
-    null
-
-  // P3-7 + fallback: resolved from localStorage after mount
-  const [dynamicCTA, setDynamicCTA] = useState<CTAItem | null>(null)
-
-  useEffect(() => {
-    if (staticCTA) return  // P1/P2 is already correct; no localStorage needed
-
-    try {
-      const seen: Seen = {
-        story:     localStorage.getItem('repra_seen_story')             === 'true',
-        progress:  localStorage.getItem('repra_seen_progress')          === 'true',
-        fullscreen:localStorage.getItem('repra_seen_fullscreen_chart')  === 'true',
-      }
-
-      // Daily-stable fallback — stored in localStorage keyed by date
-      const fbKey  = `repra_home_feature_tip_${todayStr}`
-      const stored = localStorage.getItem(fbKey)
-      const fbs    = fallbacks(locale, todayStr, storyHref)
-      let fb: CTAItem
-      try {
-        fb = stored ? (JSON.parse(stored) as CTAItem) : fbs[hashStr(todayStr) % fbs.length]
-        if (!stored) localStorage.setItem(fbKey, JSON.stringify(fb))
-      } catch {
-        fb = fbs[hashStr(todayStr) % fbs.length]
-      }
-
-      setDynamicCTA(computeDynamic(props, seen, fb))
-    } catch {
-      const fbs = fallbacks(locale, todayStr, storyHref)
-      setDynamicCTA(fbs[hashStr(todayStr) % fbs.length])
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const cta = staticCTA ?? dynamicCTA
-
-  // Reserve height while localStorage resolves (< 1 frame) to prevent layout shift
-  if (!cta) {
-    return (
-      <div className="rounded-2xl" style={{
-        height: 88,
-        background: '#181818',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }} />
-    )
-  }
+  // Always show P1 (no workout) or P2 (has workout) — both go to Record screen
+  const cta: CTAItem = hasTodayWorkout
+    ? p2(locale, todayStr)
+    : p1(locale, todayStr)
 
   return <CTACard cta={cta} />
 }

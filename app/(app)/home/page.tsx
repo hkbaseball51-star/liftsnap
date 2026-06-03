@@ -303,22 +303,18 @@ export default async function HomePage() {
         )}
       </div>
 
-      {/* ── TODAY'S SUMMARY or CTA ── */}
+      {/* ── TODAY'S CTA — always Record screen, text switches by state ── */}
       <div className="px-4 mb-5">
-        {todayWorked ? (
-          <TodaySummaryCard summary={daySummaries[todayStr]} storyHref={storyHref} locale={locale} />
-        ) : (
-          <HomeCTACard
-            todayStr={todayStr}
-            hasTodayWorkout={todayWorked}
-            hasTodayPhoto={hasTodayPhoto}
-            workoutCount={totalSessions90}
-            daysSinceLastLegDay={daysSinceLastLegDay}
-            profileComplete={profileComplete}
-            storyHref={storyHref}
-            locale={locale}
-          />
-        )}
+        <HomeCTACard
+          todayStr={todayStr}
+          hasTodayWorkout={todayWorked}
+          hasTodayPhoto={hasTodayPhoto}
+          workoutCount={totalSessions90}
+          daysSinceLastLegDay={daysSinceLastLegDay}
+          profileComplete={profileComplete}
+          storyHref={storyHref}
+          locale={locale}
+        />
       </div>
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
