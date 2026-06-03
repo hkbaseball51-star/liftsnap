@@ -25,13 +25,14 @@ export type Accent     = 'orange' | 'purple' | 'teal' | 'blue' | 'white' | 'red'
 export type ShadowMode = 'none' | 'soft' | 'strong' | 'extra-strong'
 export type CardBg     = 'black' | 'orange' | 'purple' | 'teal' | 'white'
 
-// Glass card background — alpha ~0.52 for black, ~0.28 for colors, ~0.22 for white
-const CARD_BG: Record<CardBg, string> = {
-  black:  'rgba(8,8,8,0.52)',
-  orange: 'rgba(249,115,22,0.28)',
-  purple: 'rgba(124,58,237,0.28)',
-  teal:   'rgba(20,184,166,0.28)',
-  white:  'rgba(255,255,255,0.22)',
+// Modern glass gradient — top-left highlight fades into base color
+// Base opacity: black 0.42, colors 0.20, white 0.16
+const CARD_BG_GRADIENT: Record<CardBg, string> = {
+  black:  'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(8,8,8,0.42) 100%)',
+  orange: 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(249,115,22,0.20) 100%)',
+  purple: 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(124,58,237,0.20) 100%)',
+  teal:   'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(20,184,166,0.20) 100%)',
+  white:  'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(220,220,220,0.12) 100%)',
 }
 
 // accent hex + badge styling per color
@@ -180,10 +181,11 @@ export default function WorkoutStoryCardContent({
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
       textShadow: ts,
-      background: isTransparent ? 'transparent' : CARD_BG[cardBg],
+      background: isTransparent ? 'transparent' : CARD_BG_GRADIENT[cardBg],
       ...(isTransparent ? {} : {
         border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: '14px',
+        borderRadius: '24px',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 18px 50px rgba(0,0,0,0.24)',
       }),
     }}>
 

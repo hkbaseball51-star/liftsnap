@@ -41,6 +41,8 @@ async function captureStory(captureEl: HTMLDivElement, transparent: boolean): Pr
       pixelRatio,
       cacheBust: true,
       skipFonts: true,
+      filter: (node: Node) =>
+        !(node instanceof Element && node.hasAttribute('data-preview-only')),
     })
     const res = await fetch(dataUrl)
     return await res.blob()
@@ -166,21 +168,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   // Outer 9:16 canvas is always transparent — the inner info card carries its own bg
   const canvasBg = 'transparent'
 
-  // Preview-only dark checkerboard behind the transparent card.
-  // Dark pattern keeps white text readable while indicating transparency.
-  // Applied to the PARENT of captureRef — never included in the saved PNG.
-  const checkerStyle: React.CSSProperties = isTransparent ? {
-    backgroundColor: '#2a2a2a',
-    backgroundImage: [
-      'linear-gradient(45deg, #3a3a3a 25%, transparent 25%)',
-      'linear-gradient(-45deg, #3a3a3a 25%, transparent 25%)',
-      'linear-gradient(45deg, transparent 75%, #3a3a3a 75%)',
-      'linear-gradient(-45deg, transparent 75%, #3a3a3a 75%)',
-    ].join(', '),
-    backgroundSize: '20px 20px',
-    backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
-    borderRadius: 20,
-  } : {}
+  const checkerBg = [
+    'linear-gradient(45deg, #3a3a3a 25%, transparent 25%)',
+    'linear-gradient(-45deg, #3a3a3a 25%, transparent 25%)',
+    'linear-gradient(45deg, transparent 75%, #3a3a3a 75%)',
+    'linear-gradient(-45deg, transparent 75%, #3a3a3a 75%)',
+  ].join(', ')
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
@@ -206,7 +199,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
       {/* 9:16 Story card preview */}
       <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
-        <div style={{ width: 'min(94vw, 420px)', ...checkerStyle }}>
+        <div style={{ width: 'min(94vw, 420px)' }}>
           <div
             ref={captureRef}
             style={{
@@ -217,6 +210,23 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               background: canvasBg,
             }}
           >
+            {/* Preview-only checker — same column width as the card, excluded from saved PNG */}
+            {isTransparent && naturalWidth > 0 && (
+              <div
+                data-preview-only=""
+                style={{
+                  position: 'absolute', top: 0, left: 0, height: '100%',
+                  width: `${naturalWidth}px`,
+                  backgroundColor: '#2a2a2a',
+                  backgroundImage: checkerBg,
+                  backgroundSize: '20px 20px',
+                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
+                  zIndex: 1,
+                  pointerEvents: 'none',
+                }}
+              />
+            )}
+
             {/* Card fits content width — no fixed % so right side stays clean */}
             <div style={{ position: 'absolute', top: 0, left: 0, maxWidth: '100%', zIndex: 2 }}>
               <div
