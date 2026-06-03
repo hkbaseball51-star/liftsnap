@@ -107,11 +107,11 @@ export const TIER_PARAMS: Record<Tier, {
   nameSize: number; infoSize: number; setSize: number;
   exGap: number; lineGap: number; sectionGap: number; volumeSize: number;
 }> = {
-  1: { nameSize: 14, infoSize: 12, setSize: 18, exGap: 10, lineGap: 4, sectionGap: 11, volumeSize: 42 },
-  2: { nameSize: 13, infoSize: 12, setSize: 17, exGap: 8,  lineGap: 3, sectionGap: 9,  volumeSize: 38 },
-  3: { nameSize: 13, infoSize: 11, setSize: 16, exGap: 6,  lineGap: 3, sectionGap: 8,  volumeSize: 34 },
-  4: { nameSize: 12, infoSize: 10, setSize: 14, exGap: 5,  lineGap: 2, sectionGap: 7,  volumeSize: 32 },
-  5: { nameSize: 11, infoSize: 10, setSize: 12, exGap: 4,  lineGap: 2, sectionGap: 6,  volumeSize: 30 },
+  1: { nameSize: 16, infoSize: 12, setSize: 18, exGap: 10, lineGap: 4, sectionGap: 11, volumeSize: 42 },
+  2: { nameSize: 15, infoSize: 12, setSize: 17, exGap: 8,  lineGap: 3, sectionGap: 9,  volumeSize: 38 },
+  3: { nameSize: 15, infoSize: 11, setSize: 16, exGap: 6,  lineGap: 3, sectionGap: 8,  volumeSize: 34 },
+  4: { nameSize: 14, infoSize: 10, setSize: 14, exGap: 5,  lineGap: 2, sectionGap: 7,  volumeSize: 32 },
+  5: { nameSize: 13, infoSize: 10, setSize: 12, exGap: 4,  lineGap: 2, sectionGap: 6,  volumeSize: 30 },
 }
 
 // ── Props ─────────────────────────────────────────────────────────────
