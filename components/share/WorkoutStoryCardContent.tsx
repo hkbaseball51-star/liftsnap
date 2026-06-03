@@ -182,8 +182,8 @@ export default function WorkoutStoryCardContent({
       textShadow: ts,
       background: isTransparent ? 'transparent' : CARD_BG[cardBg],
       ...(isTransparent ? {} : {
-        border: '1px solid rgba(255,255,255,0.10)',
-        borderRadius: '0 0 20px 20px',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: '14px',
       }),
     }}>
 

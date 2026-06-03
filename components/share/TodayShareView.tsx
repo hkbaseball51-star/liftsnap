@@ -159,8 +159,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const ja            = locale === 'ja'
   const isTransparent = cardStyle === 'transparent'
 
-  // Outer 9:16 canvas background (always dark; card content bg is separate)
-  const canvasBg = isTransparent ? 'transparent' : '#050505'
+  // Outer 9:16 canvas is always transparent — the inner info card carries its own bg
+  const canvasBg = 'transparent'
 
   // Preview-only dark checkerboard behind the transparent card.
   // Dark pattern keeps white text readable while indicating transparency.
@@ -214,7 +214,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             }}
           >
             {/* Card content — scales down automatically when content exceeds canvas height */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2 }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '72%', zIndex: 2 }}>
               <div
                 ref={contentRef}
                 style={contentScale < 1 ? {
