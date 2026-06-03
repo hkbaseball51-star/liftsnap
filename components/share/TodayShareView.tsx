@@ -98,24 +98,28 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [saving,       setSaving]         = useState(false)
   const [status,       setStatus]         = useState('')
   const [shareCount,   setShareCount]     = useState(0)
-  const [contentScale, setContentScale]   = useState(1)
+  const [contentScale,  setContentScale]  = useState(1)
+  const [naturalWidth,  setNaturalWidth]  = useState(0)
 
-  // Measure content height after render and scale down if it overflows the 9:16 canvas.
-  // Runs before paint (useLayoutEffect) so there's no visible flash.
+  // Measure natural content width/height, then compute scale-down if needed.
+  // Using max-content so the card is exactly as wide as the text content requires.
+  // Runs before paint (useLayoutEffect) — no visible flash.
   useLayoutEffect(() => {
     const canvas  = captureRef.current
     const content = contentRef.current
     if (!canvas || !content) return
 
-    // Temporarily clear scale so we measure the natural content height
+    // Reset to measure at natural (max-content) dimensions
     content.style.transform = 'none'
-    content.style.width     = '100%'
+    content.style.width     = 'max-content'
 
-    const availH  = canvas.clientHeight
+    const availH   = canvas.clientHeight
     const contentH = content.scrollHeight
+    const contentW = content.offsetWidth
 
     const next = contentH > availH ? Math.max(0.5, availH / contentH) : 1
     setContentScale(next)
+    setNaturalWidth(contentW)
   }, [data])
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
@@ -213,15 +217,19 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               background: canvasBg,
             }}
           >
-            {/* Card content — scales down automatically when content exceeds canvas height */}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '72%', zIndex: 2 }}>
+            {/* Card fits content width — no fixed % so right side stays clean */}
+            <div style={{ position: 'absolute', top: 0, left: 0, maxWidth: '100%', zIndex: 2 }}>
               <div
                 ref={contentRef}
                 style={contentScale < 1 ? {
                   transform: `scale(${contentScale})`,
                   transformOrigin: 'top left',
-                  width: `${(100 / contentScale).toFixed(3)}%`,
-                } : undefined}
+                  width: naturalWidth > 0
+                    ? `${Math.round(naturalWidth / contentScale)}px`
+                    : 'max-content',
+                } : {
+                  width: naturalWidth > 0 ? `${naturalWidth}px` : 'max-content',
+                }}
               >
                 <WorkoutStoryCardContent
                   data={data}
