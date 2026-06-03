@@ -6,6 +6,7 @@ import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
+import { PRESETS } from '@/components/share/WorkoutStoryCardContent'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -19,6 +20,10 @@ export type StatsData =
 type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
+type GraphLayout = 'full' | 'bottom' | 'mini' | 'wide'
+type GraphPreset = 'orange' | 'ice-blue' | 'violet' | 'mint'
+type CardStyle   = 'glass' | 'transparent'
+type ShadowLevel = 'none' | 'soft' | 'strong' | 'extra-strong'
 
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
@@ -45,6 +50,20 @@ const BODY_PART_DISPLAY: Record<string, string> = {
   shoulders: 'SHOULDERS', arms: 'ARMS', abs: 'ABS', other: 'OTHER',
 }
 
+const GRAPH_LAYOUTS = [
+  { key: 'full',   labelEn: 'Full',   labelJa: '全画面',   ratio: '9:16' },
+  { key: 'bottom', labelEn: 'Bottom', labelJa: '下部バー', ratio: '4:1'  },
+  { key: 'mini',   labelEn: 'Mini',   labelJa: 'ミニカード', ratio: '1:1' },
+  { key: 'wide',   labelEn: 'Wide',   labelJa: 'ワイド',   ratio: '16:9' },
+] as const
+
+const PRESET_LABELS: Record<GraphPreset, string> = {
+  'orange':   'REPRA Orange',
+  'ice-blue': 'Ice Blue',
+  'violet':   'Violet Pump',
+  'mint':     'Mint Proof',
+}
+
 /* ── Helpers ─────────────────────────────────────────────── */
 function fmtShort(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -56,11 +75,6 @@ function fmtXLabel(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${M[d.getMonth()]} ${d.getDate()}`
-}
-
-function fmtBarDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
 const RM_JA_EN: Record<string, string> = {
@@ -80,6 +94,20 @@ const RM_JA_EN: Record<string, string> = {
   'プッシュアップ': 'PUSH-UP', 'ヒップスラスト': 'HIP THRUST',
   'ブルガリアンスクワット': 'BULGARIAN SQUAT', 'サイドレイズ': 'LATERAL RAISE',
   'フェイスプル': 'FACE PULL', 'ランジ': 'LUNGE',
+}
+
+function acRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+const SHADOW_MAP: Record<ShadowLevel, string> = {
+  none:           'none',
+  soft:           '0 2px 10px rgba(0,0,0,0.55)',
+  strong:         '0 2px 6px rgba(0,0,0,0.85), 0 6px 18px rgba(0,0,0,0.65)',
+  'extra-strong': '0 2px 4px rgba(0,0,0,0.95), 0 6px 18px rgba(0,0,0,0.8), 0 12px 32px rgba(0,0,0,0.65)',
 }
 
 function fmtYLabel(v: number, isVolume: boolean, unit: WeightUnit = 'kg'): string {
@@ -120,7 +148,7 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 
 type ChartPt = { date: string; value: number }
 
-/* ── BAR chart (canvas — used for volume/bodyweight) ──────── */
+/* ── BAR chart (canvas) ───────────────────────────────────── */
 function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], isVolume = false, unit: WeightUnit = 'kg') {
   if (!pts.length) return
   const n   = Math.min(pts.length, 14)
@@ -169,7 +197,7 @@ function canvasBar(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: 
   ctx.textAlign = 'left'
 }
 
-/* ── LINE chart (canvas — used for volume/bodyweight) ─────── */
+/* ── LINE chart (canvas) ──────────────────────────────────── */
 function canvasLine(ctx: CanvasRenderingContext2D, pts: ChartPt[], x: number, y: number, w: number, h: number, ac: typeof AC[Accent], accent: Accent, isVolume = false, unit: WeightUnit = 'kg') {
   if (pts.length < 2) { canvasBar(ctx, pts, x, y, w, h, ac, isVolume, unit); return }
   const n    = Math.min(pts.length, 14)
@@ -280,7 +308,6 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
     chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else {
-    // bodyweight
     const bw = data as Extract<StatsData, {type:'bodyweight'}>
     metricLabel = 'BODY WEIGHT'
     heroStr = String(toDisplayWeight(bw.currentWeight, unit))
@@ -352,31 +379,42 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   return new Promise(resolve => cv.toBlob(b => resolve(b!), 'image/png'))
 }
 
-/* ── MAX 1RM card capture via html-to-image ──────────────── */
-async function captureMax1RMCard(el: HTMLDivElement, theme: Theme): Promise<Blob> {
+/* ── Graph card capture (html-to-image, dynamic import) ──── */
+async function captureGraphElement(
+  el: HTMLDivElement,
+  isTransparent: boolean,
+): Promise<Blob> {
   const { toPng } = await import('html-to-image')
   await document.fonts.ready
   await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 60))
+  await new Promise(r => setTimeout(r, 80))
 
   const W = el.offsetWidth
   const H = el.offsetHeight
   const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
 
   const prevBg = el.style.background
-  el.style.background = theme === 'transparent' ? 'transparent' : '#0a0a0a'
-  await new Promise(r => requestAnimationFrame(r))
+  if (isTransparent) {
+    // Remove checker pattern — captured PNG will have transparent bg
+    el.style.background = 'transparent'
+    await new Promise(r => requestAnimationFrame(r))
+  }
 
   try {
     const dataUrl = await toPng(el, {
-      width: W, height: H,
+      width: W,
+      height: H,
       style: { width: `${W}px`, height: `${H}px` },
-      pixelRatio, cacheBust: true, skipFonts: true,
+      pixelRatio,
+      cacheBust: true,
+      skipFonts: true,
     })
     const res = await fetch(dataUrl)
     return await res.blob()
   } finally {
-    el.style.background = prevBg
+    if (isTransparent) {
+      el.style.background = prevBg
+    }
   }
 }
 
@@ -437,11 +475,95 @@ function ChartSVG({ pts, ac, accent, chartType }: {
   )
 }
 
+/* ── Layout thumbnail (pure SVG) ─────────────────────────── */
+function LayoutThumb({ layoutKey, accentHex, selected }: {
+  layoutKey: string
+  accentHex: string
+  selected: boolean
+}) {
+  const rects: Record<string, { x: number; y: number; w: number; h: number }> = {
+    full:   { x: 14, y: 4,  w: 12, h: 32 },
+    bottom: { x: 3,  y: 15, w: 34, h: 9  },
+    mini:   { x: 8,  y: 8,  w: 24, h: 24 },
+    wide:   { x: 3,  y: 10, w: 34, h: 20 },
+  }
+  const r = rects[layoutKey] ?? rects.full
+  const pts = [
+    [r.x + 2,          r.y + r.h * 0.80],
+    [r.x + r.w * 0.28, r.y + r.h * 0.58],
+    [r.x + r.w * 0.60, r.y + r.h * 0.32],
+    [r.x + r.w - 2,    r.y + r.h * 0.14],
+  ]
+  const linePoints = pts.map(([lx, ly]) => `${lx!.toFixed(1)},${ly!.toFixed(1)}`).join(' ')
+
+  return (
+    <svg viewBox="0 0 40 40" width={40} height={40} style={{ display: 'block' }}>
+      <rect
+        x={r.x} y={r.y} width={r.w} height={r.h} rx={2}
+        fill={selected ? `${accentHex}18` : 'rgba(255,255,255,0.06)'}
+        stroke={selected ? accentHex : 'rgba(255,255,255,0.2)'}
+        strokeWidth={1.2}
+      />
+      <polyline
+        points={linePoints}
+        fill="none"
+        stroke={selected ? accentHex : 'rgba(255,255,255,0.35)'}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+/* ── Line SVG for MAX 1RM card previews ──────────────────── */
+function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 2.5 }: {
+  data: { est1rm: number }[]
+  accentHex: string
+  areaFill: string
+  strokeWidth?: number
+}) {
+  if (data.length < 2) return null
+  const W = 100, H = 100
+  const values = data.map(d => d.est1rm)
+  const max = Math.max(...values)
+  const min = Math.min(...values)
+  const rng = max - min || max * 0.1 || 1
+  const padY = H * 0.08
+  const px = (i: number) => (i / (data.length - 1)) * W
+  const py = (v: number) => H - padY - ((v - min) / rng) * (H - padY * 2)
+  const linePoints = data.map((d, i) => `${px(i).toFixed(1)},${py(d.est1rm).toFixed(1)}`).join(' ')
+  const areaPoints = `0,${H} ${linePoints} ${W},${H}`
+  const lastX = px(data.length - 1)
+  const lastY = py(data[data.length - 1].est1rm)
+  const firstX = px(0)
+  const firstY = py(data[0].est1rm)
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+      <polygon points={areaPoints} fill={areaFill} />
+      <polyline
+        points={linePoints} fill="none" stroke={accentHex}
+        strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round"
+      />
+      {/* Start point */}
+      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="2.2" fill="rgba(255,255,255,0.5)" />
+      {/* Latest point with glow */}
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="9" fill={accentHex} opacity="0.2" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="5" fill={accentHex} opacity="0.45" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3" fill={accentHex} />
+    </svg>
+  )
+}
+
 /* ── Main component ──────────────────────────────────────── */
 export default function StatsShareView({ data }: { data: StatsData }) {
-  const router     = useRouter()
-  const captureRef = useRef<HTMLDivElement>(null)
-  const { unit }   = useWeightUnit()
+  const router        = useRouter()
+  const fullGraphRef  = useRef<HTMLDivElement>(null)
+  const bottomCardRef = useRef<HTMLDivElement>(null)
+  const miniCardRef   = useRef<HTMLDivElement>(null)
+  const wideCardRef   = useRef<HTMLDivElement>(null)
+  const { unit }      = useWeightUnit()
   const unitLabel  = weightUnitLabel(unit)
 
   const [theme,      setTheme]      = useState<Theme>('dark')
@@ -451,47 +573,126 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const [status,     setStatus]     = useState('')
   const [shareCount, setShareCount] = useState(0)
 
+  // MAX 1RM layout controls
+  const [graphLayout,  setGraphLayout]  = useState<GraphLayout>('full')
+  const [graphPreset,  setGraphPreset]  = useState<GraphPreset>('orange')
+  const [cardStyle,    setCardStyle]    = useState<CardStyle>('glass')
+  const [shadowLevel,  setShadowLevel]  = useState<ShadowLevel>('soft')
+
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
-  const handleShare = async () => {
-    setSharing(true); setStatus('Generating card...')
-    try {
-      let blob: Blob
-      if (data.type === 'max1rm' && captureRef.current) {
-        blob = await captureMax1RMCard(captureRef.current, theme)
-      } else {
-        blob = await generateStatsCard(data, theme, accent, chartType, unit)
-      }
-      const file = new File([blob], 'repra-stats.png', { type: 'image/png' })
-      if (navigator.canShare?.({ files: [file] })) {
-        setStatus('Sharing...')
-        await navigator.share({ files: [file], title: 'REPRA Stats' })
-        const next = incrementShareCount(); setShareCount(next)
-        setStatus('')
-      } else {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url; a.download = 'repra-stats.png'; a.click()
-        URL.revokeObjectURL(url)
-        const next = incrementShareCount(); setShareCount(next)
-        setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
-      else setStatus('')
-    } finally { setSharing(false) }
-  }
-
-  const ac       = AC[accent]
-  const acHex    = ac.hex
   const isMax1RM = data.type === 'max1rm'
-  const tsh      = '0 2px 8px rgba(0,0,0,0.75)'
+  const gp      = PRESETS[graphPreset]
+  const ac      = AC[accent]
+  const acHex   = ac.hex
+  const areaFill = acRgba(gp.accentHex, 0.12)
 
+  // Non-MAX1RM backgrounds
   const cardBg = theme === 'dark'
     ? '#0a0a0a'
     : `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
 
-  /* ── MAX 1RM chart data ──────────────────────────────────── */
+  // MAX 1RM card backgrounds
+  const isTransparentCard = graphLayout !== 'full' && cardStyle === 'transparent'
+  // Full uses dark + accent tint (Glass only — transparent is unnatural for full-bleed story)
+  const fullBg      = `linear-gradient(165deg, ${acRgba(gp.accentHex, 0.09)} 0%, #080808 55%)`
+  // Card layouts: glass gradient (matching Workout Story) or checker for transparent preview
+  const cardStyleBg = isTransparentCard
+    ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
+    : gp.bgCombined
+  const shadowValue    = SHADOW_MAP[shadowLevel]
+  const glassShadow    = `inset 0 1px 0 rgba(255,255,255,0.16)${shadowLevel !== 'none' ? `, ${shadowValue}` : ''}`
+  const cardBoxShadow  = isTransparentCard ? shadowValue : glassShadow
+  const textShadowVal  = SHADOW_MAP[shadowLevel]
+
+  const handleShare = async () => {
+    setSharing(true)
+    setStatus('Generating...')
+    try {
+      let blob: Blob
+      let filename: string
+
+      if (data.type === 'max1rm') {
+        // Select export target by layout
+        const el: HTMLDivElement | null =
+          graphLayout === 'full'   ? fullGraphRef.current  :
+          graphLayout === 'bottom' ? bottomCardRef.current :
+          graphLayout === 'mini'   ? miniCardRef.current   :
+                                     wideCardRef.current
+
+        // Pre-save validation
+        const w         = el?.offsetWidth  ?? 0
+        const h         = el?.offsetHeight ?? 0
+        const innerText = el?.innerText?.trim() ?? ''
+        const childCount = el?.children.length ?? 0
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[REPRA export check]', {
+            exportTargetExists: !!el,
+            innerText: innerText.slice(0, 120),
+            offsetWidth: w,
+            offsetHeight: h,
+            childrenLength: childCount,
+            graphLayout,
+            cardStyle,
+            graphPreset,
+          })
+        }
+
+        if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
+          setStatus('Could not create image. Please try again.')
+          setTimeout(() => setStatus(''), 3000)
+          setSharing(false)
+          return
+        }
+
+        // Full always dark; card layouts respect cardStyle
+        const isTransparent = graphLayout !== 'full' && cardStyle === 'transparent'
+        blob = await captureGraphElement(el, isTransparent)
+
+        // Build filename
+        const today    = new Date().toISOString().split('T')[0]
+        const nameSlug = (RM_JA_EN[exNameRaw] ?? exNameRaw)
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 20) || 'exercise'
+        filename = graphLayout === 'full'
+          ? `repra-max-1rm-story-${today}-${nameSlug}.png`
+          : `repra-max-1rm-card-${today}-${nameSlug}-${graphLayout}.png`
+
+      } else {
+        // Volume / bodyweight — keep existing Web Share API flow
+        blob = await generateStatsCard(data, theme, accent, chartType, unit)
+        filename = 'repra-stats.png'
+        const file = new File([blob], filename, { type: 'image/png' })
+        if (navigator.canShare?.({ files: [file] })) {
+          setStatus('Sharing...')
+          await navigator.share({ files: [file], title: 'REPRA Stats' })
+          const next = incrementShareCount(); setShareCount(next)
+          setStatus('')
+          return
+        }
+      }
+
+      // Download fallback (MAX 1RM always; non-MAX1RM when canShare is false)
+      const url = URL.createObjectURL(blob)
+      const a   = document.createElement('a')
+      a.href = url; a.download = filename; a.click()
+      URL.revokeObjectURL(url)
+      const next = incrementShareCount(); setShareCount(next)
+      setStatus('Downloaded!')
+      setTimeout(() => setStatus(''), 2000)
+
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== 'AbortError') {
+        setStatus('Could not create image. Please try again.')
+      } else {
+        setStatus('')
+      }
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  /* ── MAX 1RM data ────────────────────────────────────────── */
   const rm1FullHistory = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).history : []
   const bestRM         = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).bestRM : 0
   const exNameRaw      = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName : ''
@@ -504,43 +705,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const rm1FirstVal = rm1FullHistory.length >= 1 ? toDisplayWeight(rm1FullHistory[0].est1rm, unit) : null
   const bestRMDisplay = toDisplayWeight(bestRM, unit)
 
-  // Story display: max 16 bars — latest on top, first on bottom, middle evenly sampled
-  const rm1DisplayData: RMPoint[] = (() => {
-    if (!rm1FullHistory.length) return []
-    const MAX_DISP = 16
-    if (rm1FullHistory.length <= MAX_DISP) return [...rm1FullHistory].reverse()
-    const latest = rm1FullHistory[rm1FullHistory.length - 1]
-    const first  = rm1FullHistory[0]
-    const middle = rm1FullHistory.slice(1, rm1FullHistory.length - 1)
-    const needed = MAX_DISP - 2
-    const step   = middle.length / needed
-    const sampled: RMPoint[] = Array.from({ length: needed }, (_, i) =>
-      middle[Math.floor(i * step)]
-    )
-    return [latest, ...sampled.reverse(), first]
-  })()
-
-  const rm1DisplayDataConverted = rm1DisplayData.map(p => ({
-    ...p,
+  // SVG data: all history points, unit-converted
+  const rm1SVGData = rm1FullHistory.map(p => ({
     est1rm: Math.round(toDisplayWeight(p.est1rm, unit)),
   }))
-  const n      = rm1DisplayDataConverted.length
-  const rm1Max = n ? Math.max(...rm1DisplayDataConverted.map(d => d.est1rm)) : 0
-
-  // Dense bar layout: flex-start + explicit gap (no space-between stretching)
-  const barGap    = n <= 4 ? 14 : n <= 10 ? 10 : n <= 20 ? 7 : n <= 35 ? 4 : 3
-  const chartBarH = n <= 4 ? 30 : n <= 10 ? 24 : n <= 20 ? 18 : n <= 35 ? 12 : 7
-  const chartLatH = Math.round(chartBarH * 1.2)
-
-  // Bar opacity: latest=solid, recent→oldest fades 0.85→0.50, all same theme color
-  const getBarBg = (idx: number): string => {
-    if (idx === 0) return acHex
-    const t  = idx / Math.max(n - 1, 1)
-    const op = Math.max(0.50, 0.85 - t * 0.35)
-    if (accent === 'orange') return `rgba(237, 116, 47,${op.toFixed(2)})`
-    if (accent === 'purple') return `rgba(110,56,212,${op.toFixed(2)})`
-    return `rgba(255,255,255,${op.toFixed(2)})`
-  }
 
   /* ── Non-max1rm preview values ───────────────────────────── */
   let metricLabel = ''
@@ -588,6 +756,20 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     return idxs.map(i => fmtXLabel(chartData[i].date))
   })()
 
+  /* ── Badge helper ─────────────────────────────────────────── */
+  const gpBadge = (
+    <span style={{
+      fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5,
+      background: gp.badgeBg, color: gp.badgeText, border: '1px solid transparent',
+      letterSpacing: '0.16em', display: 'inline-block',
+    }}>REPRA</span>
+  )
+
+  /* ── Section label helper ─────────────────────────────────── */
+  const sectionLabel = (text: string) => (
+    <p style={{ fontSize: 10, fontWeight: 700, color: '#555', letterSpacing: '0.08em', marginBottom: 8 }}>{text}</p>
+  )
+
   return (
     <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
 
@@ -599,175 +781,333 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
       </div>
 
-      {/* ── Story preview ───────────────────────────────────── */}
+      {/* ① GRAPH LAYOUT ────────────────────────────────────── */}
+      {isMax1RM && (
+        <div className="px-4 mb-4">
+          {sectionLabel('GRAPH LAYOUT')}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {GRAPH_LAYOUTS.map(l => {
+              const sel = graphLayout === l.key
+              return (
+                <button
+                  key={l.key}
+                  onClick={() => setGraphLayout(l.key as GraphLayout)}
+                  style={{
+                    background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
+                    border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: 14,
+                    padding: '10px 12px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
+                    cursor: 'pointer', textAlign: 'left',
+                  }}>
+                  <LayoutThumb layoutKey={l.key} accentHex={gp.accentHex} selected={sel} />
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: sel ? gp.accentHex : '#fff', margin: 0, lineHeight: 1.2 }}>
+                      {l.ratio} {l.labelEn}
+                    </p>
+                    <p style={{ fontSize: 9, color: '#555', margin: '2px 0 0', lineHeight: 1.2 }}>
+                      {l.labelJa}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ② DESIGN PRESET ────────────────────────────────────── */}
+      {isMax1RM && (
+        <div className="px-4 mb-4">
+          {sectionLabel('DESIGN PRESET')}
+          <div className="flex gap-2">
+            {(['orange', 'ice-blue', 'violet', 'mint'] as GraphPreset[]).map(pk => {
+              const pd  = PRESETS[pk]
+              const sel = graphPreset === pk
+              return (
+                <button
+                  key={pk}
+                  onClick={() => setGraphPreset(pk)}
+                  style={{
+                    flex: 1, padding: '10px 4px', borderRadius: 12, cursor: 'pointer',
+                    background: sel ? acRgba(pd.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
+                    border: `1.5px solid ${sel ? pd.accentHex : 'rgba(255,255,255,0.08)'}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                  }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 10, background: pd.accentHex }} />
+                  <span style={{
+                    fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textAlign: 'center',
+                    color: sel ? pd.accentHex : '#666', lineHeight: 1.3, display: 'block',
+                  }}>
+                    {PRESET_LABELS[pk]}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ③ CARD STYLE — non-Full only ────────────────────────── */}
+      {isMax1RM && graphLayout !== 'full' && (
+        <div className="px-4 mb-3">
+          {sectionLabel('CARD STYLE')}
+          <div className="flex gap-2">
+            {(['glass', 'transparent'] as CardStyle[]).map(cs => {
+              const sel = cardStyle === cs
+              return (
+                <button key={cs} onClick={() => setCardStyle(cs)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                  style={{
+                    background: sel ? acRgba(gp.accentHex, 0.15) : '#1a1a1a',
+                    color: sel ? gp.accentHex : '#666',
+                    border: `1.5px solid ${sel ? gp.accentHex : '#2a2a2a'}`,
+                  }}>
+                  {cs === 'glass' ? 'Glass' : 'Transparent'}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ④ SHADOW — non-Full only ────────────────────────────── */}
+      {isMax1RM && graphLayout !== 'full' && (
+        <div className="px-4 mb-4">
+          {sectionLabel('SHADOW')}
+          <div className="flex gap-2">
+            {(['none', 'soft', 'strong', 'extra-strong'] as ShadowLevel[]).map(sl => {
+              const sel = shadowLevel === sl
+              const label = sl === 'none' ? 'None' : sl === 'soft' ? 'Soft' : sl === 'strong' ? 'Strong' : 'Extra'
+              return (
+                <button key={sl} onClick={() => setShadowLevel(sl)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                  style={{
+                    background: sel ? acRgba(gp.accentHex, 0.15) : '#1a1a1a',
+                    color: sel ? gp.accentHex : '#666',
+                    border: `1.5px solid ${sel ? gp.accentHex : '#2a2a2a'}`,
+                  }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ⑤ PREVIEW ──────────────────────────────────────────── */}
       <div className="px-4 mb-5">
 
         {isMax1RM ? (
-          /* ── MAX 1RM: horizontal bar chart, left 38% column ── */
-          <div ref={captureRef} style={{
-            aspectRatio: '9/16', width: '100%',
-            background: cardBg,
-            borderRadius: 24, overflow: 'hidden',
-            position: 'relative',
-          }}>
-            {/* Left content column — right 66% stays clear for background photo */}
-            <div style={{
-              width: '37%',
-              padding: '10px 0 8px 12px',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              textShadow: tsh,
-            }}>
-              {/* REPRA badge */}
-              <div style={{ display: 'inline-flex', marginBottom: 7, flexShrink: 0 }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 900, padding: '3px 10px', borderRadius: 7,
-                  background: ac.badgeBg, color: ac.badgeText,
-                  border: `1px solid ${ac.badgeBorder}`, letterSpacing: '0.12em',
-                }}>REPRA</span>
+          <>
+            {/* ── Full Graph (9:16) — line chart ── */}
+            {graphLayout === 'full' && (
+              <div ref={fullGraphRef} style={{
+                aspectRatio: '9/16',
+                width: '100%',
+                background: fullBg,
+                borderRadius: 24,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                border: `1px solid ${gp.border}`,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
+                textShadow: textShadowVal,
+              }}>
+                {/* Header */}
+                <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5,
+                    background: gp.badgeBg, color: gp.badgeText, border: '1px solid transparent',
+                    letterSpacing: '0.12em', display: 'inline-block',
+                  }}>REPRA</span>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.14em', margin: '7px 0 2px' }}>
+                    MAX 1RM PROGRESS
+                  </p>
+                  <p style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1.1, margin: 0 }}>
+                    {exName}
+                  </p>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '10px 18px' }} />
+
+                {/* Stats row */}
+                <div style={{ padding: '0 18px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  {rm1FirstVal !== null && (
+                    <>
+                      <div>
+                        <p style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
+                        <p style={{ fontSize: 17, fontWeight: 700, color: '#bbb', margin: 0, lineHeight: 1 }}>
+                          {rm1FirstVal}<span style={{ fontSize: 8.5, color: '#777', marginLeft: 1 }}>{unitLabel}</span>
+                        </p>
+                      </div>
+                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', margin: '7px 0 0' }}>→</p>
+                    </>
+                  )}
+                  <div>
+                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.1em', margin: '0 0 2px' }}>BEST</p>
+                    <p style={{ fontSize: rm1FirstVal !== null ? 24 : 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>
+                      {bestRMDisplay}
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
+                    </p>
+                  </div>
+                  {rm1Growth !== null && (
+                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                      <p style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', margin: '0 0 2px' }}>GAIN</p>
+                      <p style={{ fontSize: 17, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1 }}>
+                        {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
+                        <span style={{ fontSize: 8.5, marginLeft: 1 }}>{unitLabel}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Line chart */}
+                <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
+                  {rm1SVGData.length >= 2 ? (
+                    <MiniLineSVG
+                      data={rm1SVGData}
+                      accentHex={gp.accentHex}
+                      areaFill={areaFill}
+                      strokeWidth={3.5}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>No data yet</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Date labels */}
+                {rm1FullHistory.length >= 2 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
+                    <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.35)' }}>
+                      {fmtXLabel(rm1FullHistory[0].date)}
+                    </span>
+                    <span style={{ fontSize: 7.5, color: gp.accentHex, fontWeight: 600 }}>
+                      {fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <p style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
+                  Made with <span style={{ color: acRgba(gp.accentHex, 0.6), fontWeight: 700 }}>REPRA</span>
+                </p>
               </div>
+            )}
 
-              {/* Exercise name — same role as "NIGHT SESSION" in TodayShareView */}
-              <p style={{ fontSize: 18, fontWeight: 900, color: '#ffffff', lineHeight: 1.1, margin: '0 0 3px', flexShrink: 0 }}>
-                {exName}
-              </p>
+            {/* ── Bottom (4:1) ── */}
+            {graphLayout === 'bottom' && (
+              <div ref={bottomCardRef} style={{
+                width: '100%', aspectRatio: '4/1',
+                background: cardStyleBg, borderRadius: 18,
+                overflow: 'hidden', display: 'flex',
+                alignItems: 'center', padding: '0 16px',
+                boxShadow: cardBoxShadow, gap: 14,
+                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                textShadow: textShadowVal,
+              }}>
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {gpBadge}
+                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: '4px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                </div>
+                <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
+                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} />
+                </div>
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  <p style={{ fontSize: 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
+                  <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} best</p>
+                  {rm1Growth !== null && (
+                    <p style={{ fontSize: 10, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
+                      {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-              {/* 1RM PROGRESS subtitle */}
-              <p style={{ fontSize: 9.5, fontWeight: 700, color: acHex, letterSpacing: '0.1em', margin: '0 0 8px', lineHeight: 1.2, flexShrink: 0 }}>
-                1RM PROGRESS
-              </p>
-
-              {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.22)', margin: '0 0 9px', flexShrink: 0 }} />
-
-              {/* Growth hero — same scale as "5,790kg TOTAL VOLUME" in TodayShareView */}
-              <div style={{ flexShrink: 0, margin: '0 0 9px' }}>
-                {rm1FirstVal !== null ? (
-                  <>
-                    {/* START row — subtle */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, margin: '0 0 3px', flexWrap: 'nowrap' }}>
-                      <span style={{ fontSize: 7, fontWeight: 700, color: '#EDEDED', letterSpacing: '0.1em' }}>START</span>
-                      <span style={{ fontSize: 17, fontWeight: 700, color: '#F2F2F2', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                        {rm1FirstVal}<span style={{ fontSize: 9, fontWeight: 500, color: '#D0D0D0' }}>{unitLabel}</span>
-                      </span>
+            {/* ── Mini (1:1) ── */}
+            {graphLayout === 'mini' && (
+              <div style={{ width: '72%', margin: '0 auto' }}>
+                <div ref={miniCardRef} style={{
+                  aspectRatio: '1/1',
+                  background: cardStyleBg, borderRadius: 20,
+                  overflow: 'hidden', padding: 16,
+                  display: 'flex', flexDirection: 'column',
+                  boxShadow: cardBoxShadow,
+                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                  textShadow: textShadowVal,
+                }}>
+                  {gpBadge}
+                  <p style={{ fontSize: 13, fontWeight: 900, color: '#fff', margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <div style={{ flex: 1, minHeight: 0, margin: '8px 0' }}>
+                    <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+                      <span style={{ fontSize: 34, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{bestRMDisplay}</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.65)', paddingBottom: 2 }}>{unitLabel}</span>
                     </div>
-                    {/* NOW row — hero number */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, margin: '0 0 4px', flexWrap: 'nowrap' }}>
-                      <span style={{ fontSize: 8, fontWeight: 700, color: acHex, letterSpacing: '0.08em', paddingBottom: 6 }}>NOW</span>
-                      <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95, whiteSpace: 'nowrap' }}>
-                        {bestRMDisplay}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', lineHeight: 1, paddingBottom: 5 }}>{unitLabel}</span>
-                    </div>
-                    {/* GAIN row */}
                     {rm1Growth !== null && (
-                      <p style={{ fontSize: 16, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1.2 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
                         {rm1Growth >= 0 ? '+' : ''}{rm1Growth}{unitLabel} GAIN
                       </p>
                     )}
-                  </>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                    <span style={{ fontSize: 64, fontWeight: 900, color: acHex, lineHeight: 0.95 }}>{bestRMDisplay}</span>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#F2F2F2', paddingBottom: 5 }}>{unitLabel}</span>
                   </div>
-                )}
+                </div>
               </div>
+            )}
 
-              {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '0 0 5px', flexShrink: 0 }} />
-
-              {/* PROGRESSION label */}
-              <p style={{ fontSize: 7.5, fontWeight: 600, color: '#EDEDED', letterSpacing: '0.1em', margin: '0 0 4px', lineHeight: 1.2, flexShrink: 0 }}>
-                PROGRESSION
-              </p>
-
-              {/* Chart: always flex-start + explicit gap for dense packing */}
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
-                gap: barGap,
-                minHeight: 0,
+            {/* ── Wide (16:9) ── */}
+            {graphLayout === 'wide' && (
+              <div ref={wideCardRef} style={{
+                width: '100%', aspectRatio: '16/9',
+                background: cardStyleBg, borderRadius: 18,
+                overflow: 'hidden', display: 'flex',
+                boxShadow: cardBoxShadow,
+                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                textShadow: textShadowVal,
               }}>
-                {n === 0 ? (
-                  <p style={{ fontSize: 7, color: '#444' }}>No data yet</p>
-                ) : (
-                  rm1DisplayDataConverted.map((pt, i) => {
-                    const isLatest      = i === 0
-                    const isFirstRecord = i === n - 1
-                    const pct = rm1Max > 0 ? (pt.est1rm / rm1Max) * 100 : 0
-                    const bH  = isLatest ? chartLatH : chartBarH
-                    return (
-                      <div key={`${pt.date}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        {/* NOW/START label + date for first/last, date-only for middle */}
-                        {isLatest || isFirstRecord ? (
-                          <div style={{ width: 24, flexShrink: 0 }}>
-                            <div style={{ fontSize: 4.5, fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1.3, color: isLatest ? acHex : '#EDEDED' }}>
-                              {isLatest ? 'NOW' : 'START'}
-                            </div>
-                            <div style={{ fontSize: 5.5, fontWeight: isLatest ? 700 : 400, lineHeight: 1.2, color: isLatest ? acHex : '#E0E0E0' }}>
-                              {fmtShort(pt.date)}
-                            </div>
-                          </div>
-                        ) : (
-                          <span style={{
-                            width: 24, flexShrink: 0, fontSize: 5.5, lineHeight: 1.2, whiteSpace: 'nowrap',
-                            color: '#C8C8C8', fontWeight: 400,
-                          }}>
-                            {fmtShort(pt.date)}
-                          </span>
-                        )}
-                        {/* Bar — square, no border-radius */}
-                        <div style={{ flex: 1, height: bH, position: 'relative' }}>
-                          <div style={{
-                            position: 'absolute', top: 0, left: 0,
-                            width: `${pct}%`, height: '100%',
-                            background: getBarBg(i),
-                            borderRadius: 0,
-                            boxShadow: isLatest ? (
-                              accent === 'orange' ? '0 2px 8px rgba(237, 116, 47,0.28)' :
-                              accent === 'purple' ? '0 2px 8px rgba(110,56,212,0.28)' :
-                              '0 2px 6px rgba(255,255,255,0.15)'
-                            ) : 'none',
-                            minWidth: 2,
-                          }} />
-                        </div>
-                        {/* Weight label — right-aligned */}
-                        <span style={{
-                          width: 20, flexShrink: 0,
-                          fontSize: isLatest ? 8 : isFirstRecord ? 7 : 6,
-                          fontWeight: isLatest ? 800 : isFirstRecord ? 600 : 400,
-                          color: isLatest ? '#FFFFFF' : '#F0F0F0',
-                          textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1,
-                        }}>
-                          {pt.est1rm}
-                        </span>
-                      </div>
-                    )
-                  })
-                )}
+                {/* Left info column */}
+                <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                  {gpBadge}
+                  <p style={{ fontSize: 13, fontWeight: 900, color: '#fff', margin: '6px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '8px 0' }} />
+                  {rm1FirstVal !== null && (
+                    <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', margin: '0 0 3px' }}>
+                      {rm1FirstVal}{unitLabel} → <span style={{ color: gp.accentHex, fontWeight: 700 }}>{bestRMDisplay}{unitLabel}</span>
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, marginBottom: rm1Growth !== null ? 3 : 0 }}>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{bestRMDisplay}</span>
+                    <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.6)', paddingBottom: 2 }}>{unitLabel}</span>
+                  </div>
+                  {rm1Growth !== null && (
+                    <p style={{ fontSize: 11, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0 }}>
+                      {rm1Growth >= 0 ? '+' : ''}{rm1Growth}{unitLabel}
+                    </p>
+                  )}
+                  <div style={{ flex: 1 }} />
+                  <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Made with REPRA</p>
+                </div>
+                {/* Right chart */}
+                <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
+                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={3} />
+                </div>
               </div>
-
-              {/* Watermark */}
-              <p style={{ fontSize: 5.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4, textShadow: 'none', flexShrink: 0, paddingTop: 4 }}>
-                REPRA
-              </p>
-            </div>
-          </div>
+            )}
+          </>
 
         ) : (
 
           /* ── Volume / bodyweight: existing vertical layout ─── */
           <div className="w-full rounded-3xl overflow-hidden relative"
-            style={{
-              aspectRatio: '9/16',
-              background: cardBg,
-            }}>
-
-
+            style={{ aspectRatio: '9/16', background: cardBg }}>
             <div className="relative flex flex-col h-full" style={{ padding: '14px 16px 10px', paddingTop: 16 }}>
 
               <div className="inline-flex mb-2.5">
@@ -834,45 +1174,48 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         )}
       </div>
 
-      {/* ── Options ─────────────────────────────────────────── */}
-      <div className="px-4 mb-3">
-        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Background</p>
-        <div className="flex gap-2">
-          {(['dark', 'transparent'] as Theme[]).map(t => (
-            <button key={t} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: theme === t ? '#ED742F' : '#1a1a1a', color: theme === t ? '#fff' : '#666', border: `1px solid ${theme === t ? '#ED742F' : '#2a2a2a'}` }}
-              onClick={() => setTheme(t)}>
-              {t === 'dark' ? 'Dark' : 'Transparent'}
-            </button>
-          ))}
+      {/* ── Non-MAX 1RM options ──────────────────────────────── */}
+      {!isMax1RM && (
+        <div className="px-4 mb-3">
+          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Background</p>
+          <div className="flex gap-2">
+            {(['dark', 'transparent'] as Theme[]).map(t => (
+              <button key={t} className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{ background: theme === t ? '#ED742F' : '#1a1a1a', color: theme === t ? '#fff' : '#666', border: `1px solid ${theme === t ? '#ED742F' : '#2a2a2a'}` }}
+                onClick={() => setTheme(t)}>
+                {t === 'dark' ? 'Dark' : 'Transparent'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="px-4 mb-3">
-        <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
-        <div className="flex gap-2">
-          {(() => {
-            const shareThemes = getShareThemeUnlocks(shareCount)
-            return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
-              const info     = shareThemes.find(t => t.accent === a)!
-              const unlocked = info.unlocked
-              const sel      = accent === a
-              const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
-              const bg       = sel ? selBg : '#1a1a1a'
-              return (
-                <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
-                  style={{ background: bg, color: unlocked ? '#fff' : '#444', border: `1px solid ${sel ? selBg : '#2a2a2a'}`, opacity: unlocked ? 1 : 0.55, minHeight: 44 }}
-                  onClick={() => unlocked && setAccent(a)}>
-                  <span>{info.label}</span>
-                  {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
-                </button>
-              )
-            })
-          })()}
+      {!isMax1RM && (
+        <div className="px-4 mb-3">
+          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Color</p>
+          <div className="flex gap-2">
+            {(() => {
+              const shareThemes = getShareThemeUnlocks(shareCount)
+              return (['dark', 'orange', 'purple', 'black'] as Accent[]).map(a => {
+                const info     = shareThemes.find(t => t.accent === a)!
+                const unlocked = info.unlocked
+                const sel      = accent === a
+                const selBg    = a === 'orange' ? '#ED742F' : a === 'purple' ? '#6E38D4' : a === 'black' ? '#050505' : '#3a3a3a'
+                const bg       = sel ? selBg : '#1a1a1a'
+                return (
+                  <button key={a} className="flex-1 py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5"
+                    style={{ background: bg, color: unlocked ? '#fff' : '#444', border: `1px solid ${sel ? selBg : '#2a2a2a'}`, opacity: unlocked ? 1 : 0.55, minHeight: 44 }}
+                    onClick={() => unlocked && setAccent(a)}>
+                    <span>{info.label}</span>
+                    {!unlocked && <span style={{ fontSize: 9, color: '#555' }}>🔒{info.requiredShares}</span>}
+                  </button>
+                )
+              })
+            })()}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Chart Type: only for volume / bodyweight */}
       {!isMax1RM && (
         <div className="px-4 mb-6">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>Chart Type</p>
@@ -888,7 +1231,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       )}
 
-      {/* Share button */}
+      {isMax1RM && <div className="mb-3" />}
+
+      {/* ⑥ SAVE BUTTON ──────────────────────────────────────── */}
       <div className="px-4 space-y-2 mb-6">
         {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
         <button
@@ -896,7 +1241,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
           disabled={sharing} onClick={handleShare}>
           <Share2 size={20} />
-          {sharing ? 'Generating...' : 'Share to Instagram Story'}
+          {isMax1RM
+            ? (sharing ? 'Generating...' : graphLayout === 'full' ? 'Save Graph Story' : 'Save Graph Card')
+            : (sharing ? 'Generating...' : 'Share to Instagram Story')
+          }
         </button>
         <p className="text-center text-xs" style={{ color: '#444' }}>
           Mobile only · Desktop downloads as PNG
