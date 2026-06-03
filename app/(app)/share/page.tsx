@@ -4,6 +4,8 @@ import { getTodayWorkoutForShare } from '@/actions/workout'
 import ShareView from '@/components/share/ShareView'
 import StatsShareView from '@/components/share/StatsShareView'
 import TodayShareView from '@/components/share/TodayShareView'
+import WorkoutStoryCardContent from '@/components/share/WorkoutStoryCardContent'
+import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import FeatureTracker from '@/components/common/FeatureTracker'
 import Link from 'next/link'
 import { BarChart2, CalendarDays, ChevronRight, Lock, Crown } from 'lucide-react'
@@ -80,27 +82,49 @@ export default async function SharePage({
     const locale: Locale = resolveServerLocale(cookieLang, undefined, headerStore.get('accept-language') ?? '')
     const ja = locale === 'ja'
 
-    // Lightweight today summary for mini preview (server-side, no image generation)
-    type TodayPreview = {
-      volume: number
-      setsCount: number
-      best1rm: number
-      exerciseCount: number
-      topExercises: string[]
-    }
-    let todayPreview: TodayPreview | null = null
+    // Full workout data for accurate mini preview — same React/CSS layout, no image generation
+    let todayData: TodayData | null = null
     try {
-      const d = await getTodayWorkoutForShare(todayStr)
-      if (d) {
-        todayPreview = {
-          volume: d.volume,
-          setsCount: d.setsCount,
-          best1rm: d.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0),
-          exerciseCount: d.exercises.length,
-          topExercises: d.exercises.slice(0, 2).map(ex => ex.name),
-        }
-      }
+      todayData = await getTodayWorkoutForShare(todayStr)
     } catch { /* silently skip — preview is optional */ }
+
+    // Sample card shown when no workout logged yet
+    const sampleData: TodayData = {
+      sessionId: undefined,
+      title: 'CHEST & TRI',
+      date: todayStr,
+      volume: 1700,
+      setsCount: 9,
+      exercises: [
+        {
+          name: 'Bench Press',
+          setList: [
+            { weight: 110, reps: 2 },
+            { weight: 100, reps: 8 },
+            { weight: 90, reps: 8 },
+            { weight: 90, reps: 6 },
+          ],
+          setCount: 4,
+          best1RM: 117,
+        },
+        {
+          name: 'Cable Fly',
+          setList: [
+            { weight: 40, reps: 4 },
+            { weight: 35, reps: 8 },
+            { weight: 30, reps: 10 },
+          ],
+          setCount: 3,
+          best1RM: 52,
+        },
+      ],
+      bestLift: { name: 'Bench Press', weight: 110 },
+      muscleFocus: 'chest',
+      photoPath: null,
+    }
+
+    const previewData = todayData ?? sampleData
+    const isSample    = !todayData
 
     const fmtVol = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}t` : `${v}kg`
 
@@ -156,83 +180,64 @@ export default async function SharePage({
                     : "Today's training as an Instagram story card."}
                 </p>
 
-                {/* ── Mini Story Preview (HTML/CSS only, no canvas) ── */}
+                {/* ── Mini Story Preview — same WorkoutStoryCardContent, scaled down ── */}
+                {/* No canvas / html-to-image — pure React/CSS layout */}
                 <div style={{
-                  background: '#0d0d0d',
+                  position: 'relative',
+                  height: 250,
+                  overflow: 'hidden',
                   borderRadius: 12,
-                  padding: '13px 15px 11px',
-                  border: '1px solid rgba(255,255,255,0.07)',
                   marginBottom: 14,
+                  // Match glass card background so clipped bottom blends naturally
+                  background: 'rgba(18,18,18,1)',
                 }}>
-                  {/* REPRA badge */}
-                  <div style={{ marginBottom: 7 }}>
-                    <span style={{
-                      fontSize: 8, fontWeight: 900, letterSpacing: '0.16em',
-                      padding: '2px 8px', borderRadius: 4,
-                      background: '#ED742F', color: '#fff',
-                    }}>REPRA</span>
+                  {/* Scale wrapper: 420px card → ~70% → ~294px visual width */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%) scale(0.70)',
+                    transformOrigin: 'top center',
+                    width: 420,
+                    pointerEvents: 'none',
+                  }}>
+                    <WorkoutStoryCardContent
+                      data={previewData}
+                      cardStyle="glass"
+                      accent="white"
+                      unit="kg"
+                      locale={locale}
+                      hasPhoto={false}
+                      isPast={false}
+                    />
                   </div>
-                  <p style={{
-                    fontSize: 7.5, fontWeight: 700, letterSpacing: '0.15em',
-                    color: 'rgba(255,255,255,0.38)', marginBottom: 7, lineHeight: 1,
-                  }}>TODAY&apos;S WORKOUT</p>
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 9 }} />
-
-                  {todayPreview ? (
-                    <>
-                      <p style={{
-                        fontSize: 28, fontWeight: 900, color: '#ED742F',
-                        letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 4,
-                      }}>
-                        {fmtVol(todayPreview.volume)}
-                      </p>
-                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.52)', marginBottom: 9, lineHeight: 1 }}>
-                        {todayPreview.setsCount} sets
-                        {todayPreview.best1rm > 0 && ` · Best 1RM ${Math.round(todayPreview.best1rm)}kg`}
-                      </p>
-                      <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 8 }} />
-                      {todayPreview.topExercises.map(name => (
-                        <p key={name} style={{
-                          fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.72)',
-                          lineHeight: 1, marginBottom: 4,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>{name}</p>
-                      ))}
-                      {todayPreview.exerciseCount > 2 && (
-                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.32)', lineHeight: 1 }}>
-                          +{todayPreview.exerciseCount - 2} more
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <p style={{
-                        fontSize: 28, fontWeight: 900,
-                        color: 'rgba(237,116,47,0.25)',
-                        letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 4,
-                      }}>—.—t</p>
-                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.26)', marginBottom: 9, lineHeight: 1 }}>
-                        {ja ? '記録するとプレビューが表示されます' : 'Log a workout to see preview'}
-                      </p>
-                      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 8 }} />
-                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.20)', lineHeight: 1 }}>— —</p>
-                    </>
+                  {/* Fade-out gradient at bottom to hint at more content */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0, left: 0, right: 0, height: 64,
+                    background: 'linear-gradient(to top, rgba(18,18,18,1), transparent)',
+                    pointerEvents: 'none',
+                  }} />
+                  {/* Sample badge when no real workout */}
+                  {isSample && (
+                    <div style={{
+                      position: 'absolute', top: 8, right: 8,
+                      fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
+                      padding: '3px 7px', borderRadius: 6,
+                      background: 'rgba(255,255,255,0.07)',
+                      color: 'rgba(255,255,255,0.36)',
+                      pointerEvents: 'none',
+                    }}>SAMPLE</div>
                   )}
-
-                  <p style={{
-                    fontSize: 7, color: 'rgba(255,255,255,0.20)',
-                    textAlign: 'right', letterSpacing: '0.06em',
-                    marginTop: 10, lineHeight: 1,
-                  }}>Made with REPRA</p>
                 </div>
 
-                {/* Stats chips */}
-                {todayPreview && (
+                {/* Stats chips (real data only) */}
+                {todayData && (
                   <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                     {[
-                      fmtVol(todayPreview.volume),
-                      `${todayPreview.setsCount} sets`,
-                      `${todayPreview.exerciseCount} exercises`,
+                      fmtVol(todayData.volume),
+                      `${todayData.setsCount} sets`,
+                      `${todayData.exercises.length} exercises`,
                     ].map(chip => (
                       <span key={chip} style={{
                         fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.46)',
