@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Pencil, Minus, Camera, ImageIcon, ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
+import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2 } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { createClient } from '@/lib/supabase/client'
@@ -69,7 +70,7 @@ type Props = {
   existingSessionId?: string
   existingExercises?: InitialExercise[]
   existingTitle?: string
-  onNavigate?: (date: string) => void
+  from?: string
 }
 
 /* ─── Pure helpers ────────────────────────────────────── */
@@ -88,12 +89,6 @@ function formatDateLabel(date: string) {
   const d = new Date(date + 'T00:00:00')
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
-}
-
-function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + n)
-  return d.toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 }
 
 function formatNavDate(dateStr: string, locale: Locale): string {
@@ -356,7 +351,7 @@ export default function WorkoutRecorder({
   existingSessionId,
   existingExercises,
   existingTitle,
-  onNavigate,
+  from,
 }: Props) {
   const router = useRouter()
   const { locale } = useLocale()
@@ -407,9 +402,16 @@ export default function WorkoutRecorder({
 
   const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
   const isDateToday = date === todayStr
-  const prevDate = addDays(date, -1)
-  const nextDate = addDays(date, 1)
-  const isNextDisabled = nextDate > todayJST
+
+  function handleClose() {
+    if (from === 'calendar') {
+      router.push('/home')
+    } else if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/home')
+    }
+  }
 
   // Fetch PR data for pre-loaded exercises
   useEffect(() => {
@@ -647,7 +649,7 @@ export default function WorkoutRecorder({
       style={{
         background: '#080808',
         opacity: mounted ? 1 : 0,
-        transform: mounted ? 'translateX(0)' : 'translateX(10px)',
+        transform: mounted ? 'none' : 'translateX(10px)',
         transition: 'opacity 160ms ease-out, transform 160ms ease-out',
       }}
     >
@@ -689,29 +691,16 @@ export default function WorkoutRecorder({
           </div>
         )}
 
-        {/* Row 1: X | ← date → | spacer */}
+        {/* Row 1: X | date | spacer */}
         <div className="flex items-center justify-between pb-1">
           <button
             className="p-1 -ml-1 flex-shrink-0"
-            onClick={() => isDirty ? setShowCancelConfirm(true) : router.push('/home')}>
+            onClick={() => isDirty ? setShowCancelConfirm(true) : handleClose()}>
             <X size={18} style={{ color: '#555' }} />
           </button>
-          <div className="flex items-center gap-1">
-            <button
-              className="p-1.5 active:opacity-60 transition-opacity"
-              onClick={() => onNavigate ? onNavigate(prevDate) : router.push(`/record?date=${prevDate}`)}>
-              <ChevronLeft size={16} style={{ color: '#666' }} />
-            </button>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', minWidth: 120, textAlign: 'center' }}>
-              {formatNavDate(date, locale)}
-            </span>
-            <button
-              className="p-1.5 active:opacity-60 transition-opacity"
-              disabled={isNextDisabled}
-              onClick={() => !isNextDisabled && (onNavigate ? onNavigate(nextDate) : router.push(`/record?date=${nextDate}`))}>
-              <ChevronRight size={16} style={{ color: isNextDisabled ? '#2a2a2a' : '#666' }} />
-            </button>
-          </div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
+            {formatNavDate(date, locale)}
+          </span>
           <div className="flex-shrink-0 w-9" />
         </div>
 
@@ -996,10 +985,10 @@ export default function WorkoutRecorder({
         />
       )}
 
-      {showCancelConfirm && (
+      {mounted && showCancelConfirm && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
-          style={{ background: 'rgba(0,0,0,0.92)' }}>
-          <div className="w-full rounded-3xl p-6" style={{ background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
+          style={{ background: 'rgba(0,0,0,0.72)' }}>
+          <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
             <p className="text-xl font-black text-white text-center mb-1 tracking-wide">{t(locale, 'record.cancelTitle')}</p>
             <p className="text-xs text-center mb-6 font-bold" style={{ color: '#aaa' }}>
               {isEditing ? t(locale, 'record.cancelSubEditing') : t(locale, 'record.cancelSub')}
@@ -1010,10 +999,11 @@ export default function WorkoutRecorder({
                 onClick={() => setShowCancelConfirm(false)}>{t(locale, 'record.keepGoing')}</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}
-                onClick={() => { setShowCancelConfirm(false); router.push('/home') }}>{t(locale, 'record.leave')}</button>
+                onClick={() => { setShowCancelConfirm(false); handleClose() }}>{t(locale, 'record.leave')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

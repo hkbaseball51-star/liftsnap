@@ -8,9 +8,9 @@ function getTodayJST() {
 export default async function RecordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>
+  searchParams: Promise<{ date?: string; from?: string }>
 }) {
-  const { date: rawDate } = await searchParams
+  const { date: rawDate, from } = await searchParams
   const date = rawDate ?? getTodayJST()
 
   const sessionData = await getSessionForDate(date)
@@ -19,6 +19,7 @@ export default async function RecordPage({
     <RecordNavigator
       initialDate={date}
       initialSession={sessionData}
+      from={from}
     />
   )
 }

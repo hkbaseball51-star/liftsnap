@@ -85,7 +85,7 @@ export default function SelectedDaySummary({
           <button
             className="active:opacity-70 transition-opacity"
             style={cardBase}
-            onClick={() => router.push(`/record?date=${selectedDate}`)}>
+            onClick={() => router.push(`/record?date=${selectedDate}&from=calendar`)}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)', marginBottom: 10 }}>
               {dateLabel}
             </p>
@@ -109,7 +109,7 @@ export default function SelectedDaySummary({
             {/* Row 1: date + muscle badge + View → */}
             <button
               className="w-full active:opacity-70 transition-opacity text-left"
-              onClick={() => router.push(`/record?date=${selectedDate}`)}>
+              onClick={() => router.push(`/record?date=${selectedDate}&from=calendar`)}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.36)' }}>

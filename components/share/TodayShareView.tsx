@@ -117,34 +117,33 @@ async function captureStory(captureEl: HTMLDivElement, transparent: boolean): Pr
 }
 
 // ── Exercise density tiers ────────────────────────────────────────────
-// Tier 1: 1–4   two-line, spacious
-// Tier 2: 5–7   two-line, compact
-// Tier 3: 8–11  one-line, condensed
-// Tier 4: 12–15 one-line, dense
-// Tier 5: 16+   one-line, ultra-dense
+// totalRows = exercises × 2 header rows + sum of all set rows
+// Tier 1: ≤10  spacious   Tier 2: ≤15  compact
+// Tier 3: ≤22  condensed  Tier 4: ≤30  dense   Tier 5: 31+  ultra-dense
 type Tier = 1 | 2 | 3 | 4 | 5
 
-function getTier(count: number): Tier {
-  if (count <= 4)  return 1
-  if (count <= 7)  return 2
-  if (count <= 11) return 3
-  if (count <= 15) return 4
+function getTier(totalRows: number): Tier {
+  if (totalRows <= 10) return 1
+  if (totalRows <= 15) return 2
+  if (totalRows <= 22) return 3
+  if (totalRows <= 30) return 4
   return 5
 }
 
 const TIER_PARAMS: Record<Tier, {
   nameSize: number
   infoSize: number
-  rowGap: number
-  twoLine: boolean
+  setSize: number
+  exGap: number
+  lineGap: number
   sectionGap: number
   volumeSize: number
 }> = {
-  1: { nameSize: 15, infoSize: 12, rowGap: 16, twoLine: true,  sectionGap: 18, volumeSize: 52 },
-  2: { nameSize: 14, infoSize: 11, rowGap: 11, twoLine: true,  sectionGap: 15, volumeSize: 48 },
-  3: { nameSize: 13, infoSize: 11, rowGap: 8,  twoLine: false, sectionGap: 13, volumeSize: 44 },
-  4: { nameSize: 12, infoSize: 10, rowGap: 6,  twoLine: false, sectionGap: 12, volumeSize: 42 },
-  5: { nameSize: 11, infoSize: 10, rowGap: 4,  twoLine: false, sectionGap: 11, volumeSize: 40 },
+  1: { nameSize: 13, infoSize: 11, setSize: 11, exGap: 12, lineGap: 3, sectionGap: 16, volumeSize: 46 },
+  2: { nameSize: 12, infoSize: 11, setSize: 11, exGap: 9,  lineGap: 2, sectionGap: 13, volumeSize: 42 },
+  3: { nameSize: 11, infoSize: 10, setSize: 10, exGap: 7,  lineGap: 2, sectionGap: 11, volumeSize: 38 },
+  4: { nameSize: 11, infoSize: 9,  setSize: 9,  exGap: 5,  lineGap: 1, sectionGap: 9,  volumeSize: 36 },
+  5: { nameSize: 10, infoSize: 9,  setSize: 8,  exGap: 4,  lineGap: 1, sectionGap: 8,  volumeSize: 34 },
 }
 
 export default function TodayShareView({ data }: { data: TodayData }) {
@@ -245,20 +244,50 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const volStr = formatVolumeWithUnit(data.volume, unit)
   const g1rm   = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
-  const tier   = getTier(data.exercises.length)
+  const totalRows = data.exercises.reduce((sum, ex) => sum + 2 + ex.setList.length, 0)
+  const tier   = getTier(totalRows)
   const tp     = TIER_PARAMS[tier]
 
   const isTransparent = cardStyle === 'transparent'
+
+  // Outer 9:16 card background — glass+photo and transparent both use transparent
+  // so the photo or page bg shows; glass+no-photo uses near-black canvas
   const cardBg = isTransparent
     ? 'transparent'
-    : (hasPhoto ? '#0a0a0a' : '#0d0d0d')
+    : hasPhoto
+      ? 'transparent'
+      : '#050505'
 
-  // text-shadow is CSS-inherited — set once on wrapper, all children pick it up
+  // text-shadow for transparent mode (inherited by all children via wrapper)
   const ts = isTransparent
     ? '0 1px 8px rgba(0,0,0,0.95), 0 2px 24px rgba(0,0,0,0.7), 0 0 48px rgba(0,0,0,0.5)'
     : 'none'
 
   const dividerColor = isTransparent ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.09)'
+
+  // glass: content is an inset semi-transparent panel floating inside the card
+  // transparent: content fills the full card area directly with text-shadow
+  const contentStyle: React.CSSProperties = isTransparent
+    ? {
+        position: 'absolute', inset: 0, zIndex: 2,
+        padding: '34px 26px 26px',
+        display: 'flex', flexDirection: 'column',
+        boxSizing: 'border-box',
+        textShadow: ts,
+      }
+    : {
+        position: 'absolute',
+        inset: hasPhoto ? 14 : 8,
+        zIndex: 2,
+        padding: hasPhoto ? '22px 20px 18px' : '28px 24px 22px',
+        display: 'flex', flexDirection: 'column',
+        boxSizing: 'border-box',
+        background: hasPhoto ? 'rgba(8,8,8,0.82)' : 'rgba(26,26,26,0.98)',
+        border: '1px solid rgba(255,255,255,0.11)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        textShadow: 'none',
+      }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
@@ -308,24 +337,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 }}
               />
             )}
-            {/* Dark overlay for photo — glass mode only */}
-            {photoDataUrl && !isTransparent && (
+            {/* Transparent + photo: subtle gradient for text readability */}
+            {hasPhoto && isTransparent && (
               <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.78) 55%, rgba(0,0,0,0.92) 100%)',
+                position: 'absolute', inset: 0, zIndex: 1,
+                background: 'linear-gradient(175deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.34) 100%)',
                 pointerEvents: 'none',
               }} />
             )}
 
-            {/* ── Card content ── */}
-            <div style={{
-              position: 'relative', zIndex: 1,
-              padding: '34px 26px 26px',
-              height: '100%',
-              display: 'flex', flexDirection: 'column',
-              boxSizing: 'border-box',
-              textShadow: ts,
-            }}>
+            {/* ── Card content: glass = inset panel, transparent = full-area direct ── */}
+            <div style={contentStyle}>
 
               {/* REPRA badge */}
               <div>
@@ -392,80 +414,55 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               {/* Divider */}
               <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
-              {/* EXERCISES — all exercises shown, no truncation */}
-              <div style={{ flexShrink: 0 }}>
+              {/* EXERCISES — all sets per exercise, flex:1 fills remaining card height */}
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <p style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
-                  color: 'rgba(255,255,255,0.42)', margin: '0 0 12px', lineHeight: 1,
+                  color: 'rgba(255,255,255,0.42)', margin: '0 0 10px', lineHeight: 1, flexShrink: 0,
                 }}>
                   EXERCISES
                 </p>
 
-                {/* Exercise rows — ALL exercises, adaptive density via tier */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tp.rowGap }}>
-                  {data.exercises.map((ex) => {
-                    const bestSet = ex.setList.reduce<{ weight: number; reps: number }>(
-                      (best, s) => (s.weight * s.reps > best.weight * best.reps ? s : best),
-                      ex.setList[0] ?? { weight: 0, reps: 0 }
-                    )
-                    const bestStr = bestSet.weight > 0
-                      ? `${fmtKg(toDisplayWeight(bestSet.weight, unit))}${unitLabel} × ${bestSet.reps}`
-                      : bestSet.reps > 0
-                        ? `BW × ${bestSet.reps}`
-                        : `${ex.setCount} sets`
-
-                    if (tp.twoLine) {
-                      return (
-                        <div key={ex.name}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                            <p style={{
-                              fontSize: tp.nameSize, fontWeight: 800, color: '#fff',
-                              margin: 0, flex: 1, minWidth: 0,
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            }}>
-                              {tname(ex.name)}
-                            </p>
-                            <p style={{
-                              fontSize: tp.nameSize, color: acHex, fontWeight: 700,
-                              margin: 0, flexShrink: 0, whiteSpace: 'nowrap',
-                            }}>
-                              {bestStr}
-                            </p>
-                          </div>
-                          <p style={{
-                            fontSize: tp.infoSize, color: 'rgba(255,255,255,0.36)',
-                            margin: '2px 0 0', lineHeight: 1,
+                {/* One block per exercise: name → info → every set row */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tp.exGap, overflow: 'hidden' }}>
+                  {data.exercises.map((ex) => (
+                    <div key={ex.name} style={{ flexShrink: 0 }}>
+                      <p style={{
+                        fontSize: tp.nameSize, fontWeight: 800, color: '#fff',
+                        margin: 0, lineHeight: 1.2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {tname(ex.name)}
+                      </p>
+                      <p style={{
+                        fontSize: tp.infoSize, color: 'rgba(255,255,255,0.40)',
+                        marginTop: tp.lineGap, lineHeight: 1,
+                      }}>
+                        {ex.setCount} sets{ex.best1RM > 0
+                          ? <>{' · est. 1RM '}<span style={{ color: acHex, fontWeight: 700 }}>{fmtKg(toDisplayWeight(ex.best1RM, unit))}{unitLabel}</span></>
+                          : null}
+                      </p>
+                      {ex.setList.map((s, i) => {
+                        const str = s.weight > 0
+                          ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel} × ${s.reps}`
+                          : s.reps > 0 ? `BW × ${s.reps}` : null
+                        if (!str) return null
+                        return (
+                          <p key={i} style={{
+                            fontSize: tp.setSize, color: 'rgba(255,255,255,0.60)',
+                            marginTop: tp.lineGap, lineHeight: 1.1,
                           }}>
-                            {ex.setCount} sets
+                            {str}
                           </p>
-                        </div>
-                      )
-                    }
-
-                    // One-line: name left, "Ns · bestStr" right
-                    return (
-                      <div key={ex.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <p style={{
-                          fontSize: tp.nameSize, fontWeight: 700, color: '#fff',
-                          margin: 0, flex: 1, minWidth: 0,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
-                          {tname(ex.name)}
-                        </p>
-                        <p style={{
-                          fontSize: tp.infoSize, color: 'rgba(255,255,255,0.55)',
-                          margin: 0, flexShrink: 0, whiteSpace: 'nowrap', lineHeight: 1,
-                        }}>
-                          {ex.setCount}s&thinsp;·&thinsp;<span style={{ color: acHex, fontWeight: 700 }}>{bestStr}</span>
-                        </p>
-                      </div>
-                    )
-                  })}
+                        )
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Spacer pushes "Made with REPRA" to bottom */}
-              <div style={{ flex: 1, minHeight: 8 }} />
+              {/* 8px min gap before footer */}
+              <div style={{ flexShrink: 0, minHeight: 8 }} />
 
               {/* Made with REPRA */}
               <p style={{
