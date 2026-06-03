@@ -117,11 +117,11 @@ export const TIER_PARAMS: Record<Tier, {
   nameSize: number; infoSize: number; setSize: number;
   exGap: number; lineGap: number; sectionGap: number; volumeSize: number;
 }> = {
-  1: { nameSize: 13, infoSize: 11, setSize: 13, exGap: 10, lineGap: 3, sectionGap: 13, volumeSize: 42 },
-  2: { nameSize: 12, infoSize: 11, setSize: 13, exGap: 8,  lineGap: 2, sectionGap: 11, volumeSize: 38 },
-  3: { nameSize: 11, infoSize: 10, setSize: 11, exGap: 6,  lineGap: 2, sectionGap: 9,  volumeSize: 34 },
-  4: { nameSize: 11, infoSize: 9,  setSize: 10, exGap: 4,  lineGap: 1, sectionGap: 7,  volumeSize: 32 },
-  5: { nameSize: 10, infoSize: 9,  setSize: 9,  exGap: 3,  lineGap: 1, sectionGap: 6,  volumeSize: 30 },
+  1: { nameSize: 15, infoSize: 12, setSize: 15, exGap: 10, lineGap: 3, sectionGap: 11, volumeSize: 42 },
+  2: { nameSize: 14, infoSize: 12, setSize: 14, exGap: 8,  lineGap: 2, sectionGap: 9,  volumeSize: 38 },
+  3: { nameSize: 13, infoSize: 11, setSize: 13, exGap: 6,  lineGap: 2, sectionGap: 8,  volumeSize: 34 },
+  4: { nameSize: 13, infoSize: 10, setSize: 11, exGap: 4,  lineGap: 2, sectionGap: 7,  volumeSize: 32 },
+  5: { nameSize: 12, infoSize: 10, setSize: 10, exGap: 3,  lineGap: 1, sectionGap: 6,  volumeSize: 30 },
 }
 
 // ── Props ─────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ export default function WorkoutStoryCardContent({
 
   return (
     <div style={{
-      padding: '28px 24px 14px',
+      padding: '24px 30px 14px',
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
       textShadow: ts,
@@ -206,7 +206,7 @@ export default function WorkoutStoryCardContent({
 
       {/* WORKOUT label · date · title */}
       {/* Body text stays white/grey — no accent */}
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 12 }}>
         <p style={{
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
           color: 'rgba(255,255,255,0.42)', margin: 0, lineHeight: 1,
@@ -217,8 +217,8 @@ export default function WorkoutStoryCardContent({
           {fmtDate(data.date)}
         </p>
         <p style={{
-          fontSize: 24, fontWeight: 900, color: '#fff',
-          lineHeight: 1.1, margin: '7px 0 0', letterSpacing: '-0.01em',
+          fontSize: 16, fontWeight: 900, color: '#fff',
+          lineHeight: 1.15, margin: '4px 0 0', letterSpacing: '-0.01em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           textTransform: 'uppercase',
         }}>
@@ -264,7 +264,7 @@ export default function WorkoutStoryCardContent({
       {/* EXERCISES — full set detail, no truncation */}
       <div>
         {/* EXERCISES heading with accent dot on the left */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 8px' }}>
           <div style={{
             width: 2, height: 9, borderRadius: 1,
             background: accentDot, flexShrink: 0,
@@ -290,7 +290,7 @@ export default function WorkoutStoryCardContent({
               </p>
               {/* Sets count + est. 1RM — 1RM value in accent */}
               <p style={{
-                fontSize: tp.infoSize, color: 'rgba(255,255,255,0.40)',
+                fontSize: tp.infoSize, color: 'rgba(255,255,255,0.52)',
                 marginTop: tp.lineGap, lineHeight: 1,
               }}>
                 {ex.setCount}{locale === 'ja' ? 'セット' : ' sets'}{ex.best1RM > 0
