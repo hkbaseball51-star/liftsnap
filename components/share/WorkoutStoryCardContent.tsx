@@ -107,11 +107,11 @@ export const TIER_PARAMS: Record<Tier, {
   nameSize: number; infoSize: number; setSize: number;
   exGap: number; lineGap: number; sectionGap: number; volumeSize: number;
 }> = {
-  1: { nameSize: 15, infoSize: 12, setSize: 15, exGap: 10, lineGap: 3, sectionGap: 11, volumeSize: 42 },
-  2: { nameSize: 14, infoSize: 12, setSize: 14, exGap: 8,  lineGap: 2, sectionGap: 9,  volumeSize: 38 },
-  3: { nameSize: 13, infoSize: 11, setSize: 13, exGap: 6,  lineGap: 2, sectionGap: 8,  volumeSize: 34 },
-  4: { nameSize: 13, infoSize: 10, setSize: 11, exGap: 4,  lineGap: 2, sectionGap: 7,  volumeSize: 32 },
-  5: { nameSize: 12, infoSize: 10, setSize: 10, exGap: 3,  lineGap: 1, sectionGap: 6,  volumeSize: 30 },
+  1: { nameSize: 14, infoSize: 12, setSize: 18, exGap: 10, lineGap: 4, sectionGap: 11, volumeSize: 42 },
+  2: { nameSize: 13, infoSize: 12, setSize: 17, exGap: 8,  lineGap: 3, sectionGap: 9,  volumeSize: 38 },
+  3: { nameSize: 13, infoSize: 11, setSize: 16, exGap: 6,  lineGap: 3, sectionGap: 8,  volumeSize: 34 },
+  4: { nameSize: 12, infoSize: 10, setSize: 14, exGap: 5,  lineGap: 2, sectionGap: 7,  volumeSize: 32 },
+  5: { nameSize: 11, infoSize: 10, setSize: 12, exGap: 4,  lineGap: 2, sectionGap: 6,  volumeSize: 30 },
 }
 
 // ── Props ─────────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ export default function WorkoutStoryCardContent({
               </p>
               {/* Sets count + est. 1RM — 1RM value in accent */}
               <p style={{
-                fontSize: tp.infoSize, color: 'rgba(255,255,255,0.52)',
+                fontSize: tp.infoSize, color: 'rgba(255,255,255,0.62)',
                 marginTop: tp.lineGap, lineHeight: 1,
               }}>
                 {ex.setCount}{locale === 'ja' ? 'セット' : ' sets'}{ex.best1RM > 0
@@ -291,8 +291,8 @@ export default function WorkoutStoryCardContent({
                 if (!str) return null
                 return (
                   <p key={i} style={{
-                    fontSize: tp.setSize, color: 'rgba(255,255,255,0.72)',
-                    marginTop: tp.lineGap, lineHeight: 1.1,
+                    fontSize: tp.setSize, color: 'rgba(255,255,255,0.88)',
+                    marginTop: tp.lineGap, lineHeight: 1.2,
                   }}>
                     {str}
                   </p>
