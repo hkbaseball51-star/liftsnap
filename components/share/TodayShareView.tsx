@@ -51,18 +51,19 @@ async function captureStory(captureEl: HTMLDivElement, transparent: boolean): Pr
 }
 
 // ── Color options — all unlocked, no Pro gate ─────────────────────────
+// Future: add Pro-only colors (e.g. gold, neon) behind a tier check
 const COLOR_OPTIONS: {
   accent: Accent
   labelJa: string
   labelEn: string
-  swatch: string  // color shown when selected
+  swatch: string  // button background when selected
 }[] = [
-  { accent: 'orange', labelJa: 'Orange',   labelEn: 'Orange',   swatch: '#ED742F' },
-  { accent: 'purple', labelJa: 'Purple',   labelEn: 'Purple',   swatch: '#6E38D4' },
-  { accent: 'teal',   labelJa: 'Teal',     labelEn: 'Teal',     swatch: '#14B8A6' },
-  { accent: 'blue',   labelJa: 'Blue',     labelEn: 'Blue',     swatch: '#3B82F6' },
-  { accent: 'white',  labelJa: 'White',    labelEn: 'White',    swatch: '#3a3a3a' },
-  { accent: 'black',  labelJa: 'Stealth',  labelEn: 'Stealth',  swatch: '#050505' },
+  { accent: 'orange', labelJa: 'Orange', labelEn: 'Orange', swatch: '#ED742F' },
+  { accent: 'purple', labelJa: 'Purple', labelEn: 'Purple', swatch: '#6E38D4' },
+  { accent: 'teal',   labelJa: 'Teal',   labelEn: 'Teal',   swatch: '#14B8A6' },
+  { accent: 'blue',   labelJa: 'Blue',   labelEn: 'Blue',   swatch: '#3B82F6' },
+  { accent: 'red',    labelJa: 'Red',    labelEn: 'Red',    swatch: '#EF4444' },
+  { accent: 'white',  labelJa: 'White',  labelEn: 'White',  swatch: '#3a3a3a' },
 ]
 
 // ── Shadow options ────────────────────────────────────────────────────

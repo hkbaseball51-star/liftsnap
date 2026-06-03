@@ -21,22 +21,32 @@ export type TodayData = {
 }
 
 export type CardStyle  = 'glass' | 'transparent'
-export type Accent     = 'orange' | 'purple' | 'teal' | 'blue' | 'white' | 'black'
+export type Accent     = 'orange' | 'purple' | 'teal' | 'blue' | 'white' | 'red'
 export type ShadowMode = 'none' | 'soft' | 'strong'
 
+// accent hex + badge styling per color
 export const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
   orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
   purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
   teal:   { hex: '#14B8A6', badgeBg: '#14B8A6',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
   blue:   { hex: '#3B82F6', badgeBg: '#3B82F6',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
   white:  { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.08)', badgeBorder: 'rgba(255,255,255,0.20)', badgeText: 'rgba(255,255,255,0.80)' },
-  black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff'               },
+  red:    { hex: '#EF4444', badgeBg: '#EF4444',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
 }
 
 const SHADOW: Record<ShadowMode, string> = {
   none:   'none',
   soft:   '0 2px 10px rgba(0,0,0,0.45)',
   strong: '0 3px 16px rgba(0,0,0,0.75)',
+}
+
+// ── Hex → rgba helper ─────────────────────────────────────────────────
+// Avoids 8-char hex for html-to-image compatibility
+function acRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
 }
 
 // ── Pure helpers ──────────────────────────────────────────────────────
@@ -127,19 +137,30 @@ export default function WorkoutStoryCardContent({
   isPast = false,
   shadowMode = 'none',
 }: Props) {
-  const ac          = AC[accent]
-  const acHex       = ac.hex
+  const ac            = AC[accent]
+  const acHex         = ac.hex
   const isTransparent = cardStyle === 'transparent'
-  const unitLabel   = weightUnitLabel(unit)
-  const volStr      = formatVolumeWithUnit(data.volume, unit)
-  const g1rm        = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
+  const unitLabel     = weightUnitLabel(unit)
+  const volStr        = formatVolumeWithUnit(data.volume, unit)
+  const g1rm          = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
   const totalRows = data.exercises.reduce((sum, ex) => sum + 2 + ex.setList.length, 0)
   const tier = getTier(totalRows)
   const tp   = TIER_PARAMS[tier]
 
-  const ts           = SHADOW[shadowMode]
-  const dividerColor = isTransparent ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.09)'
+  const ts = SHADOW[shadowMode]
+
+  // Accent-tinted divider: accent color at 25% (glass) or 35% (transparent)
+  // — white accent results in subtle white line; colored accents give warm/cool tint
+  const dividerColor = isTransparent
+    ? acRgba(acHex, 0.35)
+    : acRgba(acHex, 0.25)
+
+  // Accent at 70% for the EXERCISES section marker dot
+  const accentDot = acRgba(acHex, 0.70)
+
+  // Accent at 50% for "REPRA" text in footer
+  const accentFooter = acRgba(acHex, 0.50)
 
   return (
     <div style={{
@@ -158,7 +179,7 @@ export default function WorkoutStoryCardContent({
       }),
     }}>
 
-      {/* REPRA badge */}
+      {/* REPRA badge — accent background */}
       <div>
         <span style={{
           display: 'inline-block',
@@ -170,6 +191,7 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* WORKOUT label · date · title */}
+      {/* Body text stays white/grey — no accent */}
       <div style={{ marginTop: 16 }}>
         <p style={{
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
@@ -190,7 +212,7 @@ export default function WorkoutStoryCardContent({
         </p>
       </div>
 
-      {/* Divider */}
+      {/* Divider — accent-tinted */}
       <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
       {/* TOTAL VOLUME */}
@@ -201,6 +223,7 @@ export default function WorkoutStoryCardContent({
         }}>
           TOTAL VOLUME
         </p>
+        {/* Volume number — accent color (largest text, most prominent accent) */}
         <p style={{
           fontSize: tp.volumeSize, fontWeight: 900, color: acHex,
           lineHeight: 1, margin: 0, letterSpacing: '-0.025em',
@@ -212,6 +235,7 @@ export default function WorkoutStoryCardContent({
           {g1rm > 0 && (
             <>
               {' · BEST 1RM '}
+              {/* Important number — accent color */}
               <span style={{ color: acHex, fontWeight: 700 }}>
                 {toDisplayWeight(Math.round(g1rm), unit)}{unitLabel}
               </span>
@@ -220,20 +244,29 @@ export default function WorkoutStoryCardContent({
         </p>
       </div>
 
-      {/* Divider */}
+      {/* Divider — accent-tinted */}
       <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
-      {/* EXERCISES — full set detail per exercise, no truncation */}
+      {/* EXERCISES — full set detail, no truncation */}
       <div>
-        <p style={{
-          fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
-          color: 'rgba(255,255,255,0.42)', margin: '0 0 10px', lineHeight: 1,
-        }}>
-          EXERCISES
-        </p>
+        {/* EXERCISES heading with accent dot on the left */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 10px' }}>
+          <div style={{
+            width: 2, height: 9, borderRadius: 1,
+            background: accentDot, flexShrink: 0,
+          }} />
+          <p style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+            color: 'rgba(255,255,255,0.42)', margin: 0, lineHeight: 1,
+          }}>
+            EXERCISES
+          </p>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: tp.exGap }}>
           {data.exercises.map((ex) => (
             <div key={ex.name} style={{ flexShrink: 0 }}>
+              {/* Exercise name — white (body text, not accent) */}
               <p style={{
                 fontSize: tp.nameSize, fontWeight: 800, color: '#fff',
                 margin: 0, lineHeight: 1.2,
@@ -241,6 +274,7 @@ export default function WorkoutStoryCardContent({
               }}>
                 {tname(ex.name)}
               </p>
+              {/* Sets count + est. 1RM — 1RM value in accent */}
               <p style={{
                 fontSize: tp.infoSize, color: 'rgba(255,255,255,0.40)',
                 marginTop: tp.lineGap, lineHeight: 1,
@@ -249,6 +283,7 @@ export default function WorkoutStoryCardContent({
                   ? <>{' · est. 1RM '}<span style={{ color: acHex, fontWeight: 700 }}>{fmtKg(toDisplayWeight(ex.best1RM, unit))}{unitLabel}</span></>
                   : null}
               </p>
+              {/* Set details — grey (body text, not accent) */}
               {ex.setList.map((s, i) => {
                 const str = s.weight > 0
                   ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel} × ${s.reps}`
@@ -268,12 +303,13 @@ export default function WorkoutStoryCardContent({
         </div>
       </div>
 
-      {/* Made with REPRA */}
+      {/* Made with REPRA — "REPRA" word in accent at low opacity */}
       <p style={{
-        fontSize: 8, color: 'rgba(255,255,255,0.24)',
+        fontSize: 8, color: 'rgba(255,255,255,0.22)',
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 16,
       }}>
-        Made with REPRA
+        Made with{' '}
+        <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
       </p>
 
     </div>
