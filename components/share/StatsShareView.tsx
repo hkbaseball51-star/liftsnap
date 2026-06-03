@@ -386,31 +386,42 @@ async function captureGraphElement(
 ): Promise<Blob> {
   const { toPng } = await import('html-to-image')
   await document.fonts.ready
+  // Let React finish any pending renders
   await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 80))
+  await new Promise(r => requestAnimationFrame(r))
+  await new Promise(r => setTimeout(r, 120))
 
   const W = el.offsetWidth
   const H = el.offsetHeight
-  const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
+  // Scale so the longest side is ≥ 1080px, capped at 3× to avoid memory issues
+  const pixelRatio = Math.min(3, Math.max(1, Math.round(1080 / Math.max(W, H, 1))))
+
+  const opts = {
+    width: W,
+    height: H,
+    style: { width: `${W}px`, height: `${H}px` },
+    pixelRatio,
+    cacheBust: true,
+    skipFonts: true,
+  }
 
   const prevBg = el.style.background
   if (isTransparent) {
-    // Remove checker pattern — captured PNG will have transparent bg
     el.style.background = 'transparent'
     await new Promise(r => requestAnimationFrame(r))
   }
 
   try {
-    const dataUrl = await toPng(el, {
-      width: W,
-      height: H,
-      style: { width: `${W}px`, height: `${H}px` },
-      pixelRatio,
-      cacheBust: true,
-      skipFonts: true,
-    })
-    const res = await fetch(dataUrl)
-    return await res.blob()
+    // First call warms up SVG/image resources; second call gets the clean render
+    await toPng(el, opts)
+    await new Promise(r => setTimeout(r, 60))
+    const dataUrl = await toPng(el, opts)
+    const res  = await fetch(dataUrl)
+    const blob = await res.blob()
+    if (blob.size < 2000) {
+      throw new Error('Captured image appears empty (size < 2 KB)')
+    }
+    return blob
   } finally {
     if (isTransparent) {
       el.style.background = prevBg
@@ -618,23 +629,23 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   const handleShare = async () => {
     setSharing(true)
-    setStatus('Generating...')
+    setStatus('Creating image...')
     try {
       let blob: Blob
       let filename: string
 
       if (data.type === 'max1rm') {
-        // Select export target by layout
+        // ── Select export target ref ─────────────────────────
         const el: HTMLDivElement | null =
           graphLayout === 'full'   ? fullGraphRef.current  :
           graphLayout === 'bottom' ? bottomCardRef.current :
           graphLayout === 'mini'   ? miniCardRef.current   :
                                      wideCardRef.current
 
-        // Pre-save validation
-        const w         = el?.offsetWidth  ?? 0
-        const h         = el?.offsetHeight ?? 0
-        const innerText = el?.innerText?.trim() ?? ''
+        // ── Pre-save validation ──────────────────────────────
+        const w          = el?.offsetWidth  ?? 0
+        const h          = el?.offsetHeight ?? 0
+        const innerText  = el?.innerText?.trim() ?? ''
         const childCount = el?.children.length ?? 0
 
         if (process.env.NODE_ENV === 'development') {
@@ -647,6 +658,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             graphLayout,
             cardStyle,
             graphPreset,
+            shadowLevel,
           })
         }
 
@@ -657,11 +669,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           return
         }
 
-        // All layouts respect cardStyle (Full now supports Transparent too)
+        // ── Capture ──────────────────────────────────────────
         const isTransparent = cardStyle === 'transparent'
         blob = await captureGraphElement(el, isTransparent)
 
-        // Build filename
+        // ── Filename ─────────────────────────────────────────
         const today    = new Date().toISOString().split('T')[0]
         const nameSlug = (RM_JA_EN[exNameRaw] ?? exNameRaw)
           .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 20) || 'exercise'
@@ -669,8 +681,34 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-max-1rm-story-${today}-${nameSlug}.png`
           : `repra-max-1rm-card-${today}-${nameSlug}-${graphLayout}.png`
 
+        // ── Share: Web Share API first, download fallback ────
+        const file = new File([blob], filename, { type: 'image/png' })
+        if (navigator.canShare?.({ files: [file] })) {
+          setStatus('Sharing...')
+          await navigator.share({
+            files: [file],
+            title: graphLayout === 'full' ? 'REPRA Graph Story' : 'REPRA Graph Card',
+          })
+          const next = incrementShareCount(); setShareCount(next)
+          setStatus('')
+          return
+        }
+
+        // Fallback: anchor download (non-iOS or desktop)
+        const url = URL.createObjectURL(blob)
+        const a   = document.createElement('a')
+        a.href = url; a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        const next = incrementShareCount(); setShareCount(next)
+        setStatus('Downloaded!')
+        setTimeout(() => setStatus(''), 2000)
+        return
+
       } else {
-        // Volume / bodyweight — keep existing Web Share API flow
+        // ── Volume / bodyweight — existing flow (unchanged) ──
         blob = await generateStatsCard(data, theme, accent, chartType, unit)
         filename = 'repra-stats.png'
         const file = new File([blob], filename, { type: 'image/png' })
@@ -681,20 +719,22 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           setStatus('')
           return
         }
+        const url = URL.createObjectURL(blob)
+        const a   = document.createElement('a')
+        a.href = url; a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        const next = incrementShareCount(); setShareCount(next)
+        setStatus('Downloaded!')
+        setTimeout(() => setStatus(''), 2000)
       }
-
-      // Download fallback (MAX 1RM always; non-MAX1RM when canShare is false)
-      const url = URL.createObjectURL(blob)
-      const a   = document.createElement('a')
-      a.href = url; a.download = filename; a.click()
-      URL.revokeObjectURL(url)
-      const next = incrementShareCount(); setShareCount(next)
-      setStatus('Downloaded!')
-      setTimeout(() => setStatus(''), 2000)
 
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== 'AbortError') {
-        setStatus('Could not create image. Please try again.')
+        setStatus('Could not save image. Please try again.')
+        setTimeout(() => setStatus(''), 3000)
       } else {
         setStatus('')
       }
@@ -1253,8 +1293,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           disabled={sharing} onClick={handleShare}>
           <Share2 size={20} />
           {isMax1RM
-            ? (sharing ? 'Generating...' : graphLayout === 'full' ? 'Save Graph Story' : 'Save Graph Card')
-            : (sharing ? 'Generating...' : 'Share to Instagram Story')
+            ? (sharing ? 'Creating image...' : graphLayout === 'full' ? 'Save Graph Story' : 'Save Graph Card')
+            : (sharing ? 'Creating image...' : 'Share to Instagram Story')
           }
         </button>
         <p className="text-center text-xs" style={{ color: '#444' }}>
