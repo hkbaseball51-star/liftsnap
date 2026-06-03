@@ -6,7 +6,9 @@ import StatsShareView from '@/components/share/StatsShareView'
 import TodayShareView from '@/components/share/TodayShareView'
 import FeatureTracker from '@/components/common/FeatureTracker'
 import Link from 'next/link'
-import { Dumbbell, BarChart2, CalendarDays, ChevronRight, Lock } from 'lucide-react'
+import { BarChart2, CalendarDays, ChevronRight, Lock, Crown } from 'lucide-react'
+import { cookies, headers } from 'next/headers'
+import { resolveServerLocale, type Locale } from '@/lib/i18n'
 
 export default async function SharePage({
   searchParams,
@@ -71,75 +73,287 @@ export default async function SharePage({
   // Landing page — no type or session specified
   if (!params.type && !sessionId) {
     const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
+
+    // Locale resolution (lightweight — no DB query)
+    const [cookieStore, headerStore] = await Promise.all([cookies(), headers()])
+    const cookieLang = cookieStore.get('liftsnap_lang')?.value
+    const locale: Locale = resolveServerLocale(cookieLang, undefined, headerStore.get('accept-language') ?? '')
+    const ja = locale === 'ja'
+
+    // Lightweight today summary for mini preview (server-side, no image generation)
+    type TodayPreview = {
+      volume: number
+      setsCount: number
+      best1rm: number
+      exerciseCount: number
+      topExercises: string[]
+    }
+    let todayPreview: TodayPreview | null = null
+    try {
+      const d = await getTodayWorkoutForShare(todayStr)
+      if (d) {
+        todayPreview = {
+          volume: d.volume,
+          setsCount: d.setsCount,
+          best1rm: d.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0),
+          exerciseCount: d.exercises.length,
+          topExercises: d.exercises.slice(0, 2).map(ex => ex.name),
+        }
+      }
+    } catch { /* silently skip — preview is optional */ }
+
+    const fmtVol = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}t` : `${v}kg`
+
     return (
       <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
-        {/* Header */}
-        <div className="px-4 pt-12 pb-8">
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.38)', marginBottom: 8 }}>
+
+        {/* ── Header ── */}
+        <div className="px-4 pt-10 pb-5">
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.36)', marginBottom: 8 }}>
             SHARE
           </p>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-            Create a Story
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+            {ja ? '今日の努力を、1枚の証拠に。' : 'Create your proof.'}
           </h1>
-          <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.50)', marginTop: 6 }}>
-            Share your progress to Instagram
+          <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.48)', marginTop: 5 }}>
+            {ja ? '今日のトレーニングをストーリーカードに変換する' : "Turn today's workout into a story."}
           </p>
         </div>
 
-        {/* Entry cards */}
-        <div className="px-4 flex flex-col gap-3">
-          {/* Today's Workout Story */}
-          <Link
-            href={`/share?type=today&date=${todayStr}`}
-            className="flex items-center gap-4 rounded-2xl px-4 py-4 active:opacity-70 transition-opacity"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
-          >
-            <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(237,116,47,0.15)' }}>
-              <Dumbbell size={20} color="#ED742F" />
+        <div className="px-4 flex flex-col gap-3" style={{ paddingBottom: 24 }}>
+
+          {/* ── Featured: Today's Workout Story ── */}
+          <Link href={`/share?type=today&date=${todayStr}`} className="block active:opacity-90 transition-opacity">
+            <div style={{
+              background: '#1A1A1A',
+              border: '1px solid rgba(237,116,47,0.28)',
+              borderRadius: 20,
+              overflow: 'hidden',
+            }}>
+              {/* Orange accent top bar */}
+              <div style={{ height: 2, background: 'linear-gradient(90deg, #ED742F 0%, rgba(237,116,47,0.14) 65%, transparent 100%)' }} />
+
+              <div style={{ padding: '16px 18px 18px' }}>
+                {/* Badge row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{
+                    fontSize: 8, fontWeight: 800, letterSpacing: '0.14em',
+                    padding: '3px 9px', borderRadius: 20,
+                    background: 'rgba(237,116,47,0.14)',
+                    border: '1px solid rgba(237,116,47,0.24)',
+                    color: 'rgba(237,116,47,0.92)',
+                  }}>FEATURED</span>
+                  <ChevronRight size={14} color="rgba(237,116,47,0.55)" />
+                </div>
+
+                {/* Title + desc */}
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>
+                  Workout Story
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginBottom: 14, lineHeight: 1.5 }}>
+                  {ja
+                    ? 'トレーニングをInstagramストーリー用カードに変換'
+                    : "Today's training as an Instagram story card."}
+                </p>
+
+                {/* ── Mini Story Preview (HTML/CSS only, no canvas) ── */}
+                <div style={{
+                  background: '#0d0d0d',
+                  borderRadius: 12,
+                  padding: '13px 15px 11px',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  marginBottom: 14,
+                }}>
+                  {/* REPRA badge */}
+                  <div style={{ marginBottom: 7 }}>
+                    <span style={{
+                      fontSize: 8, fontWeight: 900, letterSpacing: '0.16em',
+                      padding: '2px 8px', borderRadius: 4,
+                      background: '#ED742F', color: '#fff',
+                    }}>REPRA</span>
+                  </div>
+                  <p style={{
+                    fontSize: 7.5, fontWeight: 700, letterSpacing: '0.15em',
+                    color: 'rgba(255,255,255,0.38)', marginBottom: 7, lineHeight: 1,
+                  }}>TODAY&apos;S WORKOUT</p>
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 9 }} />
+
+                  {todayPreview ? (
+                    <>
+                      <p style={{
+                        fontSize: 28, fontWeight: 900, color: '#ED742F',
+                        letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 4,
+                      }}>
+                        {fmtVol(todayPreview.volume)}
+                      </p>
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.52)', marginBottom: 9, lineHeight: 1 }}>
+                        {todayPreview.setsCount} sets
+                        {todayPreview.best1rm > 0 && ` · Best 1RM ${Math.round(todayPreview.best1rm)}kg`}
+                      </p>
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 8 }} />
+                      {todayPreview.topExercises.map(name => (
+                        <p key={name} style={{
+                          fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.72)',
+                          lineHeight: 1, marginBottom: 4,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>{name}</p>
+                      ))}
+                      {todayPreview.exerciseCount > 2 && (
+                        <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.32)', lineHeight: 1 }}>
+                          +{todayPreview.exerciseCount - 2} more
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p style={{
+                        fontSize: 28, fontWeight: 900,
+                        color: 'rgba(237,116,47,0.25)',
+                        letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 4,
+                      }}>—.—t</p>
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.26)', marginBottom: 9, lineHeight: 1 }}>
+                        {ja ? '記録するとプレビューが表示されます' : 'Log a workout to see preview'}
+                      </p>
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 8 }} />
+                      <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.20)', lineHeight: 1 }}>— —</p>
+                    </>
+                  )}
+
+                  <p style={{
+                    fontSize: 7, color: 'rgba(255,255,255,0.20)',
+                    textAlign: 'right', letterSpacing: '0.06em',
+                    marginTop: 10, lineHeight: 1,
+                  }}>Made with REPRA</p>
+                </div>
+
+                {/* Stats chips */}
+                {todayPreview && (
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                    {[
+                      fmtVol(todayPreview.volume),
+                      `${todayPreview.setsCount} sets`,
+                      `${todayPreview.exerciseCount} exercises`,
+                    ].map(chip => (
+                      <span key={chip} style={{
+                        fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.46)',
+                        padding: '3px 9px', borderRadius: 10,
+                        background: 'rgba(255,255,255,0.05)',
+                      }}>{chip}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* CTA button */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  background: '#ED742F', borderRadius: 13, padding: '12px 0',
+                  boxShadow: '0 4px 16px rgba(237,116,47,0.30)',
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>
+                    {ja ? 'Storyを作成' : 'Create Story'}
+                  </span>
+                  <ChevronRight size={13} color="rgba(255,255,255,0.82)" />
+                </div>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Today&apos;s Workout Story</p>
-              <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.46)', marginTop: 2 }}>
-                Share today&apos;s training card
-              </p>
-            </div>
-            <ChevronRight size={16} color="rgba(255,255,255,0.30)" />
           </Link>
 
-          {/* Stats Graph Story */}
-          <Link
-            href="/share/stats"
-            className="flex items-center gap-4 rounded-2xl px-4 py-4 active:opacity-70 transition-opacity"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
-          >
-            <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.12)' }}>
-              <BarChart2 size={20} color="#22c55e" />
+          {/* ── Stats Graph Story ── */}
+          <Link href="/share/stats" className="block active:opacity-70 transition-opacity">
+            <div style={{
+              background: '#181818',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 18,
+            }}>
+              <div style={{ padding: '14px 16px 14px 14px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  flexShrink: 0, width: 46, height: 46, borderRadius: 13,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(34,197,94,0.11)',
+                }}>
+                  <BarChart2 size={21} color="#22c55e" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 3, lineHeight: 1.2 }}>
+                    Stats Graph Story
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.46)', lineHeight: 1.4 }}>
+                    {ja ? '成長グラフをシェア' : 'Share your growth chart'}
+                  </p>
+                  <p style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.28)', marginTop: 2, lineHeight: 1 }}>
+                    MAX 1RM · Volume · Body Weight
+                  </p>
+                </div>
+                <ChevronRight size={15} color="rgba(255,255,255,0.28)" />
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Stats Graph Story</p>
-              <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.46)', marginTop: 2 }}>
-                Share your progress chart
-              </p>
-            </div>
-            <ChevronRight size={16} color="rgba(255,255,255,0.30)" />
           </Link>
 
-          {/* Calendar Summary — coming soon */}
-          <div
-            className="flex items-center gap-4 rounded-2xl px-4 py-4"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 0.5 }}
-          >
-            <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <CalendarDays size={20} color="rgba(255,255,255,0.40)" />
+          {/* ── Calendar Summary — coming soon ── */}
+          <div style={{
+            background: '#141414',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 18,
+            opacity: 0.6,
+          }}>
+            <div style={{ padding: '14px 16px 14px 14px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                flexShrink: 0, width: 46, height: 46, borderRadius: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.05)',
+              }}>
+                <CalendarDays size={21} color="rgba(255,255,255,0.36)" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.58)', marginBottom: 3, lineHeight: 1.2 }}>
+                  Calendar Summary
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.34)', lineHeight: 1.4 }}>
+                  {ja ? '月間トレーニングのまとめカード' : 'Monthly training recap'}
+                </p>
+                <p style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.26)', marginTop: 3, lineHeight: 1 }}>
+                  Coming soon
+                </p>
+              </div>
+              <Lock size={13} color="rgba(255,255,255,0.22)" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.60)' }}>Calendar Summary</p>
-              <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.34)', marginTop: 2 }}>
-                Coming soon
-              </p>
-            </div>
-            <Lock size={14} color="rgba(255,255,255,0.24)" />
           </div>
+
+          {/* ── Pro Templates ── locked placeholder ── */}
+          <div style={{
+            background: '#111111',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 18,
+            marginTop: 4,
+          }}>
+            <div style={{ padding: '14px 16px 14px 14px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                flexShrink: 0, width: 46, height: 46, borderRadius: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.04)',
+              }}>
+                <Crown size={20} color="rgba(255,255,255,0.28)" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.48)', lineHeight: 1.2 }}>
+                    Pro Templates
+                  </p>
+                  <span style={{
+                    fontSize: 8, fontWeight: 700, letterSpacing: '0.08em',
+                    padding: '2px 6px', borderRadius: 5,
+                    background: 'rgba(255,255,255,0.07)',
+                    color: 'rgba(255,255,255,0.34)',
+                  }}>PRO</span>
+                </div>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.30)', lineHeight: 1.4 }}>
+                  Minimal Black · Graph Pro · No Watermark
+                </p>
+              </div>
+              <Lock size={13} color="rgba(255,255,255,0.20)" />
+            </div>
+          </div>
+
         </div>
       </div>
     )
