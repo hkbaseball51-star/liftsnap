@@ -35,13 +35,18 @@ export default function BottomNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"
       style={{
-        background: 'rgba(10,10,10,0.96)',
-        backdropFilter: 'blur(8px)',
+        background: '#0a0a0a',
         borderTop: '1px solid #1e1e1e',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        // 10px above content row, safe-area + 10px below home indicator —
+        // total visible nav height = 76px (keeps icons well clear of home bar)
+        paddingTop: 10,
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)',
       }}
     >
-      <div className="flex items-center justify-around h-16">
+      {/* Inner row: 56px — icon (22) + gap (4) + label (10) = 36px content,
+          centered with 10px headroom each side. Flex-1 links make the full
+          row width tappable, satisfying the 44×44 px minimum. */}
+      <div className="flex justify-around" style={{ height: 56 }}>
         {tabs.map(({ href, base, icon: Icon, label }) => {
           const active = pathname.startsWith(base)
           const color  = active ? '#ED742F' : 'rgba(255,255,255,0.55)'
@@ -50,7 +55,8 @@ export default function BottomNav() {
               key={base}
               href={href}
               prefetch
-              className="flex flex-col items-center gap-0.5 py-2 px-5 active:opacity-60 transition-opacity"
+              className="flex flex-col items-center justify-center gap-1 active:opacity-60 transition-opacity"
+              style={{ flex: 1, minHeight: 44 }}
             >
               <Icon size={22} color={color} strokeWidth={active ? 2.5 : 2} />
               <span className="text-[8px] font-black tracking-widest" style={{ color }}>

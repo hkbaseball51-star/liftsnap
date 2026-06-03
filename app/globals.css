@@ -57,7 +57,9 @@ h1, h2 {
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-.pb-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+/* Nav total height: 10px top padding + 56px row + 10px bottom padding = 76px (+ safe area).
+   pb-nav gives page content clearance equal to the nav height so nothing is hidden. */
+.pb-nav { padding-bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

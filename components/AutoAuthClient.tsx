@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { startTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -12,7 +12,10 @@ export default function AutoAuthClient() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         supabase.auth.signInAnonymously().then(() => {
-          router.refresh()
+          // startTransition keeps the UI interactive while the server re-renders
+          // with the new anonymous session.  This only fires once for brand-new
+          // users who have no session cookie yet.
+          startTransition(() => { router.refresh() })
         })
       }
     })

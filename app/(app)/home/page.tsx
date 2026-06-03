@@ -30,6 +30,8 @@ export default async function HomePage() {
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   const ninetyDaysAgoStr = `${ninetyDaysAgo.getFullYear()}-${String(ninetyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(ninetyDaysAgo.getDate()).padStart(2, '0')}`
 
+  const _t0 = process.env.NODE_ENV === 'development' ? Date.now() : 0
+
   const rawResults = await Promise.allSettled([
     supabase.from('workout_sessions')
       .select('id, trained_at, total_volume_kg')
@@ -87,6 +89,11 @@ export default async function HomePage() {
     lastWeekRes, bwHistoryRes, atbRes,
     streakSessionsRes, photoLogsRes,
   ] = rawResults.map(settled)
+
+  if (process.env.NODE_ENV === 'development') {
+    const failed = rawResults.filter(r => r.status === 'rejected').length
+    console.log(`[perf] /home 8 queries: ${Date.now() - _t0}ms | failures: ${failed}`)
+  }
 
   /* ── Calendar sessions + day summaries (all from embedded query) ── */
   type SetRow = { exercise_name: string; muscle_group: string; weight_kg: number | null; reps: number | null; note: string | null }

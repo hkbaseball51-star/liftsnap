@@ -798,7 +798,7 @@ export default function WorkoutRecorder({
       {/* ── Bottom bar ── */}
       <div className="fixed inset-x-0 z-40 px-4 py-3"
         style={{
-          bottom: 'calc(4rem + env(safe-area-inset-bottom))',
+          bottom: 'calc(4.75rem + env(safe-area-inset-bottom))',
           background: 'linear-gradient(to top, #080808 70%, transparent)',
         }}>
         {/* Rest button */}
