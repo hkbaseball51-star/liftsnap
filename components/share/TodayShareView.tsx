@@ -2,13 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Share2, ArrowLeft, Camera } from 'lucide-react'
+import { Download, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
-import { createClient } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
-import WorkoutPhotoSheet from '@/components/photo/WorkoutPhotoSheet'
 import WorkoutStoryCardContent from './WorkoutStoryCardContent'
 import type { TodayData, CardStyle, Accent, ShadowMode } from './WorkoutStoryCardContent'
 
@@ -20,6 +18,7 @@ function fmtDateShort(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
+// Capture the 9:16 card as a PNG blob — called only on save button press
 async function captureStory(captureEl: HTMLDivElement, transparent: boolean): Promise<Blob> {
   const { toPng } = await import('html-to-image')
   await document.fonts.ready
@@ -56,7 +55,7 @@ const COLOR_OPTIONS: {
   accent: Accent
   labelJa: string
   labelEn: string
-  swatch: string  // button background when selected
+  swatch: string
 }[] = [
   { accent: 'orange', labelJa: 'Orange', labelEn: 'Orange', swatch: '#ED742F' },
   { accent: 'purple', labelJa: 'Purple', labelEn: 'Purple', swatch: '#6E38D4' },
@@ -80,44 +79,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const { locale } = useLocale()
   const todayStr   = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
-  const [cardStyle,      setCardStyleState] = useState<CardStyle>('glass')
-  const [accent,         setAccent]         = useState<Accent>('white')
-  const [shadowMode,     setShadowMode]     = useState<ShadowMode>('none')
-  const [sharing,        setSharing]        = useState(false)
-  const [status,         setStatus]         = useState('')
-  const [shareCount,     setShareCount]     = useState(0)
-  const [photoDataUrl,   setPhotoDataUrl]   = useState<string | null>(null)
-  const [photoLoading,   setPhotoLoading]   = useState(false)
-  const [localPhotoPath, setLocalPhotoPath] = useState<string | null>(data.photoPath ?? null)
-  const [showPhotoSheet, setShowPhotoSheet] = useState(false)
+  const [cardStyle,  setCardStyleState] = useState<CardStyle>('glass')
+  const [accent,     setAccent]         = useState<Accent>('white')
+  const [shadowMode, setShadowMode]     = useState<ShadowMode>('none')
+  const [saving,     setSaving]         = useState(false)
+  const [status,     setStatus]         = useState('')
+  const [shareCount, setShareCount]     = useState(0)
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
-
-  useEffect(() => {
-    if (!localPhotoPath) { setPhotoDataUrl(null); setPhotoLoading(false); return }
-    setPhotoDataUrl(null)
-    setPhotoLoading(true)
-    let cancelled = false
-    async function loadPhoto() {
-      const supabase = createClient()
-      const { data: urlData } = await supabase.storage
-        .from('workout-photos')
-        .createSignedUrl(localPhotoPath!, 3600)
-      if (cancelled || !urlData?.signedUrl) { if (!cancelled) setPhotoLoading(false); return }
-      try {
-        const res     = await fetch(urlData.signedUrl)
-        const blob    = await res.blob()
-        const dataUrl = await new Promise<string>(resolve => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.readAsDataURL(blob)
-        })
-        if (!cancelled) { setPhotoDataUrl(dataUrl); setPhotoLoading(false) }
-      } catch { if (!cancelled) setPhotoLoading(false) }
-    }
-    loadPhoto()
-    return () => { cancelled = true }
-  }, [localPhotoPath])
 
   // Switch card style; auto-enable soft shadow when going transparent
   function handleSetCardStyle(style: CardStyle) {
@@ -127,63 +96,50 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     }
   }
 
-  const handlePhotoSaved = (imagePath: string) => {
-    setLocalPhotoPath(imagePath)
-    setShowPhotoSheet(false)
-    setStatus(t(locale, 'story.photoSavedCreateStory'))
-    setTimeout(() => setStatus(''), 3000)
-  }
-  const handlePhotoDeleted = () => { setLocalPhotoPath(null); setShowPhotoSheet(false) }
-
-  const handleShare = async () => {
+  const handleSave = async () => {
     if (!captureRef.current) return
-    setSharing(true)
+    setSaving(true)
     setStatus(t(locale, 'story.generating'))
     try {
-      const transparentCapture = isTransparent && !photoDataUrl
-      const blob = await captureStory(captureRef.current, transparentCapture)
+      const blob = await captureStory(captureRef.current, isTransparent)
       const file = new File([blob], 'repra-today.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
-        setStatus('Sharing...')
         await navigator.share({ files: [file], title: "REPRA Today's Workout" })
-        const next = incrementShareCount(); setShareCount(next)
+        incrementShareCount(); setShareCount(getShareCount())
         setStatus('')
       } else {
         const url = URL.createObjectURL(blob)
         const a   = document.createElement('a')
         a.href = url; a.download = 'repra-today.png'; a.click()
         URL.revokeObjectURL(url)
-        const next = incrementShareCount(); setShareCount(next)
-        setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
+        incrementShareCount(); setShareCount(getShareCount())
+        setStatus(locale === 'ja' ? '保存しました！' : 'Saved!')
+        setTimeout(() => setStatus(''), 2000)
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
       else setStatus('')
-    } finally { setSharing(false) }
+    } finally { setSaving(false) }
   }
 
   // ── Derived ──────────────────────────────────────────────────────────
   const isPast        = data.date !== todayStr
   const ja            = locale === 'ja'
-  const hasPhoto      = !!photoDataUrl
-  const canShare      = !!data.sessionId
   const isTransparent = cardStyle === 'transparent'
 
   // Outer 9:16 canvas background
-  const cardBg = isTransparent
-    ? 'transparent'
-    : hasPhoto
-      ? 'transparent'
-      : '#050505'
+  const cardBg = isTransparent ? 'transparent' : '#050505'
 
-  // Preview-only checkerboard — parent of captureRef, never included in saved image
+  // Preview-only dark checkerboard behind the transparent card.
+  // Dark pattern keeps white text readable while indicating transparency.
+  // Applied to the PARENT of captureRef — never included in the saved PNG.
   const checkerStyle: React.CSSProperties = isTransparent ? {
-    backgroundColor: '#cccccc',
+    backgroundColor: '#2a2a2a',
     backgroundImage: [
-      'linear-gradient(45deg, #aaaaaa 25%, transparent 25%)',
-      'linear-gradient(-45deg, #aaaaaa 25%, transparent 25%)',
-      'linear-gradient(45deg, transparent 75%, #aaaaaa 75%)',
-      'linear-gradient(-45deg, transparent 75%, #aaaaaa 75%)',
+      'linear-gradient(45deg, #3a3a3a 25%, transparent 25%)',
+      'linear-gradient(-45deg, #3a3a3a 25%, transparent 25%)',
+      'linear-gradient(45deg, transparent 75%, #3a3a3a 75%)',
+      'linear-gradient(-45deg, transparent 75%, #3a3a3a 75%)',
     ].join(', '),
     backgroundSize: '20px 20px',
     backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
@@ -212,7 +168,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* 9:16 Story card */}
+      {/* 9:16 Story card preview */}
       <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
         <div style={{ width: 'min(94vw, 420px)', ...checkerStyle }}>
           <div
@@ -225,29 +181,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               background: cardBg,
             }}
           >
-            {/* Photo background */}
-            {photoDataUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={photoDataUrl}
-                alt=""
-                style={{
-                  position: 'absolute', inset: 0,
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', pointerEvents: 'none',
-                }}
-              />
-            )}
-            {/* Transparent + photo: faint gradient to keep text legible */}
-            {hasPhoto && isTransparent && (
-              <div style={{
-                position: 'absolute', inset: 0, zIndex: 1,
-                background: 'linear-gradient(175deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.30) 100%)',
-                pointerEvents: 'none',
-              }} />
-            )}
-
-            {/* Card content */}
+            {/* Card content — positioning wrapper; visual styles in WorkoutStoryCardContent */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2 }}>
               <WorkoutStoryCardContent
                 data={data}
@@ -255,7 +189,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 accent={accent}
                 unit={unit}
                 locale={locale}
-                hasPhoto={hasPhoto}
                 isPast={isPast}
                 shadowMode={shadowMode}
               />
@@ -269,12 +202,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         className="flex-1 overflow-y-auto"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
       >
-        {photoLoading && !photoDataUrl && (
-          <p className="text-center text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.52)' }}>
-            {t(locale, 'story.loadingPhoto')}
-          </p>
-        )}
-
         {/* Card Style selector */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
@@ -345,7 +272,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>
         </div>
 
-        {/* Action buttons */}
+        {/* Save CTA */}
         <div className="px-4 space-y-2 mb-4">
           {status && (
             <p className="text-center text-sm" style={{ color: '#ED742F' }}>
@@ -356,42 +283,24 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           <button
             className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
             style={{
-              background: (sharing || photoLoading) ? 'rgba(237,116,47,0.40)' : '#ED742F',
-              boxShadow:  (sharing || photoLoading) ? 'none' : '0 4px 20px rgba(237,116,47,0.28)',
+              background: saving ? 'rgba(237,116,47,0.40)' : '#ED742F',
+              boxShadow:  saving ? 'none' : '0 4px 20px rgba(237,116,47,0.28)',
             }}
-            disabled={sharing || photoLoading}
-            onClick={handleShare}>
-            <Share2 size={20} />
-            {sharing ? t(locale, 'story.generating') : t(locale, 'story.shareToInstagram')}
+            disabled={saving}
+            onClick={handleSave}>
+            <Download size={20} />
+            {saving
+              ? t(locale, 'story.generating')
+              : (ja ? 'Story用画像を保存' : 'Save Story Image')}
           </button>
 
-          {canShare && (
-            <button
-              className="w-full py-2.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
-              style={{ background: 'transparent', color: '#444', border: '1px solid #1e1e1e' }}
-              onClick={() => setShowPhotoSheet(true)}>
-              <Camera size={14} />
-              {hasPhoto ? t(locale, 'story.changePhoto') : t(locale, 'story.addWorkoutPhoto')}
-            </button>
-          )}
-
-          <p className="text-center text-xs" style={{ color: '#444' }}>
-            {t(locale, 'story.mobileOnly')}
+          <p className="text-center text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
+            {ja
+              ? '保存後、Instagramで写真や動画に重ねて使えます'
+              : 'Save it, then layer it over your photo or video on Instagram.'}
           </p>
         </div>
       </div>
-
-      {showPhotoSheet && data.sessionId && (
-        <WorkoutPhotoSheet
-          sessionId={data.sessionId}
-          sessionDate={data.date}
-          todayStr={todayStr}
-          onClose={() => setShowPhotoSheet(false)}
-          onPhotoSaved={handlePhotoSaved}
-          onPhotoDeleted={handlePhotoDeleted}
-          autoCloseOnSave={true}
-        />
-      )}
 
     </div>
   )

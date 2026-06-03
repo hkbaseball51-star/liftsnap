@@ -34,10 +34,21 @@ export const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: str
   red:    { hex: '#EF4444', badgeBg: '#EF4444',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
 }
 
+// Base shadows applied by user selection
 const SHADOW: Record<ShadowMode, string> = {
   none:   'none',
   soft:   '0 2px 10px rgba(0,0,0,0.45)',
   strong: '0 3px 16px rgba(0,0,0,0.75)',
+}
+
+// Extra shadow boost applied on top of user selection in transparent mode.
+// Glass mode has a dark card background so legibility is already guaranteed.
+// Transparent mode has no card — the boost ensures text stays readable over any background.
+const TRANSPARENT_SHADOW_BOOST = '0 3px 14px rgba(0,0,0,0.75)'
+
+function mergeTextShadow(base: string, extra: string): string {
+  if (base === 'none') return extra
+  return `${base}, ${extra}`
 }
 
 // ── Hex → rgba helper ─────────────────────────────────────────────────
@@ -148,10 +159,13 @@ export default function WorkoutStoryCardContent({
   const tier = getTier(totalRows)
   const tp   = TIER_PARAMS[tier]
 
-  const ts = SHADOW[shadowMode]
+  // Transparent mode gets an extra shadow boost on top of user-selected shadow
+  // so text stays readable regardless of background image
+  const ts = isTransparent
+    ? mergeTextShadow(SHADOW[shadowMode], TRANSPARENT_SHADOW_BOOST)
+    : SHADOW[shadowMode]
 
   // Accent-tinted divider: accent color at 25% (glass) or 35% (transparent)
-  // — white accent results in subtle white line; colored accents give warm/cool tint
   const dividerColor = isTransparent
     ? acRgba(acHex, 0.35)
     : acRgba(acHex, 0.25)
@@ -159,8 +173,8 @@ export default function WorkoutStoryCardContent({
   // Accent at 70% for the EXERCISES section marker dot
   const accentDot = acRgba(acHex, 0.70)
 
-  // Accent at 50% for "REPRA" text in footer
-  const accentFooter = acRgba(acHex, 0.50)
+  // "REPRA" in footer: more visible in transparent mode (no card bg to help legibility)
+  const accentFooter = acRgba(acHex, isTransparent ? 0.65 : 0.50)
 
   return (
     <div style={{
@@ -303,9 +317,10 @@ export default function WorkoutStoryCardContent({
         </div>
       </div>
 
-      {/* Made with REPRA — "REPRA" word in accent at low opacity */}
+      {/* Made with REPRA — slightly more visible in transparent mode (no card bg) */}
       <p style={{
-        fontSize: 8, color: 'rgba(255,255,255,0.22)',
+        fontSize: 8,
+        color: isTransparent ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.22)',
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 16,
       }}>
         Made with{' '}
