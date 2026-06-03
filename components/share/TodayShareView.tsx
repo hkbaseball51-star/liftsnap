@@ -6,7 +6,6 @@ import { Download, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useLocale } from '@/lib/useLocale'
-import { t } from '@/lib/i18n'
 import WorkoutStoryCardContent, { ExerciseStoryCard, tname, PRESETS } from './WorkoutStoryCardContent'
 import type { TodayData, CardStyle, DesignPreset, ShadowMode } from './WorkoutStoryCardContent'
 
@@ -18,27 +17,50 @@ function fmtDateShort(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
-// Capture the workout card as a PNG blob — inner card only, natural size, no outer canvas
+// Capture the workout card as a PNG blob — inner card only, natural size
+// Uses toBlob() directly (avoids fetch + CSP issues with data URLs)
 async function captureCard(cardEl: HTMLDivElement): Promise<Blob> {
-  const { toPng } = await import('html-to-image')
+  const { toBlob } = await import('html-to-image')
   await document.fonts.ready
+  // Double rAF ensures styles are fully applied before capture
   await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 80))
+  await new Promise(r => requestAnimationFrame(r))
+  await new Promise(r => setTimeout(r, 100))
 
   const W = cardEl.offsetWidth
   const H = cardEl.offsetHeight
-  const pixelRatio = Math.min(4, Math.round(1080 / Math.max(W, 1)))
+  const rect = cardEl.getBoundingClientRect()
 
-  const dataUrl = await toPng(cardEl, {
+  if (process.env.NODE_ENV !== 'production') {
+    /* eslint-disable no-console */
+    console.log('[captureCard] innerText:', cardEl.innerText?.slice(0, 80))
+    console.log('[captureCard] offsetW×H:', W, '×', H)
+    console.log('[captureCard] boundingRect:', rect)
+    /* eslint-enable no-console */
+  }
+
+  if (W === 0 || H === 0) {
+    throw new Error(`Export element has zero dimensions (${W}×${H}). Check ref target.`)
+  }
+
+  const pixelRatio = Math.min(4, Math.round(1080 / W))
+
+  const blob = await toBlob(cardEl, {
     width: W,
     height: H,
     style: { width: `${W}px`, height: `${H}px` },
     pixelRatio,
     cacheBust: true,
-    skipFonts: true,
   })
-  const res = await fetch(dataUrl)
-  return await res.blob()
+
+  if (process.env.NODE_ENV !== 'production') {
+    /* eslint-disable no-console */
+    console.log('[captureCard] blob size:', blob?.size, 'bytes, type:', blob?.type)
+    /* eslint-enable no-console */
+  }
+
+  if (!blob) throw new Error('html-to-image returned null blob')
+  return blob
 }
 
 // ── Design presets — Pro-only custom colors can be added here in future ──
@@ -112,62 +134,90 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setShadowMode(PRESETS[p].defaultShadow)
   }
 
+  // Share via Web Share API when available, otherwise trigger download via <a download>
+  const shareOrDownload = async (blob: Blob, filename: string): Promise<'shared' | 'downloaded'> => {
+    const file = new File([blob], filename, { type: 'image/png' })
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'REPRA Story Card' })
+      return 'shared'
+    }
+    const url = URL.createObjectURL(blob)
+    try {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } finally {
+      URL.revokeObjectURL(url)
+    }
+    return 'downloaded'
+  }
+
   const handleSaveSingleExercise = async (idx: number) => {
     const cardEl = exerciseExportRefs.current[idx]
     if (!cardEl) return
     setSaving(true)
-    setStatus(t(locale, 'story.generating'))
+    setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
       const ex = data.exercises[idx]
       const blob = await captureCard(cardEl)
       const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
       const safeName = enName || `ex-${idx + 1}`
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `repra-${data.date}-${safeName}.png`
-      a.click()
-      URL.revokeObjectURL(url)
+      const result = await shareOrDownload(blob, `repra-${data.date}-${safeName}.png`)
       incrementShareCount(); setShareCount(getShareCount())
-      setStatus(locale === 'ja' ? '保存しました！' : 'Saved!')
-      setTimeout(() => setStatus(''), 2000)
+      if (result === 'downloaded') {
+        setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
+        setTimeout(() => setStatus(''), 2000)
+      } else {
+        setStatus('')
+      }
     } catch (e: unknown) {
-      if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
-      else setStatus('')
+      if (e instanceof Error && e.name === 'AbortError') {
+        setStatus('')
+      } else {
+        setStatus(locale === 'ja'
+          ? '画像を作成できませんでした。もう一度お試しください。'
+          : 'Could not create image. Please try again.')
+        setTimeout(() => setStatus(''), 3000)
+      }
     } finally { setSaving(false) }
   }
 
   const handleSaveCombined = async () => {
     if (!exportRef.current) return
     setSaving(true)
-    setStatus(t(locale, 'story.generating'))
+    setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
       const blob = await captureCard(exportRef.current)
-      const file = new File([blob], 'repra-today.png', { type: 'image/png' })
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "REPRA Today's Workout" })
-        incrementShareCount(); setShareCount(getShareCount())
-        setStatus('')
-      } else {
-        const url = URL.createObjectURL(blob)
-        const a   = document.createElement('a')
-        a.href = url; a.download = 'repra-today.png'; a.click()
-        URL.revokeObjectURL(url)
-        incrementShareCount(); setShareCount(getShareCount())
-        setStatus(locale === 'ja' ? '保存しました！' : 'Saved!')
+      const filename = `repra-${data.date}-workout.png`
+      const result = await shareOrDownload(blob, filename)
+      incrementShareCount(); setShareCount(getShareCount())
+      if (result === 'downloaded') {
+        setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
         setTimeout(() => setStatus(''), 2000)
+      } else {
+        setStatus('')
       }
     } catch (e: unknown) {
-      if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
-      else setStatus('')
+      if (e instanceof Error && e.name === 'AbortError') {
+        setStatus('')
+      } else {
+        setStatus(locale === 'ja'
+          ? '画像を作成できませんでした。もう一度お試しください。'
+          : 'Could not create image. Please try again.')
+        setTimeout(() => setStatus(''), 3000)
+      }
     } finally { setSaving(false) }
   }
 
   const handleSavePerExercise = async () => {
     setSaving(true)
-    setStatus(t(locale, 'story.generating'))
-    let saved = 0
+    setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
+      // Build all files first
+      const files: File[] = []
       for (let i = 0; i < data.exercises.length; i++) {
         const cardEl = exerciseExportRefs.current[i]
         if (!cardEl) continue
@@ -175,21 +225,36 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         const blob = await captureCard(cardEl)
         const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
         const safeName = enName || `ex-${i + 1}`
-        const url = URL.createObjectURL(blob)
-        const a   = document.createElement('a')
-        a.href = url
-        a.download = `repra-${data.date}-${safeName}.png`
-        a.click()
-        URL.revokeObjectURL(url)
-        saved++
-        if (i < data.exercises.length - 1) await new Promise(r => setTimeout(r, 400))
+        files.push(new File([blob], `repra-${data.date}-${safeName}.png`, { type: 'image/png' }))
       }
-      incrementShareCount(); setShareCount(getShareCount())
-      setStatus(locale === 'ja' ? `${saved}枚保存しました！` : `Saved ${saved} cards!`)
-      setTimeout(() => setStatus(''), 2500)
+      if (files.length === 0) return
+      // Try sharing all at once; fall back to sequential download
+      if (navigator.canShare?.({ files })) {
+        await navigator.share({ files, title: 'REPRA Story Cards' })
+        incrementShareCount(); setShareCount(getShareCount())
+        setStatus('')
+      } else {
+        for (let i = 0; i < files.length; i++) {
+          const url = URL.createObjectURL(files[i])
+          const a = document.createElement('a')
+          a.href = url; a.download = files[i].name
+          document.body.appendChild(a); a.click(); document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          if (i < files.length - 1) await new Promise(r => setTimeout(r, 400))
+        }
+        incrementShareCount(); setShareCount(getShareCount())
+        setStatus(locale === 'ja' ? `${files.length}枚保存しました` : `Downloaded ${files.length} cards`)
+        setTimeout(() => setStatus(''), 2500)
+      }
     } catch (e: unknown) {
-      if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
-      else setStatus('')
+      if (e instanceof Error && e.name === 'AbortError') {
+        setStatus('')
+      } else {
+        setStatus(locale === 'ja'
+          ? '画像を作成できませんでした。もう一度お試しください。'
+          : 'Could not create image. Please try again.')
+        setTimeout(() => setStatus(''), 3000)
+      }
     } finally { setSaving(false) }
   }
 
@@ -334,7 +399,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     }}
                   >
                     <Download size={13} />
-                    {ja ? 'この種目を保存' : 'Save this card'}
+                    {ja ? 'この種目カードを保存' : 'Save This Card'}
                   </button>
                 </div>
               </div>
@@ -465,10 +530,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             onClick={handleSave}>
             <Download size={20} />
             {saving
-              ? t(locale, 'story.generating')
+              ? (ja ? '画像を作成中...' : 'Creating image...')
               : saveFormat === 'combined'
                 ? (ja ? 'まとめてカードを保存' : 'Save Full Card')
-                : (ja ? 'すべて保存' : 'Save All')}
+                : (ja ? '種目カードを保存' : 'Save Exercise Cards')}
           </button>
 
           <p className="text-center text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
@@ -479,8 +544,13 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Export-only card — combined mode, off-screen at natural size */}
-      <div ref={exportRef} aria-hidden="true" style={{ position: 'fixed', left: '200vw', top: 0 }}>
+      {/* Export-only card — combined mode, positioned off-screen to the left */}
+      {/* position:fixed left:-9999px keeps element in the rendering tree (not display:none) */}
+      <div
+        ref={exportRef}
+        aria-hidden="true"
+        style={{ position: 'fixed', left: -9999, top: 0, opacity: 1, visibility: 'visible', pointerEvents: 'none' }}
+      >
         <WorkoutStoryCardContent
           data={data}
           cardStyle={cardStyle}
@@ -498,7 +568,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           key={`export-ex-${i}`}
           ref={el => { exerciseExportRefs.current[i] = el }}
           aria-hidden="true"
-          style={{ position: 'fixed', left: '200vw', top: 0, width: 'max-content' }}
+          style={{ position: 'fixed', left: -9999, top: 0, width: 'max-content', opacity: 1, visibility: 'visible', pointerEvents: 'none' }}
         >
           <ExerciseStoryCard
             data={{ ...ex, date: data.date }}
