@@ -517,7 +517,7 @@ function LayoutThumb({ layoutKey, accentHex, selected }: {
 }
 
 /* ── Line SVG for MAX 1RM card previews ──────────────────── */
-function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 1.4 }: {
+function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 0.75 }: {
   data: { est1rm: number }[]
   accentHex: string
   areaFill: string
@@ -530,10 +530,10 @@ function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 1.4 }: {
   const min = Math.min(...values)
   const rng = max - min || max * 0.1 || 1
 
-  // Padding so glow circles don't clip at edges (especially right and top)
-  const padX  = 8
-  const padYt = 14  // top — room for glow ring
-  const padYb = 8   // bottom
+  // Padding keeps dots inside viewBox on all sides
+  const padX  = 6
+  const padYt = 10
+  const padYb = 6
 
   const px = (i: number) => padX + (i / (data.length - 1)) * (W - 2 * padX)
   const py = (v: number) => padYt + ((max - v) / rng) * (H - padYt - padYb)
@@ -549,16 +549,17 @@ function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 1.4 }: {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
       <polygon points={areaPoints} fill={areaFill} />
+      {/* Sharp linear polyline — butt caps + miter joins = no rounding */}
       <polyline
         points={linePoints} fill="none" stroke={accentHex}
-        strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round"
+        strokeWidth={strokeWidth} strokeLinejoin="miter" strokeLinecap="butt"
       />
-      {/* Start point — subtle */}
-      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.5" fill="rgba(255,255,255,0.38)" />
-      {/* Latest point — glow reduced to ~50% of previous size */}
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="6" fill={accentHex} opacity="0.12" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={accentHex} opacity="0.38" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.2" fill={accentHex} />
+      {/* Start point — very subtle */}
+      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill="rgba(255,255,255,0.30)" />
+      {/* Latest point — small glow only, no large ring */}
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={accentHex} opacity="0.08" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.0" fill={accentHex} opacity="0.28" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="1.4" fill={accentHex} />
     </svg>
   )
 }
@@ -980,7 +981,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       data={rm1SVGData}
                       accentHex={gp.accentHex}
                       areaFill={areaFill}
-                      strokeWidth={1.8}
+                      strokeWidth={0.8}
                     />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1025,7 +1026,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={1.4} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.65} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <p style={{ fontSize: 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
@@ -1055,7 +1056,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 13, fontWeight: 900, color: '#fff', margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '8px 0' }}>
-                    <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={1.2} />
+                    <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.6} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
@@ -1107,7 +1108,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </div>
                 {/* Right chart */}
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={1.5} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.7} />
                 </div>
               </div>
             )}
