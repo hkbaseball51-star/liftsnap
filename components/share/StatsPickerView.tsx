@@ -21,6 +21,23 @@ function muscleLabel(mg: string): string {
 }
 
 type Metric = 'max1rm' | 'volume'
+type Step   = 'metric' | 'exercise' | 'bodypart'
+
+const BODY_PARTS = [
+  { key: 'all',       label: 'All Muscles' },
+  { key: 'chest',     label: 'Chest' },
+  { key: 'back',      label: 'Back' },
+  { key: 'legs',      label: 'Legs' },
+  { key: 'shoulders', label: 'Shoulders' },
+  { key: 'arms',      label: 'Arms' },
+  { key: 'abs',       label: 'Abs' },
+  { key: 'other',     label: 'Other' },
+]
+
+const BODY_PART_COLORS: Record<string, string> = {
+  all: '#ED742F', chest: '#f87171', back: '#34d399', legs: '#60a5fa',
+  shoulders: '#a78bfa', arms: '#fb923c', abs: '#facc15', other: 'rgba(255,255,255,0.40)',
+}
 
 export default function StatsPickerView({
   exercises,
@@ -30,7 +47,7 @@ export default function StatsPickerView({
   hasBodyWeight: boolean
 }) {
   const router = useRouter()
-  const [step, setStep] = useState<'metric' | 'exercise'>('metric')
+  const [step, setStep]   = useState<Step>('metric')
   const [metric, setMetric] = useState<Metric | null>(null)
 
   const goExercise = (m: Metric) => {
@@ -38,11 +55,31 @@ export default function StatsPickerView({
     setStep('exercise')
   }
 
+  const goBodyPart = () => {
+    setMetric('volume')
+    setStep('bodypart')
+  }
+
   const selectExercise = (name: string) => {
     router.push(`/share?type=stats&metric=${metric}&exercise=${encodeURIComponent(name)}`)
   }
 
+  const selectBodyPart = (partKey: string) => {
+    router.push(`/share?type=stats&metric=volume&bodypart=${encodeURIComponent(partKey)}`)
+  }
+
+  const handleBack = () => {
+    if (step === 'exercise' || step === 'bodypart') setStep('metric')
+    else router.back()
+  }
+
   const hasExercises = exercises.length > 0
+
+  const stepTitle = step === 'metric'
+    ? 'Graph Story'
+    : step === 'exercise'
+      ? 'Best 1RM · Pick Exercise'
+      : 'Daily Volume · Pick Body Part'
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
@@ -50,7 +87,7 @@ export default function StatsPickerView({
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-6">
         <button
-          onClick={() => step === 'exercise' ? setStep('metric') : router.back()}
+          onClick={handleBack}
           className="p-2 rounded-xl active:opacity-60 transition-opacity"
           style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={16} style={{ color: '#888' }} />
@@ -60,7 +97,7 @@ export default function StatsPickerView({
             SHARE
           </p>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-            {step === 'metric' ? 'Graph Story' : metric === 'max1rm' ? 'Best 1RM · Pick Exercise' : 'Daily Volume · Pick Exercise'}
+            {stepTitle}
           </h1>
         </div>
       </div>
@@ -135,7 +172,7 @@ export default function StatsPickerView({
           {/* Daily Volume */}
           {hasExercises ? (
             <button
-              onClick={() => goExercise('volume')}
+              onClick={goBodyPart}
               className="flex items-center gap-4 rounded-2xl px-4 py-4 active:opacity-70 transition-opacity w-full text-left"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
               <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.12)' }}>
@@ -144,7 +181,7 @@ export default function StatsPickerView({
               <div className="flex-1 min-w-0 text-left">
                 <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Daily Volume</p>
                 <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.46)', marginTop: 2 }}>
-                  Share your training volume chart
+                  Share your training volume by body part
                 </p>
               </div>
               <ChevronRight size={16} color="rgba(255,255,255,0.30)" />
@@ -170,9 +207,31 @@ export default function StatsPickerView({
           )}
         </div>
 
+      ) : step === 'bodypart' ? (
+
+        /* ── Body part selector (Daily Volume) ───────────────── */
+        <div className="px-4 flex flex-col gap-2">
+          {BODY_PARTS.map(bp => (
+            <button
+              key={bp.key}
+              onClick={() => selectBodyPart(bp.key)}
+              className="flex items-center gap-3 rounded-xl px-4 py-3.5 active:opacity-70 transition-opacity w-full text-left"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div
+                className="flex-shrink-0 w-1 self-stretch rounded-full"
+                style={{ background: BODY_PART_COLORS[bp.key], minHeight: 20 }}
+              />
+              <div className="flex-1 min-w-0">
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{bp.label}</p>
+              </div>
+              <ChevronRight size={14} color="rgba(255,255,255,0.30)" />
+            </button>
+          ))}
+        </div>
+
       ) : (
 
-        /* ── Exercise selector ───────────────────────────────── */
+        /* ── Exercise selector (Best 1RM) ────────────────────── */
         <div className="px-4 flex flex-col gap-2">
           {exercises.length === 0 ? (
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.44)', padding: '16px 0' }}>

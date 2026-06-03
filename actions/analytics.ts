@@ -2,6 +2,19 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+function muscleGroupToBodyPart(mg: string | null): string {
+  if (!mg) return 'other'
+  const m = mg.toLowerCase()
+  if (m.includes('chest') || m.includes('pectoral')) return 'chest'
+  if (m.includes('quad') || m.includes('hamstring') || m.includes('glute')
+      || m.includes('calf') || m.includes('calve') || m.includes('leg') || m.includes('lower')) return 'legs'
+  if (m.includes('shoulder') || m.includes('delt')) return 'shoulders'
+  if (m.includes('bicep') || m.includes('tricep') || m.includes('forearm')) return 'arms'
+  if (m.includes('abs') || m.includes('core')) return 'abs'
+  if (m.includes('back') || m.includes('lat') || m.includes('trap') || m.includes('rhomboid')) return 'back'
+  return 'other'
+}
+
 function toWeekStart(dateStr: string) {
   const d = new Date(dateStr)
   const day = d.getDay()
@@ -218,6 +231,60 @@ export async function getExercise1RMData(exerciseName: string, startDate?: strin
     })
 }
 
+export async function getBodyPartDailyVolumeData(bodyPart: string, startDate?: string) {
+  // bodyPart: 'all' | 'chest' | 'back' | 'legs' | 'shoulders' | 'arms' | 'abs' | 'other'
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  let sessQuery = supabase
+    .from('workout_sessions')
+    .select('id, trained_at')
+    .eq('user_id', user.id)
+    .not('completed_at', 'is', null)
+    .order('trained_at')
+
+  if (startDate) sessQuery = sessQuery.gte('trained_at', startDate) as typeof sessQuery
+
+  const { data: sessions } = await sessQuery
+  if (!sessions?.length) return []
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('session_id, muscle_group, weight_kg, reps')
+    .in('session_id', sessions.map(s => s.id))
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
+
+  if (!sets?.length) return []
+
+  const sessionDateMap = new Map(sessions.map(s => [s.id, s.trained_at]))
+  const volumeByDate = new Map<string, number>()
+
+  sets.forEach(s => {
+    const date = sessionDateMap.get(s.session_id)
+    if (!date) return
+    if (bodyPart !== 'all') {
+      const part = muscleGroupToBodyPart(s.muscle_group)
+      if (part !== bodyPart) return
+    }
+    const vol = (s.weight_kg ?? 0) * (s.reps ?? 0)
+    volumeByDate.set(date, (volumeByDate.get(date) ?? 0) + vol)
+  })
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return Array.from(volumeByDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, volume]) => {
+      const d = new Date(date)
+      return {
+        date,
+        label: `${months[d.getMonth()]} ${d.getDate()}`,
+        volume: Math.round(volume),
+      }
+    })
+}
+
 export async function getExerciseDailyVolumeData(exerciseName: string, startDate?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -269,7 +336,7 @@ export async function getExerciseDailyVolumeData(exerciseName: string, startDate
     })
 }
 
-export async function getStatsForShare(metric: string, exercise?: string) {
+export async function getStatsForShare(metric: string, exercise?: string, bodyPart?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -316,12 +383,13 @@ export async function getStatsForShare(metric: string, exercise?: string) {
     }
   }
 
-  if (metric === 'volume' && exercise) {
-    const vol = await getExerciseDailyVolumeData(exercise)
+  if (metric === 'volume') {
+    const part = bodyPart ?? 'all'
+    const vol = await getBodyPartDailyVolumeData(part)
     if (!vol.length) return null
     return {
       type: 'volume' as const,
-      exerciseName: exercise,
+      bodyPart: part,
       totalVolume: vol.reduce((s, d) => s + d.volume, 0),
       sessionCount: vol.length,
       history: vol.slice(-6),

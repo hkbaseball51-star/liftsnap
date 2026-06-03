@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import Link from 'next/link'
 import { Share2, Lock, Maximize2 } from 'lucide-react'
-import { getExercise1RMData, getExerciseDailyVolumeData } from '@/actions/analytics'
+import { getExercise1RMData, getBodyPartDailyVolumeData } from '@/actions/analytics'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
@@ -41,7 +41,6 @@ function matchesMuscleGroup(mg: string, filter: MuscleGroup): boolean {
   switch (filter) {
     case 'CHEST':     return m.includes('chest')
     case 'BACK':      return m.includes('back')
-    // 'LEGS' covers all lower-body groups stored in the DB: QUADS, HAMSTRINGS, GLUTES, CALVES
     case 'LEGS':      return m.includes('quad') || m.includes('hamstring') || m.includes('glute')
                           || m.includes('calf') || m.includes('calve') || m.includes('leg')
                           || m.includes('lower')
@@ -50,6 +49,14 @@ function matchesMuscleGroup(mg: string, filter: MuscleGroup): boolean {
     case 'ABS':       return m.includes('abs') || m.includes('core')
     default:          return true
   }
+}
+
+const VOL_BODY_PARTS = ['ALL', 'CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS', 'ABS', 'OTHER'] as const
+type VolBodyPart = typeof VOL_BODY_PARTS[number]
+
+const VOL_BODY_PART_JA: Record<VolBodyPart, string> = {
+  ALL: '全体', CHEST: '胸', BACK: '背中', LEGS: '脚',
+  SHOULDERS: '肩', ARMS: '腕', ABS: '腹筋', OTHER: 'その他',
 }
 
 const CARD = {
@@ -72,6 +79,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const [period, setPeriod] = useState<Period>('90D')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
   const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
+  const [volBodyPart, setVolBodyPart] = useState<VolBodyPart>('ALL')
 
   const [rmData, setRmData] = useState<RMPoint[]>([])
   const [rmLoading, startRmTransition] = useTransition()
@@ -110,11 +118,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
-  // Auto-load data when tab, exercise, or period changes
+  // Auto-load data when tab, exercise/bodypart, or period changes
   useEffect(() => {
-    if (!selectedExercise) return
     const startDate = getStartDate(period) ?? undefined
     if (tab === 'MAX 1RM') {
+      if (!selectedExercise) return
       setRmData([])
       startRmTransition(async () => {
         const data = await getExercise1RMData(selectedExercise, startDate)
@@ -123,12 +131,12 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     } else if (tab === 'DAILY VOLUME') {
       setVolData([])
       startVolTransition(async () => {
-        const data = await getExerciseDailyVolumeData(selectedExercise, startDate)
+        const data = await getBodyPartDailyVolumeData(volBodyPart.toLowerCase(), startDate)
         setVolData(data)
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedExercise, period])
+  }, [tab, selectedExercise, volBodyPart, period])
 
   // Re-initialize bwInput in display unit once unit resolves
   useEffect(() => {
@@ -204,7 +212,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   // Display-unit converted data for charts
   const rmDataDisplay = rmDataAggregated.map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
   const volDataDisplay = volDataAggregated.map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
-  const showExerciseSelector = tab !== 'BODY WEIGHT' && exercises.length > 0
+  const showExerciseSelector = tab === 'MAX 1RM' && exercises.length > 0
 
   const exerciseLogCount      = exercises.find(e => e.name === selectedExercise)?.logCount ?? 0
   const exerciseShareUnlocked = exerciseLogCount >= EXERCISE_GRAPH_REQUIRED
@@ -330,6 +338,14 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     )
   }
 
+  const fmtVolT = (v: number): string => {
+    if (v >= 1000) {
+      const t = v / 1000
+      return `${(t % 1 === 0 ? t.toFixed(1) : t.toFixed(1))}${unit === 'kg' ? 't' : 'k'}`
+    }
+    return `${v}${unitLabel}`
+  }
+
   const volTooltip = (tProps: any) => {
     const { active, payload, label } = tProps
     if (!active || !payload?.length) return null
@@ -340,9 +356,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         <div>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>VOLUME  </span>
           <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 14, fontWeight: 900 }}>
-            {vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : vol.toLocaleString()}
+            {fmtVolT(vol)}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+          {vol >= 1000 && (
+            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}> ({vol.toLocaleString()}{unitLabel})</span>
+          )}
         </div>
       </div>
     )
@@ -588,12 +606,26 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
         <div>
           {totalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
             <MilestoneLock current={totalSessions} required={VOLUME_CHART_SESSION_REQUIRED} locale={locale} chartName="Volumeグラフ" chartNameEn="Volume chart" />
-          ) : exercises.length === 0 ? (
-            <EmptyState />
-          ) : filteredExercises.length === 0 ? (
-            <NoGroupData />
           ) : (
             <>
+              {/* Body part filter */}
+              <div className="overflow-x-auto no-scrollbar mb-4">
+                <div className="flex gap-1.5 pb-1">
+                  {VOL_BODY_PARTS.map(bp => (
+                    <button key={bp}
+                      className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all"
+                      style={{
+                        background: volBodyPart === bp ? 'rgba(237, 116, 47,0.14)' : '#171717',
+                        color: volBodyPart === bp ? '#ED742F' : '#444',
+                        border: volBodyPart === bp ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #1e1e1e',
+                      }}
+                      onClick={() => setVolBodyPart(bp)}>
+                      {locale === 'ja' ? VOL_BODY_PART_JA[bp] : bp}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Summary card */}
               <div className="rounded-2xl p-4 mb-3 flex items-center justify-between" style={CARD}>
                 <div>
@@ -601,22 +633,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                   {volLoading ? (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : totalVol > 0 ? (
-                    (() => {
-                      const displayTotalVol = Math.round(toDisplayWeight(totalVol, unit))
-                      const threshold = 10000
-                      const volStr = displayTotalVol >= threshold ? `${(displayTotalVol / 1000).toFixed(1)}k` : displayTotalVol.toLocaleString()
-                      const volSuffix = displayTotalVol >= threshold ? '' : unitLabel
-                      return (
-                        <div className="flex items-baseline gap-1">
-                          <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                            {volStr}
-                          </span>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.52)' }}>
-                            {volSuffix}
-                          </span>
-                        </div>
-                      )
-                    })()
+                    <div className="flex items-baseline gap-1">
+                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                        {fmtVolT(Math.round(toDisplayWeight(totalVol, unit)))}
+                      </span>
+                    </div>
                   ) : (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
                   )}
@@ -634,7 +655,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>DAILY VOLUME</p>
                   <Link
-                    href={`/analytics/chart?metric=daily-volume&range=${periodToRange(period)}&exercise=${encodeURIComponent(selectedExercise)}`}
+                    href={`/analytics/chart?metric=daily-volume&range=${periodToRange(period)}&bodypart=${encodeURIComponent(volBodyPart.toLowerCase())}`}
                     aria-label="Open full screen chart"
                     className="p-1.5 rounded-lg active:opacity-60"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -660,7 +681,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                           tick={{ fill: '#4a4a4a', fontSize: 9 }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={44}
                           domain={[0, volAxis.yMax]} ticks={volTicks}
-                          tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                          tickFormatter={v => fmtVolT(v)} />
                         <Tooltip content={volTooltip} cursor={{ stroke: 'rgba(255,255,255,0.05)', fill: 'rgba(255,255,255,0.02)' }} />
                         <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2, 2, 0, 0]} maxBarSize={16} />
                       </BarChart>
@@ -682,42 +703,26 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                         <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.60)' }}>{p.label}</span>
                         <div className="flex items-baseline gap-1">
                           <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
-                            {p.volume >= 1000 ? `${(p.volume / 1000).toFixed(1)}k` : p.volume.toLocaleString()}
+                            {fmtVolT(p.volume)}
                           </span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.47)' }}>{unitLabel}</span>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {exerciseShareUnlocked ? (
-                    <Link
-                      href={`/share?type=stats&metric=volume&exercise=${encodeURIComponent(selectedExercise)}`}
-                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                      style={{
-                        padding: '12px 16px',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.13)',
-                        color: 'rgba(255,255,255,0.60)',
-                        fontSize: 13,
-                        fontWeight: 500,
-                      }}>
-                      <Share2 size={14} strokeWidth={1.5} />
-                      Share Story
-                    </Link>
-                  ) : (
-                    <div className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                      style={{
-                        padding: '12px 16px',
-                        background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid rgba(255,255,255,0.17)',
-                        color: '#333',
-                        fontSize: 13,
-                        fontWeight: 500,
-                      }}>
-                      <Lock size={13} strokeWidth={1.5} />
-                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} {t(locale, 'analytics.shareLogsUnit')}
-                    </div>
-                  )}
+                  <Link
+                    href={`/share?type=stats&metric=volume&bodypart=${encodeURIComponent(volBodyPart.toLowerCase())}`}
+                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                    style={{
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.13)',
+                      color: 'rgba(255,255,255,0.60)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                    }}>
+                    <Share2 size={14} strokeWidth={1.5} />
+                    Share Story
+                  </Link>
                 </>
               )}
             </>

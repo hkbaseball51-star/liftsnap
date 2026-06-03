@@ -15,7 +15,7 @@ import { resolveServerLocale, type Locale } from '@/lib/i18n'
 export default async function SharePage({
   searchParams,
 }: {
-  searchParams: Promise<{ session?: string; type?: string; metric?: string; exercise?: string; date?: string }>
+  searchParams: Promise<{ session?: string; type?: string; metric?: string; exercise?: string; date?: string; bodypart?: string }>
 }) {
   const params = await searchParams
 
@@ -58,7 +58,7 @@ export default async function SharePage({
   }
 
   if (params.type === 'stats') {
-    const data = await getStatsForShare(params.metric ?? '', params.exercise)
+    const data = await getStatsForShare(params.metric ?? '', params.exercise, params.bodypart)
     if (!data) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>

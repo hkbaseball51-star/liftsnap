@@ -13,7 +13,7 @@ type BWPoint  = { date: string; label: string; weight: number }
 
 export type StatsData =
   | { type: 'max1rm';     exerciseName: string; bestRM: number; bestDate: string; bestSet: { weight: number; reps: number } | null; history: RMPoint[];  sessionCount: number }
-  | { type: 'volume';     exerciseName: string; totalVolume: number; sessionCount: number; history: VolPoint[] }
+  | { type: 'volume';     bodyPart: string; totalVolume: number; sessionCount: number; history: VolPoint[] }
   | { type: 'bodyweight'; currentWeight: number; change: number; history: BWPoint[] }
 
 type Theme     = 'dark' | 'transparent'
@@ -39,6 +39,11 @@ const AREA_FILL: Record<Accent, string> = {
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
+
+const BODY_PART_DISPLAY: Record<string, string> = {
+  all: 'ALL MUSCLES', chest: 'CHEST', back: 'BACK', legs: 'LEGS',
+  shoulders: 'SHOULDERS', arms: 'ARMS', abs: 'ABS', other: 'OTHER',
+}
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function fmtShort(dateStr: string): string {
@@ -264,12 +269,14 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
 
   const canvasUnitLabel = weightUnitLabel(unit)
   if (data.type === 'volume') {
-    metricLabel = 'DAILY VOLUME'; exerciseName = data.exerciseName
+    metricLabel = 'DAILY VOLUME'
+    exerciseName = BODY_PART_DISPLAY[data.bodyPart] ?? data.bodyPart.toUpperCase()
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
     const maxVolDisplay = Math.round(toDisplayWeight(maxVol, unit))
-    heroStr = maxVolDisplay >= 10000 ? `${(maxVolDisplay/1000).toFixed(1)}k` : maxVolDisplay.toLocaleString()
+    const fmtT = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${v.toLocaleString()}${canvasUnitLabel}`
+    heroStr = fmtT(maxVolDisplay)
     const totalDisplay = Math.round(toDisplayWeight(data.totalVolume, unit))
-    supp1 = `${totalDisplay >= 10000 ? `${(totalDisplay/1000).toFixed(1)}k` : totalDisplay.toLocaleString()} ${canvasUnitLabel} accumulated`
+    supp1 = `${fmtT(totalDisplay)} accumulated`
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
     chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else {
@@ -545,11 +552,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   let chartData: ChartPt[] = []
 
   if (data.type === 'volume') {
-    metricLabel = 'DAILY VOLUME'; exerciseName = data.exerciseName
+    metricLabel = 'DAILY VOLUME'
+    exerciseName = BODY_PART_DISPLAY[data.bodyPart] ?? data.bodyPart.toUpperCase()
     const maxVol = data.history.length ? Math.round(toDisplayWeight(Math.max(...data.history.map(d => d.volume)), unit)) : 0
-    heroNum = maxVol >= 10000 ? `${(maxVol/1000).toFixed(1)}k` : maxVol.toLocaleString()
+    const fmtT = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${v.toLocaleString()}${unitLabel}`
+    heroNum = fmtT(maxVol)
     const displayTotal = Math.round(toDisplayWeight(data.totalVolume, unit))
-    supp1 = `${displayTotal >= 10000 ? `${(displayTotal/1000).toFixed(1)}k` : displayTotal.toLocaleString()} ${unitLabel} total`
+    supp1 = `${fmtT(displayTotal)} total`
     supp2 = `${data.sessionCount} sessions`; supp2Color = 'rgba(255,255,255,0.75)'
     chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else if (data.type === 'bodyweight') {
