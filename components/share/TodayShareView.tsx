@@ -28,8 +28,8 @@ export type TodayData = {
   photoPath?: string | null
 }
 
-type Theme  = 'dark' | 'transparent'
-type Accent = 'orange' | 'purple' | 'dark' | 'black'
+type CardStyle = 'glass' | 'transparent'
+type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 
 const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
   orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
@@ -38,7 +38,6 @@ const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; ba
   black:  { hex: '#ffffff', badgeBg: 'transparent',            badgeBorder: 'rgba(255,255,255,0.28)', badgeText: '#ffffff'               },
 }
 
-const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
 
 const JA_EN: Record<string, string> = {
   'デッドリフト': 'Deadlift',                   'ベントオーバーロウ': 'Bent Over Row',
@@ -150,7 +149,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const unitLabel  = weightUnitLabel(unit)
   const todayStr   = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
-  const [theme,          setTheme]          = useState<Theme>('dark')
+  const [cardStyle,      setCardStyle]      = useState<CardStyle>('glass')
   const [accent,         setAccent]         = useState<Accent>('dark')
   const [sharing,        setSharing]        = useState(false)
   const [status,         setStatus]         = useState('')
@@ -201,8 +200,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setSharing(true)
     setStatus(t(locale, 'story.generating'))
     try {
-      const isTransparent = theme === 'transparent' && !photoDataUrl
-      const blob = await captureStory(captureRef.current, isTransparent)
+      const transparentCapture = isTransparent && !photoDataUrl
+      const blob = await captureStory(captureRef.current, transparentCapture)
       const file = new File([blob], 'repra-today.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         setStatus('Sharing...')
@@ -235,13 +234,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const tier   = getTier(data.exercises.length)
   const tp     = TIER_PARAMS[tier]
 
-  const cardBg = hasPhoto
-    ? '#0a0a0a'
-    : theme === 'transparent'
-      ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
-      : '#0d0d0d'
+  const isTransparent = cardStyle === 'transparent'
+  const cardBg = isTransparent
+    ? 'transparent'
+    : (hasPhoto ? '#0a0a0a' : '#0d0d0d')
 
-  const dividerColor = 'rgba(255,255,255,0.09)'
+  // text-shadow is CSS-inherited — set once on wrapper, all children pick it up
+  const ts = isTransparent
+    ? '0 1px 8px rgba(0,0,0,0.95), 0 2px 24px rgba(0,0,0,0.7), 0 0 48px rgba(0,0,0,0.5)'
+    : 'none'
+
+  const dividerColor = isTransparent ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.09)'
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
@@ -280,7 +283,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 }}
               />
             )}
-            {photoDataUrl && (
+            {/* Dark overlay for photo — glass mode only */}
+            {photoDataUrl && !isTransparent && (
               <div style={{
                 position: 'absolute', inset: 0,
                 background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.78) 55%, rgba(0,0,0,0.92) 100%)',
@@ -295,6 +299,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               height: '100%',
               display: 'flex', flexDirection: 'column',
               boxSizing: 'border-box',
+              textShadow: ts,
             }}>
 
               {/* REPRA badge */}
@@ -362,18 +367,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               {/* Divider */}
               <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
-              {/* EXERCISES — fills remaining height */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+              {/* EXERCISES — all exercises shown, no truncation */}
+              <div style={{ flexShrink: 0 }}>
                 <p style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
                   color: 'rgba(255,255,255,0.42)', margin: '0 0 12px', lineHeight: 1,
-                  flexShrink: 0,
                 }}>
                   EXERCISES
                 </p>
 
-                {/* Exercise rows */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tp.rowGap, overflow: 'hidden' }}>
+                {/* Exercise rows — ALL exercises, adaptive density via tier */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tp.rowGap }}>
                   {data.exercises.map((ex) => {
                     const bestSet = ex.setList.reduce<{ weight: number; reps: number }>(
                       (best, s) => (s.weight * s.reps > best.weight * best.reps ? s : best),
@@ -386,7 +390,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                         : `${ex.setCount} sets`
 
                     if (tp.twoLine) {
-                      // Two-line: name top-left, best set top-right, sets count bottom-left
                       return (
                         <div key={ex.name}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
@@ -414,7 +417,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       )
                     }
 
-                    // One-line: name left, "N sets · bestStr" right
+                    // One-line: name left, "Ns · bestStr" right
                     return (
                       <div key={ex.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <p style={{
@@ -434,16 +437,18 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     )
                   })}
                 </div>
-
-                {/* Made with REPRA — anchored to bottom */}
-                <p style={{
-                  fontSize: 8, color: 'rgba(255,255,255,0.24)',
-                  margin: '0', marginTop: 'auto', paddingTop: 12,
-                  textAlign: 'right', letterSpacing: '0.06em', flexShrink: 0,
-                }}>
-                  Made with REPRA
-                </p>
               </div>
+
+              {/* Spacer pushes "Made with REPRA" to bottom */}
+              <div style={{ flex: 1, minHeight: 8 }} />
+
+              {/* Made with REPRA */}
+              <p style={{
+                fontSize: 8, color: 'rgba(255,255,255,0.24)',
+                textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, flexShrink: 0,
+              }}>
+                Made with REPRA
+              </p>
 
             </div>
           </div>
@@ -461,28 +466,29 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </p>
         )}
 
-        {/* Background selector (no-photo mode only) */}
-        {!hasPhoto && !photoLoading && (
-          <div className="px-4 mb-3">
-            <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
-              {t(locale, 'story.background')}
-            </p>
-            <div className="flex gap-2">
-              {(['dark', 'transparent'] as Theme[]).map(th => (
-                <button key={th}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                  style={{
-                    background: theme === th ? '#ED742F' : '#1a1a1a',
-                    color:      theme === th ? '#fff' : '#666',
-                    border:     `1px solid ${theme === th ? '#ED742F' : '#2a2a2a'}`,
-                  }}
-                  onClick={() => setTheme(th)}>
-                  {th === 'dark' ? t(locale, 'story.bgDark') : t(locale, 'story.bgTransparent')}
-                </button>
-              ))}
-            </div>
+        {/* Card Style selector */}
+        <div className="px-4 mb-3">
+          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+            {locale === 'ja' ? 'カードスタイル' : 'Card Style'}
+          </p>
+          <div className="flex gap-2">
+            {([
+              { value: 'glass',       labelJa: '半透過カード', labelEn: 'Glass Card'   },
+              { value: 'transparent', labelJa: '完全透過',     labelEn: 'Transparent'  },
+            ] as { value: CardStyle; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
+              <button key={value}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{
+                  background: cardStyle === value ? '#ED742F' : '#1a1a1a',
+                  color:      cardStyle === value ? '#fff'    : '#666',
+                  border:     `1px solid ${cardStyle === value ? '#ED742F' : '#2a2a2a'}`,
+                }}
+                onClick={() => setCardStyle(value)}>
+                {locale === 'ja' ? labelJa : labelEn}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Color accent */}
         <div className="px-4 mb-3">
