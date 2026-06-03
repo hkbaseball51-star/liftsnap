@@ -227,7 +227,7 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* Divider — accent-tinted */}
-      <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
+      <div style={{ height: 1, width: '75%', background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
       {/* TOTAL VOLUME */}
       <div>
@@ -259,7 +259,7 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* Divider — accent-tinted */}
-      <div style={{ height: 1, background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
+      <div style={{ height: 1, width: '75%', background: dividerColor, margin: `${tp.sectionGap}px 0` }} />
 
       {/* EXERCISES — full set detail, no truncation */}
       <div>
