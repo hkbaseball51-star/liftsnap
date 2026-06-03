@@ -117,11 +117,11 @@ export const TIER_PARAMS: Record<Tier, {
   nameSize: number; infoSize: number; setSize: number;
   exGap: number; lineGap: number; sectionGap: number; volumeSize: number;
 }> = {
-  1: { nameSize: 13, infoSize: 11, setSize: 11, exGap: 12, lineGap: 3, sectionGap: 16, volumeSize: 46 },
-  2: { nameSize: 12, infoSize: 11, setSize: 11, exGap: 9,  lineGap: 2, sectionGap: 13, volumeSize: 42 },
-  3: { nameSize: 11, infoSize: 10, setSize: 10, exGap: 7,  lineGap: 2, sectionGap: 11, volumeSize: 38 },
-  4: { nameSize: 11, infoSize: 9,  setSize: 9,  exGap: 5,  lineGap: 1, sectionGap: 9,  volumeSize: 36 },
-  5: { nameSize: 10, infoSize: 9,  setSize: 8,  exGap: 4,  lineGap: 1, sectionGap: 8,  volumeSize: 34 },
+  1: { nameSize: 13, infoSize: 11, setSize: 13, exGap: 10, lineGap: 3, sectionGap: 13, volumeSize: 42 },
+  2: { nameSize: 12, infoSize: 11, setSize: 13, exGap: 8,  lineGap: 2, sectionGap: 11, volumeSize: 38 },
+  3: { nameSize: 11, infoSize: 10, setSize: 11, exGap: 6,  lineGap: 2, sectionGap: 9,  volumeSize: 34 },
+  4: { nameSize: 11, infoSize: 9,  setSize: 10, exGap: 4,  lineGap: 1, sectionGap: 7,  volumeSize: 32 },
+  5: { nameSize: 10, infoSize: 9,  setSize: 9,  exGap: 3,  lineGap: 1, sectionGap: 6,  volumeSize: 30 },
 }
 
 // ── Props ─────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ export default function WorkoutStoryCardContent({
 
   return (
     <div style={{
-      padding: '32px 24px 22px',
+      padding: '28px 24px 14px',
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
       textShadow: ts,
@@ -305,7 +305,7 @@ export default function WorkoutStoryCardContent({
                 if (!str) return null
                 return (
                   <p key={i} style={{
-                    fontSize: tp.setSize, color: 'rgba(255,255,255,0.60)',
+                    fontSize: tp.setSize, color: 'rgba(255,255,255,0.72)',
                     marginTop: tp.lineGap, lineHeight: 1.1,
                   }}>
                     {str}
@@ -321,7 +321,7 @@ export default function WorkoutStoryCardContent({
       <p style={{
         fontSize: 8,
         color: isTransparent ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.22)',
-        textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 16,
+        textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
       }}>
         Made with{' '}
         <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
