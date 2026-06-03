@@ -204,10 +204,9 @@ export default async function SharePage({
                     <WorkoutStoryCardContent
                       data={previewData}
                       cardStyle="glass"
-                      accent="white"
+                      preset="orange"
                       unit="kg"
                       locale={locale}
-                      hasPhoto={false}
                       isPast={false}
                     />
                   </div>

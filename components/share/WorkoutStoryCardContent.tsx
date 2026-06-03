@@ -20,29 +20,67 @@ export type TodayData = {
   photoPath?: string | null
 }
 
-export type CardStyle  = 'glass' | 'transparent'
-export type Accent     = 'orange' | 'purple' | 'teal' | 'blue' | 'white' | 'red'
-export type ShadowMode = 'none' | 'soft' | 'strong' | 'extra-strong'
-export type CardBg     = 'black' | 'orange' | 'purple' | 'teal' | 'white'
+export type CardStyle    = 'glass' | 'transparent'
+export type ShadowMode   = 'none' | 'soft' | 'strong' | 'extra-strong'
+export type DesignPreset = 'orange' | 'ice-blue' | 'violet' | 'mint'
 
-// Modern glass gradient — top-left highlight fades into base color
-// Base opacity: black 0.42, colors 0.20, white 0.16
-const CARD_BG_GRADIENT: Record<CardBg, string> = {
-  black:  'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(8,8,8,0.42) 100%)',
-  orange: 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(249,115,22,0.20) 100%)',
-  purple: 'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(124,58,237,0.20) 100%)',
-  teal:   'linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(20,184,166,0.20) 100%)',
-  white:  'linear-gradient(145deg, rgba(255,255,255,0.18) 0%, rgba(220,220,220,0.12) 100%)',
+type PresetDef = {
+  accentHex:     string
+  badgeBg:       string
+  badgeBorder:   string
+  badgeText:     string
+  border:        string
+  subText:       string
+  defaultShadow: ShadowMode
+  bgCombined:    string  // glass gradient for All-in-one card (alpha ~0.45)
+  bgPerEx:       string  // glass gradient for By-Exercise card (alpha ~0.52)
 }
 
-// accent hex + badge styling per color
-export const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
-  orange: { hex: '#ED742F', badgeBg: '#ED742F',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
-  purple: { hex: '#6E38D4', badgeBg: '#6E38D4',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
-  teal:   { hex: '#14B8A6', badgeBg: '#14B8A6',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
-  blue:   { hex: '#3B82F6', badgeBg: '#3B82F6',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
-  white:  { hex: '#ffffff', badgeBg: 'rgba(255,255,255,0.08)', badgeBorder: 'rgba(255,255,255,0.20)', badgeText: 'rgba(255,255,255,0.80)' },
-  red:    { hex: '#EF4444', badgeBg: '#EF4444',               badgeBorder: 'transparent',            badgeText: '#ffffff'               },
+export const PRESETS: Record<DesignPreset, PresetDef> = {
+  'orange': {
+    accentHex:     '#F97316',
+    badgeBg:       '#F97316',
+    badgeBorder:   'transparent',
+    badgeText:     '#ffffff',
+    border:        'rgba(249,115,22,0.28)',
+    subText:       'rgba(255,255,255,0.72)',
+    defaultShadow: 'strong',
+    bgCombined:    'linear-gradient(145deg, rgba(249,115,22,0.07) 0%, rgba(18,18,18,0.45) 100%)',
+    bgPerEx:       'linear-gradient(145deg, rgba(249,115,22,0.07) 0%, rgba(18,18,18,0.52) 100%)',
+  },
+  'ice-blue': {
+    accentHex:     '#38BDF8',
+    badgeBg:       '#38BDF8',
+    badgeBorder:   'transparent',
+    badgeText:     '#0a1220',
+    border:        'rgba(56,189,248,0.26)',
+    subText:       'rgba(226,232,240,0.76)',
+    defaultShadow: 'strong',
+    bgCombined:    'linear-gradient(145deg, rgba(56,189,248,0.08) 0%, rgba(10,18,28,0.45) 100%)',
+    bgPerEx:       'linear-gradient(145deg, rgba(56,189,248,0.08) 0%, rgba(10,18,28,0.52) 100%)',
+  },
+  'violet': {
+    accentHex:     '#8B5CF6',
+    badgeBg:       '#8B5CF6',
+    badgeBorder:   'transparent',
+    badgeText:     '#ffffff',
+    border:        'rgba(139,92,246,0.28)',
+    subText:       'rgba(237,233,254,0.72)',
+    defaultShadow: 'extra-strong',
+    bgCombined:    'linear-gradient(145deg, rgba(139,92,246,0.08) 0%, rgba(22,12,35,0.45) 100%)',
+    bgPerEx:       'linear-gradient(145deg, rgba(139,92,246,0.08) 0%, rgba(22,12,35,0.52) 100%)',
+  },
+  'mint': {
+    accentHex:     '#14B8A6',
+    badgeBg:       '#14B8A6',
+    badgeBorder:   'transparent',
+    badgeText:     '#ffffff',
+    border:        'rgba(20,184,166,0.26)',
+    subText:       'rgba(204,251,241,0.70)',
+    defaultShadow: 'strong',
+    bgCombined:    'linear-gradient(145deg, rgba(20,184,166,0.07) 0%, rgba(8,26,24,0.45) 100%)',
+    bgPerEx:       'linear-gradient(145deg, rgba(20,184,166,0.07) 0%, rgba(8,26,24,0.52) 100%)',
+  },
 }
 
 const SHADOW: Record<ShadowMode, string> = {
@@ -129,13 +167,11 @@ export const TIER_PARAMS: Record<Tier, {
 type Props = {
   data: TodayData
   cardStyle: CardStyle
-  accent: Accent
+  preset: DesignPreset
   unit: WeightUnit
   locale: Locale
-  hasPhoto?: boolean
   isPast?: boolean
   shadowMode?: ShadowMode
-  cardBg?: CardBg
 }
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -143,16 +179,14 @@ type Props = {
 export default function WorkoutStoryCardContent({
   data,
   cardStyle,
-  accent,
+  preset,
   unit,
   locale,
-  hasPhoto = false,
   isPast = false,
   shadowMode = 'none',
-  cardBg = 'black',
 }: Props) {
-  const ac            = AC[accent]
-  const acHex         = ac.hex
+  const p             = PRESETS[preset]
+  const acHex         = p.accentHex
   const isTransparent = cardStyle === 'transparent'
   const unitLabel     = weightUnitLabel(unit)
   const volStr        = formatVolumeWithUnit(data.volume, unit)
@@ -181,9 +215,9 @@ export default function WorkoutStoryCardContent({
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
       textShadow: ts,
-      background: isTransparent ? 'transparent' : CARD_BG_GRADIENT[cardBg],
+      background: isTransparent ? 'transparent' : p.bgCombined,
       ...(isTransparent ? {} : {
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: `1px solid ${p.border}`,
         borderRadius: '24px',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 18px 50px rgba(0,0,0,0.24)',
       }),
@@ -195,8 +229,8 @@ export default function WorkoutStoryCardContent({
           display: 'inline-block',
           fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
           padding: '4px 11px', borderRadius: 5,
-          background: ac.badgeBg, color: ac.badgeText,
-          border: `1px solid ${ac.badgeBorder}`,
+          background: p.badgeBg, color: p.badgeText,
+          border: `1px solid ${p.badgeBorder}`,
         }}>REPRA</span>
       </div>
 
@@ -209,7 +243,7 @@ export default function WorkoutStoryCardContent({
         }}>
           {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
         </p>
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.52)', margin: '5px 0 0', lineHeight: 1 }}>
+        <p style={{ fontSize: 11, color: p.subText, margin: '5px 0 0', lineHeight: 1 }}>
           {fmtDate(data.date)}
         </p>
         <p style={{
@@ -240,7 +274,7 @@ export default function WorkoutStoryCardContent({
         }}>
           {volStr}
         </p>
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.48)', margin: '7px 0 0', lineHeight: 1 }}>
+        <p style={{ fontSize: 11, color: p.subText, margin: '7px 0 0', lineHeight: 1 }}>
           {data.setsCount}&thinsp;SETS
           {g1rm > 0 && (
             <>
@@ -286,7 +320,7 @@ export default function WorkoutStoryCardContent({
               </p>
               {/* Sets count + est. 1RM — 1RM value in accent */}
               <p style={{
-                fontSize: tp.infoSize, color: 'rgba(255,255,255,0.62)',
+                fontSize: tp.infoSize, color: p.subText,
                 marginTop: tp.lineGap, lineHeight: 1,
               }}>
                 {ex.setCount}{locale === 'ja' ? 'セット' : ' sets'}{ex.best1RM > 0
@@ -314,6 +348,134 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* Made with REPRA — slightly more visible in transparent mode (no card bg) */}
+      <p style={{
+        fontSize: 8,
+        color: isTransparent ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.22)',
+        textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
+      }}>
+        Made with{' '}
+        <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
+      </p>
+
+    </div>
+  )
+}
+
+// ── Per-exercise card ─────────────────────────────────────────────────
+export type ExerciseCardData = {
+  name: string
+  setList: { weight: number; reps: number }[]
+  setCount: number
+  best1RM: number
+  date: string
+}
+
+type ExerciseCardProps = {
+  data: ExerciseCardData
+  cardStyle: CardStyle
+  preset: DesignPreset
+  unit: WeightUnit
+  locale: Locale
+  isPast?: boolean
+  shadowMode?: ShadowMode
+}
+
+export function ExerciseStoryCard({
+  data, cardStyle, preset, unit, locale, isPast = false,
+  shadowMode = 'none',
+}: ExerciseCardProps) {
+  const p             = PRESETS[preset]
+  const acHex         = p.accentHex
+  const isTransparent = cardStyle === 'transparent'
+  const unitLabel     = weightUnitLabel(unit)
+  const ts            = SHADOW[shadowMode]
+  const dividerColor  = isTransparent ? acRgba(acHex, 0.35) : acRgba(acHex, 0.25)
+  const accentFooter  = acRgba(acHex, isTransparent ? 0.65 : 0.50)
+
+  return (
+    <div style={{
+      padding: '20px 24px 14px',
+      display: 'flex', flexDirection: 'column',
+      boxSizing: 'border-box',
+      textShadow: ts,
+      background: isTransparent ? 'transparent' : p.bgPerEx,
+      ...(isTransparent ? {} : {
+        border: `1px solid ${p.border}`,
+        borderRadius: '24px',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 30px rgba(0,0,0,0.20)',
+      }),
+    }}>
+
+      {/* REPRA badge */}
+      <div>
+        <span style={{
+          display: 'inline-block',
+          fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
+          padding: '4px 11px', borderRadius: 5,
+          background: p.badgeBg, color: p.badgeText,
+          border: `1px solid ${p.badgeBorder}`,
+        }}>REPRA</span>
+      </div>
+
+      {/* Label + date */}
+      <div style={{ marginTop: 10 }}>
+        <p style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+          color: 'rgba(255,255,255,0.42)', margin: 0, lineHeight: 1,
+        }}>
+          {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
+        </p>
+        <p style={{ fontSize: 11, color: p.subText, margin: '4px 0 0', lineHeight: 1 }}>
+          {fmtDate(data.date)}
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, width: '60%', background: dividerColor, margin: '10px 0' }} />
+
+      {/* Exercise name */}
+      <p style={{
+        fontSize: 20, fontWeight: 900, color: '#fff',
+        margin: 0, lineHeight: 1.15, letterSpacing: '-0.02em',
+      }}>
+        {tname(data.name)}
+      </p>
+
+      {/* Sets + est. 1RM */}
+      <p style={{ fontSize: 12, color: p.subText, margin: '5px 0 0', lineHeight: 1 }}>
+        {data.setCount}{locale === 'ja' ? 'セット' : ' sets'}
+        {data.best1RM > 0 && (
+          <>
+            {' · est. 1RM '}
+            <span style={{ color: acHex, fontWeight: 700 }}>
+              {fmtKg(toDisplayWeight(data.best1RM, unit))}{unitLabel}
+            </span>
+          </>
+        )}
+      </p>
+
+      {/* Divider */}
+      <div style={{ height: 1, width: '60%', background: dividerColor, margin: '10px 0' }} />
+
+      {/* All set details — no truncation */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {data.setList.map((s, i) => {
+          const str = s.weight > 0
+            ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel} × ${s.reps}`
+            : s.reps > 0 ? `BW × ${s.reps}` : null
+          if (!str) return null
+          return (
+            <p key={i} style={{
+              fontSize: 18, color: 'rgba(255,255,255,0.88)',
+              margin: 0, lineHeight: 1.2,
+            }}>
+              {str}
+            </p>
+          )
+        })}
+      </div>
+
+      {/* Made with REPRA */}
       <p style={{
         fontSize: 8,
         color: isTransparent ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.22)',
