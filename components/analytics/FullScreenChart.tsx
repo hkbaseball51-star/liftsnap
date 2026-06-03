@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import {
@@ -106,14 +106,21 @@ export default function FullScreenChart({
 
   // ── Data ──────────────────────────────────────────────────────
 
-  const periodStart = getStartDate(period)
-  const bwForPeriod = periodStart ? initialBwData.filter(p => p.date >= periodStart) : initialBwData
-  const bwDisplay = aggregateBodyWeight(bwForPeriod)
-    .map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
-  const rmDisplay = aggregate1RM(initialRmData)
-    .map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
-  const volDisplay = aggregateVolume(initialVolData)
-    .map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
+  // Memoize display data — stable reference prevents Recharts from re-animating
+  // when selectedIdx changes (detail tap).
+  const rmDisplay = useMemo(() =>
+    aggregate1RM(initialRmData).map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) })),
+    [initialRmData, unit]
+  )
+  const volDisplay = useMemo(() =>
+    aggregateVolume(initialVolData).map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) })),
+    [initialVolData, unit]
+  )
+  const bwDisplay = useMemo(() => {
+    const start    = getStartDate(period)
+    const filtered = start ? initialBwData.filter(p => p.date >= start) : initialBwData
+    return aggregateBodyWeight(filtered).map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
+  }, [initialBwData, period, unit])
 
   const activeData =
     metric === 'max1rm' ? rmDisplay :
@@ -546,7 +553,7 @@ export default function FullScreenChart({
                 width={44} domain={[0, volAxis.yMax]} ticks={volTicks}
                 tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)} />
               <Tooltip content={volTooltip} cursor={{ stroke: 'rgba(255,255,255,0.05)', fill: 'rgba(255,255,255,0.02)' }} />
-              <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2,2,0,0]} maxBarSize={14} />
+              <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2,2,0,0]} maxBarSize={14} isAnimationActive={false} />
             </BarChart>
           </div>
         </div>
@@ -663,12 +670,6 @@ export default function FullScreenChart({
     </div>
   )
 
-  const ChartCard = ({ style }: { style?: React.CSSProperties }) => (
-    <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 2px 4px', overflow: 'hidden', ...style }}>
-      {chartContent()}
-    </div>
-  )
-
   // ── Portrait ──────────────────────────────────────────────────
 
   if (!isLandscape) {
@@ -676,9 +677,11 @@ export default function FullScreenChart({
       <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#080808', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Header />
         <KpiRow />
-        {/* Chart fills all remaining space between KPI row and detail bar */}
+        {/* Chart container — plain div, not an inline component, so it never remounts */}
         <div ref={chartContainerRef} style={{ flex: 1, overflow: 'hidden', padding: '6px 8px 0' }}>
-          <ChartCard style={{ height: '100%' }} />
+          <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 2px 4px', overflow: 'hidden', height: '100%' }}>
+            {chartContent()}
+          </div>
         </div>
         <DetailBar />
       </div>
@@ -706,9 +709,11 @@ export default function FullScreenChart({
           </div>
           <DetailPanel style={{ flex: 1 }} />
         </div>
-        {/* Right panel: chart fills remaining width */}
+        {/* Right panel — plain div, not an inline component, so it never remounts */}
         <div style={{ flex: 1, padding: '8px', overflow: 'hidden' }}>
-          <ChartCard style={{ height: '100%' }} />
+          <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '8px 2px 4px', overflow: 'hidden', height: '100%' }}>
+            {chartContent()}
+          </div>
         </div>
       </div>
     </div>
