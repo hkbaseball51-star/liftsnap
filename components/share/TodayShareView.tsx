@@ -17,30 +17,33 @@ function fmtDateShort(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 }
 
-// Capture the workout card as a PNG blob — inner card only, natural size
-// Uses toBlob() directly (avoids fetch + CSP issues with data URLs)
+// Capture a visible on-screen card element as a PNG blob.
+// Key: we capture the VISIBLE element, not an off-screen one.
+// Off-screen elements (position:fixed; left:-9999px) cause html-to-image SVG foreignObject
+// to return transparent PNGs because the browser doesn't compute styles for out-of-viewport
+// fixed elements. Visible elements are guaranteed to have correct computed styles.
 async function captureCard(cardEl: HTMLDivElement): Promise<Blob> {
   const { toBlob } = await import('html-to-image')
   await document.fonts.ready
-  // Double rAF ensures styles are fully applied before capture
+  // Double rAF: ensures the element is fully painted before capture
   await new Promise(r => requestAnimationFrame(r))
   await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 100))
+  await new Promise(r => setTimeout(r, 80))
 
   const W = cardEl.offsetWidth
   const H = cardEl.offsetHeight
-  const rect = cardEl.getBoundingClientRect()
 
   if (process.env.NODE_ENV !== 'production') {
     /* eslint-disable no-console */
-    console.log('[captureCard] innerText:', cardEl.innerText?.slice(0, 80))
+    console.log('[captureCard] target:', cardEl.tagName, '| children:', cardEl.children.length)
+    console.log('[captureCard] innerText:', cardEl.innerText?.trim().slice(0, 100))
     console.log('[captureCard] offsetW×H:', W, '×', H)
-    console.log('[captureCard] boundingRect:', rect)
+    console.log('[captureCard] boundingRect:', cardEl.getBoundingClientRect())
     /* eslint-enable no-console */
   }
 
   if (W === 0 || H === 0) {
-    throw new Error(`Export element has zero dimensions (${W}×${H}). Check ref target.`)
+    throw new Error(`Export element has zero dimensions (${W}×${H}). Ref points to wrong node.`)
   }
 
   const pixelRatio = Math.min(4, Math.round(1080 / W))
@@ -55,7 +58,7 @@ async function captureCard(cardEl: HTMLDivElement): Promise<Blob> {
 
   if (process.env.NODE_ENV !== 'production') {
     /* eslint-disable no-console */
-    console.log('[captureCard] blob size:', blob?.size, 'bytes, type:', blob?.type)
+    console.log('[captureCard] blob:', blob?.size, 'bytes, type:', blob?.type)
     /* eslint-enable no-console */
   }
 
@@ -63,7 +66,7 @@ async function captureCard(cardEl: HTMLDivElement): Promise<Blob> {
   return blob
 }
 
-// ── Design presets — Pro-only custom colors can be added here in future ──
+// ── Design presets ────────────────────────────────────────────────────
 const PRESET_OPTIONS: { value: DesignPreset; label: string; swatch: string }[] = [
   { value: 'orange',   label: 'REPRA Orange', swatch: '#F97316' },
   { value: 'ice-blue', label: 'Ice Blue',      swatch: '#38BDF8' },
@@ -79,36 +82,43 @@ const SHADOW_OPTIONS: { value: ShadowMode; labelJa: string; labelEn: string }[] 
 ]
 
 export default function TodayShareView({ data }: { data: TodayData }) {
-  const router     = useRouter()
-  const captureRef = useRef<HTMLDivElement>(null)
-  const { unit }   = useWeightUnit()
+  const router   = useRouter()
+  const { unit } = useWeightUnit()
   const { locale } = useLocale()
-  const todayStr   = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
+  const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
-  const contentRef         = useRef<HTMLDivElement>(null)
-  const exportRef          = useRef<HTMLDivElement>(null)
-  const exerciseExportRefs = useRef<(HTMLDivElement | null)[]>([])
+  // ── Layout measurement refs (not capture targets) ──
+  const captureRef = useRef<HTMLDivElement>(null)  // 9:16 canvas — layout measurement only
+  const contentRef = useRef<HTMLDivElement>(null)  // scale wrapper — layout measurement only
 
-  const [cardStyle,  setCardStyleState] = useState<CardStyle>('glass')
-  const [preset,     setPreset]         = useState<DesignPreset>('orange')
-  const [shadowMode, setShadowMode]     = useState<ShadowMode>('strong')
-  const [saveFormat, setSaveFormat]     = useState<'combined' | 'per-exercise'>('combined')
-  const [saving,       setSaving]         = useState(false)
-  const [status,       setStatus]         = useState('')
-  const [shareCount,   setShareCount]     = useState(0)
-  const [contentScale,  setContentScale]  = useState(1)
-  const [naturalWidth,  setNaturalWidth]  = useState(0)
-  const [naturalHeight, setNaturalHeight] = useState(0)
+  // ── Capture target refs — VISIBLE on-screen elements ──
+  // Capturing visible elements ensures correct CSS computed styles.
+  // previewCardRef: inner wrapper around WorkoutStoryCardContent in combined preview.
+  //   - Has NO transform applied (transform is on parent contentRef), so html-to-image
+  //     captures at natural (full) resolution even when preview is scaled down.
+  const previewCardRef = useRef<HTMLDivElement>(null)
+  // previewExRefs: one per ExerciseStoryCard in the per-exercise preview list.
+  //   - Each ref wraps ONLY the ExerciseStoryCard div, NOT the checker overlay.
+  const previewExRefs  = useRef<(HTMLDivElement | null)[]>([])
 
-  // Measure natural content width/height, then compute scale-down if needed.
-  // Using max-content so the card is exactly as wide as the text content requires.
-  // Runs before paint (useLayoutEffect) — no visible flash.
+  const [cardStyle,     setCardStyleState] = useState<CardStyle>('glass')
+  const [preset,        setPreset]         = useState<DesignPreset>('orange')
+  const [shadowMode,    setShadowMode]     = useState<ShadowMode>('strong')
+  const [saveFormat,    setSaveFormat]     = useState<'combined' | 'per-exercise'>('combined')
+  const [saving,        setSaving]         = useState(false)
+  const [status,        setStatus]         = useState('')
+  const [shareCount,    setShareCount]     = useState(0)
+  const [contentScale,  setContentScale]   = useState(1)
+  const [naturalWidth,  setNaturalWidth]   = useState(0)
+  const [naturalHeight, setNaturalHeight]  = useState(0)
+
+  // Measure natural card dimensions, compute scale-down ratio if card overflows 9:16.
+  // Runs before paint (useLayoutEffect) so there's no visible flash.
   useLayoutEffect(() => {
     const canvas  = captureRef.current
     const content = contentRef.current
     if (!canvas || !content) return
 
-    // Reset to measure at natural (max-content) dimensions
     content.style.transform = 'none'
     content.style.width     = 'max-content'
 
@@ -134,7 +144,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setShadowMode(PRESETS[p].defaultShadow)
   }
 
-  // Share via Web Share API when available, otherwise trigger download via <a download>
+  // Share via Web Share API when available, fall back to <a download>
   const shareOrDownload = async (blob: Blob, filename: string): Promise<'shared' | 'downloaded'> => {
     const file = new File([blob], filename, { type: 'image/png' })
     if (navigator.canShare?.({ files: [file] })) {
@@ -155,8 +165,38 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     return 'downloaded'
   }
 
+  // Save the combined (all-in-one) card — captures the visible preview card
+  const handleSaveCombined = async () => {
+    const cardEl = previewCardRef.current
+    if (!cardEl) return
+    setSaving(true)
+    setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
+    try {
+      const blob = await captureCard(cardEl)
+      const filename = `repra-${data.date}-workout.png`
+      const result = await shareOrDownload(blob, filename)
+      incrementShareCount(); setShareCount(getShareCount())
+      if (result === 'downloaded') {
+        setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
+        setTimeout(() => setStatus(''), 2000)
+      } else {
+        setStatus('')
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        setStatus('')
+      } else {
+        setStatus(locale === 'ja'
+          ? '画像を作成できませんでした。もう一度お試しください。'
+          : 'Could not create image. Please try again.')
+        setTimeout(() => setStatus(''), 3000)
+      }
+    } finally { setSaving(false) }
+  }
+
+  // Save a single exercise card — captures the visible preview card for that exercise
   const handleSaveSingleExercise = async (idx: number) => {
-    const cardEl = exerciseExportRefs.current[idx]
+    const cardEl = previewExRefs.current[idx]
     if (!cardEl) return
     setSaving(true)
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
@@ -185,41 +225,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSaving(false) }
   }
 
-  const handleSaveCombined = async () => {
-    if (!exportRef.current) return
-    setSaving(true)
-    setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
-    try {
-      const blob = await captureCard(exportRef.current)
-      const filename = `repra-${data.date}-workout.png`
-      const result = await shareOrDownload(blob, filename)
-      incrementShareCount(); setShareCount(getShareCount())
-      if (result === 'downloaded') {
-        setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
-        setTimeout(() => setStatus(''), 2000)
-      } else {
-        setStatus('')
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'AbortError') {
-        setStatus('')
-      } else {
-        setStatus(locale === 'ja'
-          ? '画像を作成できませんでした。もう一度お試しください。'
-          : 'Could not create image. Please try again.')
-        setTimeout(() => setStatus(''), 3000)
-      }
-    } finally { setSaving(false) }
-  }
-
+  // Save all exercise cards — captures each visible preview card in sequence
   const handleSavePerExercise = async () => {
     setSaving(true)
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
-      // Build all files first
       const files: File[] = []
       for (let i = 0; i < data.exercises.length; i++) {
-        const cardEl = exerciseExportRefs.current[i]
+        const cardEl = previewExRefs.current[i]
         if (!cardEl) continue
         const ex = data.exercises[i]
         const blob = await captureCard(cardEl)
@@ -265,9 +278,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const ja            = locale === 'ja'
   const isTransparent = cardStyle === 'transparent'
 
-  // Outer 9:16 canvas is always transparent — the inner info card carries its own bg
-  const canvasBg = 'transparent'
-
   const checkerBg = [
     'linear-gradient(45deg, #3a3a3a 25%, transparent 25%)',
     'linear-gradient(-45deg, #3a3a3a 25%, transparent 25%)',
@@ -297,8 +307,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
-      {/* Preview — switches between 9:16 canvas (combined) and card list (per-exercise) */}
+      {/* ── Preview area ─────────────────────────────────────────────── */}
       {saveFormat === 'combined' ? (
+
+        /* Combined: 9:16 canvas with inner card — capture target is previewCardRef (no transform) */
         <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
           <div style={{ width: 'min(94vw, 420px)' }}>
             <div
@@ -308,13 +320,12 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 aspectRatio: '9/16',
                 overflow: 'hidden',
                 borderRadius: 20,
-                background: canvasBg,
+                background: 'transparent',
               }}
             >
-              {/* Preview-only checker — sized to card footprint with rounded corners, excluded from saved PNG */}
+              {/* Transparent card: show checker sized to card footprint */}
               {isTransparent && naturalWidth > 0 && naturalHeight > 0 && (
                 <div
-                  data-preview-only=""
                   style={{
                     position: 'absolute', top: 0, left: 0,
                     width: `${naturalWidth}px`,
@@ -330,7 +341,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 />
               )}
 
-              {/* Card fits content width — no fixed % so right side stays clean */}
+              {/* contentRef: scale wrapper for layout measurement */}
               <div style={{ position: 'absolute', top: 0, left: 0, maxWidth: '100%', zIndex: 2 }}>
                 <div
                   ref={contentRef}
@@ -344,27 +355,39 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     width: naturalWidth > 0 ? `${naturalWidth}px` : 'max-content',
                   }}
                 >
-                  <WorkoutStoryCardContent
-                    data={data}
-                    cardStyle={cardStyle}
-                    preset={preset}
-                    unit={unit}
-                    locale={locale}
-                    isPast={isPast}
-                    shadowMode={shadowMode}
-                  />
+                  {/*
+                    previewCardRef: the ACTUAL capture target.
+                    This div has NO transform — its parent (contentRef) has the scale transform,
+                    but getComputedStyle() on THIS element returns no transform.
+                    html-to-image therefore captures it at full natural resolution.
+                    The card is on-screen and painted — guaranteed correct styles.
+                  */}
+                  <div ref={previewCardRef}>
+                    <WorkoutStoryCardContent
+                      data={data}
+                      cardStyle={cardStyle}
+                      preset={preset}
+                      unit={unit}
+                      locale={locale}
+                      isPast={isPast}
+                      shadowMode={shadowMode}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
       ) : (
-        /* Per-exercise card previews — scrollable vertical list */
+
+        /* Per-exercise: scrollable list of visible cards — previewExRefs[i] are capture targets */
         <div className="flex-shrink-0 overflow-y-auto" style={{ maxHeight: '55vh', padding: '0 16px 12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {data.exercises.map((ex, i) => (
               <div key={`preview-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ position: 'relative' }}>
+                  {/* Transparent card: checker is a sibling of the capture target — NOT inside previewExRefs */}
                   {isTransparent && (
                     <div style={{
                       position: 'absolute', inset: 0,
@@ -376,15 +399,22 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       pointerEvents: 'none',
                     }} />
                   )}
-                  <ExerciseStoryCard
-                    data={{ ...ex, date: data.date }}
-                    cardStyle={cardStyle}
-                    preset={preset}
-                    unit={unit}
-                    locale={locale}
-                    isPast={isPast}
-                    shadowMode={shadowMode}
-                  />
+                  {/*
+                    previewExRefs[i]: capture target for this exercise card.
+                    Wraps ONLY ExerciseStoryCard — the checker above is a sibling div,
+                    so it is NOT captured in the saved PNG.
+                  */}
+                  <div ref={el => { previewExRefs.current[i] = el }}>
+                    <ExerciseStoryCard
+                      data={{ ...ex, date: data.date }}
+                      cardStyle={cardStyle}
+                      preset={preset}
+                      unit={unit}
+                      locale={locale}
+                      isPast={isPast}
+                      shadowMode={shadowMode}
+                    />
+                  </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
@@ -406,6 +436,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             ))}
           </div>
         </div>
+
       )}
 
       {/* ── Controls panel ── */}
@@ -413,7 +444,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         className="flex-1 overflow-y-auto"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
       >
-        {/* Card Style selector */}
+        {/* Card Style */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
             {ja ? 'カードスタイル' : 'Card Style'}
@@ -437,7 +468,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>
         </div>
 
-        {/* Design Preset selector */}
+        {/* Design Preset */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
             {ja ? 'デザインプリセット' : 'Design Preset'}
@@ -467,7 +498,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>
         </div>
 
-        {/* Text Shadow selector */}
+        {/* Text Shadow */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
             {ja ? 'テキストシャドウ' : 'Text Shadow'}
@@ -488,7 +519,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </div>
         </div>
 
-        {/* Save Format selector */}
+        {/* Save Format */}
         <div className="px-4 mb-3">
           <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
             {ja ? '保存形式' : 'Save Format'}
@@ -519,7 +550,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               {status}
             </p>
           )}
-
           <button
             className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
             style={{
@@ -535,7 +565,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 ? (ja ? 'まとめてカードを保存' : 'Save Full Card')
                 : (ja ? '種目カードを保存' : 'Save Exercise Cards')}
           </button>
-
           <p className="text-center text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
             {ja
               ? '保存後、Instagramで写真や動画に重ねて使えます'
@@ -543,44 +572,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </p>
         </div>
       </div>
-
-      {/* Export-only card — combined mode, positioned off-screen to the left */}
-      {/* position:fixed left:-9999px keeps element in the rendering tree (not display:none) */}
-      <div
-        ref={exportRef}
-        aria-hidden="true"
-        style={{ position: 'fixed', left: -9999, top: 0, opacity: 1, visibility: 'visible', pointerEvents: 'none' }}
-      >
-        <WorkoutStoryCardContent
-          data={data}
-          cardStyle={cardStyle}
-          preset={preset}
-          unit={unit}
-          locale={locale}
-          isPast={isPast}
-          shadowMode={shadowMode}
-        />
-      </div>
-
-      {/* Export-only cards — per-exercise mode, each at natural (max-content) width */}
-      {data.exercises.map((ex, i) => (
-        <div
-          key={`export-ex-${i}`}
-          ref={el => { exerciseExportRefs.current[i] = el }}
-          aria-hidden="true"
-          style={{ position: 'fixed', left: -9999, top: 0, width: 'max-content', opacity: 1, visibility: 'visible', pointerEvents: 'none' }}
-        >
-          <ExerciseStoryCard
-            data={{ ...ex, date: data.date }}
-            cardStyle={cardStyle}
-            preset={preset}
-            unit={unit}
-            locale={locale}
-            isPast={isPast}
-            shadowMode={shadowMode}
-          />
-        </div>
-      ))}
 
     </div>
   )
