@@ -517,7 +517,7 @@ function LayoutThumb({ layoutKey, accentHex, selected }: {
 }
 
 /* ── Line SVG for MAX 1RM card previews ──────────────────── */
-function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 2.5 }: {
+function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 1.4 }: {
   data: { est1rm: number }[]
   accentHex: string
   areaFill: string
@@ -529,13 +529,20 @@ function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 2.5 }: {
   const max = Math.max(...values)
   const min = Math.min(...values)
   const rng = max - min || max * 0.1 || 1
-  const padY = H * 0.08
-  const px = (i: number) => (i / (data.length - 1)) * W
-  const py = (v: number) => H - padY - ((v - min) / rng) * (H - padY * 2)
+
+  // Padding so glow circles don't clip at edges (especially right and top)
+  const padX  = 8
+  const padYt = 14  // top — room for glow ring
+  const padYb = 8   // bottom
+
+  const px = (i: number) => padX + (i / (data.length - 1)) * (W - 2 * padX)
+  const py = (v: number) => padYt + ((max - v) / rng) * (H - padYt - padYb)
+
   const linePoints = data.map((d, i) => `${px(i).toFixed(1)},${py(d.est1rm).toFixed(1)}`).join(' ')
-  const areaPoints = `0,${H} ${linePoints} ${W},${H}`
-  const lastX = px(data.length - 1)
-  const lastY = py(data[data.length - 1].est1rm)
+  const areaPoints = `${padX},${H} ${linePoints} ${(W - padX).toFixed(1)},${H}`
+
+  const lastX  = px(data.length - 1)
+  const lastY  = py(data[data.length - 1].est1rm)
   const firstX = px(0)
   const firstY = py(data[0].est1rm)
 
@@ -546,12 +553,12 @@ function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 2.5 }: {
         points={linePoints} fill="none" stroke={accentHex}
         strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round"
       />
-      {/* Start point */}
-      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="2.2" fill="rgba(255,255,255,0.5)" />
-      {/* Latest point with glow */}
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="9" fill={accentHex} opacity="0.2" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="5" fill={accentHex} opacity="0.45" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3" fill={accentHex} />
+      {/* Start point — subtle */}
+      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.5" fill="rgba(255,255,255,0.38)" />
+      {/* Latest point — glow reduced to ~50% of previous size */}
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="6" fill={accentHex} opacity="0.12" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={accentHex} opacity="0.38" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.2" fill={accentHex} />
     </svg>
   )
 }
@@ -592,11 +599,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     ? '#0a0a0a'
     : `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
 
-  // MAX 1RM card backgrounds
-  const isTransparentCard = graphLayout !== 'full' && cardStyle === 'transparent'
-  // Full uses dark + accent tint (Glass only — transparent is unnatural for full-bleed story)
-  const fullBg      = `linear-gradient(165deg, ${acRgba(gp.accentHex, 0.09)} 0%, #080808 55%)`
-  // Card layouts: glass gradient (matching Workout Story) or checker for transparent preview
+  // MAX 1RM card backgrounds — isTransparentCard now applies to ALL layouts including Full
+  const isTransparentCard = cardStyle === 'transparent'
+  const fullGlassBg = `linear-gradient(165deg, ${acRgba(gp.accentHex, 0.09)} 0%, #080808 55%)`
+  // Full: glass gradient or checker (preview only — capture strips it to transparent)
+  const fullBg      = isTransparentCard
+    ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
+    : fullGlassBg
+  // Card layouts (Bottom/Mini/Wide): same logic
   const cardStyleBg = isTransparentCard
     ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
     : gp.bgCombined
@@ -646,8 +656,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           return
         }
 
-        // Full always dark; card layouts respect cardStyle
-        const isTransparent = graphLayout !== 'full' && cardStyle === 'transparent'
+        // All layouts respect cardStyle (Full now supports Transparent too)
+        const isTransparent = cardStyle === 'transparent'
         blob = await captureGraphElement(el, isTransparent)
 
         // Build filename
@@ -848,8 +858,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       )}
 
-      {/* ③ CARD STYLE — non-Full only ────────────────────────── */}
-      {isMax1RM && graphLayout !== 'full' && (
+      {/* ③ CARD STYLE ───────────────────────────────────────── */}
+      {isMax1RM && (
         <div className="px-4 mb-3">
           {sectionLabel('CARD STYLE')}
           <div className="flex gap-2">
@@ -871,8 +881,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       )}
 
-      {/* ④ SHADOW — non-Full only ────────────────────────────── */}
-      {isMax1RM && graphLayout !== 'full' && (
+      {/* ④ SHADOW ───────────────────────────────────────────── */}
+      {isMax1RM && (
         <div className="px-4 mb-4">
           {sectionLabel('SHADOW')}
           <div className="flex gap-2">
@@ -910,8 +920,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
-                border: `1px solid ${gp.border}`,
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
+                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                boxShadow: isTransparentCard ? 'none' : glassShadow,
                 textShadow: textShadowVal,
               }}>
                 {/* Header */}
@@ -970,7 +980,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       data={rm1SVGData}
                       accentHex={gp.accentHex}
                       areaFill={areaFill}
-                      strokeWidth={3.5}
+                      strokeWidth={1.8}
                     />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1015,7 +1025,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={1.4} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <p style={{ fontSize: 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
@@ -1045,7 +1055,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 13, fontWeight: 900, color: '#fff', margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '8px 0' }}>
-                    <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} />
+                    <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={1.2} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
@@ -1097,7 +1107,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </div>
                 {/* Right chart */}
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={3} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={1.5} />
                 </div>
               </div>
             )}
