@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Pencil, Minus, Camera, ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, X, Pencil, Minus, Camera, ImageIcon, ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { createClient } from '@/lib/supabase/client'
@@ -69,6 +69,7 @@ type Props = {
   existingSessionId?: string
   existingExercises?: InitialExercise[]
   existingTitle?: string
+  onNavigate?: (date: string) => void
 }
 
 /* ─── Pure helpers ────────────────────────────────────── */
@@ -355,6 +356,7 @@ export default function WorkoutRecorder({
   existingSessionId,
   existingExercises,
   existingTitle,
+  onNavigate,
 }: Props) {
   const router = useRouter()
   const { locale } = useLocale()
@@ -399,6 +401,7 @@ export default function WorkoutRecorder({
   const [hasPhotoRecorded, setHasPhotoRecorded] = useState(false)
 
   const [bwInput, setBwInput]   = useState('')
+  const [mounted, setMounted] = useState(false)
   const [bwSaving, setBwSaving] = useState(false)
   const [bwSaved,  setBwSaved]  = useState(false)
 
@@ -428,6 +431,12 @@ export default function WorkoutRecorder({
     const id = setTimeout(() => setRestRemaining(r => (r ?? 1) - 1), 1000)
     return () => clearTimeout(id)
   }, [restRemaining])
+
+  // Mount animation
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   // Rest timer done
   useEffect(() => {
@@ -633,7 +642,15 @@ export default function WorkoutRecorder({
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        background: '#080808',
+        opacity: mounted ? 1 : 0,
+        transform: mounted ? 'translateX(0)' : 'translateX(10px)',
+        transition: 'opacity 160ms ease-out, transform 160ms ease-out',
+      }}
+    >
 
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-20 px-4 pt-14"
@@ -682,7 +699,7 @@ export default function WorkoutRecorder({
           <div className="flex items-center gap-1">
             <button
               className="p-1.5 active:opacity-60 transition-opacity"
-              onClick={() => router.push(`/record?date=${prevDate}`)}>
+              onClick={() => onNavigate ? onNavigate(prevDate) : router.push(`/record?date=${prevDate}`)}>
               <ChevronLeft size={16} style={{ color: '#666' }} />
             </button>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', minWidth: 120, textAlign: 'center' }}>
@@ -691,7 +708,7 @@ export default function WorkoutRecorder({
             <button
               className="p-1.5 active:opacity-60 transition-opacity"
               disabled={isNextDisabled}
-              onClick={() => !isNextDisabled && router.push(`/record?date=${nextDate}`)}>
+              onClick={() => !isNextDisabled && (onNavigate ? onNavigate(nextDate) : router.push(`/record?date=${nextDate}`))}>
               <ChevronRight size={16} style={{ color: isNextDisabled ? '#2a2a2a' : '#666' }} />
             </button>
           </div>
@@ -735,7 +752,7 @@ export default function WorkoutRecorder({
 
       {/* ── Exercise list ── */}
       <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-3"
-        style={{ paddingBottom: 'calc(10rem + env(safe-area-inset-bottom))' }}>
+        style={{ paddingBottom: 'calc(13rem + env(safe-area-inset-bottom))' }}>
 
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -891,6 +908,30 @@ export default function WorkoutRecorder({
                   ? t(locale, 'photo.viewPhoto')
                   : t(locale, 'photo.addBodyPhoto')
                 }
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/*
+          Story creation CTA — shown when a saved session with completed sets exists.
+          Future monetization:
+            Free: Story for today + last 7 days
+            Pro:  Story for all history, watermark removal, Pro templates
+          Currently: all dates unrestricted (no gate implemented yet).
+        */}
+        {isSavedState && exerciseList.length > 0 && displaySetsCount > 0 && (
+          <div className="mt-2">
+            <button
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-75 transition-opacity"
+              style={{
+                background: 'rgba(237,116,47,0.07)',
+                border: '1px solid rgba(237,116,47,0.22)',
+              }}
+              onClick={() => router.push(`/share?type=today&date=${date}`)}>
+              <Share2 size={13} style={{ color: '#ED742F' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#ED742F' }}>
+                {locale === 'ja' ? 'Storyを作成' : 'Create Story'}
               </span>
             </button>
           </div>

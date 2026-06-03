@@ -1,5 +1,5 @@
 import { getSessionForDate } from '@/actions/workout'
-import WorkoutRecorder from '@/components/record/WorkoutRecorder'
+import RecordNavigator from '@/components/record/RecordNavigator'
 
 function getTodayJST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
@@ -16,11 +16,9 @@ export default async function RecordPage({
   const sessionData = await getSessionForDate(date)
 
   return (
-    <WorkoutRecorder
-      date={date}
-      existingSessionId={sessionData?.id}
-      existingExercises={sessionData?.exercises}
-      existingTitle={sessionData?.title}
+    <RecordNavigator
+      initialDate={date}
+      initialSession={sessionData}
     />
   )
 }

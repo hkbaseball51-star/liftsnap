@@ -80,6 +80,12 @@ function fmtDate(s: string) {
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${D[d.getDay()]}`
 }
 
+function fmtDateShort(s: string) {
+  const d = new Date(s + 'T00:00:00')
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+}
+
 async function captureStory(captureEl: HTMLDivElement, transparent: boolean): Promise<Blob> {
   const { toPng } = await import('html-to-image')
   await document.fonts.ready
@@ -223,6 +229,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   }
 
   // ── Derived ──────────────────────────────────────────────────────────
+  /*
+   * Future monetization:
+   *   Free: Story for today + last 7 days (gate: data.date < todayStr - 7 days)
+   *   Pro:  Unlimited history, watermark removal, Pro templates
+   * Currently: all dates unrestricted.
+   */
+  const isPast   = data.date !== todayStr
+  const ja       = locale === 'ja'
   const ac       = AC[accent]
   const acHex    = ac.hex
   const hasPhoto = !!photoDataUrl
@@ -254,7 +268,18 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={16} style={{ color: '#777' }} />
         </button>
-        <h1 className="text-sm font-black tracking-widest text-white">{t(locale, 'story.title')}</h1>
+        <div>
+          <h1 className="text-sm font-black tracking-widest text-white">
+            {isPast
+              ? (ja ? '過去のワークアウトStory' : 'Workout Story')
+              : (ja ? '今日のワークアウトStory' : "Today's Workout Story")}
+          </h1>
+          {isPast && (
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 2 }}>
+              {fmtDateShort(data.date)}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* 9:16 Story card */}
@@ -313,13 +338,13 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 }}>REPRA</span>
               </div>
 
-              {/* TODAY'S WORKOUT · date · title */}
+              {/* WORKOUT label · date · title */}
               <div style={{ marginTop: 16 }}>
                 <p style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
                   color: 'rgba(255,255,255,0.42)', margin: 0, lineHeight: 1,
                 }}>
-                  TODAY&apos;S WORKOUT
+                  {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
                 </p>
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.52)', margin: '5px 0 0', lineHeight: 1 }}>
                   {fmtDate(data.date)}
