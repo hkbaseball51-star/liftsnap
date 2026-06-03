@@ -23,6 +23,16 @@ export type TodayData = {
 export type CardStyle  = 'glass' | 'transparent'
 export type Accent     = 'orange' | 'purple' | 'teal' | 'blue' | 'white' | 'red'
 export type ShadowMode = 'none' | 'soft' | 'strong' | 'extra-strong'
+export type CardBg     = 'black' | 'orange' | 'purple' | 'teal' | 'white'
+
+// Glass card background — alpha ~0.52 for black, ~0.28 for colors, ~0.22 for white
+const CARD_BG: Record<CardBg, string> = {
+  black:  'rgba(8,8,8,0.52)',
+  orange: 'rgba(249,115,22,0.28)',
+  purple: 'rgba(124,58,237,0.28)',
+  teal:   'rgba(20,184,166,0.28)',
+  white:  'rgba(255,255,255,0.22)',
+}
 
 // accent hex + badge styling per color
 export const AC: Record<Accent, { hex: string; badgeBg: string; badgeBorder: string; badgeText: string }> = {
@@ -124,6 +134,7 @@ type Props = {
   hasPhoto?: boolean
   isPast?: boolean
   shadowMode?: ShadowMode
+  cardBg?: CardBg
 }
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -137,6 +148,7 @@ export default function WorkoutStoryCardContent({
   hasPhoto = false,
   isPast = false,
   shadowMode = 'none',
+  cardBg = 'black',
 }: Props) {
   const ac            = AC[accent]
   const acHex         = ac.hex
@@ -168,11 +180,7 @@ export default function WorkoutStoryCardContent({
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
       textShadow: ts,
-      background: isTransparent
-        ? 'transparent'
-        : hasPhoto
-          ? 'rgba(6,6,6,0.84)'
-          : 'rgba(18,18,18,1)',
+      background: isTransparent ? 'transparent' : CARD_BG[cardBg],
       ...(isTransparent ? {} : {
         border: '1px solid rgba(255,255,255,0.10)',
         borderRadius: '0 0 20px 20px',

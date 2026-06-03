@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Download, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount } from '@/lib/unlocks'
@@ -8,7 +8,7 @@ import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import WorkoutStoryCardContent from './WorkoutStoryCardContent'
-import type { TodayData, CardStyle, Accent, ShadowMode } from './WorkoutStoryCardContent'
+import type { TodayData, CardStyle, Accent, ShadowMode, CardBg } from './WorkoutStoryCardContent'
 
 export type { TodayData }
 
@@ -65,6 +65,15 @@ const COLOR_OPTIONS: {
   { accent: 'white',  labelJa: 'White',  labelEn: 'White',  swatch: '#3a3a3a' },
 ]
 
+// ── Card background options (glass mode only) ─────────────────────────
+const CARD_BG_OPTIONS: { value: CardBg; labelJa: string; labelEn: string; swatch: string }[] = [
+  { value: 'black',  labelJa: 'ブラック', labelEn: 'Black',  swatch: 'rgba(8,8,8,0.85)'       },
+  { value: 'orange', labelJa: 'オレンジ', labelEn: 'Orange', swatch: 'rgba(249,115,22,0.75)'  },
+  { value: 'purple', labelJa: 'パープル', labelEn: 'Purple', swatch: 'rgba(124,58,237,0.75)'  },
+  { value: 'teal',   labelJa: 'ティール', labelEn: 'Teal',   swatch: 'rgba(20,184,166,0.75)'  },
+  { value: 'white',  labelJa: 'ホワイト', labelEn: 'White',  swatch: 'rgba(220,220,220,0.85)' },
+]
+
 // ── Shadow options ────────────────────────────────────────────────────
 const SHADOW_OPTIONS: { value: ShadowMode; labelJa: string; labelEn: string }[] = [
   { value: 'none',         labelJa: 'なし',       labelEn: 'None'         },
@@ -80,12 +89,34 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const { locale } = useLocale()
   const todayStr   = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
-  const [cardStyle,  setCardStyleState] = useState<CardStyle>('glass')
-  const [accent,     setAccent]         = useState<Accent>('white')
-  const [shadowMode, setShadowMode]     = useState<ShadowMode>('soft')
-  const [saving,     setSaving]         = useState(false)
-  const [status,     setStatus]         = useState('')
-  const [shareCount, setShareCount]     = useState(0)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  const [cardStyle,    setCardStyleState] = useState<CardStyle>('glass')
+  const [glassBg,      setGlassBg]        = useState<CardBg>('black')
+  const [accent,       setAccent]         = useState<Accent>('white')
+  const [shadowMode,   setShadowMode]     = useState<ShadowMode>('soft')
+  const [saving,       setSaving]         = useState(false)
+  const [status,       setStatus]         = useState('')
+  const [shareCount,   setShareCount]     = useState(0)
+  const [contentScale, setContentScale]   = useState(1)
+
+  // Measure content height after render and scale down if it overflows the 9:16 canvas.
+  // Runs before paint (useLayoutEffect) so there's no visible flash.
+  useLayoutEffect(() => {
+    const canvas  = captureRef.current
+    const content = contentRef.current
+    if (!canvas || !content) return
+
+    // Temporarily clear scale so we measure the natural content height
+    content.style.transform = 'none'
+    content.style.width     = '100%'
+
+    const availH  = canvas.clientHeight
+    const contentH = content.scrollHeight
+
+    const next = contentH > availH ? Math.max(0.5, availH / contentH) : 1
+    setContentScale(next)
+  }, [data])
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
@@ -128,8 +159,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const ja            = locale === 'ja'
   const isTransparent = cardStyle === 'transparent'
 
-  // Outer 9:16 canvas background
-  const cardBg = isTransparent ? 'transparent' : '#050505'
+  // Outer 9:16 canvas background (always dark; card content bg is separate)
+  const canvasBg = isTransparent ? 'transparent' : '#050505'
 
   // Preview-only dark checkerboard behind the transparent card.
   // Dark pattern keeps white text readable while indicating transparency.
@@ -179,20 +210,30 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               aspectRatio: '9/16',
               overflow: 'hidden',
               borderRadius: 20,
-              background: cardBg,
+              background: canvasBg,
             }}
           >
-            {/* Card content — positioning wrapper; visual styles in WorkoutStoryCardContent */}
+            {/* Card content — scales down automatically when content exceeds canvas height */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2 }}>
-              <WorkoutStoryCardContent
-                data={data}
-                cardStyle={cardStyle}
-                accent={accent}
-                unit={unit}
-                locale={locale}
-                isPast={isPast}
-                shadowMode={shadowMode}
-              />
+              <div
+                ref={contentRef}
+                style={contentScale < 1 ? {
+                  transform: `scale(${contentScale})`,
+                  transformOrigin: 'top left',
+                  width: `${(100 / contentScale).toFixed(3)}%`,
+                } : undefined}
+              >
+                <WorkoutStoryCardContent
+                  data={data}
+                  cardStyle={cardStyle}
+                  accent={accent}
+                  unit={unit}
+                  locale={locale}
+                  isPast={isPast}
+                  shadowMode={shadowMode}
+                  cardBg={glassBg}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -226,6 +267,33 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             ))}
           </div>
         </div>
+
+        {/* Card Background — glass mode only */}
+        {cardStyle === 'glass' && (
+          <div className="px-4 mb-3">
+            <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+              {ja ? 'カード背景' : 'Card Background'}
+            </p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {CARD_BG_OPTIONS.map(({ value, labelJa, labelEn, swatch }) => {
+                const sel = glassBg === value
+                return (
+                  <button key={value}
+                    className="py-2 rounded-xl text-[10px] font-bold"
+                    style={{
+                      background: sel ? swatch : '#1a1a1a',
+                      color: value === 'white' ? (sel ? '#333' : '#666') : '#fff',
+                      border: `1px solid ${sel ? swatch : '#2a2a2a'}`,
+                      minHeight: 40,
+                    }}
+                    onClick={() => setGlassBg(value)}>
+                    {ja ? labelJa : labelEn}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Color accent — 6 colors, 2 rows of 3, all unlocked */}
         <div className="px-4 mb-3">
