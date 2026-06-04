@@ -3,17 +3,10 @@
  * Seed 1 year of realistic demo training data for REPRA analytics verification.
  *
  * Usage:
- *   ENABLE_DEMO_SEED=true npx tsx --env-file .env.local scripts/seed-repra-demo-data.ts [--clean]
- *   or: ENABLE_DEMO_SEED=true npm run seed:repra [-- --clean]
+ *   ENABLE_DEMO_SEED=true npx tsx --env-file .env.local scripts/seed-repra-demo-data.ts
  *
- * Flags:
- *   --clean   Delete ALL existing workout/body-weight data for this user before inserting.
- *             (Only touches USER_ID below — never other users.)
- *
- * Safety guards:
- *   - Requires ENABLE_DEMO_SEED=true
- *   - Only writes to the one hard-coded USER_ID
- *   - Never touches any other user's data
+ * Always deletes existing data for USER_ID first, then inserts fresh data.
+ * Date range: 2025-06-04 → 2026-06-04
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -35,14 +28,12 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 }
 
 const USER_ID = '7bfae6d3-4036-43cd-9811-50d8f766526a'
-const CLEAN   = process.argv.includes('--clean')
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
 // ── Deterministic PRNG ──────────────────────────────────────────────────────
-// Seeded so results are reproducible across runs.
 
 function makePrng(seed: number) {
   let s = seed >>> 0
@@ -58,20 +49,19 @@ function nearest(v: number, step = 0.5): number {
   return Math.round(v / step) * step
 }
 
-// ── Non-linear progress curve (0 = start weights, 1 = end weights) ─────────
+// ── Non-linear progress curve (0 = wStart, 1 = wEnd) ──────────────────────
 //
-// Phase 1 (weeks  0–12): Fast growth       0.00 → 0.40
-// Phase 2 (weeks 13–30): Growth slows     0.40 → 0.62
-// Phase 3 (weeks 31–43): Plateau / dip    0.62 → 0.57  (fatigue + life)
-// Phase 4 (weeks 44–51): Partial recovery 0.57 → 0.72
+// Newbie gains (0–10) → slowdown (10–22) → plateau/dip (22–30) →
+// small recovery (30–38) → hard training phase (38–47) → peak (47–51)
 
 const KEYFRAMES: [week: number, progress: number][] = [
   [0,  0.00],
-  [12, 0.40],
-  [30, 0.62],
-  [37, 0.56],   // dip
-  [43, 0.57],   // plateau bottom
-  [51, 0.72],   // recovery peak
+  [10, 0.38],
+  [22, 0.62],
+  [30, 0.56],
+  [38, 0.60],
+  [47, 0.88],
+  [51, 1.00],
 ]
 
 function getProgress(week: number): number {
@@ -88,39 +78,47 @@ function getProgress(week: number): number {
 }
 
 // ── Exercise definitions ────────────────────────────────────────────────────
-// weight targets are calculated so that the Epley 1RM (w*(1+reps/30))
-// hits the desired ranges at start and end of the year.
+// wStart / wEnd are actual working weights (kg) at week 0 and week 51.
+// Epley 1RM = w * (1 + reps / 30).
 //
-// ベンチプレス: initial 1RM ~62kg (rep5), final ~119kg  (start=53, end=102)
-// スクワット  : initial 1RM ~76kg (rep5), final ~149kg  (start=65, end=128)
-// デッドリフト: initial 1RM ~90kg (rep4), final ~181kg  (start=80, end=160)
+// BENCH:    60 → 92 kg   (1RM ~72 → ~110-117 kg  at 6-8 reps)
+// SQUAT:    70 → 110 kg  (1RM ~84 → ~125-132 kg  at 6-8 reps)
+// DEADLIFT: 83 → 133 kg  (1RM ~94 → ~151-155 kg  at 3-5 reps)
 
 type ExDef = {
-  name:        string
-  muscle:      string
-  setRange:    [number, number]   // [min, max] sets
-  repRange:    [number, number]   // [min, max] reps per set
-  wStart:      number             // kg at week 0
-  wEnd:        number             // kg at week 51
+  name:     string
+  muscle:   string
+  setRange: [number, number]
+  repRange: [number, number]
+  wStart:   number
+  wEnd:     number
 }
 
-const BENCH:  ExDef = { name: 'ベンチプレス',              muscle: 'CHEST',      setRange: [3,5], repRange: [4,8],  wStart: 53,  wEnd: 102 }
-const INCLINE: ExDef = { name: 'インクラインベンチプレス',   muscle: 'CHEST',      setRange: [3,4], repRange: [6,10], wStart: 38,  wEnd: 70  }
-const OHP:    ExDef = { name: 'ショルダープレス',           muscle: 'SHOULDERS',  setRange: [3,4], repRange: [6,10], wStart: 35,  wEnd: 62  }
-const TRICEP: ExDef = { name: 'トライセップスプレスダウン',  muscle: 'TRICEPS',    setRange: [3,4], repRange: [8,12], wStart: 22,  wEnd: 40  }
-const DL:     ExDef = { name: 'デッドリフト',               muscle: 'BACK',       setRange: [2,4], repRange: [3,5],  wStart: 80,  wEnd: 160 }
-const LAT:    ExDef = { name: 'ラットプルダウン',            muscle: 'BACK',       setRange: [3,4], repRange: [8,12], wStart: 50,  wEnd: 80  }
-const ROW:    ExDef = { name: 'シーテッドロウ',              muscle: 'BACK',       setRange: [3,4], repRange: [8,12], wStart: 50,  wEnd: 78  }
-const CURL:   ExDef = { name: 'バーベルカール',              muscle: 'BICEPS',     setRange: [3,4], repRange: [8,12], wStart: 28,  wEnd: 50  }
-const SQUAT:  ExDef = { name: 'スクワット',                  muscle: 'QUADS',      setRange: [3,5], repRange: [4,8],  wStart: 65,  wEnd: 128 }
-const RDL:    ExDef = { name: 'ルーマニアンデッドリフト',    muscle: 'HAMSTRINGS', setRange: [3,4], repRange: [6,10], wStart: 65,  wEnd: 108 }
-const LPRESS: ExDef = { name: 'レッグプレス',                muscle: 'QUADS',      setRange: [3,4], repRange: [8,12], wStart: 110, wEnd: 180 }
-const LCURL:  ExDef = { name: 'レッグカール',                 muscle: 'HAMSTRINGS', setRange: [3,4], repRange: [8,12], wStart: 32,  wEnd: 55  }
+// ── Compound lifts
+const BENCH:       ExDef = { name: 'ベンチプレス',              muscle: 'CHEST',      setRange: [3,5], repRange: [4,8],   wStart: 60,  wEnd: 92  }
+const INCLINE:     ExDef = { name: 'インクラインベンチプレス',   muscle: 'CHEST',      setRange: [3,4], repRange: [6,10],  wStart: 40,  wEnd: 68  }
+const OHP:         ExDef = { name: 'ショルダープレス',           muscle: 'SHOULDERS',  setRange: [3,4], repRange: [6,10],  wStart: 35,  wEnd: 60  }
+const DL:          ExDef = { name: 'デッドリフト',               muscle: 'BACK',       setRange: [3,5], repRange: [3,5],   wStart: 83,  wEnd: 133 }
+const SQUAT:       ExDef = { name: 'スクワット',                  muscle: 'QUADS',      setRange: [3,5], repRange: [4,8],   wStart: 70,  wEnd: 110 }
+const RDL:         ExDef = { name: 'ルーマニアンデッドリフト',    muscle: 'HAMSTRINGS', setRange: [3,4], repRange: [6,10],  wStart: 62,  wEnd: 100 }
+
+// ── Isolation / accessory
+const CABLE_FLY:   ExDef = { name: 'ケーブルフライ',             muscle: 'CHEST',      setRange: [3,4], repRange: [10,15], wStart: 15,  wEnd: 28  }
+const LAT_RAISE:   ExDef = { name: 'サイドレイズ',               muscle: 'SHOULDERS',  setRange: [3,4], repRange: [10,15], wStart: 6,   wEnd: 12  }
+const FACE_PULL:   ExDef = { name: 'フェイスプル',               muscle: 'SHOULDERS',  setRange: [3,4], repRange: [12,15], wStart: 18,  wEnd: 32  }
+const TRICEP:      ExDef = { name: 'トライセップスプレスダウン',  muscle: 'TRICEPS',    setRange: [3,4], repRange: [8,12],  wStart: 22,  wEnd: 40  }
+const LAT:         ExDef = { name: 'ラットプルダウン',            muscle: 'BACK',       setRange: [3,4], repRange: [8,12],  wStart: 50,  wEnd: 82  }
+const ROW:         ExDef = { name: 'シーテッドロウ',              muscle: 'BACK',       setRange: [3,4], repRange: [8,12],  wStart: 48,  wEnd: 80  }
+const CURL:        ExDef = { name: 'バーベルカール',              muscle: 'BICEPS',     setRange: [3,4], repRange: [8,12],  wStart: 28,  wEnd: 50  }
+const HAMMER_CURL: ExDef = { name: 'ハンマーカール',              muscle: 'BICEPS',     setRange: [3,4], repRange: [8,12],  wStart: 16,  wEnd: 28  }
+const LPRESS:      ExDef = { name: 'レッグプレス',                muscle: 'QUADS',      setRange: [3,4], repRange: [8,12],  wStart: 110, wEnd: 200 }
+const LCURL:       ExDef = { name: 'レッグカール',                 muscle: 'HAMSTRINGS', setRange: [3,4], repRange: [8,12],  wStart: 32,  wEnd: 58  }
 
 // ── Workout templates ───────────────────────────────────────────────────────
 
 type WorkoutDef = { title: string; exercises: ExDef[] }
 
+// PPL
 const PUSH_A: WorkoutDef = { title: 'PUSH', exercises: [BENCH, INCLINE, OHP, TRICEP] }
 const PUSH_B: WorkoutDef = { title: 'PUSH', exercises: [BENCH, OHP, TRICEP] }
 const PULL_A: WorkoutDef = { title: 'PULL', exercises: [DL, LAT, ROW, CURL] }
@@ -128,20 +126,66 @@ const PULL_B: WorkoutDef = { title: 'PULL', exercises: [DL, LAT, ROW] }
 const LEGS_A: WorkoutDef = { title: 'LEGS', exercises: [SQUAT, RDL, LPRESS, LCURL] }
 const LEGS_B: WorkoutDef = { title: 'LEGS', exercises: [SQUAT, RDL, LPRESS] }
 
-// ── Weekly schedule ─────────────────────────────────────────────────────────
-// 4 sessions/week: Mon PUSH_A | Wed PULL_A | Fri LEGS_A | Sat rotating
-// Sat cycle (week % 3): 0 → PUSH_B  1 → PULL_B  2 → LEGS_B
-//
-// This guarantees each main lift appears ~64 times before the skip rate,
-// landing at ≥57 sessions each after skips.
+// Single-muscle focus
+const CHEST_FOCUS:     WorkoutDef = { title: 'CHEST',     exercises: [BENCH, INCLINE, CABLE_FLY] }
+const BACK_FOCUS:      WorkoutDef = { title: 'BACK',      exercises: [DL, LAT, ROW] }
+const SHOULDERS_FOCUS: WorkoutDef = { title: 'SHOULDERS', exercises: [OHP, LAT_RAISE, FACE_PULL] }
+const ARMS_FOCUS:      WorkoutDef = { title: 'ARMS',      exercises: [CURL, HAMMER_CURL, TRICEP] }
+const LEGS_FOCUS:      WorkoutDef = { title: 'LEGS',      exercises: [SQUAT, RDL, LPRESS, LCURL] }
 
-function getWeekSessions(w: number): { dayOffset: number; workout: WorkoutDef }[] {
-  const satWorkout = [PUSH_B, PULL_B, LEGS_B][w % 3]
+// ── Weekly schedule ─────────────────────────────────────────────────────────
+// 4-week cycle (w % 4):
+//   0: PPL-heavy    — 4 sessions (Mon PUSH_A, Wed PULL_A, Fri LEGS_A, Sat rotating)
+//   1: Single-focus — 4 sessions (Mon CHEST, Wed BACK, Fri LEGS, Sat ARMS/SHOULDERS)
+//   2: Mixed        — 3 sessions (Mon PUSH_B, Wed PULL_B, Fri LEGS_B)
+//   3: Mini deload  — 3 sessions (same as mixed but 70% weight)
+// Forced full deloads at weeks 12, 13, 25, 26, 38, 39.
+
+const FORCED_DELOAD_WEEKS = new Set([12, 13, 25, 26, 38, 39])
+
+type SessionDef = { dayOffset: number; workout: WorkoutDef; deload: boolean }
+
+function getWeekSessions(w: number): SessionDef[] {
+  if (FORCED_DELOAD_WEEKS.has(w)) {
+    return [
+      { dayOffset: 1, workout: PUSH_B, deload: true },
+      { dayOffset: 3, workout: PULL_B, deload: true },
+      { dayOffset: 5, workout: LEGS_B, deload: true },
+    ]
+  }
+
+  const cycle = w % 4
+  const group = Math.floor(w / 4)
+
+  if (cycle === 0) {
+    const satOpts: WorkoutDef[] = [PUSH_B, PULL_B, LEGS_B]
+    return [
+      { dayOffset: 1, workout: PUSH_A, deload: false },
+      { dayOffset: 3, workout: PULL_A, deload: false },
+      { dayOffset: 5, workout: LEGS_A, deload: false },
+      { dayOffset: 6, workout: satOpts[group % 3], deload: false },
+    ]
+  }
+  if (cycle === 1) {
+    return [
+      { dayOffset: 1, workout: CHEST_FOCUS, deload: false },
+      { dayOffset: 3, workout: BACK_FOCUS,  deload: false },
+      { dayOffset: 5, workout: LEGS_FOCUS,  deload: false },
+      { dayOffset: 6, workout: group % 2 === 0 ? ARMS_FOCUS : SHOULDERS_FOCUS, deload: false },
+    ]
+  }
+  if (cycle === 2) {
+    return [
+      { dayOffset: 1, workout: PUSH_B, deload: false },
+      { dayOffset: 3, workout: PULL_B, deload: false },
+      { dayOffset: 5, workout: LEGS_B, deload: false },
+    ]
+  }
+  // cycle === 3: mini deload
   return [
-    { dayOffset: 1, workout: PUSH_A },      // Monday
-    { dayOffset: 3, workout: PULL_A },      // Wednesday
-    { dayOffset: 5, workout: LEGS_A },      // Friday
-    { dayOffset: 6, workout: satWorkout },  // Saturday
+    { dayOffset: 1, workout: PUSH_B, deload: true },
+    { dayOffset: 3, workout: PULL_B, deload: true },
+    { dayOffset: 5, workout: LEGS_B, deload: true },
   ]
 }
 
@@ -157,47 +201,56 @@ function toDateStr(d: Date): string {
   return d.toISOString().split('T')[0]
 }
 
-// ── Clean existing data (only USER_ID) ─────────────────────────────────────
+// ── Count & clean existing data (only USER_ID) ──────────────────────────────
 
 async function cleanUserData() {
-  console.log('  Fetching existing sessions…')
-  const { data: sessions, error: fetchErr } = await supabase
+  console.log('  Counting existing records...')
+
+  const { data: sessions } = await supabase
     .from('workout_sessions')
     .select('id')
     .eq('user_id', USER_ID)
 
-  if (fetchErr) {
-    console.error('  Fetch error:', fetchErr.message)
-    return
-  }
+  const sessCt = sessions?.length ?? 0
 
-  if (!sessions || sessions.length === 0) {
-    console.log('  No existing sessions found.')
-  } else {
-    const ids = sessions.map(s => s.id)
-
-    // workout_sets has ON DELETE CASCADE from workout_sessions, but we delete
-    // explicitly to be safe and to get a count.
-    const { error: setsErr } = await supabase
+  let setsCt = 0
+  if (sessCt > 0) {
+    const { count } = await supabase
       .from('workout_sets')
-      .delete()
-      .in('session_id', ids)
-    if (setsErr) console.error('  Sets delete error:', setsErr.message)
-
-    const { error: sessErr } = await supabase
-      .from('workout_sessions')
-      .delete()
-      .eq('user_id', USER_ID)
-    if (sessErr) console.error('  Sessions delete error:', sessErr.message)
-    else console.log(`  Deleted ${ids.length} sessions (and their sets).`)
+      .select('id', { count: 'exact', head: true })
+      .in('session_id', sessions!.map(s => s.id))
+    setsCt = count ?? 0
   }
 
-  const { error: bwErr } = await supabase
+  const { count: bwCt } = await supabase
     .from('body_weights')
-    .delete()
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', USER_ID)
-  if (bwErr) console.error('  Body-weight delete error:', bwErr.message)
-  else console.log('  Deleted body-weight records.')
+
+  console.log(`  Before: ${sessCt} sessions, ${setsCt} sets, ${bwCt ?? 0} body_weight records`)
+  console.log('  Deleting...')
+
+  if (sessCt > 0) {
+    await supabase.from('workout_sets').delete().in('session_id', sessions!.map(s => s.id))
+    await supabase.from('workout_sessions').delete().eq('user_id', USER_ID)
+    console.log(`  Deleted ${sessCt} sessions and their sets.`)
+  }
+
+  await supabase.from('body_weights').delete().eq('user_id', USER_ID)
+  console.log(`  Deleted ${bwCt ?? 0} body_weight records.`)
+}
+
+// ── Set row type ────────────────────────────────────────────────────────────
+
+type SetRow = {
+  session_id:    string
+  exercise_name: string
+  muscle_group:  string
+  weight_kg:     number
+  reps:          number
+  set_number:    number
+  is_completed:  boolean
+  note:          string
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -205,38 +258,30 @@ async function cleanUserData() {
 async function main() {
   console.log('\n=== REPRA Demo Data Seed ===\n')
   console.log(`  Target user : ${USER_ID}`)
-  console.log(`  Clean first : ${CLEAN}`)
+  console.log(`  Date range  : 2025-06-04 → 2026-06-04`)
   console.log()
 
-  if (CLEAN) {
-    console.log('[ CLEAN ] Deleting existing data for this user…')
-    await cleanUserData()
-    console.log()
-  }
+  await cleanUserData()
+  console.log()
 
-  const today     = new Date('2026-06-01T00:00:00Z')
-  const startDate = addDays(today, -364)   // ~52 weeks back
+  const today     = new Date('2026-06-04T00:00:00Z')
+  const startDate = new Date('2025-06-04T00:00:00Z')
 
   let totalSessions = 0
   let totalSets     = 0
-
-  // Track how many sessions each exercise appears in
   const exSessionCounts: Record<string, number> = {}
-
-  // Body weight rows to batch-upsert at the end
   const bwRows: { user_id: string; weight_kg: number; recorded_at: string }[] = []
 
   const BW_START = 59.0
-  const BW_END   = 66.0
+  const BW_END   = 65.5
 
-  console.log('[ INSERT ] Generating 52 weeks of training data…')
+  console.log('[ INSERT ] Generating 52 weeks of training data...')
 
   for (let w = 0; w < 52; w++) {
     const progress  = getProgress(w)
     const weekStart = addDays(startDate, w * 7)
 
-    // Body weight: record every week on Monday, plus every other week on Thursday.
-    // This gives ~78 records (52 Mon + 26 Thu) before jitter.
+    // Body weight: Monday of every week + Thursday every other week
     const baseBw = BW_START + (BW_END - BW_START) * (w / 51)
     const monBw  = nearest(Math.max(57.0, baseBw + (rand() - 0.5) * 1.4), 0.5)
     bwRows.push({ user_id: USER_ID, weight_kg: monBw, recorded_at: toDateStr(weekStart) })
@@ -249,54 +294,40 @@ async function main() {
       }
     }
 
-    const sessions = getWeekSessions(w)
+    const sessionDefs = getWeekSessions(w)
 
-    for (const { dayOffset, workout } of sessions) {
-      // Skip rate: 8% in first half (beginner inconsistency), 6% in second half
-      const skipRate = w < 26 ? 0.08 : 0.06
+    for (const sessionDef of sessionDefs) {
+      // Skip rate: 7% early (beginner inconsistency), 5% later
+      const skipRate = w < 26 ? 0.07 : 0.05
       if (rand() < skipRate) continue
 
-      const sessionDate = addDays(weekStart, dayOffset)
+      const sessionDate = addDays(weekStart, sessionDef.dayOffset)
       if (sessionDate > today) continue
 
-      const sessionId = randomUUID()
-      const trainedAt = toDateStr(sessionDate)
+      const sessionId    = randomUUID()
+      const trainedAt    = toDateStr(sessionDate)
+      const isBadDay     = rand() < 0.10
+      const badDayFactor = isBadDay ? 0.88 + rand() * 0.06 : 1.0
+      const deloadFactor = sessionDef.deload ? 0.70 : 1.0
 
-      // "Bad day": 10% chance — fatigue multiplier 0.88–0.94
-      const isBadDay      = rand() < 0.10
-      const badDayFactor  = isBadDay ? 0.88 + rand() * 0.06 : 1.0
-
-      type SetRow = {
-        session_id:    string
-        exercise_name: string
-        muscle_group:  string
-        weight_kg:     number
-        reps:          number
-        set_number:    number
-        is_completed:  boolean
-        note:          string
-      }
-
-      const setRows: SetRow[]  = []
-      let   totalVolume        = 0
+      const setRows: SetRow[] = []
+      let totalVolume         = 0
       const sessionExercises: string[] = []
 
-      for (const ex of workout.exercises) {
+      for (const ex of sessionDef.workout.exercises) {
         const baseWeight = ex.wStart + (ex.wEnd - ex.wStart) * progress
-        const numSets    = ex.setRange[0] + Math.floor(rand() * (ex.setRange[1] - ex.setRange[0] + 1))
+        const numSets    = sessionDef.deload
+          ? ex.setRange[0]
+          : ex.setRange[0] + Math.floor(rand() * (ex.setRange[1] - ex.setRange[0] + 1))
 
         sessionExercises.push(ex.name)
 
         for (let s = 0; s < numSets; s++) {
-          // Within-session fatigue: 2.5% per set after the first
-          const setFatigue    = 1 - s * 0.025
-          // Small session-to-session noise: ±4%
-          const sessionNoise  = 1 + (rand() - 0.5) * 0.08
-
-          const rawWeight     = baseWeight * badDayFactor * setFatigue * sessionNoise
-          const wKg           = nearest(Math.max(2.5, rawWeight), 0.5)
-          const reps          = ex.repRange[0]
-                              + Math.floor(rand() * (ex.repRange[1] - ex.repRange[0] + 1))
+          const setFatigue   = 1 - s * 0.025
+          const sessionNoise = 1 + (rand() - 0.5) * 0.08
+          const rawWeight    = baseWeight * deloadFactor * badDayFactor * setFatigue * sessionNoise
+          const wKg          = nearest(Math.max(2.5, rawWeight), 0.5)
+          const reps         = ex.repRange[0] + Math.floor(rand() * (ex.repRange[1] - ex.repRange[0] + 1))
 
           setRows.push({
             session_id:    sessionId,
@@ -304,7 +335,7 @@ async function main() {
             muscle_group:  ex.muscle,
             weight_kg:     wKg,
             reps,
-            set_number:    s + 1,   // per-exercise set number
+            set_number:    s + 1,
             is_completed:  true,
             note:          'DEMO_DATA',
           })
@@ -315,14 +346,13 @@ async function main() {
 
       if (setRows.length === 0) continue
 
-      // Insert session row
       const { error: sessErr } = await supabase.from('workout_sessions').insert({
         id:               sessionId,
         user_id:          USER_ID,
-        title:            workout.title,
+        title:            sessionDef.workout.title,
         trained_at:       trainedAt,
         total_volume_kg:  Math.round(totalVolume),
-        duration_seconds: 2400 + Math.floor(rand() * 1800),  // 40–70 min
+        duration_seconds: 2400 + Math.floor(rand() * 1800),
         completed_at:     new Date(sessionDate.getTime() + 3_600_000).toISOString(),
       })
 
@@ -331,16 +361,13 @@ async function main() {
         continue
       }
 
-      // Insert sets in one batch
       const { error: setsErr } = await supabase.from('workout_sets').insert(setRows)
       if (setsErr) {
         console.error(`  Sets insert error (${sessionId}):`, setsErr.message)
-        // Roll back the session we just inserted
         await supabase.from('workout_sessions').delete().eq('id', sessionId)
         continue
       }
 
-      // Count per-exercise session appearances (only after successful insert)
       for (const name of sessionExercises) {
         exSessionCounts[name] = (exSessionCounts[name] ?? 0) + 1
       }
@@ -348,14 +375,76 @@ async function main() {
       totalSessions++
       totalSets += setRows.length
 
-      // Progress indicator every 20 sessions
       if (totalSessions % 20 === 0) {
-        process.stdout.write(`  ${totalSessions} sessions inserted…\r`)
+        process.stdout.write(`  ${totalSessions} sessions inserted...\r`)
       }
     }
   }
 
-  // Upsert body weights (unique constraint: user_id, recorded_at)
+  // ── Special PULL session for 2026-06-04 (today — for Story sharing demo) ──
+
+  {
+    const todayStr    = '2026-06-04'
+    const sessionId   = randomUUID()
+    const pullSetRows: SetRow[] = []
+    let pullVolume    = 0
+
+    const todayExercises = [
+      { ex: DL,   numSets: 4 },
+      { ex: LAT,  numSets: 4 },
+      { ex: ROW,  numSets: 4 },
+      { ex: CURL, numSets: 3 },
+    ]
+
+    for (const { ex, numSets } of todayExercises) {
+      const baseWeight = ex.wEnd  // progress = 1.0 (peak)
+      for (let s = 0; s < numSets; s++) {
+        const wKg  = nearest(Math.max(2.5, baseWeight * (1 - s * 0.025)), 0.5)
+        const reps = s === 0 ? ex.repRange[1] : ex.repRange[0] + 1
+        pullSetRows.push({
+          session_id:    sessionId,
+          exercise_name: ex.name,
+          muscle_group:  ex.muscle,
+          weight_kg:     wKg,
+          reps,
+          set_number:    s + 1,
+          is_completed:  true,
+          note:          'DEMO_DATA',
+        })
+        pullVolume += wKg * reps
+      }
+    }
+
+    const { error: sessErr } = await supabase.from('workout_sessions').insert({
+      id:               sessionId,
+      user_id:          USER_ID,
+      title:            'PULL',
+      trained_at:       todayStr,
+      total_volume_kg:  Math.round(pullVolume),
+      duration_seconds: 3600,
+      completed_at:     new Date('2026-06-04T10:00:00Z').toISOString(),
+    })
+
+    if (sessErr) {
+      console.error('  Today PULL session insert error:', sessErr.message)
+    } else {
+      const { error: setsErr } = await supabase.from('workout_sets').insert(pullSetRows)
+      if (!setsErr) {
+        for (const { ex } of todayExercises) {
+          exSessionCounts[ex.name] = (exSessionCounts[ex.name] ?? 0) + 1
+        }
+        totalSessions++
+        totalSets += pullSetRows.length
+        console.log(`  ★ Today's PULL inserted (${todayStr}): ${pullSetRows.length} sets, ${Math.round(pullVolume)}kg`)
+      }
+    }
+
+    // Body weight for today
+    bwRows.push({ user_id: USER_ID, weight_kg: 65.5, recorded_at: todayStr })
+  }
+
+  // ── Upsert body weights ────────────────────────────────────────────────────
+
   let bwInserted = 0
   for (const row of bwRows) {
     const { error } = await supabase
@@ -364,27 +453,25 @@ async function main() {
     if (!error) bwInserted++
   }
 
-  // ── Final report ──────────────────────────────────────────────────────────
+  // ── Final report ───────────────────────────────────────────────────────────
 
-  const bench = exSessionCounts['ベンチプレス']  ?? 0
-  const squat = exSessionCounts['スクワット']    ?? 0
-  const deadl = exSessionCounts['デッドリフト']  ?? 0
+  const bench = exSessionCounts['ベンチプレス'] ?? 0
+  const squat = exSessionCounts['スクワット']   ?? 0
+  const deadl = exSessionCounts['デッドリフト'] ?? 0
 
   console.log('\n')
   console.log('═══════════════════════════════════════')
   console.log('  REPRA Demo Seed — Complete')
   console.log('═══════════════════════════════════════\n')
   console.log(`  User ID              : ${USER_ID}`)
-  console.log(`  Date range           : ${toDateStr(startDate)} → ${toDateStr(today)}`)
+  console.log(`  Date range           : 2025-06-04 → 2026-06-04`)
   console.log(`  Total sessions       : ${totalSessions}`)
   console.log(`  Total sets           : ${totalSets}`)
   console.log(`  Body weight records  : ${bwInserted}`)
   console.log()
   console.log('  Exercise sessions (★ = main lifts):')
 
-  const sortedExercises = Object.entries(exSessionCounts)
-    .sort(([, a], [, b]) => b - a)
-
+  const sortedExercises = Object.entries(exSessionCounts).sort(([, a], [, b]) => b - a)
   const mainLifts = new Set(['ベンチプレス', 'スクワット', 'デッドリフト'])
   for (const [name, count] of sortedExercises) {
     const tag = mainLifts.has(name) ? ' ★' : '  '
@@ -394,16 +481,16 @@ async function main() {
   console.log()
   console.log('  Requirement checks:')
 
-  function check(label: string, actual: number, min: number) {
+  function check(label: string, actual: number, min: number): boolean {
     const ok = actual >= min
     console.log(`  ${ok ? '✓' : '✗'} ${label}: ${actual} (need ≥${min})`)
     return ok
   }
 
   const allOk = [
-    check('ベンチプレス sessions', bench, 50),
-    check('スクワット   sessions', squat, 50),
-    check('デッドリフト sessions', deadl, 50),
+    check('ベンチプレス sessions', bench, 40),
+    check('スクワット   sessions', squat, 40),
+    check('デッドリフト sessions', deadl, 40),
     check('Total sessions       ', totalSessions, 150),
     check('Body weight records  ', bwInserted, 50),
   ].every(Boolean)

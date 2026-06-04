@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Settings } from 'lucide-react'
-import { formatVolume } from '@/lib/utils'
+import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
+import { useWeightUnit } from '@/lib/useWeightUnit'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
@@ -21,6 +22,7 @@ import {
 
 export default function HomePage() {
   const { locale } = useLocale()
+  const { unit } = useWeightUnit()
   const [mounted, setMounted] = useState(false)
 
   // All data loaded from localStorage
@@ -255,27 +257,31 @@ export default function HomePage() {
           {([
             {
               label: 'VOLUME',
-              value: thisWeekVolume > 0 ? formatVolume(thisWeekVolume) : '0kg',
-              sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}%` : null,
-              subColor: volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined,
+              value: formatVolumeWithUnit(thisWeekVolume, unit),
+              sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}%` : null as string | null,
+              subColor: (volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined) as string | undefined,
               active: thisWeekVolume > 0,
+              cardUnit: undefined as string | undefined,
             },
             {
               label: 'SESSIONS',
               value: `${thisWeekSessions.length} / 3`,
-              sub: null,
-              subColor: 'rgba(255,255,255,0.54)' as string,
+              sub: null as string | null,
+              subColor: 'rgba(255,255,255,0.54)' as string | undefined,
               active: thisWeekSessions.length > 0,
+              cardUnit: undefined as string | undefined,
             },
             {
               label: 'BEST 1RM',
-              value: allTimeEst1rm ? `${allTimeEst1rm}` : (locale === 'ja' ? '未記録' : '—'),
-              unit: allTimeEst1rm ? 'kg' : undefined,
-              sub: null,
-              subColor: undefined,
+              value: allTimeEst1rm
+                ? `${Math.round(toDisplayWeight(allTimeEst1rm, unit))}`
+                : (locale === 'ja' ? '未記録' : '—'),
+              cardUnit: allTimeEst1rm ? weightUnitLabel(unit) : undefined as string | undefined,
+              sub: null as string | null,
+              subColor: undefined as string | undefined,
               active: allTimeEst1rm !== null,
             },
-          ] as const).map(({ label, value, sub, subColor, active, ...rest }) => (
+          ]).map(({ label, value, sub, subColor, active, cardUnit }) => (
             <div key={label} className="premium-card rounded-xl p-3">
               <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.58)', marginBottom: 8 }}>
                 {label}
@@ -284,9 +290,9 @@ export default function HomePage() {
                 <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}>
                   {value}
                 </p>
-                {'unit' in rest && rest.unit && (
+                {cardUnit && (
                   <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginLeft: 1 }}>
-                    {rest.unit}
+                    {cardUnit}
                   </span>
                 )}
               </div>
@@ -314,8 +320,8 @@ export default function HomePage() {
             </p>
             {todayWeight ? (
               <div className="flex items-baseline gap-1">
-                <p style={{ fontSize: 22, fontWeight: 600, color: '#fff' }}>{todayWeight}</p>
-                <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.52)' }}>kg</span>
+                <p style={{ fontSize: 22, fontWeight: 600, color: '#fff' }}>{toDisplayWeight(todayWeight, unit)}</p>
+                <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.52)' }}>{weightUnitLabel(unit)}</span>
               </div>
             ) : (
               <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.54)' }}>{t(locale, 'home.notLogged')}</p>

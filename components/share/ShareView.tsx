@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, Download, ArrowLeft } from 'lucide-react'
 import { shareOrDownloadImage } from '@/lib/shareImage'
+import { useWeightUnit } from '@/lib/useWeightUnit'
+import { formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
 
 type CardData = {
   title: string
@@ -32,7 +34,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
-async function generateCard(data: CardData, theme: Theme, accent: Accent): Promise<Blob> {
+async function generateCard(data: CardData, theme: Theme, accent: Accent, unit: WeightUnit): Promise<Blob> {
   const W = 1080, H = 1920
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -86,17 +88,11 @@ async function generateCard(data: CardData, theme: Theme, accent: Accent): Promi
   ctx.font = '30px system-ui, -apple-system, sans-serif'
   ctx.fillText('TOTAL VOLUME', 80, divY1 + 70)
 
-  // Volume number — show raw kg value (no "t" notation, always clear)
-  const volStr = data.volume >= 10000
-    ? `${(data.volume / 1000).toFixed(1)}k`
-    : data.volume.toLocaleString()
+  // Volume number — unit-aware
+  const volStr = formatVolumeWithUnit(data.volume, unit)
   ctx.fillStyle = accentColor
   ctx.font = 'bold 148px system-ui, -apple-system, sans-serif'
   ctx.fillText(volStr, 80, divY1 + 220)
-  const volW = ctx.measureText(volStr).width
-  ctx.fillStyle = 'rgba(255,255,255,0.55)'
-  ctx.font = 'bold 60px system-ui, -apple-system, sans-serif'
-  ctx.fillText(' kg', 80 + volW, divY1 + 220)
 
   // Sets
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
@@ -145,6 +141,7 @@ function splitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, fo
 
 export default function ShareView({ data }: { data: CardData }) {
   const router = useRouter()
+  const { unit } = useWeightUnit()
   const [theme, setTheme] = useState<Theme>('dark')
   const [accent, setAccent] = useState<Accent>('orange')
   const [sharing, setSharing] = useState(false)
@@ -154,7 +151,7 @@ export default function ShareView({ data }: { data: CardData }) {
     setSharing(true)
     setStatus('Generating card...')
     try {
-      const blob = await generateCard(data, theme, accent)
+      const blob = await generateCard(data, theme, accent, unit)
       const result = await shareOrDownloadImage({ blob, filename: 'repra-workout.png', title: 'REPRA Workout' })
       if (result === 'downloaded') {
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
@@ -173,7 +170,7 @@ export default function ShareView({ data }: { data: CardData }) {
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
   const dateLabel = `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${DAYS[d.getDay()]}`
-  const volStr = data.volume >= 10000 ? `${(data.volume / 1000).toFixed(1)}k` : data.volume.toLocaleString()
+  const volStr = formatVolumeWithUnit(data.volume, unit)
   const accentColor = ACCENT_COLOR[accent]
 
   return (
@@ -221,7 +218,6 @@ export default function ShareView({ data }: { data: CardData }) {
             <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.60)', letterSpacing: '0.1em' }}>TOTAL VOLUME</p>
             <div className="flex items-baseline gap-1 mb-1">
               <span className="text-5xl font-black" style={{ color: accentColor }}>{volStr}</span>
-              <span className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.68)' }}>kg</span>
             </div>
             <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.56)' }}>
               {data.setsCount} SETS COMPLETED
