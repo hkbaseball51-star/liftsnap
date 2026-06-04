@@ -42,13 +42,17 @@ const BODY_PART_COLORS: Record<string, string> = {
 export default function StatsPickerView({
   exercises,
   hasBodyWeight,
+  initialStep = 'metric',
+  initialMetric = null,
 }: {
   exercises: Exercise[]
   hasBodyWeight: boolean
+  initialStep?: Step
+  initialMetric?: Metric | null
 }) {
   const router = useRouter()
-  const [step, setStep]   = useState<Step>('metric')
-  const [metric, setMetric] = useState<Metric | null>(null)
+  const [step, setStep]   = useState<Step>(initialStep)
+  const [metric, setMetric] = useState<Metric | null>(initialMetric)
 
   const goExercise = (m: Metric) => {
     setMetric(m)
@@ -69,7 +73,7 @@ export default function StatsPickerView({
   }
 
   const handleBack = () => {
-    if (step === 'exercise' || step === 'bodypart') setStep('metric')
+    if (step !== 'metric' && initialStep === 'metric') setStep('metric')
     else router.back()
   }
 

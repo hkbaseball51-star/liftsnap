@@ -1,16 +1,15 @@
-import { getExercisesWithHistory, getBodyWeightData } from '@/actions/analytics'
+import { getExercisesWithHistory } from '@/actions/analytics'
 import StatsPickerView from '@/components/share/StatsPickerView'
 
 export default async function ShareStatsPage() {
-  const [exercises, bwData] = await Promise.all([
-    getExercisesWithHistory(),
-    getBodyWeightData(),
-  ])
+  const exercises = await getExercisesWithHistory()
 
   return (
     <StatsPickerView
       exercises={exercises}
-      hasBodyWeight={bwData.length > 0}
+      hasBodyWeight={false}
+      initialStep="exercise"
+      initialMetric="max1rm"
     />
   )
 }
