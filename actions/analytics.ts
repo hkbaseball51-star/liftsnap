@@ -392,20 +392,19 @@ export async function getStatsForShare(metric: string, exercise?: string, bodyPa
       bodyPart: part,
       totalVolume: vol.reduce((s, d) => s + d.volume, 0),
       sessionCount: vol.length,
-      history: vol.slice(-6),
+      history: vol,
     }
   }
 
   if (metric === 'bodyweight') {
-    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split('T')[0]
-    const bw = await getBodyWeightData(ninetyDaysAgo)
+    const bw = await getBodyWeightData()
     if (!bw.length) return null
     const latest = bw[bw.length - 1].weight
     return {
       type: 'bodyweight' as const,
       currentWeight: latest,
       change: bw.length >= 2 ? Math.round((latest - bw[0].weight) * 10) / 10 : 0,
-      history: bw.slice(-6),
+      history: bw,
     }
   }
 
