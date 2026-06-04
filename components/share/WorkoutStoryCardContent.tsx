@@ -257,11 +257,14 @@ export default function WorkoutStoryCardContent({
       padding: '24px 30px 14px',
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden',
+      isolation: 'isolate',
+      borderRadius: '24px',
       textShadow: ts,
       background: isTransparent ? 'transparent' : p.bgCombined,
       ...(isTransparent ? {} : {
         border: `1px solid ${p.border}`,
-        borderRadius: '24px',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 18px 50px rgba(0,0,0,0.24)',
       }),
     }}>
@@ -440,11 +443,14 @@ export function ExerciseStoryCard({
       padding: '20px 24px 14px',
       display: 'flex', flexDirection: 'column',
       boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden',
+      isolation: 'isolate',
+      borderRadius: '24px',
       textShadow: ts,
       background: isTransparent ? 'transparent' : p.bgPerEx,
       ...(isTransparent ? {} : {
         border: `1px solid ${p.border}`,
-        borderRadius: '24px',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 30px rgba(0,0,0,0.20)',
       }),
     }}>

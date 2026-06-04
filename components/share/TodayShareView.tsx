@@ -24,8 +24,8 @@ const PRESET_OPTIONS: { value: DesignPreset; label: string; swatch: string }[] =
   { value: 'ice-blue',      label: 'Ice Blue',       swatch: '#38BDF8' },
   { value: 'violet',        label: 'Violet Pump',    swatch: '#8B5CF6' },
   { value: 'mint',          label: 'Mint Proof',     swatch: '#14B8A6' },
-  { value: 'premium-black', label: 'Premium Black',  swatch: '#E5E7EB' },
-  { value: 'pearl-white',   label: 'Pearl White',    swatch: '#F0EFEA' },
+  { value: 'premium-black', label: 'Premium Black',  swatch: '#E5E7EB' }, // TODO_PRO: Premium preset candidate
+  { value: 'pearl-white',   label: 'Pearl White',    swatch: '#F0EFEA' }, // TODO_PRO: Premium preset candidate
 ]
 
 // ── Shadow options ────────────────────────────────────────────────────
@@ -127,6 +127,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSaving(false) }
   }
 
+  // TODO_PRO: unlimitedExerciseCardSave — currently free; may become Pro-only.
   // Save a single exercise card — captures the visible preview card for that exercise
   const handleSaveSingleExercise = async (idx: number) => {
     const cardEl = previewExRefs.current[idx]
@@ -160,6 +161,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSaving(false) }
   }
 
+  // TODO_PRO: bulkExerciseCardSave — currently free; may become Pro-only.
   // Save all exercise cards — captures each visible preview card in sequence
   const handleSavePerExercise = async () => {
     setSaving(true)
@@ -254,7 +256,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 position: 'relative',
                 aspectRatio: '9/16',
                 overflow: 'hidden',
-                borderRadius: 20,
+                borderRadius: 24,
                 background: 'transparent',
               }}
             >

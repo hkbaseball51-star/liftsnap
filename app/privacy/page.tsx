@@ -275,6 +275,18 @@ export default function PrivacyPage() {
           <p className="mt-3">実際に申告する内容は、本アプリの実装、利用する外部サービス、提供する機能に基づき、正確に記載します。</p>
         </Section>
 
+        {/* 16.5 決済について */}
+        <Section title="決済について">
+          <p>将来的に有料機能を導入する場合、決済はApple App Storeまたはその他の決済事業者を通じて処理される場合があります。</p>
+          <p className="mt-3">REPRAは完全な支払いカード情報を保存しません。決済情報はAppleまたは各決済事業者が管理します。</p>
+          <p className="mt-3">現時点では有料機能は提供しておらず、課金処理は行われません。</p>
+          <div className="mt-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
+              Payments (English): If paid features are introduced in the future, payments may be processed through the Apple App Store or other payment providers. REPRA does not store full payment card information.
+            </p>
+          </div>
+        </Section>
+
         {/* 17 */}
         <Section title="17. プライバシーポリシーの変更">
           <p>本アプリは、機能追加、法令変更、外部サービス変更、運営方針の変更等に応じて、本ポリシーを変更することがあります。</p>

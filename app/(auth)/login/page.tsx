@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { login, resetPassword } from '@/actions/auth'
 import type { ResetErrorCode } from '@/actions/auth'
 import AuthBackButton from '@/components/auth/AuthBackButton'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
+import type { LangPref } from '@/lib/i18n'
 
 type Mode = 'login' | 'reset'
 
@@ -21,20 +24,15 @@ function formatCooldown(secs: number): string {
     : `${s}s`
 }
 
-function resetErrorMessage(code: ResetErrorCode, devMessage?: string): string {
-  switch (code) {
-    case 'rate_limit':
-      return 'Too many reset emails were requested. Please wait about 5 minutes before trying again.'
-    case 'redirect_error':
-      return devMessage
-        ? `Could not send reset email. Please try again later. (dev: ${devMessage})`
-        : 'Could not send reset email. Please try again later.'
-    default:
-      return 'Could not send reset email. Please try again later.'
-  }
+function resetErrorMessage(code: ResetErrorCode, locale: string, devMessage?: string): string {
+  if (code === 'rate_limit') return t(locale as 'en' | 'ja', 'auth.resetTooMany')
+  return devMessage
+    ? `${t(locale as 'en' | 'ja', 'auth.resetFailed')} (dev: ${devMessage})`
+    : t(locale as 'en' | 'ja', 'auth.resetFailed')
 }
 
 export default function LoginPage() {
+  const { locale, langPref, setLangPref, mounted } = useLocale()
   const [mode,      setMode]      = useState<Mode>('login')
   const [error,     setError]     = useState<string | null>(null)
   const [notice,    setNotice]    = useState<string | null>(null)
@@ -42,14 +40,12 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false)
   const [cooldown,  setCooldown]  = useState(0)
 
-  // Show success notice when redirected from /reset-password?reset=success
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('reset') === 'success') {
-      setNotice('Password updated. Please sign in with your new password.')
+      setNotice(t(locale, 'auth.passwordUpdated'))
     }
-  }, [])
+  }, [locale])
 
-  // Restore cooldown from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(COOLDOWN_STORAGE_KEY)
@@ -60,7 +56,6 @@ export default function LoginPage() {
     } catch {}
   }, [])
 
-  // Countdown tick
   useEffect(() => {
     if (cooldown <= 0) return
     const id = setTimeout(() => setCooldown(c => c - 1), 1000)
@@ -85,7 +80,7 @@ export default function LoginPage() {
       setLoading(false)
 
       if ('errorCode' in result) {
-        setError(resetErrorMessage(result.errorCode, result.devMessage))
+        setError(resetErrorMessage(result.errorCode, locale, result.devMessage))
         if (result.errorCode === 'rate_limit') {
           startCooldown(RATE_LIMIT_COOLDOWN_SEC)
         }
@@ -98,12 +93,14 @@ export default function LoginPage() {
 
     const result = await login(new FormData(e.currentTarget))
     if (result?.error) {
-      setError('Incorrect email or password')
+      setError(t(locale, 'auth.wrongCredentials'))
       setLoading(false)
     }
   }
 
   const cooldownLabel = formatCooldown(cooldown)
+
+  if (!mounted) return null
 
   return (
     <div className="w-full max-w-sm">
@@ -133,32 +130,32 @@ export default function LoginPage() {
           /* ── Reset success ── */
           <div className="text-center">
             <p className="text-sm font-bold mb-2" style={{ color: '#22c55e' }}>
-              Reset link sent. Please check your email.
+              {t(locale, 'auth.resetSent')}
             </p>
             <p className="text-sm mb-4" style={{ color: '#555' }}>
-              Follow the link in your inbox to reset your password.
+              {t(locale, 'auth.resetSentSub')}
             </p>
             {cooldown > 0 && (
               <p className="text-xs mb-4" style={{ color: '#555' }}>
-                Send again in {cooldownLabel}
+                {t(locale, 'auth.sendAgainIn')} {cooldownLabel}
               </p>
             )}
             <button
               onClick={() => { setMode('login'); setResetSent(false); setError(null) }}
               className="text-sm font-black"
               style={{ color: '#ED742F' }}>
-              Back to Sign In
+              {t(locale, 'auth.backToSignIn')}
             </button>
           </div>
         ) : (
           /* ── Reset form ── */
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <p className="text-xs font-bold" style={{ color: '#888' }}>
-              Enter your email and we&apos;ll send a reset link.
+              {t(locale, 'auth.resetPrompt')}
             </p>
             <div>
               <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
-                EMAIL
+                {t(locale, 'auth.emailLabel')}
               </label>
               <input
                 name="email"
@@ -180,10 +177,10 @@ export default function LoginPage() {
               className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
               style={{ background: (loading || cooldown > 0) ? '#333' : '#ED742F' }}>
               {loading
-                ? 'SENDING...'
+                ? t(locale, 'auth.sending')
                 : cooldown > 0
-                  ? `Send again in ${cooldownLabel}`
-                  : 'SEND RESET LINK'}
+                  ? `${t(locale, 'auth.sendAgainIn')} ${cooldownLabel}`
+                  : t(locale, 'auth.sendResetLink')}
             </button>
 
             <button
@@ -191,7 +188,7 @@ export default function LoginPage() {
               onClick={() => { setMode('login'); setError(null) }}
               className="text-sm font-bold text-center"
               style={{ color: '#555' }}>
-              Back to Sign In
+              {t(locale, 'auth.backToSignIn')}
             </button>
           </form>
         )
@@ -200,7 +197,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
-              EMAIL
+              {t(locale, 'auth.emailLabel')}
             </label>
             <input
               name="email"
@@ -214,14 +211,14 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-[10px] font-black tracking-widest" style={{ color: '#555' }}>
-                PASSWORD
+                {t(locale, 'auth.passwordLabel')}
               </label>
               <button
                 type="button"
                 onClick={() => { setMode('reset'); setError(null) }}
                 className="text-[10px] font-black tracking-widest"
                 style={{ color: '#ED742F' }}>
-                FORGOT PASSWORD?
+                {t(locale, 'auth.forgotPassword')}
               </button>
             </div>
             <input
@@ -243,19 +240,44 @@ export default function LoginPage() {
             disabled={loading}
             className="h-12 rounded-xl font-black text-sm mt-2 text-white tracking-widest"
             style={{ background: loading ? '#333' : '#ED742F' }}>
-            {loading ? 'SIGNING IN...' : 'SIGN IN'}
+            {loading ? t(locale, 'auth.signingIn') : t(locale, 'auth.signIn')}
           </button>
         </form>
       )}
 
       {mode === 'login' && (
         <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
-          Don&apos;t have an account?{' '}
+          {t(locale, 'auth.noAccount')}{' '}
           <Link href="/signup" className="font-black" style={{ color: '#ED742F' }}>
-            Sign up
+            {t(locale, 'auth.signUp')}
           </Link>
         </p>
       )}
+
+      {/* Language toggle + legal links */}
+      <div className="mt-8 flex flex-col items-center gap-2">
+        <div className="flex items-center gap-1">
+          {(['ja', 'en'] as LangPref[]).map((lp, i) => (
+            <span key={lp} className="flex items-center gap-1">
+              {i > 0 && <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}>|</span>}
+              <button
+                onClick={() => setLangPref(lp)}
+                style={{
+                  fontSize: 11,
+                  fontWeight: langPref === lp ? 700 : 400,
+                  color: langPref === lp ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.28)',
+                }}>
+                {lp === 'ja' ? '日本語' : 'English'}
+              </button>
+            </span>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', textAlign: 'center' }}>
+          <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.38)' }}>{t(locale, 'auth.privacyPolicy')}</Link>
+          {' · '}
+          <Link href="/terms" style={{ color: 'rgba(255,255,255,0.38)' }}>{t(locale, 'auth.termsOfUse')}</Link>
+        </p>
+      </div>
     </div>
   )
 }

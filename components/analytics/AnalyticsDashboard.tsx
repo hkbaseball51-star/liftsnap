@@ -440,6 +440,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       )}
 
       {/* Period filter */}
+      {/* TODO_PRO: longRangeStats — '1Y' and 'All' periods are candidates for Pro-only access. Currently free. */}
       <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>
         {PERIODS.map(p => (
           <button key={p}

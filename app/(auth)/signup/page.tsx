@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { signup } from '@/actions/auth'
 import AuthBackButton from '@/components/auth/AuthBackButton'
+import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
+import type { LangPref } from '@/lib/i18n'
 
-const SIGNUP_RATE_LIMIT_COOLDOWN_SEC = 600   // 10 minutes
+const SIGNUP_RATE_LIMIT_COOLDOWN_SEC = 600
 const COOLDOWN_STORAGE_KEY           = 'repra_signup_cooldown_until'
 
 function isRateLimitError(msg: string): boolean {
@@ -29,11 +32,11 @@ function formatCooldown(secs: number): string {
 }
 
 export default function SignupPage() {
+  const { locale, langPref, setLangPref, mounted } = useLocale()
   const [error,    setError]    = useState<string | null>(null)
   const [loading,  setLoading]  = useState(false)
   const [cooldown, setCooldown] = useState(0)
 
-  // Restore cooldown from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(COOLDOWN_STORAGE_KEY)
@@ -44,7 +47,6 @@ export default function SignupPage() {
     } catch {}
   }, [])
 
-  // Countdown tick
   useEffect(() => {
     if (cooldown <= 0) return
     const id = setTimeout(() => setCooldown(c => c - 1), 1000)
@@ -65,7 +67,7 @@ export default function SignupPage() {
     const result = await signup(new FormData(e.currentTarget))
     if (result?.error) {
       if (isRateLimitError(result.error)) {
-        setError('Too many email requests. Please wait about 10 minutes before trying again.')
+        setError(t(locale, 'auth.signupRateLimit'))
         startCooldown(SIGNUP_RATE_LIMIT_COOLDOWN_SEC)
       } else {
         setError(result.error)
@@ -78,10 +80,12 @@ export default function SignupPage() {
   const buttonDisabled  = loading || cooldown > 0
   const buttonBg        = buttonDisabled ? '#333' : '#ED742F'
   const buttonLabel     = loading
-    ? 'CREATING...'
+    ? t(locale, 'auth.creating')
     : cooldown > 0
-      ? `Try again in ${cooldownLabel}`
-      : 'CREATE ACCOUNT'
+      ? `${t(locale, 'auth.sendAgainIn')} ${cooldownLabel}`
+      : t(locale, 'auth.createAccount')
+
+  if (!mounted) return null
 
   return (
     <div className="w-full max-w-sm">
@@ -98,25 +102,27 @@ export default function SignupPage() {
           Every rep becomes proof.
         </p>
       </div>
-      <p className="text-center text-sm mb-6 font-bold" style={{ color: '#555', marginTop: 20 }}>Create your account</p>
+      <p className="text-center text-sm mb-6 font-bold" style={{ color: '#555', marginTop: 20 }}>
+        {t(locale, 'auth.createYourAccount')}
+      </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
-            DISPLAY NAME
+            {t(locale, 'auth.displayNameLabel')}
           </label>
           <input
             name="display_name"
             type="text"
             required
-            placeholder="e.g. Kenichi"
+            placeholder={t(locale, 'auth.displayNamePlaceholder')}
             className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none placeholder:text-[#333]"
             style={{ background: '#171717', border: '1px solid #1e1e1e' }}
           />
         </div>
         <div>
           <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
-            EMAIL
+            {t(locale, 'auth.emailLabel')}
           </label>
           <input
             name="email"
@@ -129,7 +135,8 @@ export default function SignupPage() {
         </div>
         <div>
           <label className="text-[10px] font-black tracking-widest mb-2 block" style={{ color: '#555' }}>
-            PASSWORD <span style={{ color: '#333' }}>(8+ characters)</span>
+            {t(locale, 'auth.passwordLabel')}{' '}
+            <span style={{ color: '#333' }}>{t(locale, 'auth.passwordMin')}</span>
           </label>
           <input
             name="password"
@@ -156,11 +163,38 @@ export default function SignupPage() {
       </form>
 
       <p className="text-center text-sm mt-6 font-bold" style={{ color: '#555' }}>
-        Already have an account?{' '}
+        {t(locale, 'auth.haveAccount')}{' '}
         <Link href="/login" className="font-black" style={{ color: '#ED742F' }}>
-          Sign in
+          {t(locale, 'auth.signInLink')}
         </Link>
       </p>
+
+      {/* Language toggle + legal links */}
+      <div className="mt-8 flex flex-col items-center gap-2">
+        <div className="flex items-center gap-1">
+          {(['ja', 'en'] as LangPref[]).map((lp, i) => (
+            <span key={lp} className="flex items-center gap-1">
+              {i > 0 && <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}>|</span>}
+              <button
+                onClick={() => setLangPref(lp)}
+                style={{
+                  fontSize: 11,
+                  fontWeight: langPref === lp ? 700 : 400,
+                  color: langPref === lp ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.28)',
+                }}>
+                {lp === 'ja' ? '日本語' : 'English'}
+              </button>
+            </span>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', textAlign: 'center', lineHeight: 1.6 }}>
+          {t(locale, 'auth.agreePrefix')}{' '}
+          <Link href="/terms" style={{ color: 'rgba(255,255,255,0.50)' }}>{t(locale, 'auth.termsOfUse')}</Link>
+          {' '}{t(locale, 'auth.and')}{' '}
+          <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.50)' }}>{t(locale, 'auth.privacyPolicy')}</Link>
+          {t(locale, 'auth.agreeSuffix')}
+        </p>
+      </div>
     </div>
   )
 }

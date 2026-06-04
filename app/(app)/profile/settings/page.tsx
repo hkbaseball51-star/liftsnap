@@ -197,13 +197,11 @@ export default function SettingsPage() {
     { label: t(locale, 'settings.theme'), sub: t(locale, 'settings.themeSub'), icon: Palette },
   ]
 
-  const SUPPORT_ROWS: LiveRow[] = [
-    { label: t(locale, 'settings.helpSupport'), sub: t(locale, 'settings.helpSub'), icon: HelpCircle, href: '/profile/support' },
-  ]
-
-  const LEGAL_ROWS: LiveRow[] = [
-    { label: t(locale, 'settings.termsOfService'), sub: t(locale, 'settings.termsSub'),         icon: FileText, href: '/profile/terms'   },
-    { label: t(locale, 'settings.privacyPolicy'),  sub: t(locale, 'settings.privacyPolicySub'), icon: Shield,   href: '/profile/privacy' },
+  const SUPPORT_LEGAL_ROWS: LiveRow[] = [
+    { label: t(locale, 'settings.support'),            sub: t(locale, 'settings.supportSub'),           icon: HelpCircle, href: '/support'            },
+    { label: t(locale, 'settings.privacyPolicy'),      sub: t(locale, 'settings.privacyPolicySub'),     icon: Shield,     href: '/privacy'             },
+    { label: t(locale, 'settings.termsOfUse'),         sub: t(locale, 'settings.termsSub'),             icon: FileText,   href: '/terms'               },
+    { label: t(locale, 'settings.accountDeletionInfo'),sub: t(locale, 'settings.accountDeletionInfoSub'),icon: UserX,      href: '/account-deletion'   },
   ]
 
   const deleteDataItems = [
@@ -252,77 +250,58 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ── PLAN — logged-in only ── */}
-      {isLoggedIn && (
-        <div className="mx-4 mb-4">
-          <SectionLabel text={t(locale, 'settings.sectionPlan')} />
-          {isPro ? (
-            <div style={T.card}>
-              <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: T.divider }}>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(237, 116, 47,0.14)', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                  <Crown size={14} style={{ color: '#ED742F' }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.proActive')}</p>
-                </div>
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                  ACTIVE
-                </span>
-              </div>
-              <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
-            </div>
-          ) : (
-            <>
-              <div className="rounded-2xl p-4 mb-2"
-                style={{ background: '#1D1D1D', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.upgradeTitle')}</p>
-                    <p className="text-xs mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.upgradeSub')}</p>
-                  </div>
-                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5"
-                    style={{ background: 'rgba(237, 116, 47,0.14)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.35)' }}>
-                    PRO
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button className="flex-1 py-2.5 rounded-xl text-xs font-black"
-                    style={{ background: 'rgba(255,255,255,0.11)', color: T.secondary, border: '1px solid rgba(255,255,255,0.40)' }}>
-                    ¥480 / mo
-                  </button>
-                  <button className="flex-1 py-2.5 rounded-xl text-xs font-black text-white"
-                    style={{ background: '#ED742F' }}>
-                    ¥2,980 / yr ★
-                  </button>
-                </div>
-              </div>
-              <div style={T.card}>
-                <SoonRowEl row={{ label: t(locale, 'settings.manageSubscription'), sub: t(locale, 'settings.manageSubscriptionSub'), icon: CreditCard }} last={true} soonLabel={t(locale, 'settings.soonBadge')} />
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── SUPPORT ── */}
+      {/* ── REPRA PRO ── */}
+      {/* TODO_PRO: When Pro launches, replace this Coming Soon card with a purchase flow. */}
       <div className="mx-4 mb-4">
-        <SectionLabel text={t(locale, 'settings.sectionSupport')} />
-        <div style={T.card}>
-          {SUPPORT_ROWS.map((row, i) => (
-            <LiveRowEl key={row.label} row={row} last={i === SUPPORT_ROWS.length - 1} />
-          ))}
-        </div>
+        <SectionLabel text={t(locale, 'settings.sectionPro')} />
+        {isLoggedIn && isPro ? (
+          /* Active Pro status */
+          <div style={T.card}>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(237,116,47,0.14)', border: '1px solid rgba(237,116,47,0.35)' }}>
+                <Crown size={14} style={{ color: '#ED742F' }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold" style={{ color: T.main }}>Pro</p>
+                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{t(locale, 'settings.proActive')}</p>
+              </div>
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(237,116,47,0.14)', color: '#ED742F', border: '1px solid rgba(237,116,47,0.35)' }}>
+                ACTIVE
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* Coming Soon card — no purchase button, no price */
+          <div className="rounded-2xl p-4"
+            style={{ background: '#1A1A1A', border: '1px solid rgba(237,116,47,0.20)' }}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                style={{ background: 'rgba(237,116,47,0.12)', border: '1px solid rgba(237,116,47,0.25)' }}>
+                <Crown size={14} style={{ color: '#ED742F' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.proTeaserTitle')}</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: T.secondary }}>{t(locale, 'settings.proTeaserBody')}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center py-2.5 rounded-xl"
+              style={{ background: 'rgba(237,116,47,0.08)', border: '1px solid rgba(237,116,47,0.18)' }}>
+              <span className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(237,116,47,0.65)' }}>
+                {t(locale, 'settings.proComingSoon').toUpperCase()}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── LEGAL ── */}
+      {/* ── SUPPORT & LEGAL ── */}
       <div className="mx-4 mb-4">
-        <SectionLabel text={t(locale, 'settings.sectionLegal')} />
+        <SectionLabel text={t(locale, 'settings.sectionSupportLegal')} />
         <div style={T.card}>
-          {LEGAL_ROWS.map((row, i) => (
-            <LiveRowEl key={row.label} row={row} last={i === LEGAL_ROWS.length - 1} />
+          {SUPPORT_LEGAL_ROWS.map((row, i) => (
+            <LiveRowEl key={row.label} row={row} last={i === SUPPORT_LEGAL_ROWS.length - 1} />
           ))}
         </div>
       </div>
