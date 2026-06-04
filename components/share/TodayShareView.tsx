@@ -20,10 +20,12 @@ function fmtDateShort(s: string) {
 
 // ── Design presets ────────────────────────────────────────────────────
 const PRESET_OPTIONS: { value: DesignPreset; label: string; swatch: string }[] = [
-  { value: 'orange',   label: 'REPRA Orange', swatch: '#F97316' },
-  { value: 'ice-blue', label: 'Ice Blue',      swatch: '#38BDF8' },
-  { value: 'violet',   label: 'Violet Pump',   swatch: '#8B5CF6' },
-  { value: 'mint',     label: 'Mint Proof',    swatch: '#14B8A6' },
+  { value: 'orange',        label: 'REPRA Orange',  swatch: '#F97316' },
+  { value: 'ice-blue',      label: 'Ice Blue',       swatch: '#38BDF8' },
+  { value: 'violet',        label: 'Violet Pump',    swatch: '#8B5CF6' },
+  { value: 'mint',          label: 'Mint Proof',     swatch: '#14B8A6' },
+  { value: 'premium-black', label: 'Premium Black',  swatch: '#E5E7EB' },
+  { value: 'pearl-white',   label: 'Pearl White',    swatch: '#F0EFEA' },
 ]
 
 // ── Shadow options ────────────────────────────────────────────────────

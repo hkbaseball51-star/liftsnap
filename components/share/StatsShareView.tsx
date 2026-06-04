@@ -29,7 +29,7 @@ type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
 type GraphLayout  = 'full' | 'bottom' | 'mini' | 'wide'
-type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint'
+type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint' | 'premium-black' | 'pearl-white'
 type CardStyle    = 'glass' | 'transparent'
 type ShadowLevel  = 'none' | 'soft' | 'strong' | 'extra-strong'
 type VolViewType  = 'bodypart' | 'ppl'
@@ -86,10 +86,12 @@ const GRAPH_LAYOUTS = [
 ] as const
 
 const PRESET_LABELS: Record<GraphPreset, string> = {
-  'orange':   'REPRA Orange',
-  'ice-blue': 'Ice Blue',
-  'violet':   'Violet Pump',
-  'mint':     'Mint Proof',
+  'orange':        'REPRA Orange',
+  'ice-blue':      'Ice Blue',
+  'violet':        'Violet Pump',
+  'mint':          'Mint Proof',
+  'premium-black': 'Premium Black',
+  'pearl-white':   'Pearl White',
 }
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -447,11 +449,13 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false }: {
 }
 
 /* ── Sharp polyline SVG for MAX 1RM card previews ─────────── */
-function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 0.75 }: {
+function MiniLineSVG({ data, accentHex, latestHex, areaFill, strokeWidth = 0.75, isDarkBg = true }: {
   data: { est1rm: number }[]
   accentHex: string
+  latestHex: string
   areaFill: string
   strokeWidth?: number
+  isDarkBg?: boolean
 }) {
   if (data.length < 2) return null
   const W = 100, H = 100
@@ -474,6 +478,7 @@ function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 0.75 }: {
   const lastY  = py(data[data.length - 1].est1rm)
   const firstX = px(0)
   const firstY = py(data[0].est1rm)
+  const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
@@ -482,20 +487,22 @@ function MiniLineSVG({ data, accentHex, areaFill, strokeWidth = 0.75 }: {
         points={linePoints} fill="none" stroke={accentHex}
         strokeWidth={strokeWidth} strokeLinejoin="miter" strokeLinecap="butt"
       />
-      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill="rgba(255,255,255,0.30)" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={accentHex} opacity="0.08" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.0" fill={accentHex} opacity="0.28" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="1.4" fill={accentHex} />
+      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill={firstDotColor} />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={latestHex} opacity="0.08" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.0" fill={latestHex} opacity="0.28" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="1.4" fill={latestHex} />
     </svg>
   )
 }
 
 /* ── Sharp polyline SVG for Body Weight card previews ─────── */
-function BWLineSVG({ values, accentHex, areaFill, strokeWidth = 0.75 }: {
+function BWLineSVG({ values, accentHex, latestHex, areaFill, strokeWidth = 0.75, isDarkBg = true }: {
   values: number[]
   accentHex: string
+  latestHex: string
   areaFill: string
   strokeWidth?: number
+  isDarkBg?: boolean
 }) {
   if (values.length < 1) return null
   const W = 100, H = 100
@@ -519,6 +526,7 @@ function BWLineSVG({ values, accentHex, areaFill, strokeWidth = 0.75 }: {
   const lastY  = py(values[values.length - 1])
   const firstX = px(0)
   const firstY = py(values[0])
+  const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
@@ -529,18 +537,19 @@ function BWLineSVG({ values, accentHex, areaFill, strokeWidth = 0.75 }: {
           strokeWidth={strokeWidth} strokeLinejoin="miter" strokeLinecap="butt"
         />
       )}
-      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill="rgba(255,255,255,0.30)" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={accentHex} opacity="0.08" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.0" fill={accentHex} opacity="0.28" />
-      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="1.4" fill={accentHex} />
+      <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill={firstDotColor} />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="3.5" fill={latestHex} opacity="0.08" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="2.0" fill={latestHex} opacity="0.28" />
+      <circle cx={lastX.toFixed(1)} cy={lastY.toFixed(1)} r="1.4" fill={latestHex} />
     </svg>
   )
 }
 
 /* ── Bar chart SVG for Daily Volume card previews ─────────── */
-function VolBarSVG({ bars, accentHex }: {
+function VolBarSVG({ bars, accentHex, latestHex }: {
   bars: VolBar[]
   accentHex: string
+  latestHex: string
 }) {
   if (!bars.length) return null
   const maxVal = Math.max(...bars.map(b => b.value))
@@ -558,13 +567,15 @@ function VolBarSVG({ bars, accentHex }: {
         const bh = Math.max((b.value / maxVal) * H * 0.92, 0.6)
         const bx = (i * slotW + (slotW - barW) / 2)
         const by = H - bh
+        const isHighlight = b.isLatest || b.isBest
+        const fillColor = isHighlight ? latestHex : accentHex
         const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
         return (
           <rect key={i}
             x={bx.toFixed(2)} y={by.toFixed(2)}
             width={Math.max(barW, 0.5).toFixed(2)} height={bh.toFixed(2)}
             rx={rad.toFixed(2)} ry={rad.toFixed(2)}
-            fill={accentHex} opacity={opacity}
+            fill={fillColor} opacity={opacity}
           />
         )
       })}
@@ -617,24 +628,34 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const isMax1RM = data.type === 'max1rm'
   const isBW     = data.type === 'bodyweight'
   const isVol    = data.type === 'volume'
-  const gp      = PRESETS[graphPreset]
-  const ac      = AC[accent]
-  const acHex   = ac.hex
-  const areaFill = acRgba(gp.accentHex, 0.12)
+  const gp       = PRESETS[graphPreset]
+  const ac       = AC[accent]
+  const acHex    = ac.hex
 
   // Graph card backgrounds
   const isTransparentCard = cardStyle === 'transparent'
-  const fullGlassBg = `linear-gradient(165deg, ${acRgba(gp.accentHex, 0.09)} 0%, #080808 55%)`
-  const fullBg      = isTransparentCard
+  const isDarkBg  = isTransparentCard || (gp.isDark !== false)
+  const gpAccent  = isTransparentCard ? (gp.accentHexTransp ?? gp.accentHex) : gp.accentHex
+  const gpLatest  = isTransparentCard ? (gp.latestHexTransp ?? gp.latestHex ?? gpAccent) : (gp.latestHex ?? gp.accentHex)
+  const gpRgb     = isDarkBg ? '255,255,255' : '17,24,39'
+  const ptxt      = (a: number) => `rgba(${gpRgb},${a})`
+  const textPrimary  = isDarkBg ? '#fff' : '#111827'
+  const gpBadgeBg    = isTransparentCard ? (gp.badgeBgTransp ?? gp.badgeBg) : gp.badgeBg
+  const gpBadgeTxt   = isTransparentCard ? (gp.badgeTextTransp ?? gp.badgeText) : gp.badgeText
+  const areaFill     = acRgba(gpAccent, 0.12)
+  const fullGlassBg  = gp.bgFull
+    ? gp.bgFull
+    : `linear-gradient(165deg, ${acRgba(gp.accentHex, 0.09)} 0%, #080808 55%)`
+  const fullBg       = isTransparentCard
     ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
     : fullGlassBg
-  const cardStyleBg = isTransparentCard
+  const cardStyleBg  = isTransparentCard
     ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
     : gp.bgCombined
   const shadowValue    = SHADOW_MAP[shadowLevel]
   const glassShadow    = `inset 0 1px 0 rgba(255,255,255,0.16)${shadowLevel !== 'none' ? `, ${shadowValue}` : ''}`
   const cardBoxShadow  = isTransparentCard ? shadowValue : glassShadow
-  const textShadowVal  = SHADOW_MAP[shadowLevel]
+  const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
 
   /* ── MAX 1RM data ────────────────────────────────────────── */
   const rm1FullHistory = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).history : []
@@ -849,7 +870,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const gpBadge = (
     <span style={{
       fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5,
-      background: gp.badgeBg, color: gp.badgeText, border: '1px solid transparent',
+      background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent',
       letterSpacing: '0.16em', display: 'inline-block',
     }}>REPRA</span>
   )
@@ -895,9 +916,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
                   cursor: 'pointer', textAlign: 'left',
                 }}>
-                <LayoutThumb layoutKey={l.key} accentHex={gp.accentHex} selected={sel} isBar={isBarType} />
+                <LayoutThumb layoutKey={l.key} accentHex={gp.uiSwatch ?? gp.accentHex} selected={sel} isBar={isBarType} />
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: sel ? gp.accentHex : '#fff', margin: 0, lineHeight: 1.2 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: sel ? (gp.uiSwatch ?? gp.accentHex) : '#fff', margin: 0, lineHeight: 1.2 }}>
                     {l.ratio} {l.labelEn}
                   </p>
                   <p style={{ fontSize: 9, color: '#555', margin: '2px 0 0', lineHeight: 1.2 }}>
@@ -919,13 +940,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             <div className="flex gap-2">
               {(['bodypart', 'ppl'] as VolViewType[]).map(vt => {
                 const sel = volViewType === vt
+                const uiAc = gp.uiSwatch ?? gp.accentHex
                 return (
                   <button key={vt} onClick={() => setVolViewType(vt)}
                     className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                     style={{
-                      background: sel ? acRgba(gp.accentHex, 0.15) : '#1a1a1a',
-                      color: sel ? gp.accentHex : '#666',
-                      border: `1.5px solid ${sel ? gp.accentHex : '#2a2a2a'}`,
+                      background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
+                      color: sel ? uiAc : '#666',
+                      border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
                     }}>
                     {vt === 'bodypart' ? 'Body Part' : 'PPL'}
                   </button>
@@ -941,14 +963,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {VOL_BODY_PARTS.map(bp => {
                   const sel = volBodyPart === bp.key
+                  const uiAc = gp.uiSwatch ?? gp.accentHex
                   return (
                     <button key={bp.key}
                       onClick={() => router.push(`/share?type=stats&metric=volume&bodypart=${bp.key}`)}
                       style={{
                         padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
-                        color: sel ? gp.accentHex : '#666',
-                        border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
+                        background: sel ? acRgba(uiAc, 0.15) : 'rgba(255,255,255,0.04)',
+                        color: sel ? uiAc : '#666',
+                        border: `1.5px solid ${sel ? uiAc : 'rgba(255,255,255,0.08)'}`,
                       }}>
                       {bp.label}
                     </button>
@@ -965,14 +988,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ display: 'flex', gap: 6 }}>
                 {VOL_PPL_GROUPS.map(pg => {
                   const sel = pplGroup === pg.key
+                  const uiAc = gp.uiSwatch ?? gp.accentHex
                   return (
                     <button key={pg.key}
                       onClick={() => setPplGroup(pg.key)}
                       style={{
                         flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
-                        color: sel ? gp.accentHex : '#666',
-                        border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
+                        background: sel ? acRgba(uiAc, 0.15) : 'rgba(255,255,255,0.04)',
+                        color: sel ? uiAc : '#666',
+                        border: `1.5px solid ${sel ? uiAc : 'rgba(255,255,255,0.08)'}`,
                       }}>
                       {pg.label}
                     </button>
@@ -990,13 +1014,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <div className="flex gap-2">
           {(['glass', 'transparent'] as CardStyle[]).map(cs => {
             const sel = cardStyle === cs
+            const uiAc = gp.uiSwatch ?? gp.accentHex
             return (
               <button key={cs} onClick={() => setCardStyle(cs)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(gp.accentHex, 0.15) : '#1a1a1a',
-                  color: sel ? gp.accentHex : '#666',
-                  border: `1.5px solid ${sel ? gp.accentHex : '#2a2a2a'}`,
+                  background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
+                  color: sel ? uiAc : '#666',
+                  border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
                 }}>
                 {cs === 'glass' ? 'Glass' : 'Transparent'}
               </button>
@@ -1008,22 +1033,27 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       {/* ④ DESIGN PRESET ────────────────────────────────────── */}
       <div className="px-4 mb-4">
         {sectionLabel('DESIGN PRESET')}
-        <div className="flex gap-2">
-          {(['orange', 'ice-blue', 'violet', 'mint'] as GraphPreset[]).map(pk => {
-            const pd  = PRESETS[pk]
-            const sel = graphPreset === pk
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {(['orange', 'ice-blue', 'violet', 'mint', 'premium-black', 'pearl-white'] as GraphPreset[]).map(pk => {
+            const pd     = PRESETS[pk]
+            const swatch = pd.uiSwatch ?? pd.accentHex
+            const sel    = graphPreset === pk
             return (
               <button key={pk} onClick={() => setGraphPreset(pk)}
                 style={{
-                  flex: 1, padding: '10px 4px', borderRadius: 12, cursor: 'pointer',
-                  background: sel ? acRgba(pd.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
-                  border: `1.5px solid ${sel ? pd.accentHex : 'rgba(255,255,255,0.08)'}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                  padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
+                  background: sel ? acRgba(swatch, 0.15) : 'rgba(255,255,255,0.04)',
+                  border: `1.5px solid ${sel ? swatch : 'rgba(255,255,255,0.08)'}`,
+                  display: 'flex', alignItems: 'center', gap: 8,
                 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 10, background: pd.accentHex }} />
+                <div style={{
+                  width: 18, height: 18, borderRadius: 9, flexShrink: 0,
+                  background: swatch,
+                  border: pk === 'pearl-white' ? '1px solid rgba(255,255,255,0.25)' : 'none',
+                }} />
                 <span style={{
-                  fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textAlign: 'center',
-                  color: sel ? pd.accentHex : '#666', lineHeight: 1.3, display: 'block',
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textAlign: 'left',
+                  color: sel ? swatch : '#666', lineHeight: 1.3, display: 'block',
                 }}>
                   {PRESET_LABELS[pk]}
                 </span>
@@ -1039,14 +1069,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <div className="flex gap-2">
           {(['none', 'soft', 'strong', 'extra-strong'] as ShadowLevel[]).map(sl => {
             const sel = shadowLevel === sl
+            const uiAc = gp.uiSwatch ?? gp.accentHex
             const label = sl === 'none' ? 'None' : sl === 'soft' ? 'Soft' : sl === 'strong' ? 'Strong' : 'Extra'
             return (
               <button key={sl} onClick={() => setShadowLevel(sl)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(gp.accentHex, 0.15) : '#1a1a1a',
-                  color: sel ? gp.accentHex : '#666',
-                  border: `1.5px solid ${sel ? gp.accentHex : '#2a2a2a'}`,
+                  background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
+                  color: sel ? uiAc : '#666',
+                  border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
                 }}>
                 {label}
               </button>
@@ -1070,30 +1101,30 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gp.badgeBg, color: gp.badgeText, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.14em', margin: '7px 0 2px' }}>MAX 1RM PROGRESS</p>
-                  <p style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1.1, margin: 0 }}>{exName}</p>
+                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>MAX 1RM PROGRESS</p>
+                  <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{exName}</p>
                 </div>
-                <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '10px 18px' }} />
+                <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
                 <div style={{ padding: '0 18px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   {rm1FirstVal !== null && (
                     <>
                       <div>
-                        <p style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
-                        <p style={{ fontSize: 17, fontWeight: 700, color: '#bbb', margin: 0, lineHeight: 1 }}>{rm1FirstVal}<span style={{ fontSize: 8.5, color: '#777', marginLeft: 1 }}>{unitLabel}</span></p>
+                        <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
+                        <p style={{ fontSize: 17, fontWeight: 700, color: ptxt(0.70), margin: 0, lineHeight: 1 }}>{rm1FirstVal}<span style={{ fontSize: 8.5, color: ptxt(0.42), marginLeft: 1 }}>{unitLabel}</span></p>
                       </div>
-                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', margin: '7px 0 0' }}>→</p>
+                      <p style={{ fontSize: 13, color: ptxt(0.22), margin: '7px 0 0' }}>→</p>
                     </>
                   )}
                   <div>
-                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.1em', margin: '0 0 2px' }}>BEST</p>
-                    <p style={{ fontSize: rm1FirstVal !== null ? 24 : 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>
-                      {bestRMDisplay}<span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
+                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>BEST</p>
+                    <p style={{ fontSize: rm1FirstVal !== null ? 24 : 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>
+                      {bestRMDisplay}<span style={{ fontSize: 10, color: ptxt(0.50), fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
                     </p>
                   </div>
                   {rm1Growth !== null && (
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                      <p style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', margin: '0 0 2px' }}>GAIN</p>
+                      <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>GAIN</p>
                       <p style={{ fontSize: 17, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1 }}>
                         {rm1Growth >= 0 ? '+' : ''}{rm1Growth}<span style={{ fontSize: 8.5, marginLeft: 1 }}>{unitLabel}</span>
                       </p>
@@ -1102,17 +1133,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </div>
                 <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
                   {rm1SVGData.length >= 2
-                    ? <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.8} />
-                    : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>No data yet</p></div>}
+                    ? <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.8} isDarkBg={isDarkBg} />
+                    : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
                 {rm1FullHistory.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
-                    <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.35)' }}>{fmtXLabel(rm1FullHistory[0].date)}</span>
-                    <span style={{ fontSize: 7.5, color: gp.accentHex, fontWeight: 600 }}>{fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date)}</span>
+                    <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>{fmtXLabel(rm1FullHistory[0].date)}</span>
+                    <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>{fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date)}</span>
                   </div>
                 )}
-                <p style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
-                  Made with <span style={{ color: acRgba(gp.accentHex, 0.6), fontWeight: 700 }}>REPRA</span>
+                <p style={{ fontSize: 7.5, color: ptxt(0.28), padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
+                  Made with <span style={{ color: acRgba(gpAccent, 0.6), fontWeight: 700 }}>REPRA</span>
                 </p>
               </div>
             )}
@@ -1126,15 +1157,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: '4px 0 1px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.65} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
-                  <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} best</p>
+                  <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
+                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} best</p>
                   {rm1Growth !== null && (
                     <p style={{ fontSize: 10, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
                       {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
@@ -1152,15 +1183,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 13, fontWeight: 900, color: '#fff', margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <p style={{ fontSize: 13, fontWeight: 900, color: textPrimary, margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '8px 0' }}>
-                    <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.6} />
+                    <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.6} isDarkBg={isDarkBg} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                      <span style={{ fontSize: 34, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{bestRMDisplay}</span>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.65)', paddingBottom: 2 }}>{unitLabel}</span>
+                      <span style={{ fontSize: 34, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bestRMDisplay}</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: ptxt(0.65), paddingBottom: 2 }}>{unitLabel}</span>
                     </div>
                     {rm1Growth !== null && (
                       <p style={{ fontSize: 11, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
@@ -1180,17 +1211,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 13, fontWeight: 900, color: '#fff', margin: '6px 0 1px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
-                  <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '8px 0' }} />
+                  <p style={{ fontSize: 13, fontWeight: 900, color: textPrimary, margin: '6px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '8px 0' }} />
                   {rm1FirstVal !== null && (
-                    <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', margin: '0 0 3px' }}>
-                      {rm1FirstVal}{unitLabel} → <span style={{ color: gp.accentHex, fontWeight: 700 }}>{bestRMDisplay}{unitLabel}</span>
+                    <p style={{ fontSize: 8.5, color: ptxt(0.45), margin: '0 0 3px' }}>
+                      {rm1FirstVal}{unitLabel} → <span style={{ color: gpAccent, fontWeight: 700 }}>{bestRMDisplay}{unitLabel}</span>
                     </p>
                   )}
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, marginBottom: rm1Growth !== null ? 3 : 0 }}>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{bestRMDisplay}</span>
-                    <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.6)', paddingBottom: 2 }}>{unitLabel}</span>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bestRMDisplay}</span>
+                    <span style={{ fontSize: 10, fontWeight: 500, color: ptxt(0.60), paddingBottom: 2 }}>{unitLabel}</span>
                   </div>
                   {rm1Growth !== null && (
                     <p style={{ fontSize: 11, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0 }}>
@@ -1198,10 +1229,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     </p>
                   )}
                   <div style={{ flex: 1 }} />
-                  <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Made with REPRA</p>
+                  <p style={{ fontSize: 7, color: ptxt(0.30), margin: 0 }}>Made with REPRA</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.7} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.7} isDarkBg={isDarkBg} />
                 </div>
               </div>
             )}
@@ -1219,30 +1250,30 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gp.badgeBg, color: gp.badgeText, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.14em', margin: '7px 0 0' }}>BODY WEIGHT PROGRESS</p>
+                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 0' }}>BODY WEIGHT PROGRESS</p>
                 </div>
-                <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '10px 18px' }} />
+                <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
                 <div style={{ padding: '0 18px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   {bwHistory.length >= 2 && (
                     <>
                       <div>
-                        <p style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
-                        <p style={{ fontSize: 17, fontWeight: 700, color: '#bbb', margin: 0, lineHeight: 1 }}>{bwStartDisplay}<span style={{ fontSize: 8.5, color: '#777', marginLeft: 1 }}>{unitLabel}</span></p>
+                        <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
+                        <p style={{ fontSize: 17, fontWeight: 700, color: ptxt(0.70), margin: 0, lineHeight: 1 }}>{bwStartDisplay}<span style={{ fontSize: 8.5, color: ptxt(0.42), marginLeft: 1 }}>{unitLabel}</span></p>
                       </div>
-                      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', margin: '7px 0 0' }}>→</p>
+                      <p style={{ fontSize: 13, color: ptxt(0.22), margin: '7px 0 0' }}>→</p>
                     </>
                   )}
                   <div>
-                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.1em', margin: '0 0 2px' }}>LATEST</p>
-                    <p style={{ fontSize: bwHistory.length >= 2 ? 24 : 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>
-                      {bwCurrentDisplay}<span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
+                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>LATEST</p>
+                    <p style={{ fontSize: bwHistory.length >= 2 ? 24 : 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>
+                      {bwCurrentDisplay}<span style={{ fontSize: 10, color: ptxt(0.50), fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
                     </p>
                   </div>
                   {bwChangeRaw !== 0 && (
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                      <p style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', margin: '0 0 2px' }}>CHANGE</p>
-                      <p style={{ fontSize: 17, fontWeight: 800, color: gp.accentHex, margin: 0, lineHeight: 1 }}>
+                      <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>CHANGE</p>
+                      <p style={{ fontSize: 17, fontWeight: 800, color: gpAccent, margin: 0, lineHeight: 1 }}>
                         {bwChangeStr}<span style={{ fontSize: 8.5, marginLeft: 1 }}>{unitLabel}</span>
                       </p>
                     </div>
@@ -1250,21 +1281,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </div>
                 <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
                   {bwValues.length >= 2
-                    ? <BWLineSVG values={bwValues} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.8} />
+                    ? <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.8} isDarkBg={isDarkBg} />
                     : bwValues.length === 1
                       ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-                          <p style={{ fontSize: 38, fontWeight: 900, color: gp.accentHex, margin: 0 }}>{bwCurrentDisplay}<span style={{ fontSize: 14, color: '#888', marginLeft: 4 }}>{unitLabel}</span></p>
+                          <p style={{ fontSize: 38, fontWeight: 900, color: gpAccent, margin: 0 }}>{bwCurrentDisplay}<span style={{ fontSize: 14, color: ptxt(0.45), marginLeft: 4 }}>{unitLabel}</span></p>
                         </div>
-                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>No data yet</p></div>}
+                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
                 {bwHistory.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
-                    <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.35)' }}>{fmtXLabel(bwFirstDate)}</span>
-                    <span style={{ fontSize: 7.5, color: gp.accentHex, fontWeight: 600 }}>{fmtXLabel(bwLastDate)}</span>
+                    <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>{fmtXLabel(bwFirstDate)}</span>
+                    <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>{fmtXLabel(bwLastDate)}</span>
                   </div>
                 )}
-                <p style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
-                  Made with <span style={{ color: acRgba(gp.accentHex, 0.6), fontWeight: 700 }}>REPRA</span>
+                <p style={{ fontSize: 7.5, color: ptxt(0.28), padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
+                  Made with <span style={{ color: acRgba(gpAccent, 0.6), fontWeight: 700 }}>REPRA</span>
                 </p>
               </div>
             )}
@@ -1278,21 +1309,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '4px 0 1px' }}>BODY WEIGHT</p>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>BODY WEIGHT</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: textPrimary, margin: 0, lineHeight: 1.2 }}>
                     {bwHistory.length >= 2
-                      ? <>{bwStartDisplay}<span style={{ fontSize: 7, color: '#666', marginLeft: 1 }}>{unitLabel}</span><span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 3px' }}>→</span><span style={{ color: gp.accentHex }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: '#666', marginLeft: 1 }}>{unitLabel}</span></>
-                      : <><span style={{ color: gp.accentHex }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: '#666', marginLeft: 1 }}>{unitLabel}</span></>
+                      ? <>{bwStartDisplay}<span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span><span style={{ color: ptxt(0.30), margin: '0 3px' }}>→</span><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
+                      : <><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
                     }
                   </p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
-                  <BWLineSVG values={bwValues} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.65} />
+                  <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 30, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{bwCurrentDisplay}</p>
-                  <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0', fontWeight: 500 }}>{unitLabel}</p>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: gp.accentHex, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
+                  <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bwCurrentDisplay}</p>
+                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel}</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: gpAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
                 </div>
               </div>
             )}
@@ -1305,16 +1336,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '5px 0 0' }}>BODY WEIGHT</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>BODY WEIGHT</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '6px 0' }}>
-                    <BWLineSVG values={bwValues} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.6} />
+                    <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.6} isDarkBg={isDarkBg} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                      <span style={{ fontSize: 34, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{bwCurrentDisplay}</span>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.65)', paddingBottom: 2 }}>{unitLabel}</span>
+                      <span style={{ fontSize: 34, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bwCurrentDisplay}</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: ptxt(0.65), paddingBottom: 2 }}>{unitLabel}</span>
                     </div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: gp.accentHex, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: gpAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
                   </div>
                 </div>
               </div>
@@ -1328,24 +1359,24 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '6px 0 0' }}>BODY WEIGHT</p>
-                  <p style={{ fontSize: 7, fontWeight: 500, color: 'rgba(255,255,255,0.35)', margin: '1px 0 0', letterSpacing: '0.1em' }}>PROGRESS</p>
-                  <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '7px 0' }} />
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '6px 0 0' }}>BODY WEIGHT</p>
+                  <p style={{ fontSize: 7, fontWeight: 500, color: ptxt(0.35), margin: '1px 0 0', letterSpacing: '0.1em' }}>PROGRESS</p>
+                  <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '7px 0' }} />
                   {bwHistory.length >= 2 && (
-                    <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', margin: '0 0 4px' }}>
-                      {bwStartDisplay}{unitLabel} → <span style={{ color: gp.accentHex, fontWeight: 700 }}>{bwCurrentDisplay}{unitLabel}</span>
+                    <p style={{ fontSize: 8.5, color: ptxt(0.45), margin: '0 0 4px' }}>
+                      {bwStartDisplay}{unitLabel} → <span style={{ color: gpAccent, fontWeight: 700 }}>{bwCurrentDisplay}{unitLabel}</span>
                     </p>
                   )}
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, marginBottom: 3 }}>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{bwCurrentDisplay}</span>
-                    <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.6)', paddingBottom: 2 }}>{unitLabel}</span>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bwCurrentDisplay}</span>
+                    <span style={{ fontSize: 10, fontWeight: 500, color: ptxt(0.60), paddingBottom: 2 }}>{unitLabel}</span>
                   </div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: gp.accentHex, margin: 0 }}>{bwChangeStr}{unitLabel}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: gpAccent, margin: 0 }}>{bwChangeStr}{unitLabel}</p>
                   <div style={{ flex: 1 }} />
-                  <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Made with REPRA</p>
+                  <p style={{ fontSize: 7, color: ptxt(0.30), margin: 0 }}>Made with REPRA</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
-                  <BWLineSVG values={bwValues} accentHex={gp.accentHex} areaFill={areaFill} strokeWidth={0.7} />
+                  <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.7} isDarkBg={isDarkBg} />
                 </div>
               </div>
             )}
@@ -1365,48 +1396,48 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {/* Header */}
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gp.badgeBg, color: gp.badgeText, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
-                    <span style={{ fontSize: 7, fontWeight: 700, color: acRgba(gp.accentHex, 0.6), letterSpacing: '0.12em' }}>{volGranLabel}</span>
+                    <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
+                    <span style={{ fontSize: 7, fontWeight: 700, color: acRgba(gpAccent, 0.6), letterSpacing: '0.12em' }}>{volGranLabel}</span>
                   </div>
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.14em', margin: '7px 0 2px' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1.1, margin: 0 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>DAILY VOLUME</p>
+                  <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{volDisplayLabel}</p>
                 </div>
 
-                <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '10px 18px' }} />
+                <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
 
                 {/* Stats */}
                 <div style={{ padding: '0 18px', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 2 }}>
-                    <span style={{ fontSize: 26, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{activeVolTotalStr}</span>
-                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', paddingBottom: 3, fontWeight: 600 }}>TOTAL</span>
+                    <span style={{ fontSize: 26, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
+                    <span style={{ fontSize: 8, color: ptxt(0.40), paddingBottom: 3, fontWeight: 600 }}>TOTAL</span>
                   </div>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {volBestStr && <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Best day: <span style={{ color: gp.accentHex, fontWeight: 700 }}>{volBestStr}</span></p>}
-                    <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{activeVolSessionCount} sessions</p>
+                    {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>Best day: <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
+                    <p style={{ fontSize: 8.5, color: ptxt(0.40), margin: 0 }}>{activeVolSessionCount} sessions</p>
                   </div>
                 </div>
 
                 {/* Bar chart */}
                 <div style={{ flex: 1, minHeight: 0, padding: '10px 14px 0' }}>
                   {volBarsAll.bars.length > 0
-                    ? <VolBarSVG bars={volBarsAll.bars} accentHex={gp.accentHex} />
-                    : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>No data yet</p></div>}
+                    ? <VolBarSVG bars={volBarsAll.bars} accentHex={gpAccent} latestHex={gpLatest} />
+                    : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
 
                 {/* Date range */}
                 {activeVolHistory.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
-                    <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.35)' }}>
+                    <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>
                       {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[0]?.label ?? '') : fmtXLabel(activeVolFirstDate)}
                     </span>
-                    <span style={{ fontSize: 7.5, color: gp.accentHex, fontWeight: 600 }}>
+                    <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>
                       {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[volBarsAll.bars.length - 1]?.label ?? '') : fmtXLabel(activeVolLastDate)}
                     </span>
                   </div>
                 )}
 
-                <p style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.28)', padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
-                  Made with <span style={{ color: acRgba(gp.accentHex, 0.6), fontWeight: 700 }}>REPRA</span>
+                <p style={{ fontSize: 7.5, color: ptxt(0.28), padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
+                  Made with <span style={{ color: acRgba(gpAccent, 0.6), fontWeight: 700 }}>REPRA</span>
                 </p>
               </div>
             )}
@@ -1420,16 +1451,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '4px 0 1px' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.1 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>DAILY VOLUME</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volDisplayLabel}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '65%' }}>
-                  <VolBarSVG bars={volBars30.bars} accentHex={gp.accentHex} />
+                  <VolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
-                  <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', margin: '2px 0 0', fontWeight: 500 }}>total</p>
-                  <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
+                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>total</p>
+                  <p style={{ fontSize: 8.5, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
                 </div>
               </div>
             )}
@@ -1442,16 +1473,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '5px 0 0' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 11, fontWeight: 900, color: '#fff', margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>DAILY VOLUME</p>
+                  <p style={{ fontSize: 11, fontWeight: 900, color: textPrimary, margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '6px 0' }}>
-                    <VolBarSVG bars={volBars14.bars} accentHex={gp.accentHex} />
+                    <VolBarSVG bars={volBars14.bars} accentHex={gpAccent} latestHex={gpLatest} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                      <span style={{ fontSize: 28, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{activeVolTotalStr}</span>
+                      <span style={{ fontSize: 28, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
                     </div>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', margin: '2px 0 0' }}>{activeVolSessionCount} sessions</p>
+                    <p style={{ fontSize: 9, color: ptxt(0.45), margin: '2px 0 0' }}>{activeVolSessionCount} sessions</p>
                   </div>
                 </div>
               </div>
@@ -1466,21 +1497,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {/* Left info */}
                 <div style={{ width: '34%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '6px 0 0' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
-                  <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '7px 0' }} />
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '6px 0 0' }}>DAILY VOLUME</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
+                  <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '7px 0' }} />
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 3 }}>
-                    <span style={{ fontSize: 22, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{activeVolTotalStr}</span>
+                    <span style={{ fontSize: 22, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
                   </div>
-                  <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', margin: '0 0 2px' }}>total</p>
-                  {volBestStr && <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Best: <span style={{ color: gp.accentHex, fontWeight: 700 }}>{volBestStr}</span></p>}
-                  <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
+                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '0 0 2px' }}>total</p>
+                  {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>Best: <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
+                  <p style={{ fontSize: 8, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
                   <div style={{ flex: 1 }} />
-                  <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Made with REPRA</p>
+                  <p style={{ fontSize: 7, color: ptxt(0.30), margin: 0 }}>Made with REPRA</p>
                 </div>
                 {/* Right chart */}
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
-                  <VolBarSVG bars={volBars60.bars} accentHex={gp.accentHex} />
+                  <VolBarSVG bars={volBars60.bars} accentHex={gpAccent} latestHex={gpLatest} />
                 </div>
               </div>
             )}
