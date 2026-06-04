@@ -131,6 +131,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const handleSaveSingleExercise = async (idx: number) => {
     const cardEl = previewExRefs.current[idx]
     if (!cardEl) return
+    // Pre-save validation: element must be fully rendered and non-empty
+    if (!cardEl.offsetWidth || !cardEl.offsetHeight || !cardEl.innerText?.trim() || !cardEl.children.length) return
     setSaving(true)
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
@@ -166,7 +168,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       const files: File[] = []
       for (let i = 0; i < data.exercises.length; i++) {
         const cardEl = previewExRefs.current[i]
-        if (!cardEl) continue
+        if (!cardEl || !cardEl.offsetWidth || !cardEl.offsetHeight || !cardEl.innerText?.trim() || !cardEl.children.length) continue
         const ex = data.exercises[i]
         const blob = await captureElement(cardEl)
         const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -336,8 +338,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     previewExRefs[i]: capture target for this exercise card.
                     Wraps ONLY ExerciseStoryCard — the checker above is a sibling div,
                     so it is NOT captured in the saved PNG.
+                    position:relative + zIndex:1 ensures this element paints ABOVE the
+                    absolutely-positioned checker overlay (which has z-index:auto ≈ 0).
                   */}
-                  <div ref={el => { previewExRefs.current[i] = el }}>
+                  <div ref={el => { previewExRefs.current[i] = el }} style={{ position: 'relative', zIndex: 1 }}>
                     <ExerciseStoryCard
                       data={{ ...ex, date: data.date }}
                       cardStyle={cardStyle}
