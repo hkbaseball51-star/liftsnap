@@ -12,7 +12,7 @@ export default async function BodyTimelinePage({
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  if (!user) redirect('/home')
 
   const [cookieStore, headerStore, params, profileRes, photos] = await Promise.all([
     cookies(),

@@ -13,7 +13,7 @@ export default async function BodyLogPage({
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  if (!user) redirect('/home')
 
   const [cookieStore, headerStore, params] = await Promise.all([
     cookies(),

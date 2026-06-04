@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, Mail } from 'lucide-react'
 import { SUPPORT_EMAIL } from '@/constants/legal'
 
-// TODO: Replace SUPPORT_EMAIL in constants/legal.ts with official REPRA support email before App Store submission.
 const MAILTO = `mailto:${SUPPORT_EMAIL}?subject=REPRA%20Support`
 
 export default function ContactPage() {

@@ -10,7 +10,7 @@ import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/Work
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import FeatureTracker from '@/components/common/FeatureTracker'
 import Link from 'next/link'
-import { TrendingUp, BarChart2, Activity, CalendarDays, Lock, Crown, ChevronRight, Settings } from 'lucide-react'
+import { TrendingUp, BarChart2, Activity, Lock, Crown, ChevronRight, Settings } from 'lucide-react'
 import { cookies, headers } from 'next/headers'
 import { resolveServerLocale, type Locale } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/server'
@@ -502,54 +502,31 @@ export default async function SharePage({
             </div>
           </div>
 
-          {/* ── C. Coming Soon ──────────────────────────────── */}
-          <div>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.34)', marginBottom: 10 }}>
-              COMING SOON
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-
-              {/* Calendar Summary */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: '#141414', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 13, opacity: 0.52 }}>
-                <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)' }}>
-                  <CalendarDays size={17} color="rgba(255,255,255,0.34)" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.48)', marginBottom: 2 }}>{ja ? 'カレンダーサマリー' : 'Calendar Summary'}</p>
-                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.24)' }}>Coming soon</p>
-                </div>
+          {/* ── C. REPRA Pro info ───────────────────────────── */}
+          <div style={{
+            background: 'linear-gradient(135deg, #181818 0%, #131313 100%)',
+            border: '1px solid rgba(237,116,47,0.15)',
+            borderRadius: 16,
+            padding: '13px 14px',
+            opacity: 0.82,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,116,47,0.10)', border: '1px solid rgba(237,116,47,0.18)' }}>
+                <Crown size={15} color="rgba(237,116,47,0.65)" />
               </div>
-
-              {/* Pro Templates — TODO_PRO: tap here → ProComingSoonModal when Pro launches */}
-              <div style={{
-                background: 'linear-gradient(135deg, #181818 0%, #131313 100%)',
-                border: '1px solid rgba(237,116,47,0.18)',
-                borderRadius: 16,
-                padding: '14px 15px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,116,47,0.10)', border: '1px solid rgba(237,116,47,0.20)' }}>
-                    <Crown size={17} color="rgba(237,116,47,0.70)" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                      <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Pro Templates</p>
-                      <span style={{ fontSize: 7.5, fontWeight: 800, letterSpacing: '0.10em', padding: '2px 6px', borderRadius: 5, background: 'rgba(237,116,47,0.12)', color: 'rgba(237,116,47,0.72)', border: '1px solid rgba(237,116,47,0.18)' }}>PRO</span>
-                    </div>
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', lineHeight: 1.4 }}>
-                      {ja
-                        ? 'プレミアムレイアウト、透かし削除、長期グラフ共有などを準備中です。REPRA Pro導入時は30日間無料トライアルを予定しています。'
-                        : 'Premium layouts, watermark removal, long-term graph sharing, and advanced story designs are planned. A 30-day free trial is planned when REPRA Pro launches.'}
-                    </p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0', borderRadius: 10, background: 'rgba(237,116,47,0.07)', border: '1px solid rgba(237,116,47,0.14)' }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(237,116,47,0.60)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.58)' }}>REPRA Pro</p>
+                  <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.10em', padding: '2px 5px', borderRadius: 4, background: 'rgba(237,116,47,0.10)', color: 'rgba(237,116,47,0.60)', border: '1px solid rgba(237,116,47,0.15)' }}>
                     {ja ? '準備中' : 'COMING SOON'}
                   </span>
                 </div>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5 }}>
+                  {ja
+                    ? 'プレミアムテンプレート、透かし削除、長期グラフ共有などを準備中です。'
+                    : 'Premium templates, watermark removal, and long-term graph sharing are planned.'}
+                </p>
               </div>
-
             </div>
           </div>
 

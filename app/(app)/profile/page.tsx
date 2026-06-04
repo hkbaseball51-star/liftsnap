@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { cookies, headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, ChevronRight, Lock } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
@@ -64,25 +65,8 @@ export default async function ProfilePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    return (
-      <div className="min-h-screen pb-nav flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
-        <p className="text-5xl mb-4">🏋️</p>
-        <p className="text-lg font-black text-white mb-2 tracking-widest">YOUR PROFILE</p>
-        <p className="text-sm text-center mb-8 leading-relaxed" style={{ color: T.muted }}>
-          Create an account to track your progress and build your lifting profile.
-        </p>
-        <Link href="/signup"
-          className="w-full max-w-xs py-4 rounded-2xl text-center text-sm font-black text-white block tracking-widest"
-          style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.35)' }}>
-          CREATE ACCOUNT
-        </Link>
-        <Link href="/login" className="mt-4 text-sm font-bold" style={{ color: T.muted }}>
-          Already have an account? Sign in →
-        </Link>
-      </div>
-    )
-  }
+  // MVP: No account required — go directly to Settings.
+  if (!user) redirect('/profile/settings')
 
   // Ensure profile exists (creates one from auth metadata if missing)
   const profile = await ensureProfile(supabase, user)
