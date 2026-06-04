@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Share2 } from 'lucide-react'
 import { useWeightUnit } from '@/lib/useWeightUnit'
-import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
+import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 
 export type HeroData = {
   bestLift: {
@@ -159,14 +159,7 @@ function TodayEffortSlide({
   const m = Math.floor((d.durationSeconds % 3600) / 60)
   const dur = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m` : null
 
-  const displayVol = unit === 'lbs'
-    ? Math.round(d.totalVolume * 2.20462)
-    : Math.round(d.totalVolume)
-  const threshold = unit === 'lbs' ? 10000 : 10000
-  const volNum = displayVol >= threshold
-    ? `${(displayVol / 1000).toFixed(1)}k`
-    : displayVol.toLocaleString()
-  const volUnit = displayVol >= threshold ? '' : weightUnitLabel(unit)
+  const volStr = formatVolumeWithUnit(d.totalVolume, unit)
 
   const meta = [
     `${d.totalSets} sets`,
@@ -193,10 +186,7 @@ function TodayEffortSlide({
             letterSpacing: '-0.02em',
             fontFamily: 'var(--font-mono)',
           }}>
-            {volNum}
-          </span>
-          <span style={{ fontSize: 16, fontWeight: 400, color: 'rgba(255,255,255,0.62)' }}>
-            {volUnit}
+            {volStr}
           </span>
         </div>
       </div>

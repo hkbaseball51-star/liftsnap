@@ -384,11 +384,13 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   }
 
   const fmtVolT = (v: number): string => {
-    if (v >= 1000) {
-      const t = v / 1000
-      return `${(t % 1 === 0 ? t.toFixed(1) : t.toFixed(1))}${unit === 'kg' ? 't' : 'k'}`
+    if (unit === 'lbs') {
+      if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M lbs`
+      if (v >= 1000) return `${(v / 1000).toFixed(1)}k lbs`
+      return `${v.toLocaleString()} lbs`
     }
-    return `${v}${unitLabel}`
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}t`
+    return `${v.toLocaleString()}kg`
   }
 
   const volTooltip = (tProps: any) => {

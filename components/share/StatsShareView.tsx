@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
-import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
+import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
 import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 
@@ -268,7 +268,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     exerciseName = BODY_PART_DISPLAY[data.bodyPart] ?? data.bodyPart.toUpperCase()
     const maxVol = data.history.length ? Math.max(...data.history.map(d => d.volume)) : 0
     const maxVolDisplay = Math.round(toDisplayWeight(maxVol, unit))
-    heroStr = maxVolDisplay >= 1000 ? `${(maxVolDisplay/1000).toFixed(1)}t` : `${maxVolDisplay.toLocaleString()}${canvasUnitLabel}`
+    heroStr = formatVolumeWithUnit(maxVol, unit)
     chartData = data.history.map(d => ({ date: d.date, value: Math.round(toDisplayWeight(d.volume, unit)) }))
   } else {
     metricLabel = 'BODY WEIGHT'
@@ -739,9 +739,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const volBestDisplay = volBestBar
     ? Math.round(toDisplayWeight(volBestBar.value, unit))
     : 0
-  const volBestStr = volBestDisplay >= 1000
-    ? `${(volBestDisplay / 1000).toFixed(1)}t`
-    : `${volBestDisplay.toLocaleString()}${unitLabel}`
+  const volBestStr = volBestBar ? formatVolumeWithUnit(volBestBar.value, unit) : `0${unitLabel}`
 
   // Label shown on cards — changes with viewType and group/filter
   const volDisplayLabel: string = volViewType === 'ppl'
@@ -751,9 +749,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // Active totals — computed from active history for consistency in PPL mode
   const activeVolTotalRaw     = activeVolHistory.reduce((s, d) => s + d.volume, 0)
   const activeVolTotalDisplay = Math.round(toDisplayWeight(activeVolTotalRaw, unit))
-  const activeVolTotalStr     = activeVolTotalDisplay >= 1000
-    ? `${(activeVolTotalDisplay / 1000).toFixed(1)}t`
-    : `${activeVolTotalDisplay.toLocaleString()}${unitLabel}`
+  const activeVolTotalStr     = formatVolumeWithUnit(activeVolTotalRaw, unit)
   const activeVolSessionCount = activeVolHistory.length
   const activeVolFirstDate    = activeVolHistory.length ? activeVolHistory[0].date : ''
   const activeVolLastDate     = activeVolHistory.length ? activeVolHistory[activeVolHistory.length - 1].date : ''
@@ -877,10 +873,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   )
 
   // Volume volume format helper
-  const fmtVol = (v: number) => {
-    const d = Math.round(toDisplayWeight(v, unit))
-    return d >= 1000 ? `${(d/1000).toFixed(1)}t` : `${d.toLocaleString()}${unitLabel}`
-  }
+  const fmtVol = (v: number) => formatVolumeWithUnit(v, unit)
 
   // Whether to show bar thumb in layout selector
   const isBarType = isVol
