@@ -28,17 +28,17 @@ export default function SupportPageContent() {
         </LegalSection>
 
         <LegalSection title="よくある質問">
-          <P><Highlight>Q. パスワードを忘れました</Highlight></P>
-          <P>ログイン画面の「パスワードを忘れた方」から、メールアドレスを入力してリセットリンクをお受け取りください。</P>
-
-          <P><Highlight>Q. アカウントを削除したい</Highlight></P>
-          <P>アプリ内「プロフィール → 設定 → アカウント削除」から手続きできます。詳しくは<a href="/account-deletion" style={{ color: '#ED742F', textDecoration: 'underline' }}>アカウント削除ページ</a>をご覧ください。</P>
-
           <P><Highlight>Q. データはどのように管理されますか？</Highlight></P>
-          <P>詳しくは<a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>プライバシーポリシー</a>をご覧ください。</P>
+          <P>現在のMVPでは、トレーニング記録・体重記録・アプリ設定はすべてお使いの端末内に保存されます。サーバーへのデータ送信は行われません。詳しくは<a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>プライバシーポリシー</a>をご覧ください。</P>
+
+          <P><Highlight>Q. 記録したデータを削除したい</Highlight></P>
+          <P>現在のMVPではアカウントは必要ありません。端末内のデータはアプリをアンインストールすることで削除されます。将来的にアカウント機能を導入する際は、アプリ内でデータ削除の手続きができるようになります。</P>
 
           <P><Highlight>Q. アプリが正常に動作しない</Highlight></P>
           <P>アプリを再起動するか、最新バージョンへのアップデートをお試しください。解決しない場合はメールにてご連絡ください。</P>
+
+          <P><Highlight>Q. REPRA Proはいつ使えますか？</Highlight></P>
+          <P>REPRA ProはComing Soon（近日公開予定）です。現時点ではすべての機能を無料でご利用いただけます。</P>
         </LegalSection>
 
         <LegalSection title="関連ページ">
@@ -47,7 +47,7 @@ export default function SupportPageContent() {
             {' ／ '}
             <a href="/terms" style={{ color: '#ED742F', textDecoration: 'underline' }}>利用規約</a>
             {' ／ '}
-            <a href="/account-deletion" style={{ color: '#ED742F', textDecoration: 'underline' }}>アカウント削除</a>
+            <a href="/disclaimer" style={{ color: '#ED742F', textDecoration: 'underline' }}>フィットネス免責事項</a>
           </P>
         </LegalSection>
       </LegalPageLayout>
@@ -63,17 +63,17 @@ export default function SupportPageContent() {
       </LegalSection>
 
       <LegalSection title="FAQ">
-        <P><Highlight>Q. I forgot my password.</Highlight></P>
-        <P>On the login screen, tap &quot;FORGOT PASSWORD?&quot; and enter your email to receive a reset link.</P>
-
-        <P><Highlight>Q. I want to delete my account.</Highlight></P>
-        <P>Go to Profile → Settings → Delete Account in the app. For details, see our <a href="/account-deletion" style={{ color: '#ED742F', textDecoration: 'underline' }}>Account Deletion page</a>.</P>
-
         <P><Highlight>Q. How is my data managed?</Highlight></P>
-        <P>Please see our <a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>Privacy Policy</a> for details.</P>
+        <P>In the current MVP, all workout records, body weight data, and app settings are stored locally on your device. No data is sent to our servers. See our <a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>Privacy Policy</a> for details.</P>
+
+        <P><Highlight>Q. I want to delete my recorded data.</Highlight></P>
+        <P>In the current MVP, no account is required. Data stored on your device can be removed by uninstalling the App. If account features are introduced in the future, in-app data deletion will be available.</P>
 
         <P><Highlight>Q. The app is not working correctly.</Highlight></P>
         <P>Try restarting the app or updating to the latest version. If the issue persists, contact us by email.</P>
+
+        <P><Highlight>Q. When will REPRA Pro be available?</Highlight></P>
+        <P>REPRA Pro is coming soon. All current features are available for free in the meantime.</P>
       </LegalSection>
 
       <LegalSection title="Related Pages">
@@ -82,7 +82,7 @@ export default function SupportPageContent() {
           {' · '}
           <a href="/terms" style={{ color: '#ED742F', textDecoration: 'underline' }}>Terms of Use</a>
           {' · '}
-          <a href="/account-deletion" style={{ color: '#ED742F', textDecoration: 'underline' }}>Account Deletion</a>
+          <a href="/disclaimer" style={{ color: '#ED742F', textDecoration: 'underline' }}>Fitness Disclaimer</a>
         </P>
       </LegalSection>
     </LegalPageLayout>

@@ -23,12 +23,13 @@ export default function TermsPageContent() {
           <P>REPRA is a fitness tracking app for logging strength training, tracking progress, viewing stats, and sharing results. The App is not intended for medical, diagnostic, or health advisory purposes.</P>
         </LegalSection>
 
-        <LegalSection title="2. Account Registration">
-          <P>Some features require creating an account. You must provide accurate and up-to-date information. Do not register with false or impersonated information.</P>
+        <LegalSection title="2. No Account Required (Current MVP)">
+          <P>In the current version, REPRA does not require account creation. Record, Calendar, Stats, and Share are all available without signing in. All data is stored locally on your device.</P>
+          <P>Account features may be introduced in a future update.</P>
         </LegalSection>
 
-        <LegalSection title="3. Account Management">
-          <P>You are responsible for maintaining the confidentiality of your login credentials. Actions taken through your account are considered your own.</P>
+        <LegalSection title="3. Future Account Features">
+          <P>If account features are added, users will be required to provide accurate information at registration. Users will be responsible for managing their own login credentials.</P>
         </LegalSection>
 
         <LegalSection title="4. Training Data & Body Information">
@@ -73,8 +74,9 @@ export default function TermsPageContent() {
           <P>Refunds, cancellations, and renewal stops for paid plans purchased through the App Store are handled according to Apple&apos;s policies. REPRA cannot directly process refunds.</P>
         </LegalSection>
 
-        <LegalSection title="11. Account Deletion">
-          <P>You can delete your account from Settings within the App. After deletion, your data will be deleted or anonymized within a reasonable time, except where required by law or for fraud prevention.</P>
+        <LegalSection title="11. Data and Account Deletion">
+          <P>In the current MVP, REPRA does not require an account, so account deletion is generally not applicable. Data stored on your device can be cleared by uninstalling the App.</P>
+          <P>If account features are introduced, in-app account deletion will be provided. Contact us at {SUPPORT_EMAIL} if you need assistance.</P>
         </LegalSection>
 
         <LegalSection title="12. Service Changes">
@@ -113,15 +115,13 @@ export default function TermsPageContent() {
         <P>本アプリは、医療、診断、治療、健康指導、栄養指導を目的とするものではありません。</P>
       </LegalSection>
 
-      <LegalSection title="2. アカウント登録">
-        <P>ユーザーは、本アプリの一部機能を利用するために、アカウントを作成する必要があります。</P>
-        <P>ユーザーは、登録時に正確かつ最新の情報を提供するものとします。</P>
-        <P>虚偽、不正確、または第三者になりすました情報を登録してはなりません。</P>
+      <LegalSection title="2. アカウント不要（現在のMVP）">
+        <P>現在のバージョンでは、REPRAはアカウント作成を必要としません。Record・Calendar・Stats・Shareのすべての機能を、ログインなしでご利用いただけます。データはすべてお使いの端末内に保存されます。</P>
+        <P>将来的にアカウント機能を導入する場合があります。</P>
       </LegalSection>
 
-      <LegalSection title="3. アカウント管理">
-        <P>ユーザーは、自己の責任においてログイン情報を管理するものとします。</P>
-        <P>ユーザーのアカウントを利用して行われた行為は、当該ユーザー本人による行為とみなされます。ただし、本アプリの責めに帰すべき事由がある場合を除きます。</P>
+      <LegalSection title="3. 将来的なアカウント機能について">
+        <P>アカウント機能を導入する場合、登録時には正確な情報を提供していただく必要があります。また、ユーザーはご自身のログイン情報を責任を持って管理するものとします。</P>
       </LegalSection>
 
       <LegalSection title="4. トレーニング記録と身体情報">
@@ -175,9 +175,9 @@ export default function TermsPageContent() {
         <P>本アプリ側で直接返金処理を行えない場合があります。</P>
       </LegalSection>
 
-      <LegalSection title="11. アカウント削除">
-        <P>ユーザーは、アプリ内の「アカウント削除」機能からアカウント削除を申請できます。</P>
-        <P>アカウント削除後、ユーザーに紐づくデータは、法令上または不正利用防止のために保存が必要な情報を除き、合理的な期間内に削除または匿名化されます。</P>
+      <LegalSection title="11. データおよびアカウント削除">
+        <P>現在のMVPではアカウント機能を提供していないため、通常のアカウント削除操作は不要です。端末内に保存されたデータは、アプリをアンインストールすることで削除されます。</P>
+        <P>将来的にアカウント機能を導入する場合は、アプリ内でアカウント削除を申請できるようにする予定です。ご不明な点は {SUPPORT_EMAIL} までお問い合わせください。</P>
       </LegalSection>
 
       <LegalSection title="12. サービスの変更・停止">

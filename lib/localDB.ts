@@ -129,7 +129,8 @@ export function localGetCalendarData(days = 90): {
 } {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - days)
-  const cutoffStr = cutoff.toISOString().split('T')[0]
+  // Use JST to match the timezone used when storing trained_at dates
+  const cutoffStr = cutoff.toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
   const sessions = getSessions().filter(s => s.completed_at !== null && s.trained_at >= cutoffStr)
   const sidSet = new Set(sessions.map(s => s.id))
   const sets = getSets().filter(s => sidSet.has(s.session_id))
@@ -226,7 +227,7 @@ export function localUpsertBodyWeight(weightKg: number, date: string): void {
 export function localGetBodyWeightHistory(days = 730): { date: string; label: string; weight: number }[] {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - days)
-  const cutoffStr = cutoff.toISOString().split('T')[0]
+  const cutoffStr = cutoff.toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
   return getBodyWeights()
     .filter(w => w.date >= cutoffStr)
     .sort((a, b) => a.date.localeCompare(b.date))
