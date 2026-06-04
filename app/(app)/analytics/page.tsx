@@ -8,7 +8,7 @@ export default async function AnalyticsPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    return <AnalyticsDashboardClient bodyWeightData={[]} exercises={[]} totalSessions={0} />
+    return <AnalyticsDashboardClient bodyWeightData={[]} exercises={[]} totalSessions={0} useLocalDB={true} />
   }
 
   // Limit body weight to 2 years — covers all client-side period filters (30/90/365 day)

@@ -1,25 +1,26 @@
-import { getSessionForDate } from '@/actions/workout'
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
+import { localGetSessionForDate } from '@/lib/localDB'
 import RecordNavigator from '@/components/record/RecordNavigator'
 
 function getTodayJST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
 }
 
-export default async function RecordPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ date?: string; from?: string }>
-}) {
-  const { date: rawDate, from } = await searchParams
-  const date = rawDate ?? getTodayJST()
+function RecordInner() {
+  const searchParams = useSearchParams()
+  const date = searchParams.get('date') ?? getTodayJST()
+  const from = searchParams.get('from') ?? undefined
+  const sessionData = localGetSessionForDate(date)
+  return <RecordNavigator initialDate={date} initialSession={sessionData} from={from} />
+}
 
-  const sessionData = await getSessionForDate(date)
-
+export default function RecordPage() {
   return (
-    <RecordNavigator
-      initialDate={date}
-      initialSession={sessionData}
-      from={from}
-    />
+    <Suspense>
+      <RecordInner />
+    </Suspense>
   )
 }

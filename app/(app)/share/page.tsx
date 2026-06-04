@@ -3,7 +3,9 @@ import { getStatsForShare, getExercisesWithHistory, getBodyWeightData } from '@/
 import { getTodayWorkoutForShare } from '@/actions/workout'
 import ShareView from '@/components/share/ShareView'
 import StatsShareView from '@/components/share/StatsShareView'
+import StatsShareGuestView from '@/components/share/StatsShareGuestView'
 import TodayShareView from '@/components/share/TodayShareView'
+import ShareGuestView from '@/components/share/ShareGuestView'
 import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import FeatureTracker from '@/components/common/FeatureTracker'
@@ -11,6 +13,7 @@ import Link from 'next/link'
 import { TrendingUp, BarChart2, Activity, CalendarDays, Lock, Crown, ChevronRight, Settings } from 'lucide-react'
 import { cookies, headers } from 'next/headers'
 import { resolveServerLocale, type Locale } from '@/lib/i18n'
+import { createClient } from '@/lib/supabase/server'
 
 // ── Lightweight SVG previews (server-rendered, no chart lib) ──────────
 
@@ -132,6 +135,17 @@ export default async function SharePage({
         </div>
       )
     }
+    // In local-only mode, load from localStorage via client component
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return (
+        <>
+          <FeatureTracker feature="story" />
+          <ShareGuestView date={date} />
+        </>
+      )
+    }
     const data = await getTodayWorkoutForShare(date)
     if (!data) {
       return (
@@ -159,7 +173,18 @@ export default async function SharePage({
   }
 
   if (params.type === 'stats') {
-    const data = await getStatsForShare(params.metric ?? '', params.exercise, params.bodypart)
+    const supabase2 = await createClient()
+    const { data: { user: statsUser } } = await supabase2.auth.getUser()
+    if (!statsUser) {
+      return (
+        <StatsShareGuestView
+          metric={params.metric ?? ''}
+          exercise={params.exercise}
+          bodypart={params.bodypart}
+        />
+      )
+    }
+    const data = await getStatsForShare(params.metric ?? '', params.exercise, params.bodypart).catch(() => null)
     if (!data) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>

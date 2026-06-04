@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Search, X, Plus, EyeOff, Trash2 } from 'lucide-react'
-import { createCustomExercise, getExerciseUsageCounts, deleteCustomExercise } from '@/actions/workout'
-import { createClient } from '@/lib/supabase/client'
+import { localCreateCustomExercise, localDeleteCustomExercise, localGetExerciseUsageCounts, localGetCustomExercises } from '@/lib/localDB'
+import { DEFAULT_EXERCISES } from '@/lib/defaultExercises'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import { JA_TO_EN, getDisplayName } from '@/lib/exerciseNames'
@@ -124,19 +124,10 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   }, [])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      supabase
-        .from('exercises')
-        .select('id, name, muscle_group, equipment, is_custom')
-        .or(user ? `user_id.is.null,user_id.eq.${user.id}` : 'user_id.is.null')
-        .order('name')
-        .then(({ data }) => {
-          setExercises(data ?? [])
-          setLoading(false)
-        })
-    })
-    getExerciseUsageCounts().then(setUsageCounts)
+    const customs = localGetCustomExercises()
+    setExercises([...DEFAULT_EXERCISES, ...customs])
+    setLoading(false)
+    setUsageCounts(localGetExerciseUsageCounts())
     setHiddenIds(getStoredHidden())
   }, [])
 
@@ -152,27 +143,17 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
     saveHidden(updated)
   }
 
-  const handleDelete = async (id: string) => {
-    setDeleting(true)
-    try {
-      await deleteCustomExercise(id)
-      setExercises(prev => prev.filter(e => e.id !== id))
-      setConfirmDeleteId(null)
-    } finally {
-      setDeleting(false)
-    }
+  const handleDelete = (id: string) => {
+    localDeleteCustomExercise(id)
+    setExercises(prev => prev.filter(e => e.id !== id))
+    setConfirmDeleteId(null)
   }
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!newName.trim()) return
-    setCreating(true)
-    try {
-      const created = await createCustomExercise(newName.trim(), newGroup)
-      setExercises(prev => [...prev, created])
-      onSelect(created)
-    } finally {
-      setCreating(false)
-    }
+    const created = localCreateCustomExercise(newName.trim(), newGroup)
+    setExercises(prev => [...prev, created])
+    onSelect(created)
   }
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query])

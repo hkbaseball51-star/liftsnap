@@ -5,9 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
-import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
-import { upsertBodyWeight } from '@/actions/bodyWeight'
-import { createClient } from '@/lib/supabase/client'
+import { localCreateSession, localSaveFullSession, localGetExercisePR, localUpsertBodyWeight } from '@/lib/localDB'
 import ExercisePicker from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import NoteInputSheet from './NoteInputSheet'
@@ -122,14 +120,6 @@ function calcPRStatus(maxWeightToday: number, allTimePR: number | null): PRStatu
   return { type: 'below', gap: Math.round((allTimePR - maxWeightToday) * 10) / 10 }
 }
 
-async function ensureAuth() {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    await supabase.auth.signInAnonymously()
-    await new Promise(r => setTimeout(r, 600))
-  }
-}
 
 /* ─── ExerciseCard (memoized) ─────────────────────────── */
 
@@ -417,13 +407,12 @@ export default function WorkoutRecorder({
   // Fetch PR data for pre-loaded exercises
   useEffect(() => {
     for (const ex of existingExercises ?? []) {
-      getExercisePR(ex.name).then(pr => {
-        if (pr !== null) {
-          setExerciseList(prev => prev.map(e =>
-            e.name === ex.name && e.allTimePR === null ? { ...e, allTimePR: pr } : e
-          ))
-        }
-      })
+      const pr = localGetExercisePR(ex.name)
+      if (pr !== null) {
+        setExerciseList(prev => prev.map(e =>
+          e.name === ex.name && e.allTimePR === null ? { ...e, allTimePR: pr } : e
+        ))
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -566,14 +555,13 @@ export default function WorkoutRecorder({
     setShowPicker(false)
     setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
 
-    // Fetch PR in background — does not block UI
-    getExercisePR(exercise.name).then(pr => {
-      if (pr !== null) {
-        setExerciseList(prev => prev.map(ex =>
-          ex.name === exercise.name && ex.allTimePR === null ? { ...ex, allTimePR: pr } : ex
-        ))
-      }
-    })
+    // Fetch PR synchronously from localDB
+    const pr = localGetExercisePR(exercise.name)
+    if (pr !== null) {
+      setExerciseList(prev => prev.map(ex =>
+        ex.name === exercise.name && ex.allTimePR === null ? { ...ex, allTimePR: pr } : ex
+      ))
+    }
   }
 
   /* ── Exercise rename (keeps all sets/memo) ── */
@@ -591,27 +579,24 @@ export default function WorkoutRecorder({
       }
     ))
     setIsDirty(true)
-    getExercisePR(exercise.name).then(pr => {
-      if (pr !== null) {
-        setExerciseList(prev => prev.map(ex =>
-          ex.id === targetId ? { ...ex, allTimePR: pr } : ex
-        ))
-      }
-    })
+    const renamePR = localGetExercisePR(exercise.name)
+    if (renamePR !== null) {
+      setExerciseList(prev => prev.map(ex =>
+        ex.id === targetId ? { ...ex, allTimePR: renamePR } : ex
+      ))
+    }
   }
 
   /* ── Body weight (optional) ── */
 
-  const handleBwSave = async () => {
+  const handleBwSave = () => {
     const v = parseFlexibleNumber(bwInput)
     const maxBw = weightUnit === 'lbs' ? 661 : 300
     if (v === null || v <= 0 || v > maxBw) return
-    setBwSaving(true)
-    try {
-      await upsertBodyWeight(fromDisplayWeight(v, weightUnit))
-      setBwSaved(true)
-      setTimeout(() => setBwSaved(false), 2500)
-    } catch { /* silent */ } finally { setBwSaving(false) }
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+    localUpsertBodyWeight(fromDisplayWeight(v, weightUnit), today)
+    setBwSaved(true)
+    setTimeout(() => setBwSaved(false), 2500)
   }
 
   /* ── Finish / save ── */
@@ -621,8 +606,7 @@ export default function WorkoutRecorder({
     try {
       let sid = sessionId
       if (!sid) {
-        await ensureAuth()
-        sid = await createSessionForDate(date, title)
+        sid = localCreateSession(date, title)
         setSessionId(sid)
       }
       const setsToSave = exerciseList.flatMap(ex =>
@@ -637,7 +621,7 @@ export default function WorkoutRecorder({
             note: ex.note || null,
           }))
       )
-      await saveFullSession(sid, title, setsToSave)
+      localSaveFullSession(sid, title, setsToSave)
       setIsDirty(false)
     } finally {
       setSaving(false)

@@ -9,6 +9,7 @@ type Props = {
   bodyWeightData: WeightPoint[]
   exercises: Exercise[]
   totalSessions: number
+  useLocalDB?: boolean
 }
 
 // Skeleton shown while recharts and the full dashboard JS hydrate.
@@ -98,5 +99,5 @@ const AnalyticsDashboard = dynamic(
 )
 
 export default function AnalyticsDashboardClient(props: Props) {
-  return <AnalyticsDashboard {...props} />
+  return <AnalyticsDashboard {...props} useLocalDB={props.useLocalDB} />
 }

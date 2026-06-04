@@ -9,6 +9,14 @@ import Link from 'next/link'
 import { Share2, Lock, Maximize2, Settings } from 'lucide-react'
 import { getExercise1RMData, getBodyPartDailyVolumeData } from '@/actions/analytics'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
+import {
+  localGetExercisesWithHistory,
+  localGetBodyWeightHistory,
+  localGetTotalSessions,
+  localGetExercise1RMData,
+  localGetBodyPartDailyVolumeData,
+  localUpsertBodyWeight,
+} from '@/lib/localDB'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
@@ -27,6 +35,7 @@ type Props = {
   bodyWeightData: WeightPoint[]
   exercises: Exercise[]
   totalSessions: number
+  useLocalDB?: boolean
 }
 
 const TABS = ['MAX 1RM', 'DAILY VOLUME', 'BODY WEIGHT'] as const
@@ -69,7 +78,7 @@ function periodToRange(p: Period): string {
   return ({ '30D':'30d','90D':'90d','6M':'6m','1Y':'1y','All':'all' } as Record<Period,string>)[p]
 }
 
-export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions }: Props) {
+export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions, useLocalDB }: Props) {
   const { locale } = useLocale()
   const { unit, mounted: unitMounted } = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
@@ -91,6 +100,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const volScrollRef = useRef<HTMLDivElement>(null)
   const bwScrollRef  = useRef<HTMLDivElement>(null)
 
+  const [localExercises, setLocalExercises] = useState<Exercise[]>(exercises)
+  const [localTotalSessions, setLocalTotalSessions] = useState(totalSessions)
   const [bwData, setBwData]   = useState(bodyWeightData)
   const [bwInput, setBwInput] = useState(() => {
     const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
@@ -101,6 +112,21 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const [bwToast, setBwToast]   = useState<{ msg: string; ok: boolean } | null>(null)
 
   const [innerW, setInnerW] = useState(316)
+
+  // Load data from localStorage when useLocalDB is true
+  useEffect(() => {
+    if (!useLocalDB) return
+    const exs = localGetExercisesWithHistory()
+    setLocalExercises(exs)
+    if (exs.length > 0) setSelectedExercise(exs[0].name)
+    setLocalTotalSessions(localGetTotalSessions())
+    const bwHistory = localGetBodyWeightHistory(730)
+    setBwData(bwHistory)
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+    const todayEntry = bwHistory.find(p => p.date === today)
+    if (todayEntry) setBwInput(String(todayEntry.weight))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useLocalDB])
 
   useEffect(() => {
     let raf: ReturnType<typeof requestAnimationFrame> | null = null
@@ -116,7 +142,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     }
   }, [])
 
-  const filteredExercises = exercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
+  const activeExercises = useLocalDB ? localExercises : exercises
+  const activeTotalSessions = useLocalDB ? localTotalSessions : totalSessions
+  const filteredExercises = activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
   // Auto-load data when tab, exercise/bodypart, or period changes
   useEffect(() => {
@@ -124,19 +152,27 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     if (tab === 'MAX 1RM') {
       if (!selectedExercise) return
       setRmData([])
-      startRmTransition(async () => {
-        const data = await getExercise1RMData(selectedExercise, startDate)
-        setRmData(data)
-      })
+      if (useLocalDB) {
+        setRmData(localGetExercise1RMData(selectedExercise, startDate))
+      } else {
+        startRmTransition(async () => {
+          const data = await getExercise1RMData(selectedExercise, startDate)
+          setRmData(data)
+        })
+      }
     } else if (tab === 'DAILY VOLUME') {
       setVolData([])
-      startVolTransition(async () => {
-        const data = await getBodyPartDailyVolumeData(volBodyPart.toLowerCase(), startDate)
-        setVolData(data)
-      })
+      if (useLocalDB) {
+        setVolData(localGetBodyPartDailyVolumeData(volBodyPart.toLowerCase(), startDate))
+      } else {
+        startVolTransition(async () => {
+          const data = await getBodyPartDailyVolumeData(volBodyPart.toLowerCase(), startDate)
+          setVolData(data)
+        })
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedExercise, volBodyPart, period])
+  }, [tab, selectedExercise, volBodyPart, period, useLocalDB])
 
   // Re-initialize bwInput in display unit once unit resolves
   useEffect(() => {
@@ -157,7 +193,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const handleMuscleFilter = (mg: MuscleGroup) => {
     setMuscleFilter(mg)
-    const newFiltered = exercises.filter(e => matchesMuscleGroup(e.muscle_group, mg))
+    const newFiltered = activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, mg))
     if (newFiltered.length > 0 && !newFiltered.find(e => e.name === selectedExercise)) {
       setSelectedExercise(newFiltered[0].name)
     }
@@ -173,12 +209,21 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     if (v === null || v < bwMin || v > bwMax) return
     if (bwSaving) return
     const vKg = fromDisplayWeight(v, unit)
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+    const [, mm, dd] = today.split('-')
+    const label = `${parseInt(mm)}/${parseInt(dd)}`
+    if (useLocalDB) {
+      localUpsertBodyWeight(vKg, today)
+      setBwData(prev => {
+        const filtered = prev.filter(p => p.date !== today)
+        return [...filtered, { date: today, label, weight: vKg }].sort((a, b) => a.date.localeCompare(b.date))
+      })
+      showBwToast(t(locale, 'analytics.weightLogged'), true)
+      return
+    }
     setBwSaving(true)
     try {
       await upsertBodyWeight(vKg)
-      const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-      const [, mm, dd] = today.split('-')
-      const label = `${parseInt(mm)}/${parseInt(dd)}`
       setBwData(prev => {
         const filtered = prev.filter(p => p.date !== today)
         return [...filtered, { date: today, label, weight: vKg }].sort((a, b) => a.date.localeCompare(b.date))
@@ -212,9 +257,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   // Display-unit converted data for charts
   const rmDataDisplay = rmDataAggregated.map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
   const volDataDisplay = volDataAggregated.map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
-  const showExerciseSelector = tab === 'MAX 1RM' && exercises.length > 0
+  const showExerciseSelector = tab === 'MAX 1RM' && activeExercises.length > 0
 
-  const exerciseLogCount      = exercises.find(e => e.name === selectedExercise)?.logCount ?? 0
+  const exerciseLogCount      = activeExercises.find(e => e.name === selectedExercise)?.logCount ?? 0
   const exerciseShareUnlocked = exerciseLogCount >= EXERCISE_GRAPH_REQUIRED
 
   const periodLabel  = { '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' }[period] ?? period
@@ -465,9 +510,9 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       {/* MAX 1RM Tab */}
       {tab === 'MAX 1RM' && (
         <div>
-          {totalSessions < 5 ? (
-            <MilestoneLock current={totalSessions} required={5} locale={locale} chartName="MAX 1RMグラフ" chartNameEn="MAX 1RM chart" />
-          ) : exercises.length === 0 ? (
+          {activeTotalSessions < 5 ? (
+            <MilestoneLock current={activeTotalSessions} required={5} locale={locale} chartName="MAX 1RMグラフ" chartNameEn="MAX 1RM chart" />
+          ) : activeExercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
             <NoGroupData />
@@ -612,8 +657,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       {/* DAILY VOLUME Tab */}
       {tab === 'DAILY VOLUME' && (
         <div>
-          {totalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
-            <MilestoneLock current={totalSessions} required={VOLUME_CHART_SESSION_REQUIRED} locale={locale} chartName="Volumeグラフ" chartNameEn="Volume chart" />
+          {activeTotalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
+            <MilestoneLock current={activeTotalSessions} required={VOLUME_CHART_SESSION_REQUIRED} locale={locale} chartName="Volumeグラフ" chartNameEn="Volume chart" />
           ) : (
             <>
               {/* Body part filter */}
