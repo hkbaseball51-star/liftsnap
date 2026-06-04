@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2 } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
 import { createSessionForDate, saveFullSession, getExercisePR } from '@/actions/workout'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { createClient } from '@/lib/supabase/client'
@@ -701,7 +702,11 @@ export default function WorkoutRecorder({
           <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
             {formatNavDate(date, locale)}
           </span>
-          <div className="flex-shrink-0 w-9" />
+          <Link href="/profile/settings"
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <Settings size={16} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          </Link>
         </div>
 
         {/* Row 1.5: session title */}

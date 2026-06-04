@@ -6,7 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
 import Link from 'next/link'
-import { Share2, Lock, Maximize2 } from 'lucide-react'
+import { Share2, Lock, Maximize2, Settings } from 'lucide-react'
 import { getExercise1RMData, getBodyPartDailyVolumeData } from '@/actions/analytics'
 import { upsertBodyWeight } from '@/actions/bodyWeight'
 import { parseFlexibleNumber } from '@/lib/number'
@@ -368,7 +368,14 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
-      <h1 className="text-xl font-black tracking-widest text-white mb-5">ANALYTICS</h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-black tracking-widest text-white">ANALYTICS</h1>
+        <Link href="/profile/settings"
+          className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <Settings size={18} style={{ color: 'rgba(255,255,255,0.52)' }} />
+        </Link>
+      </div>
 
       {/* Tab bar */}
       <div className="flex gap-1 mb-4 p-1 rounded-2xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>

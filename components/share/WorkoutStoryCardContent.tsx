@@ -143,25 +143,20 @@ function acRgba(hex: string, alpha: number): string {
 }
 
 // ── Glass card background ─────────────────────────────────────────────
-// Subtle checker + accent tint on a semi-transparent dark (or light) base.
-// Applied to all glass-mode cards so the "transparency" aesthetic is visible
-// without losing readability. backgroundSize must be applied alongside background.
+// Axis-aligned square checker + vertical accent tint on a semi-transparent base.
+// conic-gradient with 90-degree sectors produces rectangular quadrants (not rotated diamonds).
+// backgroundSize must be applied alongside background.
 export function glassCardStyle(accentHex: string, isDark: boolean): { background: string; backgroundSize: string } {
-  const sq   = isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.04)'
+  const sq   = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)'
   const base = isDark ? 'rgba(10,10,10,0.84)' : 'rgba(242,242,237,0.88)'
   const r    = parseInt(accentHex.slice(1, 3), 16)
   const g    = parseInt(accentHex.slice(3, 5), 16)
   const b    = parseInt(accentHex.slice(5, 7), 16)
+  const accent  = `linear-gradient(to bottom, rgba(${r},${g},${b},0.08), rgba(${r},${g},${b},0.04))`
+  const checker = `conic-gradient(${sq} 90deg, transparent 0 180deg, ${sq} 0 270deg, transparent 0)`
   return {
-    background: [
-      `linear-gradient(145deg, rgba(${r},${g},${b},0.07) 0%, transparent 80%)`,
-      `linear-gradient(45deg, ${sq} 25%, transparent 25%)`,
-      `linear-gradient(-45deg, ${sq} 25%, transparent 25%)`,
-      `linear-gradient(45deg, transparent 75%, ${sq} 75%)`,
-      `linear-gradient(-45deg, transparent 75%, ${sq} 75%)`,
-      base,
-    ].join(', '),
-    backgroundSize: '100% 100%, 16px 16px, 16px 16px, 16px 16px, 16px 16px, auto',
+    background: [accent, checker, base].join(', '),
+    backgroundSize: '100% 100%, 20px 20px, auto',
   }
 }
 

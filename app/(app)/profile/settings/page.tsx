@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { logout } from '@/actions/auth'
 import { deleteAccount } from '@/actions/profile'
 import Link from 'next/link'
@@ -114,6 +115,7 @@ function SoonRowEl({ row, last, soonLabel }: { row: SoonRow; last: boolean; soon
 
 /* ── Page ────────────────────────────────────────────── */
 export default function SettingsPage() {
+  const router = useRouter()
   const { locale } = useLocale()
   const [authReady,        setAuthReady]        = useState(false)
   const [isPro,            setIsPro]            = useState(false)
@@ -219,9 +221,9 @@ export default function SettingsPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
-        <Link href="/profile" className="p-1 -ml-1 active:opacity-70">
+        <button onClick={() => router.back()} className="p-1 -ml-1 active:opacity-70">
           <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
-        </Link>
+        </button>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'settings.settingsTitle')}</h1>
       </div>
 

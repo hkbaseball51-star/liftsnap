@@ -3,7 +3,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Zap } from 'lucide-react'
+import { Zap, Settings } from 'lucide-react'
 import { formatVolume } from '@/lib/utils'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import StreakBadge from '@/components/home/StreakBadge'
@@ -270,23 +270,11 @@ export default async function HomePage() {
           priority
           style={{ width: 100, height: 'auto', display: 'block' }}
         />
-        {/* Status stack — hidden for MVP */}
-        {/* <div className="flex flex-col items-end gap-1.5" style={{ paddingTop: 2 }}>
-          <div className="flex items-center gap-1">
-            <Zap size={10} style={{ color: 'rgba(255,255,255,0.38)' }} />
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.44)', letterSpacing: '0.04em' }}>
-              {locale === 'ja' ? `${totalSessions90}回` : `${totalSessions90} lifts`}
-            </span>
-          </div>
-          <StreakBadge
-            streak={weekStreak}
-            thisWeekDone={thisWeekDone}
-            locale={locale}
-            thisWeekWorkouts={thisWeekSessions.length}
-            thisWeekPhotos={thisWeekPhotosCount}
-            compact
-          />
-        </div> */}
+        <Link href="/profile/settings"
+          className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-1"
+          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <Settings size={18} style={{ color: 'rgba(255,255,255,0.52)' }} />
+        </Link>
       </div>
 
       {/* ── WELCOME ── */}

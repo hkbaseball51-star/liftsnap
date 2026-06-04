@@ -8,7 +8,7 @@ import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/Work
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import FeatureTracker from '@/components/common/FeatureTracker'
 import Link from 'next/link'
-import { TrendingUp, BarChart2, Activity, CalendarDays, Lock, Crown, ChevronRight } from 'lucide-react'
+import { TrendingUp, BarChart2, Activity, CalendarDays, Lock, Crown, ChevronRight, Settings } from 'lucide-react'
 import { cookies, headers } from 'next/headers'
 import { resolveServerLocale, type Locale } from '@/lib/i18n'
 
@@ -237,15 +237,24 @@ export default async function SharePage({
 
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="px-4 pt-10 pb-4">
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.36)', marginBottom: 5 }}>
-            SHARE
-          </p>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>
-            {ja ? '今日の努力を、1枚の証拠に。' : 'Create your proof.'}
-          </h1>
-          <p style={{ fontSize: 12.5, fontWeight: 400, color: 'rgba(255,255,255,0.40)', lineHeight: 1.5 }}>
-            {ja ? '今日の努力をストーリーカードに変換する' : "Turn today's effort into a story."}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.36)', marginBottom: 5 }}>
+                SHARE
+              </p>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>
+                {ja ? '今日の努力を、1枚の証拠に。' : 'Create your proof.'}
+              </h1>
+              <p style={{ fontSize: 12.5, fontWeight: 400, color: 'rgba(255,255,255,0.40)', lineHeight: 1.5 }}>
+                {ja ? '今日の努力をストーリーカードに変換する' : "Turn today's effort into a story."}
+              </p>
+            </div>
+            <Link href="/profile/settings"
+              className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-0.5"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
+              <Settings size={18} style={{ color: 'rgba(255,255,255,0.52)' }} />
+            </Link>
+          </div>
         </div>
 
         <div className="px-4 flex flex-col gap-4" style={{ paddingBottom: 28 }}>
