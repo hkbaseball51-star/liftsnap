@@ -7,6 +7,7 @@ import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 import { PRESETS } from '@/components/share/WorkoutStoryCardContent'
+import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -379,55 +380,7 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
   return new Promise(resolve => cv.toBlob(b => resolve(b!), 'image/png'))
 }
 
-/* ── Graph card capture (html-to-image, dynamic import) ──── */
-async function captureGraphElement(
-  el: HTMLDivElement,
-  isTransparent: boolean,
-): Promise<Blob> {
-  const { toPng } = await import('html-to-image')
-  await document.fonts.ready
-  // Let React finish any pending renders
-  await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 120))
-
-  const W = el.offsetWidth
-  const H = el.offsetHeight
-  // Scale so the longest side is ≥ 1080px, capped at 3× to avoid memory issues
-  const pixelRatio = Math.min(3, Math.max(1, Math.round(1080 / Math.max(W, H, 1))))
-
-  const opts = {
-    width: W,
-    height: H,
-    style: { width: `${W}px`, height: `${H}px` },
-    pixelRatio,
-    cacheBust: true,
-    skipFonts: true,
-  }
-
-  const prevBg = el.style.background
-  if (isTransparent) {
-    el.style.background = 'transparent'
-    await new Promise(r => requestAnimationFrame(r))
-  }
-
-  try {
-    // First call warms up SVG/image resources; second call gets the clean render
-    await toPng(el, opts)
-    await new Promise(r => setTimeout(r, 60))
-    const dataUrl = await toPng(el, opts)
-    const res  = await fetch(dataUrl)
-    const blob = await res.blob()
-    if (blob.size < 2000) {
-      throw new Error('Captured image appears empty (size < 2 KB)')
-    }
-    return blob
-  } finally {
-    if (isTransparent) {
-      el.style.background = prevBg
-    }
-  }
-}
+// captureElement + shareOrDownloadImage are imported from @/lib/shareImage
 
 /* ── SVG chart for DOM preview (volume / bodyweight) ──────── */
 function ChartSVG({ pts, ac, accent, chartType }: {
@@ -671,7 +624,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
         // ── Capture ──────────────────────────────────────────
         const isTransparent = cardStyle === 'transparent'
-        blob = await captureGraphElement(el, isTransparent)
+        blob = await captureElement(el, { clearBackground: isTransparent })
 
         // ── Filename ─────────────────────────────────────────
         const today    = new Date().toISOString().split('T')[0]
@@ -681,54 +634,30 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-max-1rm-story-${today}-${nameSlug}.png`
           : `repra-max-1rm-card-${today}-${nameSlug}-${graphLayout}.png`
 
-        // ── Share: Web Share API first, download fallback ────
-        const file = new File([blob], filename, { type: 'image/png' })
-        if (navigator.canShare?.({ files: [file] })) {
-          setStatus('Sharing...')
-          await navigator.share({
-            files: [file],
-            title: graphLayout === 'full' ? 'REPRA Graph Story' : 'REPRA Graph Card',
-          })
-          const next = incrementShareCount(); setShareCount(next)
+        // ── Share ─────────────────────────────────────────────
+        const result1 = await shareOrDownloadImage({
+          blob, filename,
+          title: graphLayout === 'full' ? 'REPRA Graph Story' : 'REPRA Graph Card',
+        })
+        incrementShareCount(); setShareCount(getShareCount())
+        if (result1 === 'downloaded') {
+          setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
+        } else {
           setStatus('')
-          return
         }
-
-        // Fallback: anchor download (non-iOS or desktop)
-        const url = URL.createObjectURL(blob)
-        const a   = document.createElement('a')
-        a.href = url; a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
-        const next = incrementShareCount(); setShareCount(next)
-        setStatus('Downloaded!')
-        setTimeout(() => setStatus(''), 2000)
         return
 
       } else {
-        // ── Volume / bodyweight — existing flow (unchanged) ──
+        // ── Volume / bodyweight (canvas path, unchanged) ──────
         blob = await generateStatsCard(data, theme, accent, chartType, unit)
         filename = 'repra-stats.png'
-        const file = new File([blob], filename, { type: 'image/png' })
-        if (navigator.canShare?.({ files: [file] })) {
-          setStatus('Sharing...')
-          await navigator.share({ files: [file], title: 'REPRA Stats' })
-          const next = incrementShareCount(); setShareCount(next)
+        const result2 = await shareOrDownloadImage({ blob, filename, title: 'REPRA Stats' })
+        incrementShareCount(); setShareCount(getShareCount())
+        if (result2 === 'downloaded') {
+          setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
+        } else {
           setStatus('')
-          return
         }
-        const url = URL.createObjectURL(blob)
-        const a   = document.createElement('a')
-        a.href = url; a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
-        const next = incrementShareCount(); setShareCount(next)
-        setStatus('Downloaded!')
-        setTimeout(() => setStatus(''), 2000)
       }
 
     } catch (e: unknown) {

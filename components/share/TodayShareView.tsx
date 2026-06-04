@@ -8,6 +8,7 @@ import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useLocale } from '@/lib/useLocale'
 import WorkoutStoryCardContent, { ExerciseStoryCard, tname, PRESETS } from './WorkoutStoryCardContent'
 import type { TodayData, CardStyle, DesignPreset, ShadowMode } from './WorkoutStoryCardContent'
+import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 
 export type { TodayData }
 
@@ -15,55 +16,6 @@ function fmtDateShort(s: string) {
   const d = new Date(s + 'T00:00:00')
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
-}
-
-// Capture a visible on-screen card element as a PNG blob.
-// Key: we capture the VISIBLE element, not an off-screen one.
-// Off-screen elements (position:fixed; left:-9999px) cause html-to-image SVG foreignObject
-// to return transparent PNGs because the browser doesn't compute styles for out-of-viewport
-// fixed elements. Visible elements are guaranteed to have correct computed styles.
-async function captureCard(cardEl: HTMLDivElement): Promise<Blob> {
-  const { toBlob } = await import('html-to-image')
-  await document.fonts.ready
-  // Double rAF: ensures the element is fully painted before capture
-  await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => requestAnimationFrame(r))
-  await new Promise(r => setTimeout(r, 80))
-
-  const W = cardEl.offsetWidth
-  const H = cardEl.offsetHeight
-
-  if (process.env.NODE_ENV !== 'production') {
-    /* eslint-disable no-console */
-    console.log('[captureCard] target:', cardEl.tagName, '| children:', cardEl.children.length)
-    console.log('[captureCard] innerText:', cardEl.innerText?.trim().slice(0, 100))
-    console.log('[captureCard] offsetW×H:', W, '×', H)
-    console.log('[captureCard] boundingRect:', cardEl.getBoundingClientRect())
-    /* eslint-enable no-console */
-  }
-
-  if (W === 0 || H === 0) {
-    throw new Error(`Export element has zero dimensions (${W}×${H}). Ref points to wrong node.`)
-  }
-
-  const pixelRatio = Math.min(4, Math.round(1080 / W))
-
-  const blob = await toBlob(cardEl, {
-    width: W,
-    height: H,
-    style: { width: `${W}px`, height: `${H}px` },
-    pixelRatio,
-    cacheBust: true,
-  })
-
-  if (process.env.NODE_ENV !== 'production') {
-    /* eslint-disable no-console */
-    console.log('[captureCard] blob:', blob?.size, 'bytes, type:', blob?.type)
-    /* eslint-enable no-console */
-  }
-
-  if (!blob) throw new Error('html-to-image returned null blob')
-  return blob
 }
 
 // ── Design presets ────────────────────────────────────────────────────
@@ -144,27 +96,6 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setShadowMode(PRESETS[p].defaultShadow)
   }
 
-  // Share via Web Share API when available, fall back to <a download>
-  const shareOrDownload = async (blob: Blob, filename: string): Promise<'shared' | 'downloaded'> => {
-    const file = new File([blob], filename, { type: 'image/png' })
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'REPRA Story Card' })
-      return 'shared'
-    }
-    const url = URL.createObjectURL(blob)
-    try {
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    } finally {
-      URL.revokeObjectURL(url)
-    }
-    return 'downloaded'
-  }
-
   // Save the combined (all-in-one) card — captures the visible preview card
   const handleSaveCombined = async () => {
     const cardEl = previewCardRef.current
@@ -172,9 +103,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setSaving(true)
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
-      const blob = await captureCard(cardEl)
+      const blob = await captureElement(cardEl)
       const filename = `repra-${data.date}-workout.png`
-      const result = await shareOrDownload(blob, filename)
+      const result = await shareOrDownloadImage({ blob, filename })
       incrementShareCount(); setShareCount(getShareCount())
       if (result === 'downloaded') {
         setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
@@ -202,10 +133,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
       const ex = data.exercises[idx]
-      const blob = await captureCard(cardEl)
+      const blob = await captureElement(cardEl)
       const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
       const safeName = enName || `ex-${idx + 1}`
-      const result = await shareOrDownload(blob, `repra-${data.date}-${safeName}.png`)
+      const result = await shareOrDownloadImage({ blob, filename: `repra-${data.date}-${safeName}.png` })
       incrementShareCount(); setShareCount(getShareCount())
       if (result === 'downloaded') {
         setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
@@ -235,7 +166,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         const cardEl = previewExRefs.current[i]
         if (!cardEl) continue
         const ex = data.exercises[i]
-        const blob = await captureCard(cardEl)
+        const blob = await captureElement(cardEl)
         const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
         const safeName = enName || `ex-${i + 1}`
         files.push(new File([blob], `repra-${data.date}-${safeName}.png`, { type: 'image/png' }))

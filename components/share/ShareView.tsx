@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, Download, ArrowLeft } from 'lucide-react'
+import { shareOrDownloadImage } from '@/lib/shareImage'
 
 type CardData = {
   title: string
@@ -154,18 +155,11 @@ export default function ShareView({ data }: { data: CardData }) {
     setStatus('Generating card...')
     try {
       const blob = await generateCard(data, theme, accent)
-      const file = new File([blob], 'repra-workout.png', { type: 'image/png' })
-
-      if (navigator.canShare?.({ files: [file] })) {
-        setStatus('Sharing...')
-        await navigator.share({ files: [file], title: 'REPRA Workout' })
-        setStatus('')
-      } else {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url; a.download = 'repra-workout.png'; a.click()
-        URL.revokeObjectURL(url)
+      const result = await shareOrDownloadImage({ blob, filename: 'repra-workout.png', title: 'REPRA Workout' })
+      if (result === 'downloaded') {
         setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000)
+      } else {
+        setStatus('')
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== 'AbortError') setStatus('Error occurred')
