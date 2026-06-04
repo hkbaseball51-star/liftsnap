@@ -13,18 +13,27 @@ type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
 type BWPoint  = { date: string; label: string; weight: number }
 
+type VolPPLData = {
+  push:  VolPoint[]
+  pull:  VolPoint[]
+  legs:  VolPoint[]
+  other: VolPoint[]
+}
+
 export type StatsData =
   | { type: 'max1rm';     exerciseName: string; bestRM: number; bestDate: string; bestSet: { weight: number; reps: number } | null; history: RMPoint[];  sessionCount: number }
-  | { type: 'volume';     bodyPart: string; totalVolume: number; sessionCount: number; history: VolPoint[] }
+  | { type: 'volume';     bodyPart: string; totalVolume: number; sessionCount: number; history: VolPoint[]; pplData: VolPPLData }
   | { type: 'bodyweight'; currentWeight: number; change: number; history: BWPoint[] }
 
 type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
-type GraphLayout = 'full' | 'bottom' | 'mini' | 'wide'
-type GraphPreset = 'orange' | 'ice-blue' | 'violet' | 'mint'
-type CardStyle   = 'glass' | 'transparent'
-type ShadowLevel = 'none' | 'soft' | 'strong' | 'extra-strong'
+type GraphLayout  = 'full' | 'bottom' | 'mini' | 'wide'
+type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint'
+type CardStyle    = 'glass' | 'transparent'
+type ShadowLevel  = 'none' | 'soft' | 'strong' | 'extra-strong'
+type VolViewType  = 'bodypart' | 'ppl'
+type PPLGroup     = 'all' | 'push' | 'pull' | 'legs'
 
 const AC: Record<Accent, {
   hex: string; badgeBg: string; badgeBorder: string; badgeText: string
@@ -61,6 +70,13 @@ const VOL_BODY_PARTS = [
   { key: 'abs',       label: 'Abs'   },
   { key: 'other',     label: 'Other' },
 ]
+
+const VOL_PPL_GROUPS = [
+  { key: 'all',  label: 'All'  },
+  { key: 'push', label: 'Push' },
+  { key: 'pull', label: 'Pull' },
+  { key: 'legs', label: 'Legs' },
+] as const
 
 const GRAPH_LAYOUTS = [
   { key: 'full',   labelEn: 'Full',   labelJa: '全画面',   ratio: '9:16' },
@@ -589,10 +605,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const [shareCount, setShareCount] = useState(0)
 
   // Graph layout controls — shared by MAX 1RM, Body Weight, Daily Volume
-  const [graphLayout, setGraphLayout] = useState<GraphLayout>('full')
-  const [graphPreset, setGraphPreset] = useState<GraphPreset>('orange')
-  const [cardStyle,   setCardStyle]   = useState<CardStyle>('glass')
-  const [shadowLevel, setShadowLevel] = useState<ShadowLevel>('soft')
+  const [graphLayout,  setGraphLayout]  = useState<GraphLayout>('full')
+  const [graphPreset,  setGraphPreset]  = useState<GraphPreset>('orange')
+  const [cardStyle,    setCardStyle]    = useState<CardStyle>('glass')
+  const [shadowLevel,  setShadowLevel]  = useState<ShadowLevel>('soft')
+  const [volViewType,  setVolViewType]  = useState<VolViewType>('bodypart')
+  const [pplGroup,     setPplGroup]     = useState<PPLGroup>('all')
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
@@ -659,20 +677,42 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const volHistory  = volRaw?.history ?? []
   const volBodyPart = volRaw?.bodyPart ?? 'all'
   const volBodyPartLabel = BODY_PART_DISPLAY[volBodyPart] ?? volBodyPart.toUpperCase()
-  const volTotalRaw = volRaw?.totalVolume ?? 0
-  const volTotalDisplay = Math.round(toDisplayWeight(volTotalRaw, unit))
-  const volTotalStr = volTotalDisplay >= 1000
-    ? `${(volTotalDisplay / 1000).toFixed(1)}t`
-    : `${volTotalDisplay.toLocaleString()}${unitLabel}`
-  const volSessionCount = volRaw?.sessionCount ?? 0
-  const volFirstDate = volHistory.length ? volHistory[0].date : ''
-  const volLastDate  = volHistory.length ? volHistory[volHistory.length - 1].date : ''
 
-  // Aggregated bars for each layout
-  const volBarsAll    = useMemo(() => aggregateVolBars(volHistory, null),  [volHistory])
-  const volBars60     = useMemo(() => aggregateVolBars(volHistory, 60),    [volHistory])
-  const volBars30     = useMemo(() => aggregateVolBars(volHistory, 30),    [volHistory])
-  const volBars14     = useMemo(() => aggregateVolBars(volHistory, 14),    [volHistory])
+  // PPL data — all groups fetched server-side, filtered client-side with useMemo
+  const pplDataPush  = volRaw?.pplData?.push  ?? []
+  const pplDataPull  = volRaw?.pplData?.pull  ?? []
+  const pplDataLegs  = volRaw?.pplData?.legs  ?? []
+  const pplDataOther = volRaw?.pplData?.other ?? []
+
+  const pplAllHistory = useMemo((): VolPoint[] => {
+    const combined = new Map<string, number>()
+    ;[pplDataPush, pplDataPull, pplDataLegs, pplDataOther].forEach(group =>
+      group.forEach(p => combined.set(p.date, (combined.get(p.date) ?? 0) + p.volume))
+    )
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return Array.from(combined.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, volume]) => {
+        const d = new Date(date + 'T00:00:00')
+        return { date, label: `${M[d.getMonth()]} ${d.getDate()}`, volume: Math.round(volume) }
+      })
+  }, [pplDataPush, pplDataPull, pplDataLegs, pplDataOther])
+
+  const activePPLHistory: VolPoint[] = useMemo(() => {
+    if (pplGroup === 'push') return pplDataPush
+    if (pplGroup === 'pull') return pplDataPull
+    if (pplGroup === 'legs') return pplDataLegs
+    return pplAllHistory
+  }, [pplGroup, pplDataPush, pplDataPull, pplDataLegs, pplAllHistory])
+
+  // Active history: body-part mode uses server-fetched history; PPL mode uses client-computed
+  const activeVolHistory: VolPoint[] = volViewType === 'ppl' ? activePPLHistory : volHistory
+
+  // Aggregated bars for each layout — derived from whichever history is active
+  const volBarsAll = useMemo(() => aggregateVolBars(activeVolHistory, null),  [activeVolHistory])
+  const volBars60  = useMemo(() => aggregateVolBars(activeVolHistory, 60),    [activeVolHistory])
+  const volBars30  = useMemo(() => aggregateVolBars(activeVolHistory, 30),    [activeVolHistory])
+  const volBars14  = useMemo(() => aggregateVolBars(activeVolHistory, 14),    [activeVolHistory])
 
   const volGranLabel = volBarsAll.granularity === 'daily' ? 'DAILY'
     : volBarsAll.granularity === 'weekly' ? 'WEEKLY' : 'MONTHLY'
@@ -684,6 +724,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const volBestStr = volBestDisplay >= 1000
     ? `${(volBestDisplay / 1000).toFixed(1)}t`
     : `${volBestDisplay.toLocaleString()}${unitLabel}`
+
+  // Label shown on cards — changes with viewType and group/filter
+  const volDisplayLabel: string = volViewType === 'ppl'
+    ? (pplGroup === 'push' ? 'PUSH' : pplGroup === 'pull' ? 'PULL' : pplGroup === 'legs' ? 'LEGS' : 'ALL')
+    : volBodyPartLabel
+
+  // Active totals — computed from active history for consistency in PPL mode
+  const activeVolTotalRaw     = activeVolHistory.reduce((s, d) => s + d.volume, 0)
+  const activeVolTotalDisplay = Math.round(toDisplayWeight(activeVolTotalRaw, unit))
+  const activeVolTotalStr     = activeVolTotalDisplay >= 1000
+    ? `${(activeVolTotalDisplay / 1000).toFixed(1)}t`
+    : `${activeVolTotalDisplay.toLocaleString()}${unitLabel}`
+  const activeVolSessionCount = activeVolHistory.length
+  const activeVolFirstDate    = activeVolHistory.length ? activeVolHistory[0].date : ''
+  const activeVolLastDate     = activeVolHistory.length ? activeVolHistory[activeVolHistory.length - 1].date : ''
 
   /* ── Share handler ───────────────────────────────────────── */
   const handleShare = async () => {
@@ -855,28 +910,78 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       </div>
 
-      {/* ② BODY PART selector (Volume only) ─────────────────── */}
+      {/* ② VIEW TYPE + FILTER (Volume only) ───────────────── */}
       {isVol && (
-        <div className="px-4 mb-4">
-          {sectionLabel('BODY PART')}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {VOL_BODY_PARTS.map(bp => {
-              const sel = volBodyPart === bp.key
-              return (
-                <button key={bp.key}
-                  onClick={() => router.push(`/share?type=stats&metric=volume&bodypart=${bp.key}`)}
-                  style={{
-                    padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
-                    color: sel ? gp.accentHex : '#666',
-                    border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
-                  }}>
-                  {bp.label}
-                </button>
-              )
-            })}
+        <>
+          {/* View Type switcher */}
+          <div className="px-4 mb-3">
+            {sectionLabel('VIEW TYPE')}
+            <div className="flex gap-2">
+              {(['bodypart', 'ppl'] as VolViewType[]).map(vt => {
+                const sel = volViewType === vt
+                return (
+                  <button key={vt} onClick={() => setVolViewType(vt)}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                    style={{
+                      background: sel ? acRgba(gp.accentHex, 0.15) : '#1a1a1a',
+                      color: sel ? gp.accentHex : '#666',
+                      border: `1.5px solid ${sel ? gp.accentHex : '#2a2a2a'}`,
+                    }}>
+                    {vt === 'bodypart' ? 'Body Part' : 'PPL'}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
+
+          {/* Body Part filter */}
+          {volViewType === 'bodypart' && (
+            <div className="px-4 mb-4">
+              {sectionLabel('BODY PART')}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {VOL_BODY_PARTS.map(bp => {
+                  const sel = volBodyPart === bp.key
+                  return (
+                    <button key={bp.key}
+                      onClick={() => router.push(`/share?type=stats&metric=volume&bodypart=${bp.key}`)}
+                      style={{
+                        padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
+                        color: sel ? gp.accentHex : '#666',
+                        border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
+                      }}>
+                      {bp.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* PPL filter */}
+          {volViewType === 'ppl' && (
+            <div className="px-4 mb-4">
+              {sectionLabel('PPL')}
+              <div style={{ display: 'flex', gap: 6 }}>
+                {VOL_PPL_GROUPS.map(pg => {
+                  const sel = pplGroup === pg.key
+                  return (
+                    <button key={pg.key}
+                      onClick={() => setPplGroup(pg.key)}
+                      style={{
+                        flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
+                        color: sel ? gp.accentHex : '#666',
+                        border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
+                      }}>
+                      {pg.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ③ CARD STYLE ───────────────────────────────────────── */}
@@ -1264,7 +1369,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     <span style={{ fontSize: 7, fontWeight: 700, color: acRgba(gp.accentHex, 0.6), letterSpacing: '0.12em' }}>{volGranLabel}</span>
                   </div>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.14em', margin: '7px 0 2px' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1.1, margin: 0 }}>{volBodyPartLabel}</p>
+                  <p style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1.1, margin: 0 }}>{volDisplayLabel}</p>
                 </div>
 
                 <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '10px 18px' }} />
@@ -1272,12 +1377,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {/* Stats */}
                 <div style={{ padding: '0 18px', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 2 }}>
-                    <span style={{ fontSize: 26, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{volTotalStr}</span>
+                    <span style={{ fontSize: 26, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{activeVolTotalStr}</span>
                     <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', paddingBottom: 3, fontWeight: 600 }}>TOTAL</span>
                   </div>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     {volBestStr && <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Best day: <span style={{ color: gp.accentHex, fontWeight: 700 }}>{volBestStr}</span></p>}
-                    <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{volSessionCount} sessions</p>
+                    <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{activeVolSessionCount} sessions</p>
                   </div>
                 </div>
 
@@ -1289,13 +1394,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </div>
 
                 {/* Date range */}
-                {volHistory.length >= 2 && (
+                {activeVolHistory.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
                     <span style={{ fontSize: 7.5, color: 'rgba(255,255,255,0.35)' }}>
-                      {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[0]?.label ?? '') : fmtXLabel(volFirstDate)}
+                      {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[0]?.label ?? '') : fmtXLabel(activeVolFirstDate)}
                     </span>
                     <span style={{ fontSize: 7.5, color: gp.accentHex, fontWeight: 600 }}>
-                      {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[volBarsAll.bars.length - 1]?.label ?? '') : fmtXLabel(volLastDate)}
+                      {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[volBarsAll.bars.length - 1]?.label ?? '') : fmtXLabel(activeVolLastDate)}
                     </span>
                   </div>
                 )}
@@ -1316,15 +1421,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
                   <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '4px 0 1px' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.1 }}>{volBodyPartLabel}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.1 }}>{volDisplayLabel}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '65%' }}>
                   <VolBarSVG bars={volBars30.bars} accentHex={gp.accentHex} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{volTotalStr}</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: gp.accentHex, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
                   <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', margin: '2px 0 0', fontWeight: 500 }}>total</p>
-                  <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>{volSessionCount} sessions</p>
+                  <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
                 </div>
               </div>
             )}
@@ -1338,15 +1443,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 }}>
                   {gpBadge}
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '5px 0 0' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 11, fontWeight: 900, color: '#fff', margin: '2px 0 0', lineHeight: 1.1 }}>{volBodyPartLabel}</p>
+                  <p style={{ fontSize: 11, fontWeight: 900, color: '#fff', margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '6px 0' }}>
                     <VolBarSVG bars={volBars14.bars} accentHex={gp.accentHex} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                      <span style={{ fontSize: 28, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{volTotalStr}</span>
+                      <span style={{ fontSize: 28, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{activeVolTotalStr}</span>
                     </div>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', margin: '2px 0 0' }}>{volSessionCount} sessions</p>
+                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', margin: '2px 0 0' }}>{activeVolSessionCount} sessions</p>
                   </div>
                 </div>
               </div>
@@ -1362,14 +1467,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ width: '34%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
                   <p style={{ fontSize: 8, fontWeight: 700, color: gp.accentHex, letterSpacing: '0.08em', margin: '6px 0 0' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: '2px 0 0', lineHeight: 1.1 }}>{volBodyPartLabel}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: '#fff', margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
                   <div style={{ height: 1, background: acRgba(gp.accentHex, 0.25), margin: '7px 0' }} />
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 3 }}>
-                    <span style={{ fontSize: 22, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{volTotalStr}</span>
+                    <span style={{ fontSize: 22, fontWeight: 900, color: gp.accentHex, lineHeight: 1 }}>{activeVolTotalStr}</span>
                   </div>
                   <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', margin: '0 0 2px' }}>total</p>
                   {volBestStr && <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Best: <span style={{ color: gp.accentHex, fontWeight: 700 }}>{volBestStr}</span></p>}
-                  <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>{volSessionCount} sessions</p>
+                  <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
                   <div style={{ flex: 1 }} />
                   <p style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Made with REPRA</p>
                 </div>

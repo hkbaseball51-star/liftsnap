@@ -15,6 +15,26 @@ function muscleGroupToBodyPart(mg: string | null): string {
   return 'other'
 }
 
+function muscleGroupToPPL(mg: string | null): 'push' | 'pull' | 'legs' | 'other' {
+  if (!mg) return 'other'
+  const m = mg.toLowerCase()
+  // Legs
+  if (m.includes('quad') || m.includes('hamstring') || m.includes('glute')
+      || m.includes('calf') || m.includes('calve') || m.includes('leg') || m.includes('lower body')) return 'legs'
+  // Pull
+  if (m.includes('back') || m.includes('lat') || m.includes('trap') || m.includes('rhomboid')) return 'pull'
+  if (m.includes('bicep')) return 'pull'
+  if (m.includes('forearm')) return 'pull'
+  if ((m.includes('rear') || m.includes('posterior')) && m.includes('delt')) return 'pull'
+  // Push
+  if (m.includes('chest') || m.includes('pectoral')) return 'push'
+  if (m.includes('shoulder') || m.includes('delt')) return 'push'
+  if (m.includes('tricep')) return 'push'
+  // Abs / Core
+  if (m.includes('abs') || m.includes('core') || m.includes('abdominal')) return 'other'
+  return 'other'
+}
+
 function toWeekStart(dateStr: string) {
   const d = new Date(dateStr)
   const day = d.getDay()
@@ -336,6 +356,63 @@ export async function getExerciseDailyVolumeData(exerciseName: string, startDate
     })
 }
 
+export async function getPPLDailyVolumeAll(startDate?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  let sessQuery = supabase
+    .from('workout_sessions')
+    .select('id, trained_at')
+    .eq('user_id', user.id)
+    .not('completed_at', 'is', null)
+    .order('trained_at')
+
+  if (startDate) sessQuery = sessQuery.gte('trained_at', startDate) as typeof sessQuery
+
+  const { data: sessions } = await sessQuery
+  if (!sessions?.length) return { push: [], pull: [], legs: [], other: [] }
+
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('session_id, muscle_group, weight_kg, reps')
+    .in('session_id', sessions.map(s => s.id))
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
+
+  if (!sets?.length) return { push: [], pull: [], legs: [], other: [] }
+
+  const sessionDateMap = new Map(sessions.map(s => [s.id, s.trained_at]))
+
+  const maps: Record<'push' | 'pull' | 'legs' | 'other', Map<string, number>> = {
+    push: new Map(), pull: new Map(), legs: new Map(), other: new Map(),
+  }
+
+  sets.forEach(s => {
+    const date = sessionDateMap.get(s.session_id)
+    if (!date) return
+    const ppl = muscleGroupToPPL(s.muscle_group)
+    const vol = (s.weight_kg ?? 0) * (s.reps ?? 0)
+    maps[ppl].set(date, (maps[ppl].get(date) ?? 0) + vol)
+  })
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const toPoints = (m: Map<string, number>) =>
+    Array.from(m.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, volume]) => {
+        const d = new Date(date + 'T00:00:00')
+        return { date, label: `${months[d.getMonth()]} ${d.getDate()}`, volume: Math.round(volume) }
+      })
+
+  return {
+    push:  toPoints(maps.push),
+    pull:  toPoints(maps.pull),
+    legs:  toPoints(maps.legs),
+    other: toPoints(maps.other),
+  }
+}
+
 export async function getStatsForShare(metric: string, exercise?: string, bodyPart?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -385,14 +462,22 @@ export async function getStatsForShare(metric: string, exercise?: string, bodyPa
 
   if (metric === 'volume') {
     const part = bodyPart ?? 'all'
-    const vol = await getBodyPartDailyVolumeData(part)
-    if (!vol.length) return null
+    const [vol, pplRaw] = await Promise.all([
+      getBodyPartDailyVolumeData(part),
+      getPPLDailyVolumeAll(),
+    ])
+    const hasSomeData = vol.length > 0
+      || (pplRaw?.push.length ?? 0) > 0
+      || (pplRaw?.pull.length ?? 0) > 0
+      || (pplRaw?.legs.length ?? 0) > 0
+    if (!hasSomeData) return null
     return {
       type: 'volume' as const,
       bodyPart: part,
       totalVolume: vol.reduce((s, d) => s + d.volume, 0),
       sessionCount: vol.length,
       history: vol,
+      pplData: pplRaw ?? { push: [], pull: [], legs: [], other: [] },
     }
   }
 
