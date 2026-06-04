@@ -259,14 +259,16 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
       </div>
 
       {/* Muscle group filter */}
-      <div className="flex gap-2 px-4 pb-2 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2.5 px-4 pb-2 pt-1 overflow-x-auto no-scrollbar">
         {MUSCLE_GROUPS.map(g => (
           <button key={g}
-            className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
+            className="shrink-0 px-4 rounded-full text-sm font-bold flex items-center active:opacity-70 transition-opacity"
             style={{
-              background: activeGroup === g ? '#ED742F' : '#171717',
-              color: activeGroup === g ? '#fff' : '#555',
-              border: activeGroup === g ? 'none' : '1px solid #1e1e1e',
+              minHeight: 44,
+              background: activeGroup === g ? '#ED742F' : '#1c1c1c',
+              color: activeGroup === g ? '#fff' : 'rgba(255,255,255,0.62)',
+              border: activeGroup === g ? 'none' : '1px solid rgba(255,255,255,0.10)',
+              boxShadow: activeGroup === g ? '0 2px 8px rgba(237,116,47,0.22)' : 'none',
             }}
             onClick={() => setActiveGroup(g)}>
             {groupLabel(g)}
@@ -351,14 +353,16 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
                   style={{ background: '#171717', border: '1px solid #1e1e1e' }}
                   autoFocus
                 />
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
                   {MUSCLE_GROUPS.slice(1).map(g => (
                     <button key={g}
-                      className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider"
+                      className="shrink-0 px-4 rounded-full text-sm font-bold flex items-center active:opacity-70 transition-opacity"
                       style={{
-                        background: newGroup === g ? '#ED742F' : '#171717',
-                        color: newGroup === g ? '#fff' : '#555',
-                        border: newGroup === g ? 'none' : '1px solid #1e1e1e',
+                        minHeight: 44,
+                        background: newGroup === g ? '#ED742F' : '#1c1c1c',
+                        color: newGroup === g ? '#fff' : 'rgba(255,255,255,0.62)',
+                        border: newGroup === g ? 'none' : '1px solid rgba(255,255,255,0.10)',
+                        boxShadow: newGroup === g ? '0 2px 8px rgba(237,116,47,0.22)' : 'none',
                       }}
                       onClick={() => setNewGroup(g)}>
                       {groupLabel(g)}
