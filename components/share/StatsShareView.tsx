@@ -6,7 +6,7 @@ import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
-import { PRESETS } from '@/components/share/WorkoutStoryCardContent'
+import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
@@ -644,18 +644,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const gpBadgeBg    = isTransparentCard ? (gp.badgeBgTransp ?? gp.badgeBg) : gp.badgeBg
   const gpBadgeTxt   = isTransparentCard ? (gp.badgeTextTransp ?? gp.badgeText) : gp.badgeText
   const areaFill     = acRgba(gpAccent, 0.12)
-  const fullGlassBg  = gp.bgFull
-    ? gp.bgFull
-    : `linear-gradient(165deg, ${acRgba(gp.accentHex, 0.09)} 0%, #080808 55%)`
-  const fullBg       = isTransparentCard
-    ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
-    : fullGlassBg
-  const cardStyleBg  = isTransparentCard
-    ? `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
-    : gp.bgCombined
+  const transparentBg = `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
+  const gpGlassSt    = glassCardStyle(gp.accentHex, gp.isDark !== false)
+  const cardBgProps  = isTransparentCard
+    ? { background: transparentBg }
+    : { background: gpGlassSt.background, backgroundSize: gpGlassSt.backgroundSize }
   const shadowValue    = SHADOW_MAP[shadowLevel]
-  const glassShadow    = `inset 0 1px 0 rgba(255,255,255,0.16)${shadowLevel !== 'none' ? `, ${shadowValue}` : ''}`
-  const cardBoxShadow  = isTransparentCard ? shadowValue : glassShadow
+  const glassShadow    = 'inset 0 1px 0 rgba(255,255,255,0.16)'
+  const cardBoxShadow  = isTransparentCard ? 'none' : glassShadow
   const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
 
   /* ── MAX 1RM data ────────────────────────────────────────── */
@@ -1096,7 +1092,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           <>
             {graphLayout === 'full' && (
               <div ref={fullGraphRef} style={{
-                aspectRatio: '9/16', width: '100%', background: fullBg, borderRadius: 24,
+                aspectRatio: '9/16', width: '100%', ...cardBgProps, borderRadius: 24,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', flexDirection: 'column',
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
@@ -1151,7 +1147,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'bottom' && (
               <div ref={bottomCardRef} style={{
-                width: '100%', aspectRatio: '4/1', background: cardStyleBg, borderRadius: 18,
+                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
@@ -1179,7 +1175,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'mini' && (
               <div style={{ width: '72%', margin: '0 auto' }}>
                 <div ref={miniCardRef} style={{
-                  aspectRatio: '1/1', background: cardStyleBg, borderRadius: 20,
+                  aspectRatio: '1/1', ...cardBgProps, borderRadius: 20,
                   position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: 16, display: 'flex', flexDirection: 'column',
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
@@ -1206,7 +1202,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'wide' && (
               <div ref={wideCardRef} style={{
-                width: '100%', aspectRatio: '16/9', background: cardStyleBg, borderRadius: 18,
+                width: '100%', aspectRatio: '16/9', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', boxShadow: cardBoxShadow,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
@@ -1245,7 +1241,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           <>
             {graphLayout === 'full' && (
               <div ref={fullWeightRef} style={{
-                aspectRatio: '9/16', width: '100%', background: fullBg, borderRadius: 24,
+                aspectRatio: '9/16', width: '100%', ...cardBgProps, borderRadius: 24,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', flexDirection: 'column',
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
@@ -1303,7 +1299,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'bottom' && (
               <div ref={bottomWeightRef} style={{
-                width: '100%', aspectRatio: '4/1', background: cardStyleBg, borderRadius: 18,
+                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
@@ -1332,7 +1328,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'mini' && (
               <div style={{ width: '72%', margin: '0 auto' }}>
                 <div ref={miniWeightRef} style={{
-                  aspectRatio: '1/1', background: cardStyleBg, borderRadius: 20,
+                  aspectRatio: '1/1', ...cardBgProps, borderRadius: 20,
                   position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: 16, display: 'flex', flexDirection: 'column',
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
@@ -1354,7 +1350,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'wide' && (
               <div ref={wideWeightRef} style={{
-                width: '100%', aspectRatio: '16/9', background: cardStyleBg, borderRadius: 18,
+                width: '100%', aspectRatio: '16/9', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', boxShadow: cardBoxShadow,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
@@ -1389,7 +1385,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           <>
             {graphLayout === 'full' && (
               <div ref={fullVolRef} style={{
-                aspectRatio: '9/16', width: '100%', background: fullBg, borderRadius: 24,
+                aspectRatio: '9/16', width: '100%', ...cardBgProps, borderRadius: 24,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', flexDirection: 'column',
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
@@ -1445,7 +1441,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'bottom' && (
               <div ref={bottomVolRef} style={{
-                width: '100%', aspectRatio: '4/1', background: cardStyleBg, borderRadius: 18,
+                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
@@ -1469,7 +1465,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'mini' && (
               <div style={{ width: '72%', margin: '0 auto' }}>
                 <div ref={miniVolRef} style={{
-                  aspectRatio: '1/1', background: cardStyleBg, borderRadius: 20,
+                  aspectRatio: '1/1', ...cardBgProps, borderRadius: 20,
                   position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: 16, display: 'flex', flexDirection: 'column',
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
@@ -1491,7 +1487,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'wide' && (
               <div ref={wideVolRef} style={{
-                width: '100%', aspectRatio: '16/9', background: cardStyleBg, borderRadius: 18,
+                width: '100%', aspectRatio: '16/9', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', boxShadow: cardBoxShadow,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>

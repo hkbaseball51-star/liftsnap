@@ -142,6 +142,29 @@ function acRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
+// ── Glass card background ─────────────────────────────────────────────
+// Subtle checker + accent tint on a semi-transparent dark (or light) base.
+// Applied to all glass-mode cards so the "transparency" aesthetic is visible
+// without losing readability. backgroundSize must be applied alongside background.
+export function glassCardStyle(accentHex: string, isDark: boolean): { background: string; backgroundSize: string } {
+  const sq   = isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.04)'
+  const base = isDark ? 'rgba(10,10,10,0.84)' : 'rgba(242,242,237,0.88)'
+  const r    = parseInt(accentHex.slice(1, 3), 16)
+  const g    = parseInt(accentHex.slice(3, 5), 16)
+  const b    = parseInt(accentHex.slice(5, 7), 16)
+  return {
+    background: [
+      `linear-gradient(145deg, rgba(${r},${g},${b},0.07) 0%, transparent 80%)`,
+      `linear-gradient(45deg, ${sq} 25%, transparent 25%)`,
+      `linear-gradient(-45deg, ${sq} 25%, transparent 25%)`,
+      `linear-gradient(45deg, transparent 75%, ${sq} 75%)`,
+      `linear-gradient(-45deg, transparent 75%, ${sq} 75%)`,
+      base,
+    ].join(', '),
+    backgroundSize: '100% 100%, 16px 16px, 16px 16px, 16px 16px, 16px 16px, auto',
+  }
+}
+
 // ── Pure helpers ──────────────────────────────────────────────────────
 const JA_EN: Record<string, string> = {
   'デッドリフト': 'Deadlift',                   'ベントオーバーロウ': 'Bent Over Row',
@@ -262,10 +285,10 @@ export default function WorkoutStoryCardContent({
       isolation: 'isolate',
       borderRadius: '24px',
       textShadow: ts,
-      background: isTransparent ? 'transparent' : p.bgCombined,
-      ...(isTransparent ? {} : {
+      ...(isTransparent ? { background: 'transparent' } : {
+        ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 18px 50px rgba(0,0,0,0.24)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16)',
       }),
     }}>
 
@@ -448,10 +471,10 @@ export function ExerciseStoryCard({
       isolation: 'isolate',
       borderRadius: '24px',
       textShadow: ts,
-      background: isTransparent ? 'transparent' : p.bgPerEx,
-      ...(isTransparent ? {} : {
+      ...(isTransparent ? { background: 'transparent' } : {
+        ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 30px rgba(0,0,0,0.20)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16)',
       }),
     }}>
 

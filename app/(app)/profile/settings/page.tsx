@@ -198,10 +198,11 @@ export default function SettingsPage() {
   ]
 
   const SUPPORT_LEGAL_ROWS: LiveRow[] = [
-    { label: t(locale, 'settings.support'),            sub: t(locale, 'settings.supportSub'),           icon: HelpCircle, href: '/support'            },
-    { label: t(locale, 'settings.privacyPolicy'),      sub: t(locale, 'settings.privacyPolicySub'),     icon: Shield,     href: '/privacy'             },
-    { label: t(locale, 'settings.termsOfUse'),         sub: t(locale, 'settings.termsSub'),             icon: FileText,   href: '/terms'               },
-    { label: t(locale, 'settings.accountDeletionInfo'),sub: t(locale, 'settings.accountDeletionInfoSub'),icon: UserX,      href: '/account-deletion'   },
+    { label: t(locale, 'settings.support'),            sub: t(locale, 'settings.supportSub'),            icon: HelpCircle,    href: '/support'           },
+    { label: t(locale, 'settings.privacyPolicy'),      sub: t(locale, 'settings.privacyPolicySub'),      icon: Shield,        href: '/privacy'           },
+    { label: t(locale, 'settings.termsOfUse'),         sub: t(locale, 'settings.termsSub'),              icon: FileText,      href: '/terms'             },
+    { label: t(locale, 'settings.fitnessDisclaimer'),  sub: t(locale, 'settings.fitnessDisclaimerSub'),  icon: AlertTriangle, href: '/disclaimer'        },
+    { label: t(locale, 'settings.accountDeletionInfo'),sub: t(locale, 'settings.accountDeletionInfoSub'),icon: UserX,         href: '/account-deletion'  },
   ]
 
   const deleteDataItems = [

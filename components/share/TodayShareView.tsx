@@ -343,7 +343,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     position:relative + zIndex:1 ensures this element paints ABOVE the
                     absolutely-positioned checker overlay (which has z-index:auto ≈ 0).
                   */}
-                  <div ref={el => { previewExRefs.current[i] = el }} style={{ position: 'relative', zIndex: 1 }}>
+                  <div ref={el => { previewExRefs.current[i] = el }} style={{ position: 'relative', zIndex: 1, borderRadius: 24, overflow: 'hidden' }}>
                     <ExerciseStoryCard
                       data={{ ...ex, date: data.date }}
                       cardStyle={cardStyle}

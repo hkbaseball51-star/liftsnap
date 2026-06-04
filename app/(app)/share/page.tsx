@@ -4,7 +4,7 @@ import { getTodayWorkoutForShare } from '@/actions/workout'
 import ShareView from '@/components/share/ShareView'
 import StatsShareView from '@/components/share/StatsShareView'
 import TodayShareView from '@/components/share/TodayShareView'
-import WorkoutStoryCardContent from '@/components/share/WorkoutStoryCardContent'
+import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import FeatureTracker from '@/components/common/FeatureTracker'
 import Link from 'next/link'
@@ -76,16 +76,17 @@ function MiniGlassCard({
   value: string
   sub?: string
 }) {
-  const bg = `linear-gradient(160deg, rgba(${hexRGB(accentHex)},0.11) 0%, #090909 60%)`
+  const gls = glassCardStyle(accentHex, true)
   return (
     <div style={{
-      background: bg,
+      ...gls,
       border: `1px solid rgba(${hexRGB(accentHex)},${borderAlpha})`,
       borderRadius: 12,
       padding: '7px 8px',
       display: 'flex', flexDirection: 'column',
       height: '100%',
       boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06)`,
+      overflow: 'hidden',
     }}>
       {/* badge */}
       <span style={{
