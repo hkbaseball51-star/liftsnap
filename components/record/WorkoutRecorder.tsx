@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
 import { localCreateSession, localSaveFullSession, localGetExercisePR, localUpsertBodyWeight } from '@/lib/localDB'
-import ExercisePicker from './ExercisePicker'
+import ExercisePicker, { type MuscleGroup } from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import NoteInputSheet from './NoteInputSheet'
 import RestTimerSheet from './RestTimerSheet'
@@ -371,6 +371,7 @@ export default function WorkoutRecorder({
   )
   const [showPicker, setShowPicker] = useState(false)
   const [renameTarget, setRenameTarget] = useState<string | null>(null)
+  const [lastExerciseFilter, setLastExerciseFilter] = useState<MuscleGroup>('ALL')
   const [numberTarget, setNumberTarget] = useState<NumberTarget | null>(null)
   const [noteTarget, setNoteTarget] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -918,11 +919,21 @@ export default function WorkoutRecorder({
 
       {/* ── Modals ── */}
       {showPicker && (
-        <ExercisePicker onSelect={addExercise} onClose={() => setShowPicker(false)} />
+        <ExercisePicker
+          onSelect={addExercise}
+          onClose={() => setShowPicker(false)}
+          initialGroup={lastExerciseFilter}
+          onGroupChange={setLastExerciseFilter}
+        />
       )}
 
       {renameTarget && (
-        <ExercisePicker onSelect={applyRename} onClose={() => setRenameTarget(null)} />
+        <ExercisePicker
+          onSelect={applyRename}
+          onClose={() => setRenameTarget(null)}
+          initialGroup={lastExerciseFilter}
+          onGroupChange={setLastExerciseFilter}
+        />
       )}
 
       {numberTarget && (

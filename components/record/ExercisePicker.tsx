@@ -29,10 +29,12 @@ type Exercise = {
 type Props = {
   onSelect: (exercise: Exercise) => void
   onClose: () => void
+  initialGroup?: MuscleGroup
+  onGroupChange?: (group: MuscleGroup) => void
 }
 
 const MUSCLE_GROUPS = ['ALL', 'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'FOREARMS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS'] as const
-type MuscleGroup = typeof MUSCLE_GROUPS[number]
+export type MuscleGroup = typeof MUSCLE_GROUPS[number]
 
 // ── Search helpers ────────────────────────────────────────────
 
@@ -97,7 +99,7 @@ function scoreExercise(e: Exercise, q: string): number {
 
 // ─────────────────────────────────────────────────────────────
 
-export default function ExercisePicker({ onSelect, onClose }: Props) {
+export default function ExercisePicker({ onSelect, onClose, initialGroup, onGroupChange }: Props) {
   const { locale } = useLocale()
   const { exercises: appExercises } = useAppData()
 
@@ -116,7 +118,12 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
   const [hiddenIds, setHiddenIds] = useState<string[]>([])
 
   const [query, setQuery] = useState('')
-  const [activeGroup, setActiveGroup] = useState<MuscleGroup>('ALL')
+  const [activeGroup, setActiveGroup] = useState<MuscleGroup>(initialGroup ?? 'ALL')
+
+  const handleGroupChange = useCallback((g: MuscleGroup) => {
+    setActiveGroup(g)
+    onGroupChange?.(g)
+  }, [onGroupChange])
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newGroup, setNewGroup] = useState<MuscleGroup>('CHEST')
@@ -274,7 +281,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
               border: activeGroup === g ? 'none' : '1px solid rgba(255,255,255,0.10)',
               boxShadow: activeGroup === g ? '0 2px 8px rgba(237,116,47,0.22)' : 'none',
             }}
-            onClick={() => setActiveGroup(g)}>
+            onClick={() => handleGroupChange(g)}>
             {groupLabel(g)}
           </button>
         ))}
