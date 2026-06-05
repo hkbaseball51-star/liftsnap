@@ -201,7 +201,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [bodyWeightHistory, setBodyWeightHistory] = useState<BodyWeightPoint[]>([])
   const [exercises,         setExercises]         = useState<AppExercise[]>([])
   const [totalSessions,     setTotalSessions]     = useState(0)
-  const [isLoading,         setIsLoading]         = useState(true)
+  const [isLoading,         setIsLoading]         = useState(false)
   const [isRefreshing,      setIsRefreshing]      = useState(false)
   const [error,             setError]             = useState<string | null>(null)
   const [dataSource,        setDataSource]        = useState('')
@@ -218,7 +218,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setTotalSessions(localGetTotalSessions())
     setBodyWeightHistory(localGetBodyWeightHistory(730))
     setIsLoading(false)
-    navReady.current = true
+    // navReady is managed by callers, not here:
+    //   - mount effect: intentionally leaves it false so pathname effect skips first run
+    //   - source-change effect: sets it true after calling loadLocal()
   }, [])
 
   // ── Load demo (async, Supabase) ───────────────────────────────────────────
@@ -248,6 +250,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // ── Mount-time local preload (runs before demoMounted resolves) ──────────
+  // Synchronous localStorage read that fires immediately on first client render.
+  // Eliminates the blank-screen window between SplashScreen hide and data ready.
+  // navReady is intentionally NOT set here — the pathname effect manages that
+  // for its own first-run skip guard.
+  // If demo mode is detected later, loadDemo() overwrites this data.
+
+  useEffect(() => {
+    loadLocal()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // mount only
+
   // ── Initial / source-change load ─────────────────────────────────────────
 
   useEffect(() => {
@@ -261,6 +275,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       loadDemo(demoUserId, false)
     } else {
       loadLocal()
+      navReady.current = true  // local load is synchronous — mark ready immediately
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoMounted, isDemo, demoUserId])

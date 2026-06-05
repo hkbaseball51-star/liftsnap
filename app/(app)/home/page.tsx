@@ -12,6 +12,56 @@ import { useDemoMode } from '@/lib/useDemoMode'
 import { useAppData } from '@/contexts/AppDataContext'
 import HomeGreeting from '@/components/home/HomeGreeting'
 import HomeCTACard from '@/components/home/HomeCTACard'
+import type React from 'react'
+
+// Shown during demo-mode Supabase fetch (local mode loads synchronously so
+// users never reach this state). Mirrors the actual page layout to avoid jarring jumps.
+function HomeSkeleton() {
+  const shimmer: React.CSSProperties = {
+    background: 'linear-gradient(90deg, #111 25%, #1c1c1c 50%, #111 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.4s ease-in-out infinite',
+  }
+  return (
+    <div style={{ background: '#080808', minHeight: '100svh' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '32px 16px 8px' }}>
+        <div style={{ ...shimmer, width: 100, height: 22, borderRadius: 6 }} />
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />
+      </div>
+      {/* Greeting */}
+      <div style={{ padding: '8px 16px 16px' }}>
+        <div style={{ ...shimmer, width: 190, height: 24, borderRadius: 7, marginBottom: 8 }} />
+        <div style={{ ...shimmer, width: 230, height: 14, borderRadius: 6 }} />
+      </div>
+      {/* CTA card */}
+      <div style={{ padding: '0 16px 20px' }}>
+        <div style={{ ...shimmer, height: 88, borderRadius: 16 }} />
+      </div>
+      {/* Calendar */}
+      <div style={{ padding: '0 16px 20px' }}>
+        <div style={{ ...shimmer, height: 340, borderRadius: 16 }} />
+      </div>
+      {/* Weekly Effort */}
+      <div style={{ padding: '0 16px 16px' }}>
+        <div style={{ ...shimmer, width: 110, height: 11, borderRadius: 4, marginBottom: 10 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          {[0, 1, 2].map(i => <div key={i} style={{ ...shimmer, height: 70, borderRadius: 12 }} />)}
+        </div>
+      </div>
+      {/* Body weight */}
+      <div style={{ padding: '0 16px' }}>
+        <div style={{ ...shimmer, height: 66, borderRadius: 12 }} />
+      </div>
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 export default function HomePage() {
   const { locale }                         = useLocale()
@@ -30,8 +80,9 @@ export default function HomePage() {
     isLoading,
   } = useAppData()
 
-  // Show opaque black screen while Provider is loading (prevents flash)
-  if (isLoading) return <div className="fixed inset-0 bg-black" />
+  // isLoading is only true during async demo-data fetch from Supabase.
+  // Local-mode loads are synchronous so this path is never reached for local users.
+  if (isLoading) return <HomeSkeleton />
 
   const totalSessions90 = calendarSessions.length
   const validWorkoutDates = new Set(calendarSessions.map(s => s.date))
