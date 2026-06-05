@@ -143,45 +143,47 @@ function acRgba(hex: string, alpha: number): string {
 }
 
 // ── Glass card background ─────────────────────────────────────────────
-// Multi-layer premium glass: specular highlight at top-right, accent depth glow
-// at top-left, thin top-edge highlight, accent tint, and semi-transparent dark base.
+// Fully opaque deep-tinted bases with specular highlight layers.
 // No conic-gradient (caused Safari/WebKit 4-quadrant tiling artifact).
 export function glassCardStyle(accentHex: string, isDark: boolean): { background: string } {
   const r = parseInt(accentHex.slice(1, 3), 16)
   const g = parseInt(accentHex.slice(3, 5), 16)
   const b = parseInt(accentHex.slice(5, 7), 16)
   if (!isDark) {
-    // Pearl-white: frosted light glass with top-right specular and edge highlight
+    // Pearl-white: warm frosted cream — fully opaque
     return {
       background: [
-        `radial-gradient(ellipse 55% 38% at 88% 4%, rgba(255,255,255,0.55), transparent)`,
-        `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 8%)`,
-        `rgba(${r},${g},${b},0.87)`,
+        `radial-gradient(ellipse 60% 40% at 85% 5%, rgba(255,255,255,0.72), transparent)`,
+        `linear-gradient(180deg, rgba(255,255,255,0.45) 0%, transparent 12%)`,
+        `linear-gradient(150deg, #f5f4ef 0%, #edece5 100%)`,
       ].join(', '),
     }
   }
   if (r > 200 && g > 200 && b > 200) {
-    // Premium-black: deep near-black glass panel
+    // Premium-black: near-black with subtle top shimmer — fully opaque
     return {
       background: [
         `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.12), transparent)`,
-        `linear-gradient(180deg, rgba(255,255,255,0.11) 0%, transparent 6%)`,
-        `rgba(4,4,6,0.92)`,
+        `linear-gradient(180deg, rgba(255,255,255,0.09) 0%, transparent 7%)`,
+        `linear-gradient(150deg, #111114 0%, #070709 100%)`,
       ].join(', '),
     }
   }
-  // Colored dark preset: derive a rich deep-tinted dark base from the accent color.
-  // This ensures glass saves look premium when composited over the dark (#0a0a0a) canvas.
-  const dr = Math.round(r * 0.17)
-  const dg = Math.round(g * 0.12)
-  const db = Math.round(b * (b > r && b > g ? 0.15 : 0.12))
+  // Colored dark presets: fully opaque deep-tinted base derived from accent color.
+  // Multipliers (r*0.16, g*0.13, b*0.15) produce deep rich tones:
+  //   orange → rgb(40,15,3), mint → rgb(3,24,25), ice-blue → rgb(9,25,37), violet → rgb(22,12,37)
+  const dr = Math.round(r * 0.16)
+  const dg = Math.round(g * 0.13)
+  const db = Math.round(b * 0.15)
+  const er = Math.round(r * 0.09)
+  const eg = Math.round(g * 0.07)
+  const eb = Math.round(b * 0.09)
   return {
     background: [
       `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.11), transparent)`,
-      `radial-gradient(ellipse 75% 44% at 14% 0%, rgba(${r},${g},${b},0.20), transparent)`,
-      `linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 7%)`,
-      `linear-gradient(rgba(${r},${g},${b},0.18), rgba(${r},${g},${b},0.18))`,
-      `rgba(${dr},${dg},${db},0.86)`,
+      `radial-gradient(ellipse 70% 45% at 12% 100%, rgba(${r},${g},${b},0.12), transparent)`,
+      `linear-gradient(180deg, rgba(255,255,255,0.09) 0%, transparent 7%)`,
+      `linear-gradient(150deg, rgb(${dr},${dg},${db}) 0%, rgb(${er},${eg},${eb}) 100%)`,
     ].join(', '),
   }
 }

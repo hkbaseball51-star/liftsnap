@@ -1079,12 +1079,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       </div>
 
       {/* ⑥ PREVIEW ──────────────────────────────────────────── */}
-      {/* Glass mode: checker on container lets semi-transparency show through */}
-      <div className="px-4 mb-5" style={!isTransparentCard ? {
-        backgroundColor: '#0a0a0a',
-        backgroundImage: CHECKER,
-        backgroundSize: '20px 20px',
-      } : undefined}>
+      <div className="px-4 mb-5">
 
         {isMax1RM ? (
 
