@@ -59,8 +59,12 @@ export async function captureElement(
     throw new Error(`Export element has zero dimensions: ${W}×${H}`)
   }
 
-  // Scale so the longer dimension reaches ~1080px; cap at 3× for mobile RAM
-  const pixelRatio = Math.min(3, Math.max(1, Math.round(1080 / Math.max(W, H, 1))))
+  // Target ~1080px wide output regardless of aspect ratio.
+  // Using max(W,H) underscales portrait (9:16) cards: H≈693px on a 390px-wide phone
+  // gave pixelRatio=2 → only 780px wide output. Using W always gives ~1080px wide.
+  // Non-integer ratio is intentional: html-to-image accepts floats and produces
+  // output width = W × pixelRatio = 1080px exactly on mobile.
+  const pixelRatio = Math.min(3, Math.max(2, 1080 / W))
 
   const opts = {
     width:  W,
@@ -69,9 +73,11 @@ export async function captureElement(
     pixelRatio,
     cacheBust: true,
     skipFonts: true,   // system-ui only — no custom font embedding needed
-    // Glass cards are fully opaque, so transparent canvas gives clean PNG with transparent corners.
-    // Transparent cards also need transparent canvas to preserve alpha.
-    backgroundColor: undefined,
+    // Explicit 'transparent' (not undefined) prevents html-to-image from inheriting a
+    // white background from the cloned document's body, which causes white corners and
+    // makes transparent cards appear opaque. The string 'transparent' is truthy so the
+    // library applies it to both the clone's backgroundColor and the canvas fill.
+    backgroundColor: 'transparent' as const,
   }
 
   const prevBg = el.style.background

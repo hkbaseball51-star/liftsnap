@@ -297,9 +297,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     This div has NO transform — its parent (contentRef) has the scale transform,
                     but getComputedStyle() on THIS element returns no transform.
                     html-to-image therefore captures it at full natural resolution.
-                    The card is on-screen and painted — guaranteed correct styles.
+                    overflow:hidden + borderRadius clip the capture region to the card shape
+                    so WebKit correctly produces transparent corners in the PNG.
                   */}
-                  <div ref={previewCardRef}>
+                  <div ref={previewCardRef} style={{ overflow: 'hidden', borderRadius: 24 }}>
                     <WorkoutStoryCardContent
                       data={data}
                       cardStyle={cardStyle}
