@@ -648,7 +648,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const gpGlassSt    = glassCardStyle(gp.accentHex, gp.isDark !== false)
   const cardBgProps  = isTransparentCard
     ? { background: transparentBg }
-    : { background: gpGlassSt.background, backgroundSize: gpGlassSt.backgroundSize }
+    : gpGlassSt
   const shadowValue    = SHADOW_MAP[shadowLevel]
   const glassShadow    = 'inset 0 1px 0 rgba(255,255,255,0.16)'
   const cardBoxShadow  = isTransparentCard ? 'none' : glassShadow
@@ -1077,7 +1077,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       </div>
 
       {/* ⑥ PREVIEW ──────────────────────────────────────────── */}
-      <div className="px-4 mb-5">
+      {/* Glass mode: checker on container lets semi-transparency show through */}
+      <div className="px-4 mb-5" style={!isTransparentCard ? {
+        backgroundColor: '#0a0a0a',
+        backgroundImage: CHECKER,
+        backgroundSize: '20px 20px',
+      } : undefined}>
 
         {isMax1RM ? (
 

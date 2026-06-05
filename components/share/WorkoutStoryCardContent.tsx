@@ -143,20 +143,25 @@ function acRgba(hex: string, alpha: number): string {
 }
 
 // ── Glass card background ─────────────────────────────────────────────
-// Axis-aligned square checker + vertical accent tint on a semi-transparent base.
-// conic-gradient with 90-degree sectors produces rectangular quadrants (not rotated diamonds).
-// backgroundSize must be applied alongside background.
-export function glassCardStyle(accentHex: string, isDark: boolean): { background: string; backgroundSize: string } {
-  const sq   = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)'
-  const base = isDark ? 'rgba(10,10,10,0.84)' : 'rgba(242,242,237,0.88)'
-  const r    = parseInt(accentHex.slice(1, 3), 16)
-  const g    = parseInt(accentHex.slice(3, 5), 16)
-  const b    = parseInt(accentHex.slice(5, 7), 16)
-  const accent  = `linear-gradient(to bottom, rgba(${r},${g},${b},0.08), rgba(${r},${g},${b},0.04))`
-  const checker = `conic-gradient(${sq} 90deg, transparent 0 180deg, ${sq} 0 270deg, transparent 0)`
+// Flat semi-transparent background: accent tint layer over a dark/light base.
+// Previously used conic-gradient which caused a 4-quadrant visual artifact
+// in Safari/WebKit (Capacitor iOS) when backgroundSize tiling was misapplied.
+export function glassCardStyle(accentHex: string, isDark: boolean): { background: string } {
+  const r = parseInt(accentHex.slice(1, 3), 16)
+  const g = parseInt(accentHex.slice(3, 5), 16)
+  const b = parseInt(accentHex.slice(5, 7), 16)
+  if (!isDark) {
+    // Pearl-white preset: light semi-transparent glass panel
+    return { background: `rgba(${r},${g},${b},0.84)` }
+  }
+  // Near-white accent (premium-black preset): opaque dark glass panel
+  if (r > 200 && g > 200 && b > 200) {
+    return { background: 'rgba(10,10,10,0.70)' }
+  }
+  // Colored dark preset: accent tint (18%) over dark base (72%)
+  // CSS background shorthand — image (degenerate gradient) + background-color
   return {
-    background: [accent, checker, base].join(', '),
-    backgroundSize: '100% 100%, 20px 20px, auto',
+    background: `linear-gradient(rgba(${r},${g},${b},0.18),rgba(${r},${g},${b},0.18)) rgba(8,8,8,0.72)`,
   }
 }
 

@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { TrendingUp, BarChart2, Activity, Lock, ChevronRight, Settings, Crown } from 'lucide-react'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import type { Locale } from '@/lib/i18n'
+import { useAppData } from '@/contexts/AppDataContext'
 
 // ── Static sample data ────────────────────────────────────────────────
 const RM_PTS  = [58,59,60,61,62,64,63,65,67,69,71,70,73,76,79,82,83,86,90,94]
@@ -117,8 +119,11 @@ type Props = {
 export default function ShareLandingView({
   previewData, isSample, locale, ja, todayData, hasExercises, hasBodyWeight, todayStr,
 }: Props) {
+  const router = useRouter()
   const { unit } = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
+  const { daySummaries } = useAppData()
+  const hasTodayWorkout = Boolean(daySummaries[todayStr])
 
   // Volume chip formatter (raw kg input)
   const fmtVol = (v: number) => formatVolumeWithUnit(v, unit)
@@ -172,7 +177,16 @@ export default function ShareLandingView({
       <div className="px-4 flex flex-col gap-4" style={{ paddingBottom: 28 }}>
 
         {/* ── A. Workout Story (Featured) ─────────────────── */}
-        <Link href={`/share?type=today&date=${todayStr}`} className="block active:opacity-90 transition-opacity">
+        <div
+          className="block active:opacity-90 transition-opacity cursor-pointer"
+          onClick={() => {
+            if (hasTodayWorkout) {
+              router.push(`/share?type=today&date=${todayStr}`)
+            } else {
+              router.push(`/record?date=${todayStr}`)
+            }
+          }}
+        >
           <div style={{
             background: '#1A1A1A',
             border: '1px solid rgba(237,116,47,0.28)',
@@ -215,8 +229,8 @@ export default function ShareLandingView({
                   <div style={{ position: 'absolute', top: 7, right: 7, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 5, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.34)', pointerEvents: 'none' }}>SAMPLE</div>
                 )}
               </div>
-              {/* Stats chips — unit-aware volume */}
-              {todayData && (
+              {/* Stats chips — unit-aware volume (only when today has a real workout) */}
+              {hasTodayWorkout && todayData && (
                 <div style={{ display: 'flex', gap: 5, marginBottom: 11, flexWrap: 'wrap' }}>
                   {[fmtVol(todayData.volume), `${todayData.setsCount} sets`, `${todayData.exercises.length} exercises`].map(chip => (
                     <span key={chip} style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.44)', padding: '3px 8px', borderRadius: 9, background: 'rgba(255,255,255,0.05)' }}>{chip}</span>
@@ -224,13 +238,23 @@ export default function ShareLandingView({
                 </div>
               )}
               {/* CTA */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#ED742F', borderRadius: 13, padding: '11px 0', boxShadow: '0 4px 16px rgba(237,116,47,0.28)' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>{ja ? 'Storyを作成' : 'Create Story'}</span>
-                <ChevronRight size={13} color="rgba(255,255,255,0.82)" />
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: hasTodayWorkout ? '#ED742F' : '#2a2a2a',
+                borderRadius: 13, padding: '11px 0',
+                boxShadow: hasTodayWorkout ? '0 4px 16px rgba(237,116,47,0.28)' : 'none',
+                border: hasTodayWorkout ? 'none' : '1px solid rgba(255,255,255,0.12)',
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: hasTodayWorkout ? '#fff' : 'rgba(255,255,255,0.60)' }}>
+                  {hasTodayWorkout
+                    ? (ja ? 'Storyを作成' : 'Create Story')
+                    : (ja ? '今日のワークアウトを記録' : "Log today's workout")}
+                </span>
+                <ChevronRight size={13} color={hasTodayWorkout ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.32)'} />
               </div>
             </div>
           </div>
-        </Link>
+        </div>
 
         {/* ── B. Graph Stories ────────────────────────────── */}
         <div>

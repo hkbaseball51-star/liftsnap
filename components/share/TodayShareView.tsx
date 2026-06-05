@@ -260,14 +260,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 background: 'transparent',
               }}
             >
-              {/* Transparent card: show checker sized to card footprint */}
-              {isTransparent && naturalWidth > 0 && naturalHeight > 0 && (
+              {/* Transparent/Glass card: show checker sized to card footprint */}
+              {(isTransparent || cardStyle === 'glass') && naturalWidth > 0 && naturalHeight > 0 && (
                 <div
                   style={{
                     position: 'absolute', top: 0, left: 0,
                     width: `${naturalWidth}px`,
                     height: `${Math.round(naturalHeight * contentScale)}px`,
-                    backgroundColor: '#2a2a2a',
+                    backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
                     backgroundImage: checkerBg,
                     backgroundSize: '20px 20px',
                     backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
@@ -324,11 +324,11 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             {data.exercises.map((ex, i) => (
               <div key={`preview-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ position: 'relative' }}>
-                  {/* Transparent card: checker is a sibling of the capture target — NOT inside previewExRefs */}
-                  {isTransparent && (
+                  {/* Transparent/Glass card: checker is a sibling of the capture target — NOT inside previewExRefs */}
+                  {(isTransparent || cardStyle === 'glass') && (
                     <div style={{
                       position: 'absolute', inset: 0,
-                      backgroundColor: '#2a2a2a',
+                      backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
                       backgroundImage: checkerBg,
                       backgroundSize: '20px 20px',
                       backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
