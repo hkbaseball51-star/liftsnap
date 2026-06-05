@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { TrendingUp, BarChart2, Activity, Lock, ChevronRight, Settings, Crown } from 'lucide-react'
@@ -9,6 +10,7 @@ import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/Work
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import type { Locale } from '@/lib/i18n'
 import { useAppData } from '@/contexts/AppDataContext'
+import { localGetTodayWorkoutForShare } from '@/lib/localDB'
 
 // ── Static sample data ────────────────────────────────────────────────
 const RM_PTS  = [58,59,60,61,62,64,63,65,67,69,71,70,73,76,79,82,83,86,90,94]
@@ -123,7 +125,28 @@ export default function ShareLandingView({
   const { unit } = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
   const { daySummaries } = useAppData()
-  const hasTodayWorkout = Boolean(daySummaries[todayStr])
+
+  // Lazy init: synchronously read localStorage on first render when server provided sample data.
+  // Server Component can't access localStorage, so local-mode users always get isSample=true
+  // even when they have a real workout recorded.
+  const [localTodayData] = useState<TodayData | null>(() => {
+    if (typeof window === 'undefined') return null
+    if (!isSample) return null
+    try {
+      return localGetTodayWorkoutForShare(todayStr)
+    } catch {
+      return null
+    }
+  })
+
+  // Combine daySummaries (reactive after pathname effect) with localTodayData (sync first-render).
+  // processRawSessions may skip sessions with only 0-weight sets; localGetTodayWorkoutForShare
+  // only checks completed_at !== null — using both is more reliable.
+  const hasTodayWorkout = Boolean(daySummaries[todayStr]) || Boolean(localTodayData)
+
+  const displayPreviewData = localTodayData ?? previewData
+  const displayIsSample    = localTodayData ? false : isSample
+  const displayTodayData   = localTodayData ?? todayData
 
   // Volume chip formatter (raw kg input)
   const fmtVol = (v: number) => formatVolumeWithUnit(v, unit)
@@ -216,7 +239,7 @@ export default function ShareLandingView({
               <div style={{ position: 'relative', height: 188, overflow: 'hidden', borderRadius: 12, marginBottom: 11, background: '#121212' }}>
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%) scale(0.62)', transformOrigin: 'top center', width: 420, pointerEvents: 'none' }}>
                   <WorkoutStoryCardContent
-                    data={previewData}
+                    data={displayPreviewData}
                     cardStyle="glass"
                     preset="orange"
                     unit={unit}
@@ -225,14 +248,14 @@ export default function ShareLandingView({
                   />
                 </div>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, background: 'linear-gradient(to top, #121212, transparent)', pointerEvents: 'none' }} />
-                {isSample && (
+                {displayIsSample && (
                   <div style={{ position: 'absolute', top: 7, right: 7, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 5, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.34)', pointerEvents: 'none' }}>SAMPLE</div>
                 )}
               </div>
               {/* Stats chips — unit-aware volume (only when today has a real workout) */}
-              {hasTodayWorkout && todayData && (
+              {hasTodayWorkout && displayTodayData && (
                 <div style={{ display: 'flex', gap: 5, marginBottom: 11, flexWrap: 'wrap' }}>
-                  {[fmtVol(todayData.volume), `${todayData.setsCount} sets`, `${todayData.exercises.length} exercises`].map(chip => (
+                  {[fmtVol(displayTodayData.volume), `${displayTodayData.setsCount} sets`, `${displayTodayData.exercises.length} exercises`].map(chip => (
                     <span key={chip} style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.44)', padding: '3px 8px', borderRadius: 9, background: 'rgba(255,255,255,0.05)' }}>{chip}</span>
                   ))}
                 </div>
@@ -247,7 +270,7 @@ export default function ShareLandingView({
               }}>
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: hasTodayWorkout ? '#fff' : 'rgba(255,255,255,0.60)' }}>
                   {hasTodayWorkout
-                    ? (ja ? '今日のメニューをシェア' : "Share today's workout")
+                    ? (ja ? '今日のワークアウトをシェア' : "Share today's workout")
                     : (ja ? '今日のワークアウトを記録' : "Log today's workout")}
                 </span>
                 <ChevronRight size={13} color={hasTodayWorkout ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.32)'} />
