@@ -6,6 +6,31 @@ import TrainingCalendar, { type CalendarSession } from './TrainingCalendar'
 import SelectedDaySummary from './SelectedDaySummary'
 import { CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
 
+function LegendItem({ label, name, color }: { label: string; name: string; color: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+      <span style={{
+        fontSize: 11, fontWeight: 800, letterSpacing: '0.04em',
+        color, lineHeight: 1,
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+        color: 'rgba(255,255,255,0.36)', lineHeight: 1,
+      }}>
+        {name}
+      </span>
+    </div>
+  )
+}
+
+const SECTION_TITLE: React.CSSProperties = {
+  fontSize: 9, fontWeight: 800, letterSpacing: '0.14em',
+  color: 'rgba(255,255,255,0.28)', marginBottom: 8,
+  textTransform: 'uppercase',
+}
+
 function CalendarLegend() {
   return (
     <div style={{
@@ -14,73 +39,24 @@ function CalendarLegend() {
       borderRadius: 14,
       padding: '10px 14px',
       marginTop: 10,
-      display: 'flex',
-      gap: 14,
-      flexWrap: 'wrap',
     }}>
-      {/* SPLIT section */}
-      <div style={{ flex: '1 1 100px', minWidth: 100 }}>
-        <p style={{
-          fontSize: 8, fontWeight: 800, letterSpacing: '0.12em',
-          color: 'rgba(255,255,255,0.30)', marginBottom: 7, textTransform: 'uppercase',
-        }}>
-          SPLIT
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {CALENDAR_LABEL_LEGEND.split.map(({ label, name, color }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                display: 'inline-block',
-                minWidth: 28,
-                fontSize: label.length >= 4 ? 8 : 9,
-                fontWeight: 900,
-                letterSpacing: '0.04em',
-                color,
-                textAlign: 'right',
-                lineHeight: 1,
-              }}>
-                {label}
-              </span>
-              <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
-                {name}
-              </span>
-            </div>
-          ))}
-        </div>
+      {/* SPLIT — horizontal wrap */}
+      <p style={SECTION_TITLE}>SPLIT</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 10 }}>
+        {CALENDAR_LABEL_LEGEND.split.map((item) => (
+          <LegendItem key={item.label} {...item} />
+        ))}
       </div>
 
-      {/* Divider */}
-      <div style={{ width: 1, background: 'rgba(255,255,255,0.06)', alignSelf: 'stretch' }} />
+      {/* Horizontal divider */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10 }} />
 
-      {/* MUSCLE section */}
-      <div style={{ flex: '1 1 130px', minWidth: 130 }}>
-        <p style={{
-          fontSize: 8, fontWeight: 800, letterSpacing: '0.12em',
-          color: 'rgba(255,255,255,0.30)', marginBottom: 7, textTransform: 'uppercase',
-        }}>
-          MUSCLE
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {CALENDAR_LABEL_LEGEND.muscle.map(({ label, name, color }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                display: 'inline-block',
-                minWidth: 28,
-                fontSize: label.length >= 3 ? 8 : 10,
-                fontWeight: 900,
-                letterSpacing: '0.04em',
-                color,
-                textAlign: 'right',
-                lineHeight: 1,
-              }}>
-                {label}
-              </span>
-              <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.38)', lineHeight: 1 }}>
-                {name}
-              </span>
-            </div>
-          ))}
-        </div>
+      {/* MUSCLE — horizontal wrap */}
+      <p style={SECTION_TITLE}>MUSCLE</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+        {CALENDAR_LABEL_LEGEND.muscle.map((item) => (
+          <LegendItem key={item.label} {...item} />
+        ))}
       </div>
     </div>
   )
