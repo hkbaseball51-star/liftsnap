@@ -1,6 +1,8 @@
 import { getSessionForShare } from '@/actions/workout'
 import { getStatsForShare, getExercisesWithHistory, getBodyWeightData } from '@/actions/analytics'
 import { getTodayWorkoutForShare } from '@/actions/workout'
+import { getDemoTodayWorkoutForShare } from '@/actions/demo'
+import { REPRA_DEMO_USER_ID } from '@/lib/demoConstants'
 import ShareView from '@/components/share/ShareView'
 import StatsShareView from '@/components/share/StatsShareView'
 import StatsShareGuestView from '@/components/share/StatsShareGuestView'
@@ -17,9 +19,10 @@ import { createClient } from '@/lib/supabase/server'
 export default async function SharePage({
   searchParams,
 }: {
-  searchParams: Promise<{ session?: string; type?: string; metric?: string; exercise?: string; date?: string; bodypart?: string }>
+  searchParams: Promise<{ session?: string; type?: string; metric?: string; exercise?: string; date?: string; bodypart?: string; demoUserId?: string }>
 }) {
   const params = await searchParams
+  const demoUserId = params.demoUserId === REPRA_DEMO_USER_ID ? params.demoUserId : null
 
   if (params.type === 'today') {
     const date = params.date ?? ''
@@ -31,6 +34,31 @@ export default async function SharePage({
         </div>
       )
     }
+
+    // Demo mode: use demo user's Supabase data directly (no auth required)
+    if (demoUserId) {
+      const data = await getDemoTodayWorkoutForShare(demoUserId, date)
+      if (!data) {
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#0a0a0a' }}>
+            <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10 }}>
+              No workout found for this date
+            </p>
+            <Link href="/home" className="px-8 py-3 rounded-2xl text-sm font-black text-white"
+              style={{ background: '#ED742F' }}>
+              Back to Home
+            </Link>
+          </div>
+        )
+      }
+      return (
+        <>
+          <FeatureTracker feature="story" />
+          <TodayShareView data={data} />
+        </>
+      )
+    }
+
     // In local-only mode, load from localStorage via client component
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

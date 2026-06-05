@@ -17,6 +17,14 @@ import {
   localGetBodyPartDailyVolumeData,
   localUpsertBodyWeight,
 } from '@/lib/localDB'
+import { useDemoMode } from '@/lib/useDemoMode'
+import {
+  getDemoExercisesWithHistory,
+  getDemoExercise1RMData,
+  getDemoBodyPartVolumeData,
+  getDemoBodyWeightHistory,
+  getDemoTotalSessions,
+} from '@/actions/demo'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
@@ -81,6 +89,7 @@ function periodToRange(p: Period): string {
 export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions, useLocalDB }: Props) {
   const { locale } = useLocale()
   const { unit, mounted: unitMounted } = useWeightUnit()
+  const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
   const unitLabel = weightUnitLabel(unit)
   const bwMin = unit === 'lbs' ? 44 : 20
   const bwMax = unit === 'lbs' ? 661 : 300
@@ -113,8 +122,25 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
 
   const [innerW, setInnerW] = useState(316)
 
-  // Load data from localStorage when useLocalDB is true
+  // Load exercises + body weight on mount (local or demo)
   useEffect(() => {
+    if (!demoMounted) return
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
+
+    if (isDemo && demoUserId) {
+      getDemoExercisesWithHistory(demoUserId).then(exs => {
+        setLocalExercises(exs)
+        if (exs.length > 0) setSelectedExercise(exs[0].name)
+      })
+      getDemoTotalSessions(demoUserId).then(setLocalTotalSessions)
+      getDemoBodyWeightHistory(demoUserId).then(bwHistory => {
+        setBwData(bwHistory)
+        const entry = bwHistory.find(p => p.date === today)
+        if (entry) setBwInput(String(entry.weight))
+      })
+      return
+    }
+
     if (!useLocalDB) return
     const exs = localGetExercisesWithHistory()
     setLocalExercises(exs)
@@ -122,11 +148,10 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     setLocalTotalSessions(localGetTotalSessions())
     const bwHistory = localGetBodyWeightHistory(730)
     setBwData(bwHistory)
-    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
     const todayEntry = bwHistory.find(p => p.date === today)
     if (todayEntry) setBwInput(String(todayEntry.weight))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useLocalDB])
+  }, [demoMounted, isDemo, demoUserId, useLocalDB])
 
   useEffect(() => {
     let raf: ReturnType<typeof requestAnimationFrame> | null = null
@@ -146,13 +171,19 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const activeTotalSessions = useLocalDB ? localTotalSessions : totalSessions
   const filteredExercises = activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
-  // Auto-load data when tab, exercise/bodypart, or period changes
+  // Auto-load chart data when tab, exercise/bodypart, or period changes
   useEffect(() => {
+    if (!demoMounted) return
     const startDate = getStartDate(period) ?? undefined
     if (tab === 'MAX 1RM') {
       if (!selectedExercise) return
       setRmData([])
-      if (useLocalDB) {
+      if (isDemo && demoUserId) {
+        startRmTransition(async () => {
+          const data = await getDemoExercise1RMData(demoUserId, selectedExercise, startDate)
+          setRmData(data)
+        })
+      } else if (useLocalDB) {
         setRmData(localGetExercise1RMData(selectedExercise, startDate))
       } else {
         startRmTransition(async () => {
@@ -162,7 +193,12 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       }
     } else if (tab === 'DAILY VOLUME') {
       setVolData([])
-      if (useLocalDB) {
+      if (isDemo && demoUserId) {
+        startVolTransition(async () => {
+          const data = await getDemoBodyPartVolumeData(demoUserId, volBodyPart.toLowerCase(), startDate)
+          setVolData(data)
+        })
+      } else if (useLocalDB) {
         setVolData(localGetBodyPartDailyVolumeData(volBodyPart.toLowerCase(), startDate))
       } else {
         startVolTransition(async () => {
@@ -172,7 +208,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedExercise, volBodyPart, period, useLocalDB])
+  }, [tab, selectedExercise, volBodyPart, period, useLocalDB, demoMounted, isDemo, demoUserId])
 
   // Re-initialize bwInput in display unit once unit resolves
   useEffect(() => {
@@ -205,6 +241,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   }
 
   const saveBW = async () => {
+    if (isDemo) { showBwToast('Demo mode: saving disabled', false); return }
     const v = parseFlexibleNumber(bwInput)
     if (v === null || v < bwMin || v > bwMax) return
     if (bwSaving) return

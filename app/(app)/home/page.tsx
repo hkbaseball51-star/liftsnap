@@ -17,12 +17,18 @@ import { useLocale } from '@/lib/useLocale'
 import {
   localGetCalendarData,
   localGetWeekSessions,
-  localGetBodyWeightByDate,
 } from '@/lib/localDB'
+import { useDemoMode } from '@/lib/useDemoMode'
+import {
+  getDemoCalendarData,
+  getDemoWeekSessions,
+  getDemoAllTime1RM,
+} from '@/actions/demo'
 
 export default function HomePage() {
   const { locale } = useLocale()
   const { unit } = useWeightUnit()
+  const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
   const [mounted, setMounted] = useState(false)
 
   // All data loaded from localStorage
@@ -38,105 +44,129 @@ export default function HomePage() {
   const weekStart = getWeekStart()
 
   useEffect(() => {
+    if (!demoMounted) return
     setMounted(true)
 
-    // Load calendar + body weight data
-    const { sessions: rawSessions, bodyWeights } = localGetCalendarData(90)
+    const processRawSessions = (rawSessions: { id: string; trained_at: string; title?: string | null; sets: { exercise_name: string; muscle_group?: string | null; weight_kg: number | null; reps: number | null; is_completed: boolean; note?: string | null }[] }[]) => {
+      const newCalendarSessions: CalendarSession[] = []
+      const newDaySummaries: Record<string, DaySummary> = {}
 
-    const newCalendarSessions: CalendarSession[] = []
-    const newDaySummaries: Record<string, DaySummary> = {}
-
-    for (const session of rawSessions) {
-      const sets = session.sets ?? []
-
-      const hasValidWorkout = sets.some(s =>
-        s.exercise_name &&
-        (
-          (typeof s.weight_kg === 'number' && s.weight_kg > 0) ||
-          (typeof s.reps === 'number' && s.reps > 0)
+      for (const session of rawSessions) {
+        const sets = session.sets ?? []
+        const hasValidWorkout = sets.some(s =>
+          s.exercise_name &&
+          ((typeof s.weight_kg === 'number' && s.weight_kg > 0) ||
+           (typeof s.reps === 'number' && s.reps > 0))
         )
-      )
-      if (!hasValidWorkout) continue
+        if (!hasValidWorkout) continue
 
-      const mgMap = new Map<string, number>()
-      for (const s of sets) {
-        const mg = s.muscle_group?.toLowerCase()
-        if (mg) mgMap.set(mg, (mgMap.get(mg) ?? 0) + 1)
+        const mgMap = new Map<string, number>()
+        for (const s of sets) {
+          const mg = s.muscle_group?.toLowerCase()
+          if (mg) mgMap.set(mg, (mgMap.get(mg) ?? 0) + 1)
+        }
+        const sortedMg = mgMap.size > 0 ? [...mgMap.entries()].sort((a, b) => b[1] - a[1]) : null
+        const topMuscle = sortedMg ? sortedMg[0][0] : 'full body'
+        const allMuscleGroups = sortedMg ? sortedMg.map(([mg]) => mg) : []
+
+        newCalendarSessions.push({ date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups })
+
+        const exMap = new Map<string, { volume: number; bestEst1rm: number; bestWeight: number; bestReps: number; note: string | null }>()
+        let totalSets = 0
+        let totalVolume = 0
+        let best1rm = 0
+
+        for (const s of sets) {
+          const w = s.weight_kg ?? 0
+          const r = s.reps ?? 0
+          totalSets++
+          totalVolume += w * r
+          const est = w > 0 && r > 0 ? (r === 1 ? w : Math.round(w * (1 + r / 30))) : 0
+          if (est > best1rm) best1rm = est
+          const ex = exMap.get(s.exercise_name) ?? { volume: 0, bestEst1rm: 0, bestWeight: 0, bestReps: 0, note: null }
+          const isBetter = est > ex.bestEst1rm
+          exMap.set(s.exercise_name, {
+            volume: ex.volume + w * r,
+            bestEst1rm: isBetter ? est : ex.bestEst1rm,
+            bestWeight: isBetter ? w : ex.bestWeight,
+            bestReps: isBetter ? r : ex.bestReps,
+            note: ex.note ?? (s.note || null),
+          })
+        }
+
+        const sortedEx = [...exMap.entries()].sort((a, b) => b[1].volume - a[1].volume)
+        const main = sortedEx[0]
+        const second = sortedEx[1]
+
+        newDaySummaries[session.trained_at] = {
+          date: session.trained_at,
+          title: session.title ?? undefined,
+          sessionId: session.id,
+          muscleGroup: topMuscle,
+          allMuscleGroups,
+          totalSets,
+          totalVolume: Math.round(totalVolume),
+          best1rm,
+          mainExercise: main ? main[0] : '',
+          mainExerciseBestWeight: main ? main[1].bestWeight : 0,
+          mainExerciseBestReps: main ? main[1].bestReps : 0,
+          mainExerciseNote: main ? (main[1].note ?? null) : null,
+          secondExercise: second ? second[0] : null,
+          extraCount: Math.max(0, exMap.size - 1),
+        }
       }
-      const sortedMg = mgMap.size > 0 ? [...mgMap.entries()].sort((a, b) => b[1] - a[1]) : null
-      const topMuscle = sortedMg ? sortedMg[0][0] : 'full body'
-      const allMuscleGroups = sortedMg ? sortedMg.map(([mg]) => mg) : []
 
-      newCalendarSessions.push({ date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups })
-
-      const exMap = new Map<string, { volume: number; bestEst1rm: number; bestWeight: number; bestReps: number; note: string | null }>()
-      let totalSets = 0
-      let totalVolume = 0
-      let best1rm = 0
-
-      for (const s of sets) {
-        const w = s.weight_kg ?? 0
-        const r = s.reps ?? 0
-        totalSets++
-        totalVolume += w * r
-        const est = w > 0 && r > 0 ? (r === 1 ? w : Math.round(w * (1 + r / 30))) : 0
-        if (est > best1rm) best1rm = est
-
-        const ex = exMap.get(s.exercise_name) ?? { volume: 0, bestEst1rm: 0, bestWeight: 0, bestReps: 0, note: null }
-        const isBetter = est > ex.bestEst1rm
-        exMap.set(s.exercise_name, {
-          volume: ex.volume + w * r,
-          bestEst1rm: isBetter ? est : ex.bestEst1rm,
-          bestWeight: isBetter ? w : ex.bestWeight,
-          bestReps: isBetter ? r : ex.bestReps,
-          note: ex.note ?? (s.note || null),
-        })
-      }
-
-      const sortedEx = [...exMap.entries()].sort((a, b) => b[1].volume - a[1].volume)
-      const main = sortedEx[0]
-      const second = sortedEx[1]
-
-      newDaySummaries[session.trained_at] = {
-        date: session.trained_at,
-        title: session.title ?? undefined,
-        sessionId: session.id,
-        muscleGroup: topMuscle,
-        allMuscleGroups,
-        totalSets,
-        totalVolume: Math.round(totalVolume),
-        best1rm,
-        mainExercise: main ? main[0] : '',
-        mainExerciseBestWeight: main ? main[1].bestWeight : 0,
-        mainExerciseBestReps: main ? main[1].bestReps : 0,
-        mainExerciseNote: main ? (main[1].note ?? null) : null,
-        secondExercise: second ? second[0] : null,
-        extraCount: Math.max(0, exMap.size - 1),
-      }
+      return { newCalendarSessions, newDaySummaries }
     }
 
+    if (isDemo && demoUserId) {
+      // Load from Supabase demo user
+      const lastWeekStartStr = getLastWeekStart()
+      Promise.all([
+        getDemoCalendarData(demoUserId, 90),
+        getDemoWeekSessions(demoUserId, weekStart),
+        getDemoWeekSessions(demoUserId, lastWeekStartStr),
+        getDemoAllTime1RM(demoUserId),
+      ]).then(([calData, weekData, lastWeekData, allTime1RM]) => {
+        const { newCalendarSessions, newDaySummaries } = processRawSessions(calData.sessions)
+        setCalendarSessions(newCalendarSessions)
+        setDaySummaries(newDaySummaries)
+
+        const bwByDate: Record<string, number> = {}
+        for (const bw of calData.bodyWeights) bwByDate[bw.date] = bw.weight_kg
+        setBodyWeightByDate(bwByDate)
+
+        setThisWeekSessions(weekData)
+
+        const lastWeekFiltered = lastWeekData.filter(s => s.trained_at < weekStart)
+        setLastWeekVolume(lastWeekFiltered.reduce((s, r) => s + r.total_volume_kg, 0))
+
+        setAllTimeEst1rm(allTime1RM)
+
+        const { streak } = calcProofStreak(newCalendarSessions.map(s => s.date), [], todayStr)
+        setWeekStreak(streak)
+      })
+      return
+    }
+
+    // ── Local DB (default mode) ───────────────────────────────
+    const { sessions: rawSessions, bodyWeights } = localGetCalendarData(90)
+    const { newCalendarSessions, newDaySummaries } = processRawSessions(rawSessions)
     setCalendarSessions(newCalendarSessions)
     setDaySummaries(newDaySummaries)
 
-    // Body weight
     const bwByDate: Record<string, number> = {}
-    for (const bw of bodyWeights) {
-      bwByDate[bw.date] = bw.weight_kg
-    }
+    for (const bw of bodyWeights) bwByDate[bw.date] = bw.weight_kg
     setBodyWeightByDate(bwByDate)
 
-    // This week sessions
     const thisWeek = localGetWeekSessions(weekStart)
     setThisWeekSessions(thisWeek)
 
-    // Last week volume
     const lastWeekStart = getLastWeekStart()
     const lastWeek = localGetWeekSessions(lastWeekStart).filter(s => s.trained_at < weekStart)
-    const lwVol = lastWeek.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0)
-    setLastWeekVolume(lwVol)
+    setLastWeekVolume(lastWeek.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0))
 
-    // All-time best 1RM from sets in storage
-    const { sessions: allSessions } = localGetCalendarData(3650) // 10 years
+    const { sessions: allSessions } = localGetCalendarData(3650)
     let best1rm = 0
     for (const session of allSessions) {
       for (const s of session.sets) {
@@ -147,12 +177,10 @@ export default function HomePage() {
     }
     setAllTimeEst1rm(best1rm > 0 ? best1rm : null)
 
-    // Proof streak
-    const workoutDates = newCalendarSessions.map(s => s.date)
-    const { streak } = calcProofStreak(workoutDates, [], todayStr)
+    const { streak } = calcProofStreak(newCalendarSessions.map(s => s.date), [], todayStr)
     setWeekStreak(streak)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [demoMounted, isDemo, demoUserId])
 
   if (!mounted) {
     return <div className="fixed inset-0 bg-black" />
@@ -180,7 +208,9 @@ export default function HomePage() {
     ? Math.floor((new Date(todayStr + 'T00:00:00').getTime() - new Date(lastLegDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
     : null
 
-  const storyHref = `/share?type=today&date=${todayStr}`
+  const storyHref = isDemo && demoUserId
+    ? `/share?type=today&date=${todayStr}&demoUserId=${demoUserId}`
+    : `/share?type=today&date=${todayStr}`
 
   // photoPathsByDate: empty in local mode (no photo uploads)
   const photoPathsByDate: Record<string, string> = {}
