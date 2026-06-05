@@ -1079,7 +1079,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       </div>
 
       {/* ⑥ PREVIEW ──────────────────────────────────────────── */}
-      <div className="px-4 mb-5">
+      {/* Glass mode: subtle checker behind card so users can see the semi-transparency in preview. */}
+      {/* The checker is NOT inside the capture ref — it's outside the card div — so it never */}
+      {/* appears in the saved PNG. Transparent mode uses its own transparentBg on the card itself. */}
+      <div className="px-4 mb-5" style={!isTransparentCard ? {
+        backgroundColor: '#161616',
+        backgroundImage: CHECKER,
+        backgroundSize: '20px 20px',
+      } : undefined}>
 
         {isMax1RM ? (
 
