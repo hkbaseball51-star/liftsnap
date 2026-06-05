@@ -6,9 +6,9 @@ type WeightPoint = { date: string; label: string; weight: number }
 type Exercise = { name: string; muscle_group: string; logCount: number }
 
 type Props = {
-  bodyWeightData: WeightPoint[]
-  exercises: Exercise[]
-  totalSessions: number
+  bodyWeightData?: WeightPoint[]
+  exercises?: Exercise[]
+  totalSessions?: number
   useLocalDB?: boolean
 }
 

@@ -1,204 +1,47 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Settings } from 'lucide-react'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import CalendarWithSummary from '@/components/home/CalendarWithSummary'
-import type { DaySummary } from '@/components/home/CalendarWithSummary'
-import type { CalendarSession } from '@/components/home/TrainingCalendar'
-import { t, type Locale } from '@/lib/i18n'
-import { calcProofStreak } from '@/lib/proofStreak'
+import { t } from '@/lib/i18n'
+import { useLocale } from '@/lib/useLocale'
+import { useDemoMode } from '@/lib/useDemoMode'
+import { useAppData } from '@/contexts/AppDataContext'
 import HomeGreeting from '@/components/home/HomeGreeting'
 import HomeCTACard from '@/components/home/HomeCTACard'
-import { useLocale } from '@/lib/useLocale'
-import {
-  localGetCalendarData,
-  localGetWeekSessions,
-} from '@/lib/localDB'
-import { useDemoMode } from '@/lib/useDemoMode'
-import {
-  getDemoCalendarData,
-  getDemoWeekSessions,
-  getDemoAllTime1RM,
-} from '@/actions/demo'
 
 export default function HomePage() {
-  const { locale } = useLocale()
-  const { unit } = useWeightUnit()
-  const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
-  const [mounted, setMounted] = useState(false)
+  const { locale }                         = useLocale()
+  const { unit }                           = useWeightUnit()
+  const { isDemo, demoUserId }             = useDemoMode()
 
-  // All data loaded from localStorage
-  const [calendarSessions, setCalendarSessions] = useState<CalendarSession[]>([])
-  const [daySummaries, setDaySummaries] = useState<Record<string, DaySummary>>({})
-  const [bodyWeightByDate, setBodyWeightByDate] = useState<Record<string, number>>({})
-  const [thisWeekSessions, setThisWeekSessions] = useState<{ id: string; trained_at: string; total_volume_kg: number }[]>([])
-  const [lastWeekVolume, setLastWeekVolume] = useState(0)
-  const [allTimeEst1rm, setAllTimeEst1rm] = useState<number | null>(null)
-  const [weekStreak, setWeekStreak] = useState(0)
+  const {
+    calendarSessions,
+    daySummaries,
+    bodyWeightByDate,
+    thisWeekSessions,
+    lastWeekVolume,
+    allTimeEst1rm,
+    weekStreak,
+    todayStr,
+    isLoading,
+  } = useAppData()
 
-  const todayStr = jstDate()
-  const weekStart = getWeekStart()
-
-  useEffect(() => {
-    if (!demoMounted) return
-    setMounted(true)
-
-    const processRawSessions = (rawSessions: { id: string; trained_at: string; title?: string | null; sets: { exercise_name: string; muscle_group?: string | null; weight_kg: number | null; reps: number | null; is_completed: boolean; note?: string | null }[] }[]) => {
-      const newCalendarSessions: CalendarSession[] = []
-      const newDaySummaries: Record<string, DaySummary> = {}
-
-      for (const session of rawSessions) {
-        const sets = session.sets ?? []
-        const hasValidWorkout = sets.some(s =>
-          s.exercise_name &&
-          ((typeof s.weight_kg === 'number' && s.weight_kg > 0) ||
-           (typeof s.reps === 'number' && s.reps > 0))
-        )
-        if (!hasValidWorkout) continue
-
-        const mgMap = new Map<string, number>()
-        for (const s of sets) {
-          const mg = s.muscle_group?.toLowerCase()
-          if (mg) mgMap.set(mg, (mgMap.get(mg) ?? 0) + 1)
-        }
-        const sortedMg = mgMap.size > 0 ? [...mgMap.entries()].sort((a, b) => b[1] - a[1]) : null
-        const topMuscle = sortedMg ? sortedMg[0][0] : 'full body'
-        const allMuscleGroups = sortedMg ? sortedMg.map(([mg]) => mg) : []
-
-        newCalendarSessions.push({ date: session.trained_at, muscleGroup: topMuscle, allMuscleGroups })
-
-        const exMap = new Map<string, { volume: number; bestEst1rm: number; bestWeight: number; bestReps: number; note: string | null }>()
-        let totalSets = 0
-        let totalVolume = 0
-        let best1rm = 0
-
-        for (const s of sets) {
-          const w = s.weight_kg ?? 0
-          const r = s.reps ?? 0
-          totalSets++
-          totalVolume += w * r
-          const est = w > 0 && r > 0 ? (r === 1 ? w : Math.round(w * (1 + r / 30))) : 0
-          if (est > best1rm) best1rm = est
-          const ex = exMap.get(s.exercise_name) ?? { volume: 0, bestEst1rm: 0, bestWeight: 0, bestReps: 0, note: null }
-          const isBetter = est > ex.bestEst1rm
-          exMap.set(s.exercise_name, {
-            volume: ex.volume + w * r,
-            bestEst1rm: isBetter ? est : ex.bestEst1rm,
-            bestWeight: isBetter ? w : ex.bestWeight,
-            bestReps: isBetter ? r : ex.bestReps,
-            note: ex.note ?? (s.note || null),
-          })
-        }
-
-        const sortedEx = [...exMap.entries()].sort((a, b) => b[1].volume - a[1].volume)
-        const main = sortedEx[0]
-        const second = sortedEx[1]
-
-        newDaySummaries[session.trained_at] = {
-          date: session.trained_at,
-          title: session.title ?? undefined,
-          sessionId: session.id,
-          muscleGroup: topMuscle,
-          allMuscleGroups,
-          totalSets,
-          totalVolume: Math.round(totalVolume),
-          best1rm,
-          mainExercise: main ? main[0] : '',
-          mainExerciseBestWeight: main ? main[1].bestWeight : 0,
-          mainExerciseBestReps: main ? main[1].bestReps : 0,
-          mainExerciseNote: main ? (main[1].note ?? null) : null,
-          secondExercise: second ? second[0] : null,
-          extraCount: Math.max(0, exMap.size - 1),
-        }
-      }
-
-      return { newCalendarSessions, newDaySummaries }
-    }
-
-    if (isDemo && demoUserId) {
-      // Load from Supabase demo user
-      const lastWeekStartStr = getLastWeekStart()
-      Promise.all([
-        getDemoCalendarData(demoUserId, 90),
-        getDemoWeekSessions(demoUserId, weekStart),
-        getDemoWeekSessions(demoUserId, lastWeekStartStr),
-        getDemoAllTime1RM(demoUserId),
-      ]).then(([calData, weekData, lastWeekData, allTime1RM]) => {
-        const { newCalendarSessions, newDaySummaries } = processRawSessions(calData.sessions)
-        setCalendarSessions(newCalendarSessions)
-        setDaySummaries(newDaySummaries)
-
-        const bwByDate: Record<string, number> = {}
-        for (const bw of calData.bodyWeights) bwByDate[bw.date] = bw.weight_kg
-        setBodyWeightByDate(bwByDate)
-
-        setThisWeekSessions(weekData)
-
-        const lastWeekFiltered = lastWeekData.filter(s => s.trained_at < weekStart)
-        setLastWeekVolume(lastWeekFiltered.reduce((s, r) => s + r.total_volume_kg, 0))
-
-        setAllTimeEst1rm(allTime1RM)
-
-        const { streak } = calcProofStreak(newCalendarSessions.map(s => s.date), [], todayStr)
-        setWeekStreak(streak)
-      })
-      return
-    }
-
-    // ── Local DB (default mode) ───────────────────────────────
-    const { sessions: rawSessions, bodyWeights } = localGetCalendarData(90)
-    const { newCalendarSessions, newDaySummaries } = processRawSessions(rawSessions)
-    setCalendarSessions(newCalendarSessions)
-    setDaySummaries(newDaySummaries)
-
-    const bwByDate: Record<string, number> = {}
-    for (const bw of bodyWeights) bwByDate[bw.date] = bw.weight_kg
-    setBodyWeightByDate(bwByDate)
-
-    const thisWeek = localGetWeekSessions(weekStart)
-    setThisWeekSessions(thisWeek)
-
-    const lastWeekStart = getLastWeekStart()
-    const lastWeek = localGetWeekSessions(lastWeekStart).filter(s => s.trained_at < weekStart)
-    setLastWeekVolume(lastWeek.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0))
-
-    const { sessions: allSessions } = localGetCalendarData(3650)
-    let best1rm = 0
-    for (const session of allSessions) {
-      for (const s of session.sets) {
-        if (!s.is_completed || !s.weight_kg || !s.reps) continue
-        const est = s.reps === 1 ? s.weight_kg : Math.round(s.weight_kg * (1 + s.reps / 30))
-        if (est > best1rm) best1rm = est
-      }
-    }
-    setAllTimeEst1rm(best1rm > 0 ? best1rm : null)
-
-    const { streak } = calcProofStreak(newCalendarSessions.map(s => s.date), [], todayStr)
-    setWeekStreak(streak)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMounted, isDemo, demoUserId])
-
-  if (!mounted) {
-    return <div className="fixed inset-0 bg-black" />
-  }
+  // Show opaque black screen while Provider is loading (prevents flash)
+  if (isLoading) return <div className="fixed inset-0 bg-black" />
 
   const totalSessions90 = calendarSessions.length
   const validWorkoutDates = new Set(calendarSessions.map(s => s.date))
   const todayWorked = validWorkoutDates.has(todayStr)
-  const displayName = null
-  const profileComplete = true // no onboarding in local mode
 
   const thisWeekVolume = thisWeekSessions.reduce((s, r) => s + (r.total_volume_kg ?? 0), 0)
   const volumeDiff = lastWeekVolume > 0
     ? Math.round(((thisWeekVolume - lastWeekVolume) / lastWeekVolume) * 100)
     : null
   const todayWeight = bodyWeightByDate[todayStr] ?? null
-
-  const club = allTimeEst1rm ? getNextClub(allTimeEst1rm) : null
 
   const legSessions = calendarSessions.filter(s => (s.allMuscleGroups ?? []).includes('legs') || s.muscleGroup === 'legs')
   const lastLegDate = legSessions.length > 0
@@ -212,14 +55,14 @@ export default function HomePage() {
     ? `/share?type=today&date=${todayStr}&demoUserId=${demoUserId}`
     : `/share?type=today&date=${todayStr}`
 
-  // photoPathsByDate: empty in local mode (no photo uploads)
   const photoPathsByDate: Record<string, string> = {}
-  const hasTodayPhoto = false
+  const displayName  = null
+  const profileComplete = true
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
 
-      {/* ── Header ── Logo left · [lifts + streak] right ── */}
+      {/* ── Header ── Logo left · Settings right ── */}
       <div className="flex items-start justify-between px-4 pt-8 pb-2">
         <Image
           src="/brand/repra-logo-cropped.png"
@@ -257,12 +100,12 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── TODAY'S CTA — always Record screen, text switches by state ── */}
+      {/* ── TODAY'S CTA ── */}
       <div className="px-4 mb-5">
         <HomeCTACard
           todayStr={todayStr}
           hasTodayWorkout={todayWorked}
-          hasTodayPhoto={hasTodayPhoto}
+          hasTodayPhoto={false}
           workoutCount={totalSessions90}
           daysSinceLastLegDay={daysSinceLastLegDay}
           profileComplete={profileComplete}
@@ -273,10 +116,14 @@ export default function HomePage() {
 
       {/* ── MONTHLY TRAINING CALENDAR + SELECTED DAY SUMMARY ── */}
       <div className="px-4 mb-5">
-        <CalendarWithSummary sessions={calendarSessions} todayStr={todayStr} daySummaries={daySummaries} bodyWeightByDate={bodyWeightByDate} photoPathsByDate={photoPathsByDate} />
+        <CalendarWithSummary
+          sessions={calendarSessions}
+          todayStr={todayStr}
+          daySummaries={daySummaries}
+          bodyWeightByDate={bodyWeightByDate}
+          photoPathsByDate={photoPathsByDate}
+        />
       </div>
-
-
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-4">
@@ -336,11 +183,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── STRENGTH CLUB ── hidden for MVP */}
-      {/* <div className="px-4 mb-4">
-        <ClubCard club={club} allTimeEst1rm={allTimeEst1rm} locale={locale} />
-      </div> */}
-
       {/* ── BODY WEIGHT ── */}
       <div className="px-4 mb-4">
         <div className="premium-card rounded-xl px-4 py-3 flex items-center justify-between">
@@ -374,33 +216,4 @@ export default function HomePage() {
 
     </div>
   )
-}
-
-/* ─── Pure functions ──────────────────────────────────────── */
-
-type ClubInfo = { name: string; target: number; gap: number; progress: number; prev: number }
-
-function getNextClub(oneRM: number): ClubInfo {
-  const milestones = [60, 80, 100, 120, 150, 200]
-  const target = milestones.find(m => m > oneRM) ?? 250
-  const prev = milestones[milestones.indexOf(target) - 1] ?? 0
-  const progress = Math.min(99, Math.round(((oneRM - prev) / (target - prev)) * 100))
-  return { name: `${target}KG CLUB`, target, gap: Math.max(1, Math.round(target - oneRM)), progress, prev }
-}
-
-/** YYYY-MM-DD in JST — avoids UTC-off-by-one for Japan users */
-function jstDate(d: Date = new Date()): string {
-  return d.toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
-}
-
-function getWeekStart() {
-  const d = new Date(jstDate() + 'T00:00:00')
-  d.setDate(d.getDate() + (d.getDay() === 0 ? -6 : 1 - d.getDay()))
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function getLastWeekStart() {
-  const d = new Date(getWeekStart() + 'T00:00:00')
-  d.setDate(d.getDate() - 7)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

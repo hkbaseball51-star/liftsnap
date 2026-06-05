@@ -8,22 +8,14 @@ import {
 import Link from 'next/link'
 import { Share2, Lock, Maximize2, Settings } from 'lucide-react'
 import { getExercise1RMData, getBodyPartDailyVolumeData } from '@/actions/analytics'
-import { upsertBodyWeight } from '@/actions/bodyWeight'
 import {
-  localGetExercisesWithHistory,
-  localGetBodyWeightHistory,
-  localGetTotalSessions,
   localGetExercise1RMData,
   localGetBodyPartDailyVolumeData,
-  localUpsertBodyWeight,
 } from '@/lib/localDB'
 import { useDemoMode } from '@/lib/useDemoMode'
 import {
-  getDemoExercisesWithHistory,
   getDemoExercise1RMData,
   getDemoBodyPartVolumeData,
-  getDemoBodyWeightHistory,
-  getDemoTotalSessions,
 } from '@/actions/demo'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
@@ -32,17 +24,19 @@ import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units
 import { t, type Locale } from '@/lib/i18n'
 import { EXERCISE_GRAPH_REQUIRED, VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED } from '@/lib/unlocks'
 import { type Period, PERIODS, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
-import { type MetricType, smartYAxis, yAxisTicks, computeChartWidth, getPointWidth, buildXAxisConfig, formatTooltipDate } from '@/lib/chartUtils'
+import { smartYAxis, yAxisTicks, computeChartWidth, getPointWidth, buildXAxisConfig, formatTooltipDate } from '@/lib/chartUtils'
+import { useAppData } from '@/contexts/AppDataContext'
 
 type WeightPoint = { date: string; label: string; weight: number }
 type Exercise = { name: string; muscle_group: string; logCount: number }
 type RMPoint = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
 
+// Props kept for backward compatibility but data now comes from AppDataContext.
 type Props = {
-  bodyWeightData: WeightPoint[]
-  exercises: Exercise[]
-  totalSessions: number
+  bodyWeightData?: WeightPoint[]
+  exercises?: Exercise[]
+  totalSessions?: number
   useLocalDB?: boolean
 }
 
@@ -86,17 +80,26 @@ function periodToRange(p: Period): string {
   return ({ '30D':'30d','90D':'90d','6M':'6m','1Y':'1y','All':'all' } as Record<Period,string>)[p]
 }
 
-export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSessions, useLocalDB }: Props) {
+export default function AnalyticsDashboard({ useLocalDB }: Props) {
   const { locale } = useLocale()
   const { unit, mounted: unitMounted } = useWeightUnit()
   const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
+
+  // All workout + body weight data comes from the shared Provider
+  const {
+    exercises:         ctxExercises,
+    totalSessions:     ctxTotalSessions,
+    bodyWeightHistory: ctxBwHistory,
+    addBodyWeight,
+  } = useAppData()
+
   const unitLabel = weightUnitLabel(unit)
   const bwMin = unit === 'lbs' ? 44 : 20
   const bwMax = unit === 'lbs' ? 661 : 300
   const [tab, setTab] = useState<Tab>('MAX 1RM')
   const [period, setPeriod] = useState<Period>('90D')
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup>('ALL')
-  const [selectedExercise, setSelectedExercise] = useState(exercises[0]?.name ?? '')
+  const [selectedExercise, setSelectedExercise] = useState('')
   const [volBodyPart, setVolBodyPart] = useState<VolBodyPart>('ALL')
 
   const [rmData, setRmData] = useState<RMPoint[]>([])
@@ -109,49 +112,18 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   const volScrollRef = useRef<HTMLDivElement>(null)
   const bwScrollRef  = useRef<HTMLDivElement>(null)
 
-  const [localExercises, setLocalExercises] = useState<Exercise[]>(exercises)
-  const [localTotalSessions, setLocalTotalSessions] = useState(totalSessions)
-  const [bwData, setBwData]   = useState(bodyWeightData)
-  const [bwInput, setBwInput] = useState(() => {
-    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-    const entry = bodyWeightData.find(p => p.date === today)
-    return entry ? String(entry.weight) : ''
-  })
-  const [bwSaving, setBwSaving] = useState(false)
-  const [bwToast, setBwToast]   = useState<{ msg: string; ok: boolean } | null>(null)
+  const [bwInput, setBwInput] = useState('')
+  const [bwToast, setBwToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
   const [innerW, setInnerW] = useState(316)
 
-  // Load exercises + body weight on mount (local or demo)
+  // Auto-select first exercise when exercise list loads
   useEffect(() => {
-    if (!demoMounted) return
-    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-
-    if (isDemo && demoUserId) {
-      getDemoExercisesWithHistory(demoUserId).then(exs => {
-        setLocalExercises(exs)
-        if (exs.length > 0) setSelectedExercise(exs[0].name)
-      })
-      getDemoTotalSessions(demoUserId).then(setLocalTotalSessions)
-      getDemoBodyWeightHistory(demoUserId).then(bwHistory => {
-        setBwData(bwHistory)
-        const entry = bwHistory.find(p => p.date === today)
-        if (entry) setBwInput(String(entry.weight))
-      })
-      return
+    if (!selectedExercise && ctxExercises.length > 0) {
+      setSelectedExercise(ctxExercises[0].name)
     }
-
-    if (!useLocalDB) return
-    const exs = localGetExercisesWithHistory()
-    setLocalExercises(exs)
-    if (exs.length > 0) setSelectedExercise(exs[0].name)
-    setLocalTotalSessions(localGetTotalSessions())
-    const bwHistory = localGetBodyWeightHistory(730)
-    setBwData(bwHistory)
-    const todayEntry = bwHistory.find(p => p.date === today)
-    if (todayEntry) setBwInput(String(todayEntry.weight))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMounted, isDemo, demoUserId, useLocalDB])
+  }, [ctxExercises.length])
 
   useEffect(() => {
     let raf: ReturnType<typeof requestAnimationFrame> | null = null
@@ -167,8 +139,8 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     }
   }, [])
 
-  const activeExercises = useLocalDB ? localExercises : exercises
-  const activeTotalSessions = useLocalDB ? localTotalSessions : totalSessions
+  const activeExercises     = ctxExercises
+  const activeTotalSessions = ctxTotalSessions
   const filteredExercises = activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
 
   // Auto-load chart data when tab, exercise/bodypart, or period changes
@@ -210,22 +182,20 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, selectedExercise, volBodyPart, period, useLocalDB, demoMounted, isDemo, demoUserId])
 
-  // Re-initialize bwInput in display unit once unit resolves
+  // Sync bwInput when body weight data or unit resolves (whichever comes last)
   useEffect(() => {
-    if (!unitMounted) return
+    if (!unitMounted || ctxBwHistory.length === 0) return
     const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-    const entry = bwData.find(p => p.date === today)
-    if (entry) {
-      setBwInput(String(toDisplayWeight(entry.weight, unit)))
-    }
+    const entry = ctxBwHistory.find(p => p.date === today)
+    if (entry) setBwInput(String(toDisplayWeight(entry.weight, unit)))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unitMounted])
+  }, [unitMounted, ctxBwHistory.length, unit])
 
   // Scroll charts to show latest (rightmost) data on load or period change
   useEffect(() => {
     const refs = [rmScrollRef, volScrollRef, bwScrollRef]
     refs.forEach(r => { if (r.current) r.current.scrollLeft = r.current.scrollWidth })
-  }, [period, rmData.length, volData.length, bwData.length])
+  }, [period, rmData.length, volData.length, ctxBwHistory.length])
 
   const handleMuscleFilter = (mg: MuscleGroup) => {
     setMuscleFilter(mg)
@@ -240,48 +210,26 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
     setTimeout(() => setBwToast(null), 2500)
   }
 
-  const saveBW = async () => {
+  const saveBW = () => {
     if (isDemo) { showBwToast('Demo mode: saving disabled', false); return }
     const v = parseFlexibleNumber(bwInput)
     if (v === null || v < bwMin || v > bwMax) return
-    if (bwSaving) return
     const vKg = fromDisplayWeight(v, unit)
     const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-    const [, mm, dd] = today.split('-')
-    const label = `${parseInt(mm)}/${parseInt(dd)}`
-    if (useLocalDB) {
-      localUpsertBodyWeight(vKg, today)
-      setBwData(prev => {
-        const filtered = prev.filter(p => p.date !== today)
-        return [...filtered, { date: today, label, weight: vKg }].sort((a, b) => a.date.localeCompare(b.date))
-      })
-      showBwToast(t(locale, 'analytics.weightLogged'), true)
-      return
-    }
-    setBwSaving(true)
-    try {
-      await upsertBodyWeight(vKg)
-      setBwData(prev => {
-        const filtered = prev.filter(p => p.date !== today)
-        return [...filtered, { date: today, label, weight: vKg }].sort((a, b) => a.date.localeCompare(b.date))
-      })
-      showBwToast(t(locale, 'analytics.weightLogged'), true)
-    } catch {
-      showBwToast(t(locale, 'analytics.weightError'), false)
-    } finally {
-      setBwSaving(false)
-    }
+    // addBodyWeight saves to localStorage AND updates Provider state (chart re-renders)
+    addBodyWeight(vKg, today)
+    showBwToast(t(locale, 'analytics.weightLogged'), true)
   }
 
   const todayJST     = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-  const todaySaved   = bwData.some(p => p.date === todayJST)
+  const todaySaved   = ctxBwHistory.some(p => p.date === todayJST)
   const bwParsed     = bwInput !== '' ? parseFlexibleNumber(bwInput) : null
   const bwInputValid = bwParsed !== null && bwParsed >= bwMin && bwParsed <= bwMax
-  const latestWeight = bwData.length > 0 ? bwData[bwData.length - 1].weight : null
+  const latestWeight = ctxBwHistory.length > 0 ? ctxBwHistory[ctxBwHistory.length - 1].weight : null
 
   // Period-filtered + aggregated data
   const periodStart = getStartDate(period)
-  const bwDataForPeriod = periodStart ? bwData.filter(p => p.date >= periodStart) : bwData
+  const bwDataForPeriod = periodStart ? ctxBwHistory.filter(p => p.date >= periodStart) : ctxBwHistory
   const bwDataAggregated = aggregateBodyWeight(bwDataForPeriod)
   const bwDataDisplay = bwDataAggregated.map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
 
@@ -877,11 +825,11 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 background: bwInputValid ? '#ED742F' : 'rgba(255,255,255,0.04)',
                 color: bwInputValid ? '#fff' : '#444',
                 border: bwInputValid ? 'none' : '1px solid rgba(255,255,255,0.13)',
-                opacity: bwSaving ? 0.6 : 1,
+                opacity: 1,
               }}
-              disabled={!bwInputValid || bwSaving}
+              disabled={!bwInputValid}
               onClick={saveBW}>
-              {bwSaving ? '...' : 'LOG'}
+              LOG
             </button>
           </div>
 
@@ -922,7 +870,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                 <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
               </Link>
             </div>
-            {bwData.length === 0 ? (
+            {ctxBwHistory.length === 0 ? (
               <div className="h-[380px] flex items-center justify-center">
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
                   {locale === 'ja'
@@ -930,7 +878,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
                     : 'Log your body weight to see progress over time'}
                 </p>
               </div>
-            ) : bwData.length < BW_CHART_REQUIRED ? (
+            ) : ctxBwHistory.length < BW_CHART_REQUIRED ? (
               <div className="h-[380px] flex items-center justify-center">
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
                   {locale === 'ja'
@@ -964,7 +912,7 @@ export default function AnalyticsDashboard({ bodyWeightData, exercises, totalSes
               </div>
             )}
           </div>
-          {bwData.length > 0 && (
+          {ctxBwHistory.length > 0 && (
             <Link
               href="/share?type=stats&metric=bodyweight"
               className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
