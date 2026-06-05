@@ -247,7 +247,7 @@ export default function ShareLandingView({
               }}>
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: hasTodayWorkout ? '#fff' : 'rgba(255,255,255,0.60)' }}>
                   {hasTodayWorkout
-                    ? (ja ? 'Storyを作成' : 'Create Story')
+                    ? (ja ? '今日のメニューをシェア' : "Share today's workout")
                     : (ja ? '今日のワークアウトを記録' : "Log today's workout")}
                 </span>
                 <ChevronRight size={13} color={hasTodayWorkout ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.32)'} />

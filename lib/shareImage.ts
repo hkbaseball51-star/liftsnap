@@ -69,6 +69,10 @@ export async function captureElement(
     pixelRatio,
     cacheBust: true,
     skipFonts: true,   // system-ui only — no custom font embedding needed
+    // Dark canvas background for glass/solid cards: composites semi-transparent backgrounds
+    // correctly and eliminates white corners outside the card's border-radius.
+    // Omit for transparent cards so PNG alpha is preserved.
+    backgroundColor: clearBackground ? undefined : '#0a0a0a',
   }
 
   const prevBg = el.style.background

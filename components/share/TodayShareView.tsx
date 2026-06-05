@@ -105,7 +105,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setSaving(true)
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
-      const blob = await captureElement(cardEl)
+      const blob = await captureElement(cardEl, { clearBackground: cardStyle === 'transparent' })
       const filename = `repra-${data.date}-workout.png`
       const result = await shareOrDownloadImage({ blob, filename })
       incrementShareCount(); setShareCount(getShareCount())
@@ -138,7 +138,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
     try {
       const ex = data.exercises[idx]
-      const blob = await captureElement(cardEl)
+      const blob = await captureElement(cardEl, { clearBackground: cardStyle === 'transparent' })
       const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
       const safeName = enName || `ex-${idx + 1}`
       const result = await shareOrDownloadImage({ blob, filename: `repra-${data.date}-${safeName}.png` })
@@ -172,7 +172,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         const cardEl = previewExRefs.current[i]
         if (!cardEl || !cardEl.offsetWidth || !cardEl.offsetHeight || !cardEl.innerText?.trim() || !cardEl.children.length) continue
         const ex = data.exercises[i]
-        const blob = await captureElement(cardEl)
+        const blob = await captureElement(cardEl, { clearBackground: cardStyle === 'transparent' })
         const enName = tname(ex.name).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
         const safeName = enName || `ex-${i + 1}`
         files.push(new File([blob], `repra-${data.date}-${safeName}.png`, { type: 'image/png' }))

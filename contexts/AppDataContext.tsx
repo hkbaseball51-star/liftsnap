@@ -197,10 +197,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
   const pathname = usePathname()
 
-  const [rawSessions,       setRawSessions]       = useState<RawSession[]>([])
-  const [bodyWeightHistory, setBodyWeightHistory] = useState<BodyWeightPoint[]>([])
-  const [exercises,         setExercises]         = useState<AppExercise[]>([])
-  const [totalSessions,     setTotalSessions]     = useState(0)
+  // Lazy initializers read from localStorage on the very first client render,
+  // eliminating the flash of empty state between first paint and mount effects.
+  // Guards against SSR (typeof window === 'undefined') and any localStorage errors.
+  const [rawSessions,       setRawSessions]       = useState<RawSession[]>(() => {
+    if (typeof window === 'undefined') return []
+    try { return localGetCalendarData(3650).sessions } catch { return [] }
+  })
+  const [bodyWeightHistory, setBodyWeightHistory] = useState<BodyWeightPoint[]>(() => {
+    if (typeof window === 'undefined') return []
+    try { return localGetBodyWeightHistory(730) } catch { return [] }
+  })
+  const [exercises,         setExercises]         = useState<AppExercise[]>(() => {
+    if (typeof window === 'undefined') return []
+    try { return localGetExercisesWithHistory() } catch { return [] }
+  })
+  const [totalSessions,     setTotalSessions]     = useState(() => {
+    if (typeof window === 'undefined') return 0
+    try { return localGetTotalSessions() } catch { return 0 }
+  })
   const [isLoading,         setIsLoading]         = useState(false)
   const [isRefreshing,      setIsRefreshing]      = useState(false)
   const [error,             setError]             = useState<string | null>(null)

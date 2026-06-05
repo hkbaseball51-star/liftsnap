@@ -161,23 +161,27 @@ export function glassCardStyle(accentHex: string, isDark: boolean): { background
     }
   }
   if (r > 200 && g > 200 && b > 200) {
-    // Premium-black: deep dark glass with subtle specular and top highlight
+    // Premium-black: deep near-black glass panel
     return {
       background: [
-        `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.10), transparent)`,
-        `linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 6%)`,
-        `rgba(8,8,8,0.88)`,
+        `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.12), transparent)`,
+        `linear-gradient(180deg, rgba(255,255,255,0.11) 0%, transparent 6%)`,
+        `rgba(4,4,6,0.92)`,
       ].join(', '),
     }
   }
-  // Colored dark preset: specular top-right + accent depth glow top-left + edge highlight + tint + base
+  // Colored dark preset: derive a rich deep-tinted dark base from the accent color.
+  // This ensures glass saves look premium when composited over the dark (#0a0a0a) canvas.
+  const dr = Math.round(r * 0.17)
+  const dg = Math.round(g * 0.12)
+  const db = Math.round(b * (b > r && b > g ? 0.15 : 0.12))
   return {
     background: [
-      `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.09), transparent)`,
-      `radial-gradient(ellipse 75% 44% at 14% 0%, rgba(${r},${g},${b},0.14), transparent)`,
-      `linear-gradient(180deg, rgba(255,255,255,0.09) 0%, transparent 7%)`,
-      `linear-gradient(rgba(${r},${g},${b},0.14), rgba(${r},${g},${b},0.14))`,
-      `rgba(8,8,8,0.82)`,
+      `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.11), transparent)`,
+      `radial-gradient(ellipse 75% 44% at 14% 0%, rgba(${r},${g},${b},0.20), transparent)`,
+      `linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 7%)`,
+      `linear-gradient(rgba(${r},${g},${b},0.18), rgba(${r},${g},${b},0.18))`,
+      `rgba(${dr},${dg},${db},0.86)`,
     ].join(', '),
   }
 }
