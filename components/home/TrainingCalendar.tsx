@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
+import { CAL_COLORS as CAL_COLORS_LIB, CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
 
 export type CalendarSession = {
   date: string       // YYYY-MM-DD
@@ -67,18 +68,8 @@ const ABBREV: Record<string, string> = {
   full_body:  'FULL',
 }
 
-// Single source of truth for all calendar colors
-const CAL_COLORS = {
-  push:      '#FF8A3D',
-  pull:      '#5EA1FF',
-  legs:      '#35E27A',
-  full:      '#FF5EAD',
-  chest:     '#FF8A3D',
-  back:      '#5EA1FF',
-  shoulders: '#A878FF',
-  arms:      '#FFC247',
-  abs:       '#C6FF4A',
-} as const
+// Re-use the single source of truth from lib/calendarLabel
+const CAL_COLORS = CAL_COLORS_LIB
 
 export const MUSCLE_COLORS: Record<string, string> = {
   chest:       CAL_COLORS.chest,
@@ -136,8 +127,8 @@ export function classifyTraining(rawMuscles: string[]): { label: string; color: 
   // Rule B: 2+ push muscles → PUS
   if (pushHits.length >= 2) return { label: 'PUS', color: CAL_COLORS.push }
 
-  // Rule C: back + biceps → PUL
-  if (main.includes('back') && main.includes('biceps')) return { label: 'PUL', color: CAL_COLORS.pull }
+  // Rule C: 2+ pull muscles (back / biceps / forearms) → PUL
+  if (pullHits.length >= 2) return { label: 'PUL', color: CAL_COLORS.pull }
 
   // Rule D: 2+ leg muscles → LEG (single leg muscle falls through to 1-char label)
   if (legHits.length >= 2) return { label: 'LEG', color: CAL_COLORS.legs }
@@ -159,21 +150,8 @@ const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
-const SPLIT_LEGEND = [
-  { label: 'PUS',  name: 'PUSH',      color: CAL_COLORS.push },
-  { label: 'PUL',  name: 'PULL',      color: CAL_COLORS.pull },
-  { label: 'LEG',  name: 'LEGS',      color: CAL_COLORS.legs },
-  { label: 'FULL', name: 'FULL BODY', color: CAL_COLORS.full },
-]
-
-const MUSCLE_LEGEND = [
-  { label: 'C',   name: 'CHEST',     color: CAL_COLORS.chest     },
-  { label: 'B',   name: 'BACK',      color: CAL_COLORS.back      },
-  { label: 'L',   name: 'LEGS',      color: CAL_COLORS.legs      },
-  { label: 'S',   name: 'SHOULDERS', color: CAL_COLORS.shoulders },
-  { label: 'A',   name: 'ARMS',      color: CAL_COLORS.arms      },
-  { label: 'ABS', name: 'ABS',       color: CAL_COLORS.abs       },
-]
+// CALENDAR_LABEL_LEGEND is re-exported from lib/calendarLabel for external use
+export { CALENDAR_LABEL_LEGEND }
 
 function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

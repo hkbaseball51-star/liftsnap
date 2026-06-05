@@ -28,6 +28,7 @@ import {
   getDemoTotalSessions,
 } from '@/actions/demo'
 import { calcProofStreak } from '@/lib/proofStreak'
+import { inferMuscleGroupFromExerciseName } from '@/lib/calendarLabel'
 import type { CalendarSession } from '@/components/home/TrainingCalendar'
 import type { DaySummary } from '@/components/home/CalendarWithSummary'
 
@@ -124,10 +125,10 @@ function processRawSessions(rawSessions: RawSession[], today: string): {
     )
     if (!hasValid) continue
 
-    // Muscle group distribution
+    // Muscle group distribution (falls back to exercise name inference if muscle_group is absent)
     const mgMap = new Map<string, number>()
     for (const s of sets) {
-      const mg = s.muscle_group?.toLowerCase()
+      const mg = s.muscle_group?.toLowerCase() ?? inferMuscleGroupFromExerciseName(s.exercise_name)
       if (mg) mgMap.set(mg, (mgMap.get(mg) ?? 0) + 1)
     }
     const sortedMg     = mgMap.size > 0 ? [...mgMap.entries()].sort((a, b) => b[1] - a[1]) : null
