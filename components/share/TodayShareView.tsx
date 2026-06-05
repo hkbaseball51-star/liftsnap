@@ -233,7 +233,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         <div>
           <h1 className="text-sm font-black tracking-widest text-white">
             {isPast
-              ? (ja ? '過去のワークアウトStory' : 'Workout Story')
+              ? (ja ? 'この日のワークアウトStory' : 'Workout Story')
               : (ja ? '今日のワークアウトStory' : "Today's Workout Story")}
           </h1>
           {isPast && (

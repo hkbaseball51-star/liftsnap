@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Share2 } from 'lucide-react'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
@@ -179,6 +180,17 @@ export default function SelectedDaySummary({
                   })()}
                 </div>
               )}
+            </button>
+
+            {/* Share Story CTA */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 0 0' }} />
+            <button
+              className="w-full flex items-center justify-between pt-3 active:opacity-70 transition-opacity"
+              onClick={() => router.push(`/share?type=today&date=${selectedDate}`)}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.58)' }}>
+                {locale === 'ja' ? 'この日のワークアウトをシェア' : 'Share this workout'}
+              </span>
+              <Share2 size={13} style={{ color: '#ED742F' }} />
             </button>
 
           </div>
