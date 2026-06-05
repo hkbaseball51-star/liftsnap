@@ -218,17 +218,17 @@ export default function ResetPasswordPage() {
 
     // Debug: URL state at submit time
     const codeParam = new URLSearchParams(window.location.search).get('code')
-    console.log('[reset-password] pathname:', window.location.pathname)
-    console.log('[reset-password] code param exists:', !!codeParam)
+    dbg(`pathname: ${window.location.pathname}`)
+    dbg(`code param exists: ${!!codeParam}`)
 
     // Pre-flight: verify the recovery session is still active
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    console.log('[reset-password] session exists:', !!session)
-    console.log('[reset-password] user exists:', !!session?.user)
-    console.log('[reset-password] user has email:', !!session?.user?.email)
-    console.log('[reset-password] user has phone:', !!session?.user?.phone)
-    console.log('[reset-password] user is anonymous:', !!session?.user?.is_anonymous)
-    if (sessionError) console.error('[reset-password] session error:', sessionError.message)
+    dbg(`session exists: ${!!session}`)
+    dbg(`user exists: ${!!session?.user}`)
+    dbg(`user has email: ${!!session?.user?.email}`)
+    dbg(`user has phone: ${!!session?.user?.phone}`)
+    dbg(`user is anonymous: ${!!session?.user?.is_anonymous}`)
+    if (sessionError) dbgErr(`session error: ${sessionError.message}`)
 
     if (sessionError || !session?.user) {
       setSubmitError('Session expired. Please request a new reset link.')
@@ -238,19 +238,19 @@ export default function ResetPasswordPage() {
 
     // Block anonymous users — updateUser({ password }) returns 422 for them
     if (!isRecoveryUser(session.user)) {
-      console.error('[reset-password] blocked: anonymous user or no email/phone')
+      dbgErr('blocked: anonymous user or no email/phone')
       setSubmitError('This reset session is invalid. Please request a new reset link.')
       setStage('valid')
       return
     }
 
     const { error } = await supabase.auth.updateUser({ password })
-    console.log('[reset-password] update success:', !error)
+    dbg(`update success: ${!error}`)
 
     if (error) {
-      console.error('[reset-password] update error message:', error.message)
-      console.error('[reset-password] update error status:', error.status)
-      console.error('[reset-password] update error name:', error.name)
+      dbgErr(`update error message: ${error.message}`)
+      dbgErr(`update error status: ${error.status}`)
+      dbgErr(`update error name: ${error.name}`)
       setSubmitError(mapUpdateError(error.message))
       setStage('valid')
       return
