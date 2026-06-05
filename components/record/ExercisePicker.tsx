@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Search, X, Plus, EyeOff, Trash2 } from 'lucide-react'
-import { localCreateCustomExercise, localDeleteCustomExercise, localGetExerciseUsageCounts, localGetCustomExercises } from '@/lib/localDB'
+import { localCreateCustomExercise, localDeleteCustomExercise, localGetCustomExercises } from '@/lib/localDB'
+import { useAppData } from '@/contexts/AppDataContext'
 import { DEFAULT_EXERCISES } from '@/lib/defaultExercises'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
@@ -98,9 +99,20 @@ function scoreExercise(e: Exercise, q: string): number {
 
 export default function ExercisePicker({ onSelect, onClose }: Props) {
   const { locale } = useLocale()
+  const { exercises: appExercises } = useAppData()
+
+  // Build usage counts from AppDataProvider (exercises[].logCount).
+  // Keyed by exact exercise name to match DEFAULT_EXERCISES + custom exercise names.
+  const usageCounts = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {}
+    for (const ex of appExercises) {
+      if (ex.logCount > 0) map[ex.name] = ex.logCount
+    }
+    return map
+  }, [appExercises])
+
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
-  const [usageCounts, setUsageCounts] = useState<Record<string, number>>({})
   const [hiddenIds, setHiddenIds] = useState<string[]>([])
 
   const [query, setQuery] = useState('')
@@ -127,7 +139,6 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
     const customs = localGetCustomExercises()
     setExercises([...DEFAULT_EXERCISES, ...customs])
     setLoading(false)
-    setUsageCounts(localGetExerciseUsageCounts())
     setHiddenIds(getStoredHidden())
   }, [])
 
@@ -158,35 +169,28 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
 
   const normalizedQuery = useMemo(() => normalizeSearchText(query), [query])
 
-  const frequentlyUsed = useMemo(() => {
-    if (!Object.keys(usageCounts).length) return []
-    return exercises
-      .filter(e => {
-        if (hiddenIds.includes(e.id)) return false
-        if (activeGroup !== 'ALL' && e.muscle_group.toUpperCase() !== activeGroup) return false
-        return (usageCounts[e.name] ?? 0) > 0
-      })
-      .sort((a, b) => (usageCounts[b.name] ?? 0) - (usageCounts[a.name] ?? 0))
-      .slice(0, 5)
-  }, [exercises, usageCounts, hiddenIds, activeGroup])
-
-  const showFrequent = !query && frequentlyUsed.length > 0
-  const freqIdSet = useMemo(() => new Set(showFrequent ? frequentlyUsed.map(e => e.id) : []), [showFrequent, frequentlyUsed])
-
   const filtered = useMemo(() => {
     const base = exercises.filter(e => {
       if (hiddenIds.includes(e.id)) return false
-      if (freqIdSet.has(e.id)) return false
       if (activeGroup !== 'ALL' && e.muscle_group.toUpperCase() !== activeGroup) return false
       return true
     })
-    if (!normalizedQuery) return base
+    if (!normalizedQuery) {
+      // Sort by usage count desc; stable sort keeps original order for tied/zero counts
+      return [...base].sort((a, b) =>
+        (usageCounts[b.name] ?? 0) - (usageCounts[a.name] ?? 0)
+      )
+    }
     return base
       .map(e => ({ e, score: scoreExercise(e, normalizedQuery) }))
       .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) =>
+        b.score !== a.score
+          ? b.score - a.score
+          : (usageCounts[b.e.name] ?? 0) - (usageCounts[a.e.name] ?? 0)
+      )
       .map(({ e }) => e)
-  }, [exercises, hiddenIds, freqIdSet, normalizedQuery, activeGroup])
+  }, [exercises, hiddenIds, usageCounts, normalizedQuery, activeGroup])
 
   const hiddenExercises = useMemo(() => {
     return exercises.filter(e => hiddenIds.includes(e.id))
@@ -303,22 +307,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
           </div>
         ) : (
           <>
-            {/* Frequently Used */}
-            {showFrequent && (
-              <>
-                <p className="text-[10px] font-black tracking-widest mt-1 mb-1" style={{ color: '#444' }}>
-                  FREQUENTLY USED
-                </p>
-                {frequentlyUsed.map(e => renderRow(e, 'freq-'))}
-                <div style={{ height: 14 }} />
-                <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#333' }}>
-                  ALL EXERCISES
-                </p>
-              </>
-            )}
-
-            {/* Main list */}
-            {filtered.length === 0 && !showFrequent ? (
+            {filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-sm font-bold" style={{ color: '#444' }}>
                   {t(locale, 'record.noExercisesFound')}
