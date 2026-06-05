@@ -143,25 +143,42 @@ function acRgba(hex: string, alpha: number): string {
 }
 
 // ── Glass card background ─────────────────────────────────────────────
-// Flat semi-transparent background: accent tint layer over a dark/light base.
-// Previously used conic-gradient which caused a 4-quadrant visual artifact
-// in Safari/WebKit (Capacitor iOS) when backgroundSize tiling was misapplied.
+// Multi-layer premium glass: specular highlight at top-right, accent depth glow
+// at top-left, thin top-edge highlight, accent tint, and semi-transparent dark base.
+// No conic-gradient (caused Safari/WebKit 4-quadrant tiling artifact).
 export function glassCardStyle(accentHex: string, isDark: boolean): { background: string } {
   const r = parseInt(accentHex.slice(1, 3), 16)
   const g = parseInt(accentHex.slice(3, 5), 16)
   const b = parseInt(accentHex.slice(5, 7), 16)
   if (!isDark) {
-    // Pearl-white preset: light semi-transparent glass panel
-    return { background: `rgba(${r},${g},${b},0.84)` }
+    // Pearl-white: frosted light glass with top-right specular and edge highlight
+    return {
+      background: [
+        `radial-gradient(ellipse 55% 38% at 88% 4%, rgba(255,255,255,0.55), transparent)`,
+        `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 8%)`,
+        `rgba(${r},${g},${b},0.87)`,
+      ].join(', '),
+    }
   }
-  // Near-white accent (premium-black preset): opaque dark glass panel
   if (r > 200 && g > 200 && b > 200) {
-    return { background: 'rgba(10,10,10,0.70)' }
+    // Premium-black: deep dark glass with subtle specular and top highlight
+    return {
+      background: [
+        `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.10), transparent)`,
+        `linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 6%)`,
+        `rgba(8,8,8,0.88)`,
+      ].join(', '),
+    }
   }
-  // Colored dark preset: accent tint (18%) over dark base (72%)
-  // CSS background shorthand — image (degenerate gradient) + background-color
+  // Colored dark preset: specular top-right + accent depth glow top-left + edge highlight + tint + base
   return {
-    background: `linear-gradient(rgba(${r},${g},${b},0.18),rgba(${r},${g},${b},0.18)) rgba(8,8,8,0.72)`,
+    background: [
+      `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.09), transparent)`,
+      `radial-gradient(ellipse 75% 44% at 14% 0%, rgba(${r},${g},${b},0.14), transparent)`,
+      `linear-gradient(180deg, rgba(255,255,255,0.09) 0%, transparent 7%)`,
+      `linear-gradient(rgba(${r},${g},${b},0.14), rgba(${r},${g},${b},0.14))`,
+      `rgba(8,8,8,0.82)`,
+    ].join(', '),
   }
 }
 
@@ -288,7 +305,9 @@ export default function WorkoutStoryCardContent({
       ...(isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16)',
+        boxShadow: p.isDark !== false
+          ? `0 8px 28px rgba(0,0,0,0.60), 0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.13)`
+          : `0 4px 18px rgba(0,0,0,0.26), 0 1px 5px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.50)`,
       }),
     }}>
 
@@ -474,7 +493,9 @@ export function ExerciseStoryCard({
       ...(isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16)',
+        boxShadow: p.isDark !== false
+          ? `0 8px 28px rgba(0,0,0,0.60), 0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.13)`
+          : `0 4px 18px rgba(0,0,0,0.26), 0 1px 5px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.50)`,
       }),
     }}>
 

@@ -216,10 +216,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const isTransparent = cardStyle === 'transparent'
 
   const checkerBg = [
-    'linear-gradient(45deg, #3a3a3a 25%, transparent 25%)',
-    'linear-gradient(-45deg, #3a3a3a 25%, transparent 25%)',
-    'linear-gradient(45deg, transparent 75%, #3a3a3a 75%)',
-    'linear-gradient(-45deg, transparent 75%, #3a3a3a 75%)',
+    'linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%)',
+    'linear-gradient(-45deg, rgba(255,255,255,0.04) 25%, transparent 25%)',
+    'linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.04) 75%)',
+    'linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%)',
   ].join(', ')
 
   return (

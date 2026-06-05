@@ -163,7 +163,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
     return exercises
       .filter(e => {
         if (hiddenIds.includes(e.id)) return false
-        if (activeGroup !== 'ALL' && e.muscle_group !== activeGroup) return false
+        if (activeGroup !== 'ALL' && e.muscle_group.toUpperCase() !== activeGroup) return false
         return (usageCounts[e.name] ?? 0) > 0
       })
       .sort((a, b) => (usageCounts[b.name] ?? 0) - (usageCounts[a.name] ?? 0))
@@ -177,7 +177,7 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
     const base = exercises.filter(e => {
       if (hiddenIds.includes(e.id)) return false
       if (freqIdSet.has(e.id)) return false
-      if (activeGroup !== 'ALL' && e.muscle_group !== activeGroup) return false
+      if (activeGroup !== 'ALL' && e.muscle_group.toUpperCase() !== activeGroup) return false
       return true
     })
     if (!normalizedQuery) return base

@@ -54,7 +54,7 @@ const AREA_FILL: Record<Accent, string> = {
   black:  'rgba(255,255,255,0.03)',
 }
 
-const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.07'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
+const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
 
 const BODY_PART_DISPLAY: Record<string, string> = {
   all: 'ALL', chest: 'CHEST', back: 'BACK', legs: 'LEGS',
@@ -650,7 +650,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     ? { background: transparentBg }
     : gpGlassSt
   const shadowValue    = SHADOW_MAP[shadowLevel]
-  const glassShadow    = 'inset 0 1px 0 rgba(255,255,255,0.16)'
+  const glassShadow    = gp.isDark !== false
+    ? `0 8px 28px rgba(0,0,0,0.62), 0 2px 8px rgba(0,0,0,0.46), 0 0 0 1px ${acRgba(gpAccent, 0.20)}, inset 0 1px 0 rgba(255,255,255,0.12)`
+    : `0 4px 18px rgba(0,0,0,0.24), 0 1px 5px rgba(0,0,0,0.14), 0 0 0 1px rgba(255,255,255,0.30), inset 0 1px 0 rgba(255,255,255,0.48)`
   const cardBoxShadow  = isTransparentCard ? 'none' : glassShadow
   const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
 
