@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, TrendingUp, BarChart2, Activity, ChevronRight } from 'lucide-react'
+import { ArrowLeft, TrendingUp, BarChart2, Activity, ChevronRight, Lock } from 'lucide-react'
+import { useAppData } from '@/contexts/AppDataContext'
+import { EXERCISE_GRAPH_REQUIRED, VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED } from '@/lib/unlocks'
+import { useLocale } from '@/lib/useLocale'
 
 type Exercise = { name: string; muscle_group: string; logCount: number }
 
@@ -51,6 +54,9 @@ export default function StatsPickerView({
   initialMetric?: Metric | null
 }) {
   const router = useRouter()
+  const { locale } = useLocale()
+  const ja = locale === 'ja'
+  const { totalSessions, bodyWeightHistory: ctxBwHistory } = useAppData()
   const [step, setStep]   = useState<Step>(initialStep)
   const [metric, setMetric] = useState<Metric | null>(initialMetric)
 
@@ -112,7 +118,7 @@ export default function StatsPickerView({
         <div className="px-4 flex flex-col gap-3">
 
           {/* Body Weight */}
-          {hasBodyWeight ? (
+          {ctxBwHistory.length >= BW_CHART_REQUIRED ? (
             <button
               onClick={() => router.push('/share?type=stats&metric=bodyweight')}
               className="flex items-center gap-4 rounded-2xl px-4 py-4 active:opacity-70 transition-opacity w-full text-left"
@@ -123,7 +129,7 @@ export default function StatsPickerView({
               <div className="flex-1 min-w-0 text-left">
                 <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Body Weight</p>
                 <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.46)', marginTop: 2 }}>
-                  Share your weight progress chart
+                  {ja ? '体重の変化グラフをシェア' : 'Share your weight progress chart'}
                 </p>
               </div>
               <ChevronRight size={16} color="rgba(255,255,255,0.30)" />
@@ -137,8 +143,13 @@ export default function StatsPickerView({
               </div>
               <div className="flex-1 min-w-0">
                 <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>Body Weight</p>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', marginTop: 2 }}>Log body weight to unlock</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', marginTop: 2 }}>
+                  {ja
+                    ? `体重をあと${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)}回記録するとアンロック`
+                    : `Log ${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)} more weight entr${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length) !== 1 ? 'ies' : 'y'} to unlock`}
+                </p>
               </div>
+              <Lock size={14} color="rgba(255,255,255,0.20)" />
             </div>
           )}
 
@@ -174,7 +185,7 @@ export default function StatsPickerView({
           )}
 
           {/* Daily Volume */}
-          {hasExercises ? (
+          {hasExercises && totalSessions >= VOLUME_CHART_SESSION_REQUIRED ? (
             <button
               onClick={goBodyPart}
               className="flex items-center gap-4 rounded-2xl px-4 py-4 active:opacity-70 transition-opacity w-full text-left"
@@ -185,7 +196,7 @@ export default function StatsPickerView({
               <div className="flex-1 min-w-0 text-left">
                 <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Daily Volume</p>
                 <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.46)', marginTop: 2 }}>
-                  Share your training volume by body part
+                  {ja ? '部位別のトレーニング量をシェア' : 'Share your training volume by body part'}
                 </p>
               </div>
               <ChevronRight size={16} color="rgba(255,255,255,0.30)" />
@@ -199,8 +210,13 @@ export default function StatsPickerView({
               </div>
               <div className="flex-1 min-w-0">
                 <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>Daily Volume</p>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', marginTop: 2 }}>Log workouts to unlock</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', marginTop: 2 }}>
+                  {ja
+                    ? `ワークアウトをあと${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)}日記録するとアンロック`
+                    : `${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)} more workout day${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions) !== 1 ? 's' : ''} to unlock`}
+                </p>
               </div>
+              <Lock size={14} color="rgba(255,255,255,0.20)" />
             </div>
           )}
 
@@ -242,27 +258,47 @@ export default function StatsPickerView({
               No exercises logged yet.
             </p>
           ) : (
-            exercises.map(ex => (
-              <button
-                key={ex.name}
-                onClick={() => selectExercise(ex.name)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3.5 active:opacity-70 transition-opacity w-full text-left"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div
-                  className="flex-shrink-0 w-1 self-stretch rounded-full"
-                  style={{ background: muscleColor(ex.muscle_group), minHeight: 20 }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{ex.name}</p>
-                  {ex.muscle_group && (
-                    <p style={{ fontSize: 11, fontWeight: 500, color: muscleColor(ex.muscle_group), marginTop: 1 }}>
-                      {muscleLabel(ex.muscle_group)} · {ex.logCount} session{ex.logCount !== 1 ? 's' : ''}
-                    </p>
-                  )}
-                </div>
-                <ChevronRight size={14} color="rgba(255,255,255,0.30)" />
-              </button>
-            ))
+            exercises.map(ex => {
+              const locked = ex.logCount < EXERCISE_GRAPH_REQUIRED
+              if (locked) {
+                return (
+                  <div
+                    key={ex.name}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3.5 w-full text-left"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', opacity: 0.5 }}>
+                    <div className="flex-shrink-0 w-1 self-stretch rounded-full" style={{ background: 'rgba(255,255,255,0.2)', minHeight: 20 }} />
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{ex.name}</p>
+                      <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
+                        {ex.logCount} / {EXERCISE_GRAPH_REQUIRED} sessions
+                      </p>
+                    </div>
+                    <Lock size={14} color="rgba(255,255,255,0.20)" />
+                  </div>
+                )
+              }
+              return (
+                <button
+                  key={ex.name}
+                  onClick={() => selectExercise(ex.name)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3.5 active:opacity-70 transition-opacity w-full text-left"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div
+                    className="flex-shrink-0 w-1 self-stretch rounded-full"
+                    style={{ background: muscleColor(ex.muscle_group), minHeight: 20 }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{ex.name}</p>
+                    {ex.muscle_group && (
+                      <p style={{ fontSize: 11, fontWeight: 500, color: muscleColor(ex.muscle_group), marginTop: 1 }}>
+                        {muscleLabel(ex.muscle_group)} · {ex.logCount} session{ex.logCount !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight size={14} color="rgba(255,255,255,0.30)" />
+                </button>
+              )
+            })
           )}
         </div>
       )}

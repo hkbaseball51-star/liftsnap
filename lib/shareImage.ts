@@ -80,10 +80,26 @@ export async function captureElement(
     backgroundColor: 'transparent' as const,
   }
 
+  // Read border-radius BEFORE any style mutations.
+  // Inline style is set by React (e.g. borderRadius:24 → "24px"); fall back to computed.
+  const borderRadius = el.style.borderRadius || getComputedStyle(el).borderRadius
+  // Apply clip-path: inset() to enforce corner clipping in WebKit's SVG/canvas renderer.
+  // overflow:hidden + border-radius alone is NOT consistently respected by WebKit's
+  // ForeignObject renderer — background gradients and graph layers paint as rectangles
+  // and bleed outside the rounded corners in the saved PNG.
+  // clip-path: inset() is explicitly clipped in the canvas pipeline on all WebKit versions.
+  const hasRadius = Boolean(borderRadius && borderRadius !== '0px' && borderRadius !== '0')
+  const prevClipPath = el.style.clipPath
   const prevBg = el.style.background
+
   if (clearBackground) {
     // Remove checker pattern so the PNG alpha channel is truly transparent
     el.style.background = 'transparent'
+  }
+  if (hasRadius) {
+    el.style.clipPath = `inset(0 round ${borderRadius})`
+  }
+  if (clearBackground || hasRadius) {
     await new Promise(r => requestAnimationFrame(r))
   }
 
@@ -107,6 +123,7 @@ export async function captureElement(
     return blob
   } finally {
     if (clearBackground) el.style.background = prevBg
+    if (hasRadius) el.style.clipPath = prevClipPath
   }
 }
 

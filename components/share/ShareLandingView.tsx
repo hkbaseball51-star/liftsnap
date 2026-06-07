@@ -11,6 +11,7 @@ import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import type { Locale } from '@/lib/i18n'
 import { useAppData } from '@/contexts/AppDataContext'
 import { localGetTodayWorkoutForShare } from '@/lib/localDB'
+import { VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED } from '@/lib/unlocks'
 
 // ── Static sample data ────────────────────────────────────────────────
 const RM_PTS  = [58,59,60,61,62,64,63,65,67,69,71,70,73,76,79,82,83,86,90,94]
@@ -124,7 +125,7 @@ export default function ShareLandingView({
   const router = useRouter()
   const { unit } = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
-  const { daySummaries } = useAppData()
+  const { daySummaries, totalSessions, bodyWeightHistory: ctxBwHistory } = useAppData()
 
   // Lazy init: synchronously read localStorage on first render when server provided sample data.
   // Server Component can't access localStorage, so local-mode users always get isSample=true
@@ -342,7 +343,7 @@ export default function ShareLandingView({
             )}
 
             {/* ── Daily Volume ── */}
-            {hasExercises ? (
+            {hasExercises && totalSessions >= VOLUME_CHART_SESSION_REQUIRED ? (
               <Link href="/share?type=stats&metric=volume&bodypart=all" className="block active:opacity-70 transition-opacity">
                 <div style={cardBase(true, '#22c55e')}>
                   <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
@@ -384,14 +385,18 @@ export default function ShareLandingView({
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>Daily Volume</p>
-                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>{ja ? 'ワークアウトを記録するとアンロック' : 'Log workouts to unlock'}</p>
+                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>
+                    {ja
+                      ? `ワークアウトをあと${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)}日記録するとアンロック`
+                      : `${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)} more workout day${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions) !== 1 ? 's' : ''} to unlock`}
+                  </p>
                 </div>
                 <Lock size={14} color="rgba(255,255,255,0.20)" />
               </div>
             )}
 
             {/* ── Body Weight ── */}
-            {hasBodyWeight ? (
+            {ctxBwHistory.length >= BW_CHART_REQUIRED ? (
               <Link href="/share?type=stats&metric=bodyweight" className="block active:opacity-70 transition-opacity">
                 <div style={cardBase(true, '#60a5fa')}>
                   <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
@@ -433,7 +438,11 @@ export default function ShareLandingView({
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>Body Weight</p>
-                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>{ja ? '体重を記録するとアンロック' : 'Log body weight to unlock'}</p>
+                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>
+                    {ja
+                      ? `体重をあと${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)}回記録するとアンロック`
+                      : `${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)} more weight entr${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length) !== 1 ? 'ies' : 'y'} to unlock`}
+                  </p>
                 </div>
                 <Lock size={14} color="rgba(255,255,255,0.20)" />
               </div>

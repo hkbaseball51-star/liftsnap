@@ -75,6 +75,17 @@ export function getCalendarLabelColor(label: string): string {
 
 // --- Legend definitions ---------------------------------------------------
 
+// Muted palette for the MUSCLE section of the calendar legend only.
+// CAL_COLORS (date cells, Story cards, Share images) is intentionally unchanged.
+const LEGEND_MUSCLE_COLORS = {
+  chest:     '#E86F2A',
+  back:      '#4F8FE8',
+  legs:      '#2FC86B',
+  shoulders: '#9067E8',
+  arms:      '#E8A93A',
+  abs:       '#AEE83F',
+} as const
+
 export const CALENDAR_LABEL_LEGEND = {
   split: [
     { label: 'PUS',  name: 'PUSH',      color: CAL_COLORS.push },
@@ -83,11 +94,11 @@ export const CALENDAR_LABEL_LEGEND = {
     { label: 'FULL', name: 'FULL BODY', color: CAL_COLORS.full },
   ],
   muscle: [
-    { label: 'C',   name: 'CHEST',     color: CAL_COLORS.chest     },
-    { label: 'B',   name: 'BACK',      color: CAL_COLORS.back      },
-    { label: 'L',   name: 'LEGS',      color: CAL_COLORS.legs      },
-    { label: 'S',   name: 'SHOULDERS', color: CAL_COLORS.shoulders },
-    { label: 'A',   name: 'ARMS',      color: CAL_COLORS.arms      },
-    { label: 'ABS', name: 'ABS',       color: CAL_COLORS.abs       },
+    { label: 'C',   name: 'CHEST',     color: LEGEND_MUSCLE_COLORS.chest     },
+    { label: 'B',   name: 'BACK',      color: LEGEND_MUSCLE_COLORS.back      },
+    { label: 'L',   name: 'LEGS',      color: LEGEND_MUSCLE_COLORS.legs      },
+    { label: 'S',   name: 'SHOULDERS', color: LEGEND_MUSCLE_COLORS.shoulders },
+    { label: 'A',   name: 'ARMS',      color: LEGEND_MUSCLE_COLORS.arms      },
+    { label: 'ABS', name: 'ABS',       color: LEGEND_MUSCLE_COLORS.abs       },
   ],
 } as const

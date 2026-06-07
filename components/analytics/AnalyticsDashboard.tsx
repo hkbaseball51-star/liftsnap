@@ -22,7 +22,7 @@ import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
-import { BW_CHART_REQUIRED } from '@/lib/unlocks'
+import { BW_CHART_REQUIRED, VOLUME_CHART_SESSION_REQUIRED, EXERCISE_GRAPH_REQUIRED } from '@/lib/unlocks'
 import { type Period, PERIODS, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
 import { smartYAxis, yAxisTicks, computeChartWidth, getPointWidth, buildXAxisConfig, formatTooltipDate } from '@/lib/chartUtils'
 import { useAppData } from '@/contexts/AppDataContext'
@@ -144,6 +144,11 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   const filteredExercises = useMemo(() =>
     activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter)),
   [activeExercises, muscleFilter])
+
+  const selectedExerciseLogCount = useMemo(
+    () => activeExercises.find(e => e.name === selectedExercise)?.logCount ?? 0,
+    [activeExercises, selectedExercise]
+  )
 
   // Auto-load chart data when tab, exercise/bodypart, or period changes
   useEffect(() => {
@@ -503,6 +508,17 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
             <NoGroupData />
+          ) : selectedExercise && selectedExerciseLogCount < EXERCISE_GRAPH_REQUIRED ? (
+            <div className="rounded-2xl p-8 text-center" style={CARD}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.8 }}>
+                {locale === 'ja'
+                  ? `この種目をあと${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount}回記録するとグラフが解放されます`
+                  : `Log this exercise ${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount} more time${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount !== 1 ? 's' : ''} to unlock the 1RM graph`}
+              </p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#444', marginTop: 8 }}>
+                {selectedExerciseLogCount} / {EXERCISE_GRAPH_REQUIRED}
+              </p>
+            </div>
           ) : (
             <>
               {/* Summary card */}
@@ -629,6 +645,18 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       {/* DAILY VOLUME Tab */}
       {tab === 'DAILY VOLUME' && (
         <div>
+          {activeTotalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
+            <div className="rounded-2xl p-8 text-center" style={CARD}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.8 }}>
+                {locale === 'ja'
+                  ? `ワークアウトをあと${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions}日記録するとグラフが解放されます`
+                  : `Complete ${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions} more workout day${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions !== 1 ? 's' : ''} to unlock the volume graph`}
+              </p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#444', marginTop: 8 }}>
+                {activeTotalSessions} / {VOLUME_CHART_SESSION_REQUIRED}
+              </p>
+            </div>
+          ) : (
           <>
               {/* Body part filter */}
               <div className="overflow-x-auto no-scrollbar mb-4">
@@ -748,6 +776,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 </>
               )}
           </>
+          )}
         </div>
       )}
 
@@ -860,11 +889,14 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 </p>
               </div>
             ) : ctxBwHistory.length < BW_CHART_REQUIRED ? (
-              <div className="h-[380px] flex items-center justify-center">
+              <div className="h-[380px] flex items-center justify-center flex-col gap-3">
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
                   {locale === 'ja'
-                    ? 'あと1回体重を記録すると、変化グラフが表示されます'
-                    : 'Log one more weight entry to see your progress graph'}
+                    ? `あと${BW_CHART_REQUIRED - ctxBwHistory.length}回体重を記録すると変化グラフが表示されます`
+                    : `Log ${BW_CHART_REQUIRED - ctxBwHistory.length} more weight entr${BW_CHART_REQUIRED - ctxBwHistory.length === 1 ? 'y' : 'ies'} to see your progress graph`}
+                </p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#444' }}>
+                  {ctxBwHistory.length} / {BW_CHART_REQUIRED}
                 </p>
               </div>
             ) : (
