@@ -56,7 +56,9 @@ export default function StatsPickerView({
   const router = useRouter()
   const { locale } = useLocale()
   const ja = locale === 'ja'
-  const { totalSessions, bodyWeightHistory: ctxBwHistory } = useAppData()
+  const { totalSessions, bodyWeightHistory: ctxBwHistory, exercises: ctxExercises } = useAppData()
+  // Server-rendered pages cannot read localStorage; fall back to client context for local-mode users
+  const resolvedExercises = exercises.length > 0 ? exercises : ctxExercises
   const [step, setStep]   = useState<Step>(initialStep)
   const [metric, setMetric] = useState<Metric | null>(initialMetric)
 
@@ -83,7 +85,7 @@ export default function StatsPickerView({
     else router.back()
   }
 
-  const hasExercises = exercises.length > 0
+  const hasExercises = resolvedExercises.length > 0
 
   const stepTitle = step === 'metric'
     ? 'Graph Story'
@@ -253,12 +255,12 @@ export default function StatsPickerView({
 
         /* ── Exercise selector (Best 1RM) ────────────────────── */
         <div className="px-4 flex flex-col gap-2">
-          {exercises.length === 0 ? (
+          {resolvedExercises.length === 0 ? (
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.44)', padding: '16px 0' }}>
               No exercises logged yet.
             </p>
           ) : (
-            exercises.map(ex => {
+            resolvedExercises.map(ex => {
               const locked = ex.logCount < EXERCISE_GRAPH_REQUIRED
               if (locked) {
                 return (

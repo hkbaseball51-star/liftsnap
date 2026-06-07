@@ -374,7 +374,7 @@ export default function ShareLandingView({
             )}
 
             {/* ── Daily Volume ── */}
-            {hasExercises && totalSessions >= VOLUME_CHART_SESSION_REQUIRED ? (
+            {totalSessions >= VOLUME_CHART_SESSION_REQUIRED ? (
               <Link href="/share?type=stats&metric=volume&bodypart=all" className="block active:opacity-70 transition-opacity">
                 <div style={cardBase(true, '#22c55e')}>
                   <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
