@@ -414,7 +414,7 @@ export default function WorkoutStoryCardContent({
               </p>
               <p style={{
                 fontSize: tp.infoSize, color: subTextColor,
-                marginTop: tp.lineGap, lineHeight: 1,
+                margin: 0, marginTop: tp.lineGap, lineHeight: 1.2,
               }}>
                 {ex.setCount}{locale === 'ja' ? 'セット' : ' sets'}{ex.best1RM > 0
                   ? <>{' · est. 1RM '}<span style={{ color: acHex, fontWeight: 700 }}>{fmtKg(toDisplayWeight(ex.best1RM, unit))}{unitLabel}</span></>
@@ -428,7 +428,7 @@ export default function WorkoutStoryCardContent({
                 return (
                   <p key={i} style={{
                     fontSize: tp.setSize, color: ptxt(0.88),
-                    marginTop: tp.lineGap, lineHeight: 1.2,
+                    margin: 0, marginTop: tp.lineGap, lineHeight: 1.2,
                   }}>
                     {str}
                   </p>

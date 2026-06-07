@@ -594,8 +594,7 @@ export default function WorkoutRecorder({
     const v = parseFlexibleNumber(bwInput)
     const maxBw = weightUnit === 'lbs' ? 661 : 300
     if (v === null || v <= 0 || v > maxBw) return
-    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-    localUpsertBodyWeight(fromDisplayWeight(v, weightUnit), today)
+    localUpsertBodyWeight(fromDisplayWeight(v, weightUnit), date)
     setBwSaved(true)
     setTimeout(() => setBwSaved(false), 2500)
   }
@@ -798,8 +797,8 @@ export default function WorkoutRecorder({
           </button>
         </div>
 
-        {/* Body weight — compact optional row, today only */}
-        {isDateToday && (
+        {/* Body weight — compact optional row */}
+        {(
           <div className="flex items-center gap-2 mb-2.5 px-0.5">
             <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.09em', color: '#3a3a3a', flexShrink: 0, whiteSpace: 'nowrap' }}>
               BODY WEIGHT · OPTIONAL

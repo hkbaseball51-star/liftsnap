@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation'
 import { TrendingUp, BarChart2, Activity, Lock, ChevronRight, Settings, Crown } from 'lucide-react'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
-import WorkoutStoryCardContent, { glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
+import WorkoutStoryCardContent, { glassCardStyle, tname } from '@/components/share/WorkoutStoryCardContent'
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
 import type { Locale } from '@/lib/i18n'
 import { useAppData } from '@/contexts/AppDataContext'
 import { localGetTodayWorkoutForShare } from '@/lib/localDB'
-import { VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED } from '@/lib/unlocks'
+import { VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED, EXERCISE_GRAPH_REQUIRED } from '@/lib/unlocks'
 
 // ── Static sample data ────────────────────────────────────────────────
 const RM_PTS  = [58,59,60,61,62,64,63,65,67,69,71,70,73,76,79,82,83,86,90,94]
@@ -125,7 +125,7 @@ export default function ShareLandingView({
   const router = useRouter()
   const { unit } = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
-  const { daySummaries, totalSessions, bodyWeightHistory: ctxBwHistory } = useAppData()
+  const { daySummaries, totalSessions, bodyWeightHistory: ctxBwHistory, exercises } = useAppData()
 
   // Lazy init: synchronously read localStorage on first render when server provided sample data.
   // Server Component can't access localStorage, so local-mode users always get isSample=true
@@ -158,6 +158,12 @@ export default function ShareLandingView({
   const sampleVol     = formatVolumeWithUnit(4100, unit)
   const sampleBW      = `${toDisplayWeight(70, unit).toFixed(1)}${unitLabel}`
   const sampleBWSub   = `${toDisplayWeight(64, unit).toFixed(1)} → ${toDisplayWeight(70, unit).toFixed(1)} · +${toDisplayWeight(6, unit).toFixed(1)}`
+
+  const unlockedExercises   = exercises.filter(e => e.logCount >= EXERCISE_GRAPH_REQUIRED)
+  const rm1Unlocked         = unlockedExercises.length > 0
+  const maxExerciseLogCount = exercises.reduce((m, e) => Math.max(m, e.logCount), 0)
+  const bestUnlockedExercise = [...unlockedExercises].sort((a, b) => b.logCount - a.logCount)[0]
+  const rm1ExerciseName     = bestUnlockedExercise ? tname(bestUnlockedExercise.name).toUpperCase() : 'BENCH PRESS'
 
   const cardBase = (enabled: boolean, accentHex: string) => ({
     background: enabled ? '#191919' : '#141414',
@@ -294,7 +300,7 @@ export default function ShareLandingView({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
             {/* ── Best 1RM ── */}
-            {hasExercises ? (
+            {rm1Unlocked ? (
               <Link href="/share/stats" className="block active:opacity-70 transition-opacity">
                 <div style={cardBase(true, '#ED742F')}>
                   <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
@@ -316,13 +322,13 @@ export default function ShareLandingView({
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#ED742F' }}>{ja ? '1RM Graph Storyを作成' : 'Create 1RM Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#ED742F' }}>{ja ? '1RM Graph Storyを作成' : 'Create 1RM Graph Story'}</span>
                         <ChevronRight size={12} color="#ED742F" />
                       </div>
                     </div>
-                    {/* Mini preview — unit-aware */}
+                    {/* Mini preview */}
                     <div style={{ width: 96, flexShrink: 0 }}>
-                      <MiniGlassCard accentHex="#ED742F" label="MAX 1RM PROGRESS" metric="BENCH PRESS" value={sampleRM} sub={sampleRMSub}>
+                      <MiniGlassCard accentHex="#ED742F" label="MAX 1RM PROGRESS" metric={rm1ExerciseName} value={sampleRM} sub={sampleRMSub}>
                         <LineChart pts={RM_PTS} color="#ED742F" areaColor="rgba(237,116,47,0.12)" />
                       </MiniGlassCard>
                     </div>
@@ -330,15 +336,40 @@ export default function ShareLandingView({
                 </div>
               </Link>
             ) : (
-              <div style={{ ...cardBase(false, '#ED742F'), padding: '14px 15px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={iconBox('#888', 0.06)}>
-                  <TrendingUp size={19} color="rgba(255,255,255,0.30)" />
+              <div style={cardBase(false, '#ED742F')}>
+                <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+                        <div style={iconBox('#888', 0.06)}>
+                          <TrendingUp size={19} color="rgba(255,255,255,0.30)" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>Best 1RM</p>
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                            {ja ? 'MAX重量の成長グラフ' : 'Max strength progress'}
+                          </p>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.30)', lineHeight: 1.45 }}>
+                        {ja ? '5回以上記録した種目のグラフが解放されます' : 'Graphs unlock for exercises logged 5 or more times.'}
+                      </p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.45, marginTop: 3 }}>
+                        {ja ? '同じ種目を5回記録すると、1RM成長グラフをシェアできます' : 'Log the same exercise 5 times to share its 1RM progress graph.'}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)' }}>{maxExerciseLogCount} / {EXERCISE_GRAPH_REQUIRED}</span>
+                      <Lock size={14} color="rgba(255,255,255,0.20)" />
+                    </div>
+                  </div>
+                  {/* Mini preview */}
+                  <div style={{ width: 96, flexShrink: 0 }}>
+                    <MiniGlassCard accentHex="#ED742F" label="MAX 1RM PROGRESS" metric="BENCH PRESS" value={sampleRM} sub={sampleRMSub}>
+                      <LineChart pts={RM_PTS} color="#ED742F" areaColor="rgba(237,116,47,0.12)" />
+                    </MiniGlassCard>
+                  </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>Best 1RM</p>
-                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>{ja ? 'ワークアウトを記録するとアンロック' : 'Log workouts to unlock'}</p>
-                </div>
-                <Lock size={14} color="rgba(255,255,255,0.20)" />
               </div>
             )}
 
@@ -379,19 +410,42 @@ export default function ShareLandingView({
                 </div>
               </Link>
             ) : (
-              <div style={{ ...cardBase(false, '#22c55e'), padding: '14px 15px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={iconBox('#888', 0.06)}>
-                  <BarChart2 size={19} color="rgba(255,255,255,0.30)" />
+              <div style={cardBase(false, '#22c55e')}>
+                <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+                        <div style={iconBox('#888', 0.06)}>
+                          <BarChart2 size={19} color="rgba(255,255,255,0.30)" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>Daily Volume</p>
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                            {ja ? '部位別・PPL別の総重量グラフ' : 'Body part / PPL volume chart'}
+                          </p>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.30)', lineHeight: 1.45 }}>
+                        {ja ? 'ワークアウトを5日記録すると、総重量グラフが解放されます' : 'Log workouts on 5 days to unlock the Daily Volume graph.'}
+                      </p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.45, marginTop: 3 }}>
+                        {ja
+                          ? `あと${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)}日の記録で、総重量グラフをシェアできます`
+                          : `Log ${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)} more workout day${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions) !== 1 ? 's' : ''} to unlock.`}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)' }}>{totalSessions} / {VOLUME_CHART_SESSION_REQUIRED}</span>
+                      <Lock size={14} color="rgba(255,255,255,0.20)" />
+                    </div>
+                  </div>
+                  {/* Mini preview */}
+                  <div style={{ width: 96, flexShrink: 0 }}>
+                    <MiniGlassCard accentHex="#22c55e" label="DAILY VOLUME" metric="ALL" value={sampleVol} sub="total · 94 sessions">
+                      <BarChart heights={VOL_H} color="#22c55e" />
+                    </MiniGlassCard>
+                  </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>Daily Volume</p>
-                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>
-                    {ja
-                      ? `ワークアウトをあと${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)}日記録するとアンロック`
-                      : `${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)} more workout day${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions) !== 1 ? 's' : ''} to unlock`}
-                  </p>
-                </div>
-                <Lock size={14} color="rgba(255,255,255,0.20)" />
               </div>
             )}
 
@@ -432,19 +486,42 @@ export default function ShareLandingView({
                 </div>
               </Link>
             ) : (
-              <div style={{ ...cardBase(false, '#60a5fa'), padding: '14px 15px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={iconBox('#888', 0.06)}>
-                  <Activity size={19} color="rgba(255,255,255,0.30)" />
+              <div style={cardBase(false, '#60a5fa')}>
+                <div style={{ padding: '14px 15px', display: 'flex', alignItems: 'stretch', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+                        <div style={iconBox('#888', 0.06)}>
+                          <Activity size={19} color="rgba(255,255,255,0.30)" />
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>Body Weight</p>
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                            {ja ? '体重変化のグラフ' : 'Weight progress chart'}
+                          </p>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.30)', lineHeight: 1.45 }}>
+                        {ja ? '体重を5回以上記録すると、体重グラフが解放されます' : 'Log your body weight 5 times to unlock the Body Weight graph.'}
+                      </p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.45, marginTop: 3 }}>
+                        {ja
+                          ? `あと${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)}回の体重記録で、体重グラフをシェアできます`
+                          : `Log ${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)} more weight entr${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length) !== 1 ? 'ies' : 'y'} to unlock.`}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)' }}>{ctxBwHistory.length} / {BW_CHART_REQUIRED}</span>
+                      <Lock size={14} color="rgba(255,255,255,0.20)" />
+                    </div>
+                  </div>
+                  {/* Mini preview */}
+                  <div style={{ width: 96, flexShrink: 0 }}>
+                    <MiniGlassCard accentHex="#60a5fa" label="BODY WEIGHT" metric="PROGRESS" value={sampleBW} sub={sampleBWSub}>
+                      <LineChart pts={BW_PTS} color="#60a5fa" areaColor="rgba(96,165,250,0.12)" />
+                    </MiniGlassCard>
+                  </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>Body Weight</p>
-                  <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)' }}>
-                    {ja
-                      ? `体重をあと${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)}回記録するとアンロック`
-                      : `${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)} more weight entr${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length) !== 1 ? 'ies' : 'y'} to unlock`}
-                  </p>
-                </div>
-                <Lock size={14} color="rgba(255,255,255,0.20)" />
               </div>
             )}
 
