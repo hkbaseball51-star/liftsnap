@@ -123,6 +123,19 @@ export function localGetExercisePR(exerciseName: string): number | null {
   return Math.max(...matching.map(s => s.weight_kg!))
 }
 
+export function localGetExercisePRBatch(names: string[]): Record<string, number | null> {
+  if (names.length === 0) return {}
+  const nameSet = new Set(names)
+  const result: Record<string, number | null> = Object.fromEntries(names.map(n => [n, null]))
+  for (const s of getSets()) {
+    if (!s.is_completed || (s.weight_kg ?? 0) <= 0) continue
+    if (!nameSet.has(s.exercise_name)) continue
+    const cur = result[s.exercise_name]
+    if (cur === null || s.weight_kg! > cur) result[s.exercise_name] = s.weight_kg
+  }
+  return result
+}
+
 export function localGetCalendarData(days = 90): {
   sessions: { id: string; trained_at: string; title: string; sets: LocalSet[] }[]
   bodyWeights: LocalBodyWeight[]

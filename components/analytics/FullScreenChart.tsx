@@ -13,6 +13,11 @@ import { type Period, getStartDate, aggregateBodyWeight, aggregateVolume, aggreg
 import {
   smartYAxis, yAxisTicks, computeChartWidth, buildXAxisConfig, formatTooltipDate,
 } from '@/lib/chartUtils'
+import {
+  localGetExercise1RMData,
+  localGetBodyPartDailyVolumeData,
+  localGetBodyWeightHistory,
+} from '@/lib/localDB'
 
 type WeightPoint = { date: string; label: string; weight: number }
 type RMPoint     = { date: string; label: string; est1rm: number }
@@ -57,6 +62,12 @@ export default function FullScreenChart({
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [screenW, setScreenW] = useState(390)
   const [screenH, setScreenH] = useState(844)
+
+  // Local-mode fallback: server actions return [] when no Supabase session exists.
+  // On mount we read from localStorage and use that data if the server returned nothing.
+  const [rmDataSrc,  setRmDataSrc]  = useState<RMPoint[]>(initialRmData)
+  const [volDataSrc, setVolDataSrc] = useState<VolPoint[]>(initialVolData)
+  const [bwDataSrc,  setBwDataSrc]  = useState<WeightPoint[]>(initialBwData)
   const [chartContainerH, setChartContainerH] = useState(0)
   const scrollRef        = useRef<HTMLDivElement>(null)
   const chartContainerRef = useRef<HTMLDivElement>(null)
@@ -68,6 +79,19 @@ export default function FullScreenChart({
     upd()
     window.addEventListener('resize', upd)
     return () => window.removeEventListener('resize', upd)
+  }, [])
+
+  // Load local-storage data as fallback when server returned no data (local mode).
+  useEffect(() => {
+    const start = getStartDate(period) ?? undefined
+    if (metric === 'max1rm' && initialRmData.length === 0 && exercise) {
+      try { setRmDataSrc(localGetExercise1RMData(exercise, start)) } catch {}
+    } else if (metric === 'daily-volume' && initialVolData.length === 0) {
+      try { setVolDataSrc(localGetBodyPartDailyVolumeData(exercise.toLowerCase(), start)) } catch {}
+    } else if (metric === 'body-weight' && initialBwData.length === 0) {
+      try { setBwDataSrc(localGetBodyWeightHistory(730)) } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Measure the chart container so the Recharts SVG height can match exactly.
@@ -109,18 +133,18 @@ export default function FullScreenChart({
   // Memoize display data — stable reference prevents Recharts from re-animating
   // when selectedIdx changes (detail tap).
   const rmDisplay = useMemo(() =>
-    aggregate1RM(initialRmData).map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) })),
-    [initialRmData, unit]
+    aggregate1RM(rmDataSrc).map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) })),
+    [rmDataSrc, unit]
   )
   const volDisplay = useMemo(() =>
-    aggregateVolume(initialVolData).map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) })),
-    [initialVolData, unit]
+    aggregateVolume(volDataSrc).map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) })),
+    [volDataSrc, unit]
   )
   const bwDisplay = useMemo(() => {
     const start    = getStartDate(period)
-    const filtered = start ? initialBwData.filter(p => p.date >= start) : initialBwData
+    const filtered = start ? bwDataSrc.filter(p => p.date >= start) : bwDataSrc
     return aggregateBodyWeight(filtered).map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
-  }, [initialBwData, period, unit])
+  }, [bwDataSrc, period, unit])
 
   const activeData =
     metric === 'max1rm' ? rmDisplay :

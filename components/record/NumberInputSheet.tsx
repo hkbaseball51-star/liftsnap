@@ -44,6 +44,18 @@ export default function NumberInputSheet({
 
   const confirmValue = isInteger ? Math.floor(current) : current
 
+  // Dynamic font-size and input width to prevent number + unit overflow
+  const numLen = inputVal.length
+  const dispFontSize =
+    numLen <= 3 ? 72 :
+    numLen === 4 ? 64 :
+    numLen === 5 ? 54 :
+    numLen === 6 ? 46 :
+    numLen === 7 ? 40 :
+    34
+  // 0.65× font-size ≈ monospace char width at font-weight 900; +20px safety buffer
+  const dispInputWidth = Math.max(80, numLen * Math.ceil(dispFontSize * 0.65) + 20)
+
   // kg layout: 8 steps (3 rows), lbs layout: 10 steps (4 rows)
   const isWeightLayout = quickSteps.length === 8
   const isLbWeightLayout = quickSteps.length === 10
@@ -81,9 +93,10 @@ export default function NumberInputSheet({
               pattern={isInteger ? '[0-9０-９]*' : '[0-9０-９]*[.]?[0-9０-９]*'}
               value={inputVal}
               onChange={e => handleInput(e.target.value)}
-              className="bg-transparent text-center font-black text-white outline-none w-40"
+              className="bg-transparent text-center font-black text-white outline-none"
               style={{
-                fontSize: 'clamp(48px, 14vw, 72px)',
+                fontSize: dispFontSize,
+                width: dispInputWidth,
                 fontFamily: 'var(--font-mono)',
                 caretColor: '#ED742F',
               }}

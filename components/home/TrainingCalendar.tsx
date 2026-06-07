@@ -284,29 +284,35 @@ export default function TrainingCalendar({
     else setMonth(m => m + 1)
   }
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const sessionMap = useMemo(() => {
+    const map = new Map<string, { label: string; color: string }>()
+    sessions.forEach(s => {
+      const rawMuscles = s.allMuscleGroups && s.allMuscleGroups.length > 0
+        ? s.allMuscleGroups
+        : [s.muscleGroup]
+      const display = classifyTraining(rawMuscles)
+      if (display) map.set(s.date, display)
+    })
+    return map
+  }, [sessions])
 
-  const activeSessions = sessions
-  const sessionMap = new Map<string, { label: string; color: string }>()
-  activeSessions.forEach(s => {
-    const rawMuscles = s.allMuscleGroups && s.allMuscleGroups.length > 0
-      ? s.allMuscleGroups
-      : [s.muscleGroup]
-    const display = classifyTraining(rawMuscles)
-    if (display) sessionMap.set(s.date, display)
-  })
+  const thisMonthCount = useMemo(() =>
+    [...sessionMap.keys()].filter(dateKey => {
+      const [y, m] = dateKey.split('-').map(Number)
+      return y === year && m - 1 === month
+    }).length,
+  [sessionMap, year, month])
 
-  const thisMonthCount = [...sessionMap.keys()].filter(dateKey => {
-    const [y, m] = dateKey.split('-').map(Number)
-    return y === year && m - 1 === month
-  }).length
-
-  const cells: (number | null)[] = [
-    ...Array(firstDayOfMonth).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ]
-  while (cells.length % 7 !== 0) cells.push(null)
+  const cells = useMemo(() => {
+    const firstDay = new Date(year, month, 1).getDay()
+    const daysCount = new Date(year, month + 1, 0).getDate()
+    const c: (number | null)[] = [
+      ...Array(firstDay).fill(null),
+      ...Array.from({ length: daysCount }, (_, i) => i + 1),
+    ]
+    while (c.length % 7 !== 0) c.push(null)
+    return c
+  }, [year, month])
 
   return (
     <>

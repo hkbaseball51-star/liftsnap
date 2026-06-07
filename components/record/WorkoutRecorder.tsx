@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
-import { localCreateSession, localSaveFullSession, localGetExercisePR, localUpsertBodyWeight } from '@/lib/localDB'
+import { localCreateSession, localSaveFullSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight } from '@/lib/localDB'
+import { useAppData } from '@/contexts/AppDataContext'
 import ExercisePicker, { type MuscleGroup } from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
 import NoteInputSheet from './NoteInputSheet'
@@ -347,6 +348,7 @@ export default function WorkoutRecorder({
   const router = useRouter()
   const { locale } = useLocale()
   const { unit: weightUnit } = useWeightUnit()
+  const { refreshData } = useAppData()
   const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
   const todayJST = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
   const isToday = date === todayJST
@@ -405,16 +407,14 @@ export default function WorkoutRecorder({
     }
   }
 
-  // Fetch PR data for pre-loaded exercises
+  // Fetch PR data for pre-loaded exercises — single batch read instead of N × getSets()
   useEffect(() => {
-    for (const ex of existingExercises ?? []) {
-      const pr = localGetExercisePR(ex.name)
-      if (pr !== null) {
-        setExerciseList(prev => prev.map(e =>
-          e.name === ex.name && e.allTimePR === null ? { ...e, allTimePR: pr } : e
-        ))
-      }
-    }
+    if (!existingExercises?.length) return
+    const prs = localGetExercisePRBatch(existingExercises.map(ex => ex.name))
+    setExerciseList(prev => prev.map(ex => ({
+      ...ex,
+      allTimePR: prs[ex.name] !== undefined ? prs[ex.name] : ex.allTimePR,
+    })))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -623,6 +623,7 @@ export default function WorkoutRecorder({
           }))
       )
       localSaveFullSession(sid, title, setsToSave)
+      setTimeout(() => void refreshData(), 0)
       setIsDirty(false)
     } finally {
       setSaving(false)

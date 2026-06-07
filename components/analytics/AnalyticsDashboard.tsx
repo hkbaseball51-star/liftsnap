@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useTransition } from 'react'
+import { useState, useEffect, useRef, useTransition, useMemo, useCallback } from 'react'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
 import Link from 'next/link'
-import { Share2, Lock, Maximize2, Settings } from 'lucide-react'
+import { Share2, Maximize2, Settings } from 'lucide-react'
 import { getExercise1RMData, getBodyPartDailyVolumeData } from '@/actions/analytics'
 import {
   localGetExercise1RMData,
@@ -22,7 +22,7 @@ import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
-import { EXERCISE_GRAPH_REQUIRED, VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED } from '@/lib/unlocks'
+import { BW_CHART_REQUIRED } from '@/lib/unlocks'
 import { type Period, PERIODS, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
 import { smartYAxis, yAxisTicks, computeChartWidth, getPointWidth, buildXAxisConfig, formatTooltipDate } from '@/lib/chartUtils'
 import { useAppData } from '@/contexts/AppDataContext'
@@ -141,7 +141,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
 
   const activeExercises     = ctxExercises
   const activeTotalSessions = ctxTotalSessions
-  const filteredExercises = activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter))
+  const filteredExercises = useMemo(() =>
+    activeExercises.filter(e => matchesMuscleGroup(e.muscle_group, muscleFilter)),
+  [activeExercises, muscleFilter])
 
   // Auto-load chart data when tab, exercise/bodypart, or period changes
   useEffect(() => {
@@ -222,63 +224,63 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   }
 
   const todayJST     = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
-  const todaySaved   = ctxBwHistory.some(p => p.date === todayJST)
+  const todaySaved   = useMemo(() => ctxBwHistory.some(p => p.date === todayJST), [ctxBwHistory, todayJST])
   const bwParsed     = bwInput !== '' ? parseFlexibleNumber(bwInput) : null
   const bwInputValid = bwParsed !== null && bwParsed >= bwMin && bwParsed <= bwMax
-  const latestWeight = ctxBwHistory.length > 0 ? ctxBwHistory[ctxBwHistory.length - 1].weight : null
+  const latestWeight = useMemo(() =>
+    ctxBwHistory.length > 0 ? ctxBwHistory[ctxBwHistory.length - 1].weight : null,
+  [ctxBwHistory])
 
-  // Period-filtered + aggregated data
-  const periodStart = getStartDate(period)
-  const bwDataForPeriod = periodStart ? ctxBwHistory.filter(p => p.date >= periodStart) : ctxBwHistory
-  const bwDataAggregated = aggregateBodyWeight(bwDataForPeriod)
-  const bwDataDisplay = bwDataAggregated.map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
+  // Period-filtered + aggregated data — memoized to avoid re-computing on every render
+  const bwDataDisplay = useMemo(() => {
+    const start = getStartDate(period)
+    const filtered = start ? ctxBwHistory.filter(p => p.date >= start) : ctxBwHistory
+    return aggregateBodyWeight(filtered).map(p => ({ ...p, weight: Math.round(toDisplayWeight(p.weight, unit) * 10) / 10 }))
+  }, [ctxBwHistory, period, unit])
 
-  const rmDataAggregated = aggregate1RM(rmData)
-  const volDataAggregated = aggregateVolume(volData)
+  const rmDataDisplay = useMemo(() =>
+    aggregate1RM(rmData).map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) })),
+  [rmData, unit])
 
-  const bestRM = rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null
-  const totalVol = volData.reduce((s, p) => s + p.volume, 0)
+  const volDataDisplay = useMemo(() =>
+    aggregateVolume(volData).map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) })),
+  [volData, unit])
 
-  // Display-unit converted data for charts
-  const rmDataDisplay = rmDataAggregated.map(p => ({ ...p, est1rm: Math.round(toDisplayWeight(p.est1rm, unit)) }))
-  const volDataDisplay = volDataAggregated.map(p => ({ ...p, volume: Math.round(toDisplayWeight(p.volume, unit)) }))
+  const bestRM = useMemo(() =>
+    rmData.length > 0 ? Math.max(...rmData.map(p => p.est1rm)) : null,
+  [rmData])
+
+  const totalVol = useMemo(() => volData.reduce((s, p) => s + p.volume, 0), [volData])
   const showExerciseSelector = tab === 'MAX 1RM' && activeExercises.length > 0
 
-  const exerciseLogCount      = activeExercises.find(e => e.name === selectedExercise)?.logCount ?? 0
-  const exerciseShareUnlocked = exerciseLogCount >= EXERCISE_GRAPH_REQUIRED
 
   const periodLabel  = { '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' }[period] ?? period
 
-  const innerW_forChart = innerW  // alias for clarity
+  // RM chart config — memoized
+  const rmAxis   = useMemo(() => smartYAxis(rmDataDisplay.map(p => p.est1rm), 'rm'), [rmDataDisplay])
+  const rmTicks  = useMemo(() => yAxisTicks(rmAxis.yMin, rmAxis.yMax, rmAxis.step), [rmAxis])
+  const rmChartW = useMemo(() => computeChartWidth(rmDataDisplay.length, innerW, getPointWidth(period, 'line')), [rmDataDisplay.length, innerW, period])
+  const rmGrowth = useMemo(() =>
+    rmDataDisplay.length >= 2
+      ? rmDataDisplay[rmDataDisplay.length - 1].est1rm - rmDataDisplay[0].est1rm
+      : null,
+  [rmDataDisplay])
+  const rmXAxis  = useMemo(() => buildXAxisConfig(rmDataDisplay, rmChartW, period), [rmDataDisplay, rmChartW, period])
 
-  // RM chart
-  const rmValues = rmDataDisplay.map(p => p.est1rm)
-  const rmAxis = smartYAxis(rmValues, 'rm')
-  const rmTicks = yAxisTicks(rmAxis.yMin, rmAxis.yMax, rmAxis.step)
-  const rmChartW = computeChartWidth(rmDataDisplay.length, innerW_forChart, getPointWidth(period, 'line'))
-  const rmGrowth = rmDataDisplay.length >= 2
-    ? rmDataDisplay[rmDataDisplay.length - 1].est1rm - rmDataDisplay[0].est1rm
-    : null
+  // Volume chart config — memoized
+  const volAxis   = useMemo(() => smartYAxis(volDataDisplay.map(p => p.volume), 'volume'), [volDataDisplay])
+  const volTicks  = useMemo(() => yAxisTicks(0, volAxis.yMax, volAxis.step), [volAxis])
+  const volChartW = useMemo(() => computeChartWidth(volDataDisplay.length, innerW, getPointWidth(period, 'bar')), [volDataDisplay.length, innerW, period])
+  const volXAxis  = useMemo(() => buildXAxisConfig(volDataDisplay, volChartW, period), [volDataDisplay, volChartW, period])
 
-  // Volume chart (28px per bar = more bars visible per screen)
-  const volValues = volDataDisplay.map(p => p.volume)
-  const volAxis = smartYAxis(volValues, 'volume')
-  const volTicks = yAxisTicks(0, volAxis.yMax, volAxis.step)
-  const volChartW = computeChartWidth(volDataDisplay.length, innerW_forChart, getPointWidth(period, 'bar'))
+  // BW chart config — memoized
+  const bwAxis   = useMemo(() => smartYAxis(bwDataDisplay.map(p => p.weight), 'bw'), [bwDataDisplay])
+  const bwTicks  = useMemo(() => yAxisTicks(bwAxis.yMin, bwAxis.yMax, bwAxis.step), [bwAxis])
+  const bwChartW = useMemo(() => computeChartWidth(bwDataDisplay.length, innerW, getPointWidth(period, 'line')), [bwDataDisplay.length, innerW, period])
+  const bwXAxis  = useMemo(() => buildXAxisConfig(bwDataDisplay, bwChartW, period), [bwDataDisplay, bwChartW, period])
 
-  // BW chart
-  const bwValues = bwDataDisplay.map(p => p.weight)
-  const bwAxis = smartYAxis(bwValues, 'bw')
-  const bwTicks = yAxisTicks(bwAxis.yMin, bwAxis.yMax, bwAxis.step)
-  const bwChartW = computeChartWidth(bwDataDisplay.length, innerW_forChart, getPointWidth(period, 'line'))
-
-  // XAxis tick lists + formatters (explicit ticks, no duplicate-month labels)
-  const rmXAxis  = buildXAxisConfig(rmDataDisplay,  rmChartW,  period)
-  const volXAxis = buildXAxisConfig(volDataDisplay, volChartW, period)
-  const bwXAxis  = buildXAxisConfig(bwDataDisplay,  bwChartW,  period)
-
-  // Custom dot renderer — latest point is larger with white ring
-  const rmDot = (props: any) => {
+  // Custom dot renderer — latest point is larger with white ring — useCallback to keep stable ref
+  const rmDot = useCallback((props: any) => {
     const { cx, cy, index } = props
     if (index === rmDataDisplay.length - 1) {
       return (
@@ -289,9 +291,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       )
     }
     return <circle key={`rm-dot-${index}`} cx={cx} cy={cy} r={2} fill="#ED742F" fillOpacity={0.6} />
-  }
+  }, [rmDataDisplay.length])
 
-  const bwDot = (props: any) => {
+  const bwDot = useCallback((props: any) => {
     const { cx, cy, index } = props
     if (index === bwDataDisplay.length - 1) {
       return (
@@ -302,7 +304,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       )
     }
     return <circle key={`bw-dot-${index}`} cx={cx} cy={cy} r={1} fill="#94A3B8" fillOpacity={0.5} />
-  }
+  }, [bwDataDisplay.length])
 
   const rmTooltip = (tProps: any) => {
     const { active, payload, label } = tProps
@@ -497,9 +499,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       {/* MAX 1RM Tab */}
       {tab === 'MAX 1RM' && (
         <div>
-          {activeTotalSessions < 5 ? (
-            <MilestoneLock current={activeTotalSessions} required={5} locale={locale} chartName="MAX 1RMグラフ" chartNameEn="MAX 1RM chart" />
-          ) : activeExercises.length === 0 ? (
+          {activeExercises.length === 0 ? (
             <EmptyState />
           ) : filteredExercises.length === 0 ? (
             <NoGroupData />
@@ -605,35 +605,20 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       )
                     })}
                   </div>
-                  {exerciseShareUnlocked ? (
-                    <Link
-                      href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
-                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                      style={{
-                        padding: '12px 16px',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.13)',
-                        color: 'rgba(255,255,255,0.60)',
-                        fontSize: 13,
-                        fontWeight: 500,
-                      }}>
-                      <Share2 size={14} strokeWidth={1.5} />
-                      Share Story
-                    </Link>
-                  ) : (
-                    <div className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                      style={{
-                        padding: '12px 16px',
-                        background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid rgba(255,255,255,0.17)',
-                        color: '#333',
-                        fontSize: 13,
-                        fontWeight: 500,
-                      }}>
-                      <Lock size={13} strokeWidth={1.5} />
-                      Share Story · {exerciseLogCount}/{EXERCISE_GRAPH_REQUIRED} {t(locale, 'analytics.shareLogsUnit')}
-                    </div>
-                  )}
+                  <Link
+                    href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
+                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                    style={{
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.13)',
+                      color: 'rgba(255,255,255,0.60)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                    }}>
+                    <Share2 size={14} strokeWidth={1.5} />
+                    Share Story
+                  </Link>
                 </>
               )}
             </>
@@ -644,10 +629,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       {/* DAILY VOLUME Tab */}
       {tab === 'DAILY VOLUME' && (
         <div>
-          {activeTotalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
-            <MilestoneLock current={activeTotalSessions} required={VOLUME_CHART_SESSION_REQUIRED} locale={locale} chartName="Volumeグラフ" chartNameEn="Volume chart" />
-          ) : (
-            <>
+          <>
               {/* Body part filter */}
               <div className="overflow-x-auto no-scrollbar mb-4">
                 <div className="flex gap-1.5 pb-1">
@@ -765,8 +747,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   </Link>
                 </>
               )}
-            </>
-          )}
+          </>
         </div>
       )}
 
@@ -976,33 +957,6 @@ function ChartEmpty() {
     <div className="h-[380px] flex items-center justify-center flex-col gap-2">
       <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noDataYet')}</p>
       <p className="text-xs font-bold" style={{ color: '#333' }}>{t(locale, 'analytics.chartNoData')}</p>
-    </div>
-  )
-}
-
-function MilestoneLock({ current, required, locale, chartName = 'グラフ', chartNameEn = 'this chart' }: {
-  current: number; required: number; locale: Locale; chartName?: string; chartNameEn?: string
-}) {
-  const pct       = Math.min((current / required) * 100, 100)
-  const remaining = Math.max(required - current, 0)
-  const unlockText = locale === 'ja'
-    ? `ワークアウトを${required}回記録すると、${chartName}が使えます`
-    : `Log ${required} workouts to unlock ${chartNameEn}`
-  const remainingText = locale === 'ja'
-    ? `あと${remaining}回のワークアウト記録で、${chartName}が使えます`
-    : `${remaining} more workout${remaining !== 1 ? 's' : ''} to go`
-  return (
-    <div className="rounded-2xl p-6" style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.17)' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <Lock size={13} strokeWidth={1.5} style={{ color: '#444' }} />
-        <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>LOCKED</p>
-      </div>
-      <p className="text-sm font-bold mb-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{unlockText}</p>
-      <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.60)' }}>{remainingText}</p>
-      <div className="h-1 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.17)' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: 'rgba(237, 116, 47,0.55)', transition: 'width 0.4s ease' }} />
-      </div>
-      <p className="text-[10px] text-right" style={{ color: '#3a3a3a' }}>{current} / {required}</p>
     </div>
   )
 }
