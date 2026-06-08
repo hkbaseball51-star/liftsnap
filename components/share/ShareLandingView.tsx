@@ -290,7 +290,7 @@ export default function ShareLandingView({
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.36)' }}>
-              GRAPH STORIES
+              {ja ? '成長グラフ' : 'GRAPH STORIES'}
             </p>
             <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.26)' }}>
               {ja ? '成長グラフをシェア' : 'Share your progress charts'}
@@ -322,7 +322,7 @@ export default function ShareLandingView({
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#ED742F' }}>{ja ? '1RM Graph Storyを作成' : 'Create 1RM Graph Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#ED742F' }}>{ja ? '1RMグラフStoryを作成' : 'Create 1RM Graph Story'}</span>
                         <ChevronRight size={12} color="#ED742F" />
                       </div>
                     </div>
@@ -396,7 +396,7 @@ export default function ShareLandingView({
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#22c55e' }}>{ja ? 'Volume Graph Storyを作成' : 'Create Volume Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#22c55e' }}>{ja ? '総重量グラフStoryを作成' : 'Create Volume Story'}</span>
                         <ChevronRight size={12} color="#22c55e" />
                       </div>
                     </div>
@@ -472,7 +472,7 @@ export default function ShareLandingView({
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#60a5fa' }}>{ja ? 'Weight Graph Storyを作成' : 'Create Weight Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#60a5fa' }}>{ja ? '体重グラフStoryを作成' : 'Create Weight Story'}</span>
                         <ChevronRight size={12} color="#60a5fa" />
                       </div>
                     </div>

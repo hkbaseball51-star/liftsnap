@@ -5,8 +5,14 @@ import { useRouter } from 'next/navigation'
 import TrainingCalendar, { type CalendarSession } from './TrainingCalendar'
 import SelectedDaySummary from './SelectedDaySummary'
 import { CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
+import { useLocale } from '@/lib/useLocale'
 
-function LegendItem({ label, name, color }: { label: string; name: string; color: string }) {
+const LEGEND_NAME_JA: Record<string, string> = {
+  PUS: 'プッシュ', PUL: 'プル', LEG: '脚', FULL: '全身',
+  C: '胸', B: '背中', L: '脚', S: '肩', A: '腕', ABS: '腹筋',
+}
+
+function LegendItem({ label, name, color, ja }: { label: string; name: string; color: string; ja: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
       <span style={{
@@ -19,7 +25,7 @@ function LegendItem({ label, name, color }: { label: string; name: string; color
         fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
         color: 'rgba(255,255,255,0.36)', lineHeight: 1,
       }}>
-        {name}
+        {ja ? (LEGEND_NAME_JA[label] ?? name) : name}
       </span>
     </div>
   )
@@ -31,7 +37,7 @@ const SECTION_TITLE: React.CSSProperties = {
   textTransform: 'uppercase',
 }
 
-function CalendarLegend() {
+function CalendarLegend({ ja }: { ja: boolean }) {
   return (
     <div style={{
       background: '#141414',
@@ -44,7 +50,7 @@ function CalendarLegend() {
       <p style={SECTION_TITLE}>SPLIT</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 10 }}>
         {CALENDAR_LABEL_LEGEND.split.map((item) => (
-          <LegendItem key={item.label} {...item} />
+          <LegendItem key={item.label} {...item} ja={ja} />
         ))}
       </div>
 
@@ -55,7 +61,7 @@ function CalendarLegend() {
       <p style={SECTION_TITLE}>MUSCLE</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
         {CALENDAR_LABEL_LEGEND.muscle.map((item) => (
-          <LegendItem key={item.label} {...item} />
+          <LegendItem key={item.label} {...item} ja={ja} />
         ))}
       </div>
     </div>
@@ -93,6 +99,8 @@ export default function CalendarWithSummary({
   photoPathsByDate?: Record<string, string>
 }) {
   const router = useRouter()
+  const { locale } = useLocale()
+  const ja = locale === 'ja'
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const selectedSummary = selectedDate ? (daySummaries[selectedDate] ?? null) : null
@@ -107,7 +115,7 @@ export default function CalendarWithSummary({
         onNavigate={(date) => router.push(`/record?date=${date}`)}
         photoPathsByDate={photoPathsByDate}
       />
-      <CalendarLegend />
+      <CalendarLegend ja={ja} />
       {selectedDate && (
         <div style={{ marginTop: 12 }}>
           <SelectedDaySummary

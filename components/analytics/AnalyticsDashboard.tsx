@@ -82,6 +82,7 @@ function periodToRange(p: Period): string {
 
 export default function AnalyticsDashboard({ useLocalDB }: Props) {
   const { locale } = useLocale()
+  const ja = locale === 'ja'
   const { unit, mounted: unitMounted } = useWeightUnit()
   const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
 
@@ -259,7 +260,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   const showExerciseSelector = tab === 'MAX 1RM' && activeExercises.length > 0
 
 
-  const periodLabel  = { '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' }[period] ?? period
+  const periodLabel = ja
+    ? ({ '30D': '30日間', '90D': '90日間', '6M': '6ヶ月', '1Y': '1年', 'All': '全期間' } as Record<string, string>)[period] ?? period
+    : ({ '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' } as Record<string, string>)[period] ?? period
 
   // RM chart config — memoized
   const rmAxis   = useMemo(() => smartYAxis(rmDataDisplay.map(p => p.est1rm), 'rm'), [rmDataDisplay])
@@ -408,7 +411,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-black tracking-widest text-white">ANALYTICS</h1>
+        <h1 className="text-xl font-black tracking-widest text-white">{ja ? '成長データ' : 'ANALYTICS'}</h1>
         <Link href="/profile/settings"
           className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0"
           style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -426,7 +429,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               color: tab === t ? '#fff' : '#555',
             }}
             onClick={() => setTab(t)}>
-            {t}
+            {ja ? ({ 'MAX 1RM': 'MAX 1RM', 'DAILY VOLUME': '総重量', 'BODY WEIGHT': '体重' } as Record<Tab, string>)[t] : t}
           </button>
         ))}
       </div>
@@ -537,7 +540,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSIONS</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録日数' : 'SESSIONS'}</p>
                   <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {rmLoading ? '...' : rmData.length > 0 ? rmData.length : '—'}
                   </p>
@@ -548,10 +551,10 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               <div className="rounded-2xl p-4 mb-3" style={CARD}>
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>1RM PROGRESSION</p>
+                    <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>{ja ? '1RMの推移' : '1RM PROGRESSION'}</p>
                     {rmDataDisplay.length >= 2 && (
                       <p className="text-[9px] mt-0.5 tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                        Since {rmDataDisplay[0].label}
+                        {ja ? `${rmDataDisplay[0].label}から` : `Since ${rmDataDisplay[0].label}`}
                       </p>
                     )}
                   </div>
@@ -693,7 +696,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSIONS</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録日数' : 'SESSIONS'}</p>
                   <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {volLoading ? '...' : volData.length > 0 ? volData.length : '—'}
                   </p>
@@ -703,7 +706,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               {/* Volume chart */}
               <div className="rounded-2xl p-4 mb-3" style={CARD}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>DAILY VOLUME</p>
+                  <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>{ja ? '総重量' : 'DAILY VOLUME'}</p>
                   <Link
                     href={`/analytics/chart?metric=daily-volume&range=${periodToRange(period)}&bodypart=${encodeURIComponent(volBodyPart.toLowerCase())}`}
                     aria-label="Open full screen chart"
@@ -808,7 +811,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
           <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={CARD}>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1.5">
-                <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>TODAY&apos;S WEIGHT</p>
+                <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>{ja ? '今日の体重' : 'TODAY\'S WEIGHT'}</p>
                 {todaySaved && (
                   <span className="text-[9px] font-black tracking-wider" style={{ color: '#22c55e' }}>SAVED</span>
                 )}
@@ -839,14 +842,14 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               }}
               disabled={!bwInputValid}
               onClick={saveBW}>
-              LOG
+              {ja ? '記録' : 'LOG'}
             </button>
           </div>
 
           {latestWeight && (
             <div className="rounded-2xl p-4 mb-4 flex items-center justify-between" style={CARD}>
               <div>
-                <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>LATEST</p>
+                <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>{ja ? '最新' : 'LATEST'}</p>
                 <div className="flex items-baseline gap-1">
                   <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight !== null ? toDisplayWeight(latestWeight, unit) : ''}</span>
                   <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
@@ -856,7 +859,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 const diff = Math.round((bwDataDisplay[bwDataDisplay.length - 1].weight - bwDataDisplay[0].weight) * 10) / 10
                 return (
                   <div className="text-right">
-                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>CHANGE</p>
+                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '変化' : 'CHANGE'}</p>
                     <div className="flex items-baseline gap-1 justify-end">
                       <span style={{ fontSize: 28, fontWeight: 900, color: diff <= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', lineHeight: 1 }}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(1)}
@@ -871,7 +874,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
 
           <div className="rounded-2xl p-4" style={CARD}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>BODY WEIGHT · {periodLabel}</p>
+              <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>{ja ? `体重 · ${periodLabel}` : `BODY WEIGHT · ${periodLabel}`}</p>
               <Link
                 href={`/analytics/chart?metric=body-weight&range=${periodToRange(period)}`}
                 aria-label="Open full screen chart"

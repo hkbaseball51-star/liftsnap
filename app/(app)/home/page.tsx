@@ -184,7 +184,7 @@ export default function HomePage() {
         <div className="grid grid-cols-3 gap-2">
           {([
             {
-              label: 'VOLUME',
+              label: locale === 'ja' ? 'トータルボリューム' : 'VOLUME',
               value: formatVolumeWithUnit(thisWeekVolume, unit),
               sub: volumeDiff !== null ? `${volumeDiff >= 0 ? '+' : ''}${volumeDiff}%` : null as string | null,
               subColor: (volumeDiff !== null ? (volumeDiff >= 0 ? '#22c55e' : '#ef4444') : undefined) as string | undefined,
@@ -192,7 +192,7 @@ export default function HomePage() {
               cardUnit: undefined as string | undefined,
             },
             {
-              label: 'SESSIONS',
+              label: locale === 'ja' ? 'セッション' : 'SESSIONS',
               value: `${thisWeekSessions.length} / 3`,
               sub: null as string | null,
               subColor: 'rgba(255,255,255,0.54)' as string | undefined,
@@ -200,7 +200,7 @@ export default function HomePage() {
               cardUnit: undefined as string | undefined,
             },
             {
-              label: 'BEST 1RM',
+              label: locale === 'ja' ? 'ベスト1RM' : 'BEST 1RM',
               value: allTimeEst1rm
                 ? `${Math.round(toDisplayWeight(allTimeEst1rm, unit))}`
                 : (locale === 'ja' ? '未記録' : '—'),
@@ -239,7 +239,7 @@ export default function HomePage() {
         <div className="premium-card rounded-xl px-4 py-3 flex items-center justify-between">
           <div>
             <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.56)', marginBottom: 5 }}>
-              BODY WEIGHT
+              {locale === 'ja' ? '体重' : 'BODY WEIGHT'}
             </p>
             {todayWeight ? (
               <div className="flex items-baseline gap-1">

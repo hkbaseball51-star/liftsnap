@@ -88,10 +88,10 @@ export default function StatsPickerView({
   const hasExercises = resolvedExercises.length > 0
 
   const stepTitle = step === 'metric'
-    ? 'Graph Story'
+    ? (ja ? 'グラフStory' : 'Graph Story')
     : step === 'exercise'
-      ? 'Best 1RM · Pick Exercise'
-      : 'Daily Volume · Pick Body Part'
+      ? (ja ? '1RM · 種目を選択' : 'Best 1RM · Pick Exercise')
+      : (ja ? '総重量 · 部位を選択' : 'Daily Volume · Pick Body Part')
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
@@ -257,7 +257,7 @@ export default function StatsPickerView({
         <div className="px-4 flex flex-col gap-2">
           {resolvedExercises.length === 0 ? (
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.44)', padding: '16px 0' }}>
-              No exercises logged yet.
+              {ja ? '記録済みの種目がありません' : 'No exercises logged yet.'}
             </p>
           ) : (
             resolvedExercises.map(ex => {
