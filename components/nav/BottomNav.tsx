@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Dumbbell, CalendarDays, BarChart2, Share2 } from 'lucide-react'
+import { useLocale } from '@/lib/useLocale'
 
 function getTodayJST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
@@ -19,16 +20,18 @@ const HIDE_NAV = new Set([
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const { locale } = useLocale()
+  const ja = locale === 'ja'
 
   if (HIDE_NAV.has(pathname)) return null
 
   const todayJST = getTodayJST()
 
   const tabs = [
-    { href: `/record?date=${todayJST}`, base: '/record',    icon: Dumbbell,     label: 'RECORD'   },
-    { href: '/home',                    base: '/home',      icon: CalendarDays, label: 'CALENDAR' },
-    { href: '/analytics',              base: '/analytics', icon: BarChart2,    label: 'STATS'    },
-    { href: '/share',                  base: '/share',     icon: Share2,       label: 'SHARE'    },
+    { href: `/record?date=${todayJST}`, base: '/record',    icon: Dumbbell,     label: ja ? '記録'       : 'RECORD'   },
+    { href: '/home',                    base: '/home',      icon: CalendarDays, label: ja ? 'カレンダー' : 'CALENDAR' },
+    { href: '/analytics',              base: '/analytics', icon: BarChart2,    label: ja ? '成長'       : 'STATS'    },
+    { href: '/share',                  base: '/share',     icon: Share2,       label: ja ? 'シェア'     : 'SHARE'    },
   ]
 
   return (

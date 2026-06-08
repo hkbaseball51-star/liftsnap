@@ -9,6 +9,7 @@ import { useLocale } from '@/lib/useLocale'
 import WorkoutStoryCardContent, { ExerciseStoryCard, tname, PRESETS } from './WorkoutStoryCardContent'
 import type { TodayData, CardStyle, DesignPreset, ShadowMode } from './WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
+import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
 
 export type { TodayData }
 
@@ -59,6 +60,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [preset,        setPreset]         = useState<DesignPreset>('orange')
   const [shadowMode,    setShadowMode]     = useState<ShadowMode>('strong')
   const [saveFormat,    setSaveFormat]     = useState<'combined' | 'per-exercise'>('combined')
+  const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
   const [saving,        setSaving]         = useState(false)
   const [status,        setStatus]         = useState('')
   const [shareCount,    setShareCount]     = useState(0)
@@ -309,6 +311,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       locale={locale}
                       isPast={isPast}
                       shadowMode={shadowMode}
+                      exerciseNameLang={exerciseNameLang}
                     />
                   </div>
                 </div>
@@ -353,6 +356,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       locale={locale}
                       isPast={isPast}
                       shadowMode={shadowMode}
+                      exerciseNameLang={exerciseNameLang}
                     />
                   </div>
                 </div>
@@ -477,6 +481,30 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   border:     `1px solid ${saveFormat === value ? '#ED742F' : '#2a2a2a'}`,
                 }}
                 onClick={() => setSaveFormat(value)}>
+                {ja ? labelJa : labelEn}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Exercise Name Language */}
+        <div className="px-4 mb-3">
+          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+            {ja ? '種目名の表示' : 'Exercise names'}
+          </p>
+          <div className="flex gap-2">
+            {([
+              { value: 'en' as const, labelJa: 'English', labelEn: 'English' },
+              { value: 'ja' as const, labelJa: '日本語',   labelEn: 'Japanese' },
+            ]).map(({ value, labelJa, labelEn }) => (
+              <button key={value}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{
+                  background: exerciseNameLang === value ? '#ED742F' : '#1a1a1a',
+                  color:      exerciseNameLang === value ? '#fff'    : '#666',
+                  border:     `1px solid ${exerciseNameLang === value ? '#ED742F' : '#2a2a2a'}`,
+                }}
+                onClick={() => setExerciseNameLang(value)}>
                 {ja ? labelJa : labelEn}
               </button>
             ))}

@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
+import { useLocale } from '@/lib/useLocale'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
 import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
+import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -608,6 +610,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   const { unit }   = useWeightUnit()
   const unitLabel  = weightUnitLabel(unit)
+  const { locale } = useLocale()
+  const ja         = locale === 'ja'
+  const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
 
   const [theme,      setTheme]      = useState<Theme>('dark')
   const [accent,     setAccent]     = useState<Accent>('dark')
@@ -661,7 +666,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const bestRM         = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).bestRM : 0
   const exNameRaw      = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName : ''
   const exNameEn       = RM_JA_EN[exNameRaw] ?? exNameRaw.toUpperCase()
-  const exName         = exNameEn.length > 18 ? exNameEn.slice(0, 17) + '…' : exNameEn
+  const exNameDisplay  = exerciseNameLang === 'ja' ? exNameRaw : exNameEn
+  const exName         = exNameDisplay.length > 18 ? exNameDisplay.slice(0, 17) + '…' : exNameDisplay
 
   const rm1Growth   = rm1FullHistory.length >= 2
     ? Math.round((toDisplayWeight(bestRM, unit) - toDisplayWeight(rm1FullHistory[0].est1rm, unit)) * 10) / 10
@@ -1077,6 +1083,33 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           })}
         </div>
       </div>
+
+      {/* ⑤b EXERCISE NAME LANGUAGE — MAX 1RM only ──────────── */}
+      {isMax1RM && (
+        <div className="px-4 mb-4">
+          {sectionLabel(ja ? '種目名の表示' : 'EXERCISE NAMES')}
+          <div className="flex gap-2">
+            {([
+              { value: 'en' as const, label: 'English'  },
+              { value: 'ja' as const, label: '日本語'    },
+            ]).map(({ value, label }) => {
+              const sel = exerciseNameLang === value
+              const uiAc = gp.uiSwatch ?? gp.accentHex
+              return (
+                <button key={value} onClick={() => setExerciseNameLang(value)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                  style={{
+                    background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
+                    color: sel ? uiAc : '#666',
+                    border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                  }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ⑥ PREVIEW ──────────────────────────────────────────── */}
       {/* Glass mode: subtle checker behind card so users can see the semi-transparency in preview. */}

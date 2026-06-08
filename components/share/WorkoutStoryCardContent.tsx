@@ -266,6 +266,7 @@ type Props = {
   locale: Locale
   isPast?: boolean
   shadowMode?: ShadowMode
+  exerciseNameLang?: 'en' | 'ja'
 }
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -278,7 +279,9 @@ export default function WorkoutStoryCardContent({
   locale,
   isPast = false,
   shadowMode = 'none',
+  exerciseNameLang = 'en',
 }: Props) {
+  const dn = (n: string) => exerciseNameLang === 'ja' ? n : tname(n)
   const p             = PRESETS[preset]
   const isTransparent = cardStyle === 'transparent'
   const isDarkBg      = isTransparent || (p.isDark !== false)
@@ -410,7 +413,7 @@ export default function WorkoutStoryCardContent({
                 margin: 0, lineHeight: 1.2,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {tname(ex.name)}
+                {dn(ex.name)}
               </p>
               <p style={{
                 fontSize: tp.infoSize, color: subTextColor,
@@ -470,12 +473,15 @@ type ExerciseCardProps = {
   locale: Locale
   isPast?: boolean
   shadowMode?: ShadowMode
+  exerciseNameLang?: 'en' | 'ja'
 }
 
 export function ExerciseStoryCard({
   data, cardStyle, preset, unit, locale, isPast = false,
   shadowMode = 'none',
+  exerciseNameLang = 'en',
 }: ExerciseCardProps) {
+  const dn = (n: string) => exerciseNameLang === 'ja' ? n : tname(n)
   const p              = PRESETS[preset]
   const isTransparent  = cardStyle === 'transparent'
   const isDarkBg       = isTransparent || (p.isDark !== false)
@@ -542,7 +548,7 @@ export function ExerciseStoryCard({
         fontSize: 20, fontWeight: 900, color: textPrimary,
         margin: 0, lineHeight: 1.15, letterSpacing: '-0.02em',
       }}>
-        {tname(data.name)}
+        {dn(data.name)}
       </p>
 
       {/* Sets + est. 1RM */}
