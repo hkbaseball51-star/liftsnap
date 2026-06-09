@@ -801,7 +801,7 @@ export default function WorkoutRecorder({
         {(
           <div className="flex items-center gap-2 mb-2.5 px-0.5">
             <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.09em', color: '#3a3a3a', flexShrink: 0, whiteSpace: 'nowrap' }}>
-              BODY WEIGHT · OPTIONAL
+              {locale === 'ja' ? '体重・任意' : 'BODY WEIGHT · OPTIONAL'}
             </p>
             <input
               type="text"

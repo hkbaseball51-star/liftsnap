@@ -311,18 +311,18 @@ export default function ShareLandingView({
                             <TrendingUp size={19} color="#ED742F" />
                           </div>
                           <div>
-                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>Best 1RM</p>
+                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{ja ? 'ベスト1RM' : 'Best 1RM'}</p>
                             <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>
-                              {ja ? 'MAX重量の成長グラフ' : 'Max strength progress'}
+                              {ja ? '最大1RMの成長グラフ' : 'Max strength progress'}
                             </p>
                           </div>
                         </div>
                         <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.45 }}>
-                          {ja ? '種目別のBest 1RMの推移をグラフ化してシェア' : 'Share your max strength progress by exercise'}
+                          {ja ? '種目別のベスト1RMの推移をグラフ化してシェア' : 'Share your max strength progress by exercise'}
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#ED742F' }}>{ja ? '1RMグラフStoryを作成' : 'Create 1RM Graph Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#ED742F' }}>{ja ? '1RMグラフストーリーを作成' : 'Create 1RM Graph Story'}</span>
                         <ChevronRight size={12} color="#ED742F" />
                       </div>
                     </div>
@@ -345,9 +345,9 @@ export default function ShareLandingView({
                           <TrendingUp size={19} color="rgba(255,255,255,0.30)" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>Best 1RM</p>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{ja ? 'ベスト1RM' : 'Best 1RM'}</p>
                           <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
-                            {ja ? 'MAX重量の成長グラフ' : 'Max strength progress'}
+                            {ja ? '最大1RMの成長グラフ' : 'Max strength progress'}
                           </p>
                         </div>
                       </div>
@@ -385,7 +385,7 @@ export default function ShareLandingView({
                             <BarChart2 size={19} color="#22c55e" />
                           </div>
                           <div>
-                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>Daily Volume</p>
+                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{ja ? '総重量' : 'Daily Volume'}</p>
                             <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>
                               {ja ? '部位別・PPL別の総重量グラフ' : 'Body part / PPL volume chart'}
                             </p>
@@ -396,7 +396,7 @@ export default function ShareLandingView({
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#22c55e' }}>{ja ? '総重量グラフStoryを作成' : 'Create Volume Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#22c55e' }}>{ja ? '総重量グラフストーリーを作成' : 'Create Volume Story'}</span>
                         <ChevronRight size={12} color="#22c55e" />
                       </div>
                     </div>
@@ -419,7 +419,7 @@ export default function ShareLandingView({
                           <BarChart2 size={19} color="rgba(255,255,255,0.30)" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>Daily Volume</p>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{ja ? '総重量' : 'Daily Volume'}</p>
                           <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
                             {ja ? '部位別・PPL別の総重量グラフ' : 'Body part / PPL volume chart'}
                           </p>
@@ -461,7 +461,7 @@ export default function ShareLandingView({
                             <Activity size={19} color="#60a5fa" />
                           </div>
                           <div>
-                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>Body Weight</p>
+                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{ja ? '体重' : 'Body Weight'}</p>
                             <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>
                               {ja ? '体重変化のグラフ' : 'Weight progress chart'}
                             </p>
@@ -472,7 +472,7 @@ export default function ShareLandingView({
                         </p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#60a5fa' }}>{ja ? '体重グラフStoryを作成' : 'Create Weight Story'}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#60a5fa' }}>{ja ? '体重グラフストーリーを作成' : 'Create Weight Story'}</span>
                         <ChevronRight size={12} color="#60a5fa" />
                       </div>
                     </div>
@@ -495,7 +495,7 @@ export default function ShareLandingView({
                           <Activity size={19} color="rgba(255,255,255,0.30)" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>Body Weight</p>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{ja ? '体重' : 'Body Weight'}</p>
                           <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
                             {ja ? '体重変化のグラフ' : 'Weight progress chart'}
                           </p>

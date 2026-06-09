@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Share2, Download, ArrowLeft } from 'lucide-react'
 import { shareOrDownloadImage } from '@/lib/shareImage'
 import { useWeightUnit } from '@/lib/useWeightUnit'
+import { useLocale } from '@/lib/useLocale'
 import { formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
 
 type CardData = {
@@ -142,6 +143,8 @@ function splitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, fo
 export default function ShareView({ data }: { data: CardData }) {
   const router = useRouter()
   const { unit } = useWeightUnit()
+  const { locale } = useLocale()
+  const ja = locale === 'ja'
   const [theme, setTheme] = useState<Theme>('dark')
   const [accent, setAccent] = useState<Accent>('orange')
   const [sharing, setSharing] = useState(false)
@@ -285,10 +288,10 @@ export default function ShareView({ data }: { data: CardData }) {
           disabled={sharing}
           onClick={handleShare}>
           <Share2 size={20} />
-          {sharing ? 'Generating...' : 'Share to Instagram Story'}
+          {sharing ? (ja ? '画像を作成中...' : 'Generating...') : (ja ? 'グラフStoryを保存' : 'Share to Instagram Story')}
         </button>
         <p className="text-center text-xs" style={{ color: '#444' }}>
-          Mobile only · Downloads as PNG on desktop
+          {ja ? 'モバイルでは共有、PCではPNG保存' : 'Mobile only · Downloads as PNG on desktop'}
         </p>
       </div>
     </div>

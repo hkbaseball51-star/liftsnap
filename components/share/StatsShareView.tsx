@@ -97,6 +97,15 @@ const PRESET_LABELS: Record<GraphPreset, string> = {
   'pearl-white':   'Pearl White',
 }
 
+const PRESET_LABELS_JA: Record<GraphPreset, string> = {
+  'orange':        'REPRA オレンジ',
+  'ice-blue':      'アイスブルー',
+  'violet':        'バイオレットパンプ',
+  'mint':          'ミントプルーフ',
+  'premium-black': 'プレミアムブラック',
+  'pearl-white':   'パールホワイト',
+}
+
 /* ── Helpers ─────────────────────────────────────────────── */
 function fmtXLabel(dateStr: string): string {
   if (!dateStr) return ''
@@ -894,12 +903,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
           <ArrowLeft size={18} style={{ color: '#888' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
+        <h1 className="text-base font-black tracking-widest text-white">{ja ? 'ストーリーをシェア' : 'Share Story'}</h1>
       </div>
 
       {/* ① GRAPH LAYOUT ──────────────────────────────────────── */}
       <div className="px-4 mb-4">
-        {sectionLabel('GRAPH LAYOUT')}
+        {sectionLabel(ja ? 'レイアウト' : 'GRAPH LAYOUT')}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {GRAPH_LAYOUTS.map(l => {
             const sel = graphLayout === l.key
@@ -917,11 +926,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <LayoutThumb layoutKey={l.key} accentHex={gp.uiSwatch ?? gp.accentHex} selected={sel} isBar={isBarType} />
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: sel ? (gp.uiSwatch ?? gp.accentHex) : '#fff', margin: 0, lineHeight: 1.2 }}>
-                    {l.ratio} {l.labelEn}
+                    {l.ratio} {ja ? l.labelJa : l.labelEn}
                   </p>
-                  <p style={{ fontSize: 9, color: '#555', margin: '2px 0 0', lineHeight: 1.2 }}>
-                    {l.labelJa}
-                  </p>
+                  {!ja && (
+                    <p style={{ fontSize: 9, color: '#555', margin: '2px 0 0', lineHeight: 1.2 }}>
+                      {l.labelJa}
+                    </p>
+                  )}
                 </div>
               </button>
             )
@@ -1008,7 +1019,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
       {/* ③ CARD STYLE ───────────────────────────────────────── */}
       <div className="px-4 mb-3">
-        {sectionLabel('CARD STYLE')}
+        {sectionLabel(ja ? 'カードスタイル' : 'CARD STYLE')}
         <div className="flex gap-2">
           {(['glass', 'transparent'] as CardStyle[]).map(cs => {
             const sel = cardStyle === cs
@@ -1021,7 +1032,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   color: sel ? uiAc : '#666',
                   border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
                 }}>
-                {cs === 'glass' ? 'Glass' : 'Transparent'}
+                {cs === 'glass' ? (ja ? 'ガラス' : 'Glass') : (ja ? '透過' : 'Transparent')}
               </button>
             )
           })}
@@ -1030,7 +1041,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
       {/* ④ DESIGN PRESET ────────────────────────────────────── */}
       <div className="px-4 mb-4">
-        {sectionLabel('DESIGN PRESET')}
+        {sectionLabel(ja ? 'デザインプリセット' : 'DESIGN PRESET')}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {(['orange', 'ice-blue', 'violet', 'mint', 'premium-black', 'pearl-white'] as GraphPreset[]).map(pk => {
             const pd     = PRESETS[pk]
@@ -1053,7 +1064,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textAlign: 'left',
                   color: sel ? swatch : '#666', lineHeight: 1.3, display: 'block',
                 }}>
-                  {PRESET_LABELS[pk]}
+                  {ja ? PRESET_LABELS_JA[pk] : PRESET_LABELS[pk]}
                 </span>
               </button>
             )
@@ -1063,12 +1074,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
       {/* ⑤ SHADOW ───────────────────────────────────────────── */}
       <div className="px-4 mb-4">
-        {sectionLabel('SHADOW')}
+        {sectionLabel(ja ? 'シャドウ' : 'SHADOW')}
         <div className="flex gap-2">
           {(['none', 'soft', 'strong', 'extra-strong'] as ShadowLevel[]).map(sl => {
             const sel = shadowLevel === sl
             const uiAc = gp.uiSwatch ?? gp.accentHex
-            const label = sl === 'none' ? 'None' : sl === 'soft' ? 'Soft' : sl === 'strong' ? 'Strong' : 'Extra'
+            const label = ja
+              ? (sl === 'none' ? 'なし' : sl === 'soft' ? '弱め' : sl === 'strong' ? '強め' : '最大')
+              : (sl === 'none' ? 'None' : sl === 'soft' ? 'Soft' : sl === 'strong' ? 'Strong' : 'Extra')
             return (
               <button key={sl} onClick={() => setShadowLevel(sl)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
@@ -1090,7 +1103,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           {sectionLabel(ja ? '種目名の表示' : 'EXERCISE NAMES')}
           <div className="flex gap-2">
             {([
-              { value: 'en' as const, label: 'English'  },
+              { value: 'en' as const, label: ja ? '英語' : 'English'  },
               { value: 'ja' as const, label: '日本語'    },
             ]).map(({ value, label }) => {
               const sel = exerciseNameLang === value
@@ -1561,15 +1574,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
           disabled={sharing} onClick={handleShare}>
           <Share2 size={20} />
-          {sharing ? 'Creating image...' : isMax1RM
-            ? (graphLayout === 'full' ? 'Save Graph Story' : 'Save Graph Card')
-            : isBW
-              ? (graphLayout === 'full' ? 'Save Weight Graph Story' : 'Save Weight Graph Card')
-              : (graphLayout === 'full' ? 'Save Volume Graph Story' : 'Save Volume Graph Card')
+          {sharing
+            ? (ja ? '画像を作成中...' : 'Creating image...')
+            : isMax1RM
+              ? (graphLayout === 'full' ? (ja ? 'グラフStoryを保存' : 'Save Graph Story') : (ja ? 'グラフカードを保存' : 'Save Graph Card'))
+              : isBW
+                ? (graphLayout === 'full' ? (ja ? '体重グラフStoryを保存' : 'Save Weight Graph Story') : (ja ? '体重グラフカードを保存' : 'Save Weight Graph Card'))
+                : (graphLayout === 'full' ? (ja ? '総重量グラフStoryを保存' : 'Save Volume Graph Story') : (ja ? '総重量グラフカードを保存' : 'Save Volume Graph Card'))
           }
         </button>
         <p className="text-center text-xs" style={{ color: '#444' }}>
-          Mobile only · Desktop downloads as PNG
+          {ja ? 'モバイルでは共有、PCではPNG保存' : 'Mobile only · Desktop downloads as PNG'}
         </p>
       </div>
     </div>

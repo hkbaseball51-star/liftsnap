@@ -20,20 +20,20 @@ function fmtDateShort(s: string) {
 }
 
 // ── Design presets ────────────────────────────────────────────────────
-const PRESET_OPTIONS: { value: DesignPreset; label: string; swatch: string }[] = [
-  { value: 'orange',        label: 'REPRA Orange',  swatch: '#F97316' },
-  { value: 'ice-blue',      label: 'Ice Blue',       swatch: '#38BDF8' },
-  { value: 'violet',        label: 'Violet Pump',    swatch: '#8B5CF6' },
-  { value: 'mint',          label: 'Mint Proof',     swatch: '#14B8A6' },
-  { value: 'premium-black', label: 'Premium Black',  swatch: '#E5E7EB' }, // TODO_PRO: Premium preset candidate
-  { value: 'pearl-white',   label: 'Pearl White',    swatch: '#F0EFEA' }, // TODO_PRO: Premium preset candidate
+const PRESET_OPTIONS: { value: DesignPreset; label: string; labelJa: string; swatch: string }[] = [
+  { value: 'orange',        label: 'REPRA Orange',  labelJa: 'REPRA オレンジ',    swatch: '#F97316' },
+  { value: 'ice-blue',      label: 'Ice Blue',       labelJa: 'アイスブルー',       swatch: '#38BDF8' },
+  { value: 'violet',        label: 'Violet Pump',    labelJa: 'バイオレットパンプ', swatch: '#8B5CF6' },
+  { value: 'mint',          label: 'Mint Proof',     labelJa: 'ミントプルーフ',     swatch: '#14B8A6' },
+  { value: 'premium-black', label: 'Premium Black',  labelJa: 'プレミアムブラック', swatch: '#E5E7EB' }, // TODO_PRO: Premium preset candidate
+  { value: 'pearl-white',   label: 'Pearl White',    labelJa: 'パールホワイト',     swatch: '#F0EFEA' }, // TODO_PRO: Premium preset candidate
 ]
 
 // ── Shadow options ────────────────────────────────────────────────────
 const SHADOW_OPTIONS: { value: ShadowMode; labelJa: string; labelEn: string }[] = [
-  { value: 'soft',         labelJa: '標準',       labelEn: 'Soft'         },
-  { value: 'strong',       labelJa: '強め',       labelEn: 'Strong'       },
-  { value: 'extra-strong', labelJa: 'かなり強め', labelEn: 'Extra Strong' },
+  { value: 'soft',         labelJa: '弱め', labelEn: 'Soft'  },
+  { value: 'strong',       labelJa: '強め', labelEn: 'Strong' },
+  { value: 'extra-strong', labelJa: '最大', labelEn: 'Extra'  },
 ]
 
 export default function TodayShareView({ data }: { data: TodayData }) {
@@ -395,8 +395,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </p>
           <div className="flex gap-2">
             {([
-              { value: 'glass',       labelJa: '半透過カード', labelEn: 'Glass Card'  },
-              { value: 'transparent', labelJa: '完全透過',     labelEn: 'Transparent' },
+              { value: 'glass',       labelJa: 'ガラス', labelEn: 'Glass Card'  },
+              { value: 'transparent', labelJa: '透過',   labelEn: 'Transparent' },
             ] as { value: CardStyle; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
               <button key={value}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
@@ -418,7 +418,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
             {ja ? 'デザインプリセット' : 'Design Preset'}
           </p>
           <div className="grid grid-cols-2 gap-1.5">
-            {PRESET_OPTIONS.map(({ value, label, swatch }) => {
+            {PRESET_OPTIONS.map(({ value, label, labelJa, swatch }) => {
               const sel = preset === value
               return (
                 <button key={value}
@@ -435,7 +435,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     background: swatch, flexShrink: 0,
                     boxShadow: sel ? `0 0 6px ${swatch}` : 'none',
                   }} />
-                  {label}
+                  {ja ? labelJa : label}
                 </button>
               )
             })}
@@ -494,7 +494,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           </p>
           <div className="flex gap-2">
             {([
-              { value: 'en' as const, labelJa: 'English', labelEn: 'English' },
+              { value: 'en' as const, labelJa: '英語', labelEn: 'English' },
               { value: 'ja' as const, labelJa: '日本語',   labelEn: 'Japanese' },
             ]).map(({ value, labelJa, labelEn }) => (
               <button key={value}
