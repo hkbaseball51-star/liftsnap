@@ -12,6 +12,7 @@ import { useDemoMode } from '@/lib/useDemoMode'
 import { useAppData } from '@/contexts/AppDataContext'
 import HomeGreeting from '@/components/home/HomeGreeting'
 import HomeCTACard from '@/components/home/HomeCTACard'
+import HomeLastTrainedCard from '@/components/home/HomeLastTrainedCard'
 import type React from 'react'
 
 // Shown during demo-mode Supabase fetch (local mode loads synchronously so
@@ -173,6 +174,15 @@ export default function HomePage() {
           daySummaries={daySummaries}
           bodyWeightByDate={bodyWeightByDate}
           photoPathsByDate={photoPathsByDate}
+        />
+      </div>
+
+      {/* ── LAST TRAINED ── */}
+      <div className="px-4 mb-4">
+        <HomeLastTrainedCard
+          sessions={calendarSessions}
+          todayStr={todayStr}
+          locale={locale}
         />
       </div>
 
