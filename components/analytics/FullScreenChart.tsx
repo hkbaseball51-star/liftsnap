@@ -8,6 +8,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
 import { useWeightUnit } from '@/lib/useWeightUnit'
+import { useLocale } from '@/lib/useLocale'
 import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
 import { type Period, getStartDate, aggregateBodyWeight, aggregateVolume, aggregate1RM } from '@/lib/chartAggregation'
 import {
@@ -26,6 +27,21 @@ type Metric = 'max1rm' | 'daily-volume' | 'body-weight'
 
 function rangeToperiod(r: string): Period {
   return ({ '30d':'30D','90d':'90D','6m':'6M','1y':'1Y','all':'All' } as Record<string,Period>)[r.toLowerCase()] ?? '90D'
+}
+
+function fmtDateJa(dateStr: string): string {
+  const [, mm, dd] = dateStr.split('-')
+  return `${parseInt(mm)}月${parseInt(dd)}日`
+}
+function fmtDateJaYear(dateStr: string): string {
+  const [year, mm] = dateStr.split('-')
+  return `${year}年${parseInt(mm)}月`
+}
+function jaAxisFmt(base: (s: string) => string): (s: string) => string {
+  return (dateStr: string) => {
+    const r = base(dateStr)
+    return r.includes("'") ? fmtDateJaYear(dateStr) : fmtDateJa(dateStr)
+  }
 }
 
 function fsPointW(period: Period, type: 'rm' | 'bw' | 'bar'): number {
@@ -53,6 +69,8 @@ export default function FullScreenChart({
   const router    = useRouter()
   const { unit }  = useWeightUnit()
   const unitLabel = weightUnitLabel(unit)
+  const { locale } = useLocale()
+  const ja = locale === 'ja'
 
   const metric: Metric =
     metricRaw === 'max1rm' || metricRaw === 'daily-volume' || metricRaw === 'body-weight'
@@ -186,10 +204,10 @@ export default function FullScreenChart({
     const best   = Math.max(...rmDisplay.map(p => p.est1rm))
     const growth = last - first
     return [
-      { label: 'CURRENT',  value: `${last}`,    unit: unitLabel },
-      { label: 'GROWTH',   value: growth >= 0 ? `+${growth}` : `${growth}`, unit: unitLabel, accent: growth > 0 },
-      { label: 'BEST',     value: `${best}`,    unit: unitLabel },
-      { label: 'SESSIONS', value: `${rmDisplay.length}`, unit: '' },
+      { label: ja ? '現在' : 'CURRENT',  value: `${last}`,    unit: unitLabel },
+      { label: ja ? '成長' : 'GROWTH',   value: growth >= 0 ? `+${growth}` : `${growth}`, unit: unitLabel, accent: growth > 0 },
+      { label: ja ? 'ベスト' : 'BEST',   value: `${best}`,    unit: unitLabel },
+      { label: ja ? '回数' : 'SESSIONS', value: `${rmDisplay.length}`, unit: '' },
     ]
   })()
 
@@ -199,10 +217,10 @@ export default function FullScreenChart({
     const best  = Math.max(...volDisplay.map(p => p.volume))
     const fmt   = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : `${v}`
     return [
-      { label: 'TOTAL',       value: fmt(total), unit: unitLabel },
-      { label: 'AVG/SESSION', value: fmt(avg),   unit: unitLabel },
-      { label: 'BEST DAY',    value: fmt(best),  unit: unitLabel },
-      { label: 'SESSIONS',    value: `${volDisplay.length}`, unit: '' },
+      { label: ja ? '合計' : 'TOTAL',         value: fmt(total), unit: unitLabel },
+      { label: ja ? '平均/回' : 'AVG/SESSION', value: fmt(avg),   unit: unitLabel },
+      { label: ja ? '最高日' : 'BEST DAY',    value: fmt(best),  unit: unitLabel },
+      { label: ja ? '回数' : 'SESSIONS',      value: `${volDisplay.length}`, unit: '' },
     ]
   })()
 
@@ -213,10 +231,10 @@ export default function FullScreenChart({
     const high = Math.max(...bwDisplay.map(p => p.weight))
     const low  = Math.min(...bwDisplay.map(p => p.weight))
     return [
-      { label: 'CURRENT', value: `${last}`,   unit: unitLabel },
-      { label: 'CHANGE',  value: change > 0 ? `+${change}` : `${change}`, unit: unitLabel, accent: change < 0 },
-      { label: 'HIGH',    value: `${high}`,   unit: unitLabel },
-      { label: 'LOW',     value: `${low}`,    unit: unitLabel },
+      { label: ja ? '現在' : 'CURRENT', value: `${last}`,   unit: unitLabel },
+      { label: ja ? '変化' : 'CHANGE',  value: change > 0 ? `+${change}` : `${change}`, unit: unitLabel, accent: change < 0 },
+      { label: ja ? '最高' : 'HIGH',    value: `${high}`,   unit: unitLabel },
+      { label: ja ? '最低' : 'LOW',     value: `${low}`,    unit: unitLabel },
     ]
   })()
 
@@ -280,22 +298,22 @@ export default function FullScreenChart({
     const fromPrev   = idx > 0 ? pt.est1rm - rmDisplay[idx-1].est1rm : null
     return (
       <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{formatTooltipDate(pt.date)}</p>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>EST. 1RM  </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{ja ? '推定1RM  ' : 'EST. 1RM  '}</span>
           <span style={{ color: '#ED742F', fontSize: 14, fontWeight: 900 }}>{pt.est1rm}</span>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 3 }}>
             {sinceFirst >= 0 ? '+' : ''}{sinceFirst} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>since first</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
         {fromPrev !== null && (
           <p style={{ color: fromPrev > 0 ? '#ED742F' : fromPrev < 0 ? '#888' : 'rgba(255,255,255,0.16)', fontSize: 10, marginTop: 2 }}>
             {fromPrev !== 0 ? (fromPrev > 0 ? '+' : '') + fromPrev : '±0'} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>from prev</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
           </p>
         )}
       </div>
@@ -310,16 +328,16 @@ export default function FullScreenChart({
     const sinceFirst = idx > 0 ? Math.round((pt.weight - bwDisplay[0].weight) * 10) / 10 : null
     return (
       <div style={{ background: '#0d0d0d', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{formatTooltipDate(pt.date)}</p>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>BODY WEIGHT  </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{ja ? '体重  ' : 'BODY WEIGHT  '}</span>
           <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 900 }}>{pt.weight}</span>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 10, marginTop: 3 }}>
             {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>since first</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
       </div>
@@ -333,9 +351,9 @@ export default function FullScreenChart({
     const vol = pt.volume
     return (
       <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{formatTooltipDate(pt.date)}</p>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>VOLUME  </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{ja ? '総重量  ' : 'VOLUME  '}</span>
           <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 14, fontWeight: 900 }}>
             {vol >= 1000 ? `${(vol/1000).toFixed(1)}k` : vol.toLocaleString()}
           </span>
@@ -351,7 +369,7 @@ export default function FullScreenChart({
     if (selectedIdx === null) {
       return (
         <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>
-          Tap a point to see details
+          {ja ? '点をタップすると詳細を表示できます' : 'Tap a point to see details'}
         </p>
       )
     }
@@ -363,17 +381,17 @@ export default function FullScreenChart({
       return (
         <div>
           <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>
-            {formatTooltipDate(pt.date)}
+            {ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
             <span style={{ color: '#ED742F', fontSize: 24, fontWeight: 900, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>{pt.est1rm}</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{unitLabel}</span>
-            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.05em' }}>EST. 1RM</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.05em' }}>{ja ? '推定1RM' : 'EST. 1RM'}</span>
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             {sinceFirst !== null && (
               <div>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>SINCE FIRST</p>
+                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>{ja ? '初回から' : 'SINCE FIRST'}</p>
                 <p style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 13, fontWeight: 700 }}>
                   {sinceFirst >= 0 ? '+' : ''}{sinceFirst} {unitLabel}
                 </p>
@@ -381,7 +399,7 @@ export default function FullScreenChart({
             )}
             {fromPrev !== null && (
               <div>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>FROM PREV</p>
+                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>{ja ? '前回から' : 'FROM PREV'}</p>
                 <p style={{ color: fromPrev > 0 ? '#ED742F' : fromPrev < 0 ? '#888' : 'rgba(255,255,255,0.25)', fontSize: 13, fontWeight: 700 }}>
                   {fromPrev > 0 ? '+' : ''}{fromPrev} {unitLabel}
                 </p>
@@ -398,14 +416,14 @@ export default function FullScreenChart({
       return (
         <div>
           <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>
-            {formatTooltipDate(pt.date)}
+            {ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 24, fontWeight: 900, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>
               {vol >= 1000 ? `${(vol/1000).toFixed(1)}k` : vol.toLocaleString()}
             </span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{unitLabel}</span>
-            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.05em' }}>VOLUME</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.05em' }}>{ja ? '総重量' : 'VOLUME'}</span>
           </div>
         </div>
       )
@@ -417,17 +435,17 @@ export default function FullScreenChart({
     return (
       <div>
         <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>
-          {formatTooltipDate(pt.date)}
+          {ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}
         </p>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
           <span style={{ color: '#94A3B8', fontSize: 24, fontWeight: 900, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' }}>{pt.weight}</span>
           <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{unitLabel}</span>
-          <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.05em' }}>BODY WEIGHT</span>
+          <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.05em' }}>{ja ? '体重' : 'BODY WEIGHT'}</span>
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
           {sinceFirst !== null && (
             <div>
-              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>SINCE FIRST</p>
+              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>{ja ? '初回から' : 'SINCE FIRST'}</p>
               <p style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 13, fontWeight: 700 }}>
                 {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)} {unitLabel}
               </p>
@@ -435,7 +453,7 @@ export default function FullScreenChart({
           )}
           {fromPrev !== null && (
             <div>
-              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>FROM PREV</p>
+              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: '0.06em', marginBottom: 1 }}>{ja ? '前回から' : 'FROM PREV'}</p>
               <p style={{ color: fromPrev < 0 ? '#4ade80' : fromPrev > 0 ? '#ef4444' : 'rgba(255,255,255,0.25)', fontSize: 13, fontWeight: 700 }}>
                 {fromPrev > 0 ? '+' : ''}{fromPrev.toFixed(1)} {unitLabel}
               </p>
@@ -457,14 +475,14 @@ export default function FullScreenChart({
       const fromPrev   = selectedIdx > 0 ? pt.est1rm - rmDisplay[selectedIdx - 1].est1rm : null
       return (
         <>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{formatTooltipDate(pt.date)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</span>
           <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
           <span style={{ color: '#ED742F', fontSize: 13, fontWeight: 800 }}>{pt.est1rm}{unitLabel}</span>
           {sinceFirst !== null && (
             <>
               <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
               <span style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 11 }}>
-                {sinceFirst >= 0 ? '+' : ''}{sinceFirst}{unitLabel} since first
+                {sinceFirst >= 0 ? '+' : ''}{sinceFirst}{unitLabel} {ja ? '初回から' : 'since first'}
               </span>
             </>
           )}
@@ -472,7 +490,7 @@ export default function FullScreenChart({
             <>
               <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
               <span style={{ color: fromPrev > 0 ? '#ED742F' : fromPrev < 0 ? '#888' : 'rgba(255,255,255,0.22)', fontSize: 11 }}>
-                {fromPrev > 0 ? '+' : ''}{fromPrev}{unitLabel} from prev
+                {fromPrev > 0 ? '+' : ''}{fromPrev}{unitLabel} {ja ? '前回から' : 'from prev'}
               </span>
             </>
           )}
@@ -485,12 +503,12 @@ export default function FullScreenChart({
       const vol = pt.volume
       return (
         <>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{formatTooltipDate(pt.date)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</span>
           <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
           <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 13, fontWeight: 800 }}>
             {vol >= 1000 ? `${(vol/1000).toFixed(1)}k` : vol.toLocaleString()}{unitLabel}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11 }}> volume</span>
+          <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11 }}> {ja ? '総重量' : 'volume'}</span>
         </>
       )
     }
@@ -499,14 +517,14 @@ export default function FullScreenChart({
     const sinceFirst = selectedIdx > 0 ? Math.round((pt.weight - bwDisplay[0].weight) * 10) / 10 : null
     return (
       <>
-        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{formatTooltipDate(pt.date)}</span>
+        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</span>
         <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
         <span style={{ color: '#94A3B8', fontSize: 13, fontWeight: 800 }}>{pt.weight}{unitLabel}</span>
         {sinceFirst !== null && (
           <>
             <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}> · </span>
             <span style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 11 }}>
-              {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)}{unitLabel} since first
+              {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)}{unitLabel} {ja ? '初回から' : 'since first'}
             </span>
           </>
         )}
@@ -525,7 +543,7 @@ export default function FullScreenChart({
     if (!hasData) {
       return (
         <div style={{ height: chartH, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: '#333', fontSize: 12, fontWeight: 700 }}>No data for this period</p>
+          <p style={{ color: '#333', fontSize: 12, fontWeight: 700 }}>{ja ? 'この期間のデータはありません' : 'No data for this period'}</p>
         </div>
       )
     }
@@ -543,7 +561,7 @@ export default function FullScreenChart({
             <LineChart width={w} height={chartH} data={rmDisplay}
               margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
-              <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={rmXAxis.formatter}
+              <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={ja ? jaAxisFmt(rmXAxis.formatter) : rmXAxis.formatter}
                 tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false}
                 width={38} domain={[rmAxis.yMin, rmAxis.yMax]} ticks={rmTicks} />
@@ -571,7 +589,7 @@ export default function FullScreenChart({
             <BarChart width={w} height={chartH} data={volDisplay}
               margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
-              <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={volXAxis.formatter}
+              <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={ja ? jaAxisFmt(volXAxis.formatter) : volXAxis.formatter}
                 tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false}
                 width={44} domain={[0, volAxis.yMax]} ticks={volTicks}
@@ -596,7 +614,7 @@ export default function FullScreenChart({
           <LineChart width={w} height={chartH} data={bwDisplay}
             margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
-            <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={bwXAxis.formatter}
+            <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={ja ? jaAxisFmt(bwXAxis.formatter) : bwXAxis.formatter}
               tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false}
               width={38} domain={[bwAxis.yMin, bwAxis.yMax]} ticks={bwTicks} />
@@ -633,7 +651,7 @@ export default function FullScreenChart({
         <button onClick={goBack} aria-label="Back"
           style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'rgba(255,255,255,0.65)', padding: '4px 4px 4px 0', flexShrink: 0 }}>
           <ChevronLeft size={20} />
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Back</span>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{ja ? '戻る' : 'Back'}</span>
         </button>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <p style={{ color: '#f5f5f5', fontSize: isLandscape ? 12 : 14, fontWeight: 900, letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -679,7 +697,7 @@ export default function FullScreenChart({
       borderTop: '1px solid rgba(255,255,255,0.05)',
     }}>
       {selectedIdx === null ? (
-        <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12 }}>Tap any point for details</p>
+        <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12 }}>{ja ? '点をタップすると詳細を表示できます' : 'Tap any point for details'}</p>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
           {renderDetailInline()}

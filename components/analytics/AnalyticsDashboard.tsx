@@ -264,6 +264,13 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
     ? ({ '30D': '30日間', '90D': '90日間', '6M': '6ヶ月', '1Y': '1年', 'All': '全期間' } as Record<string, string>)[period] ?? period
     : ({ '30D': '30 DAYS', '90D': '90 DAYS', '6M': '6 MONTHS', '1Y': '1 YEAR', 'All': 'ALL TIME' } as Record<string, string>)[period] ?? period
 
+  const PERIOD_BTN_LABEL_JA: Record<string, string> = {
+    '30D': '30日', '90D': '90日', '6M': '6ヶ月', '1Y': '1年', 'All': '全期間',
+  }
+  const MUSCLE_GROUP_LABEL_JA: Record<string, string> = {
+    ALL: 'すべて', CHEST: '胸', BACK: '背中', LEGS: '脚', SHOULDERS: '肩', ARMS: '腕', ABS: '腹筋',
+  }
+
   // RM chart config — memoized
   const rmAxis   = useMemo(() => smartYAxis(rmDataDisplay.map(p => p.est1rm), 'rm'), [rmDataDisplay])
   const rmTicks  = useMemo(() => yAxisTicks(rmAxis.yMin, rmAxis.yMax, rmAxis.step), [rmAxis])
@@ -324,27 +331,27 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
     const fromPrev   = idx > 0 ? current - rmDataDisplay[idx - 1].est1rm : null
     return (
       <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{formatTooltipDate(label)}</p>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
         <div style={{ marginBottom: sinceFirst !== null ? 4 : 0 }}>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>EST. 1RM  </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '推定1RM  ' : 'EST. 1RM  '}</span>
           <span style={{ color: '#ED742F', fontSize: 14, fontWeight: 900 }}>{current}</span>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 4 }}>
             {sinceFirst >= 0 ? '+' : ''}{sinceFirst} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>since first</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
         {fromPrev !== null && fromPrev !== 0 && (
           <p style={{ color: fromPrev > 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 1 }}>
             {fromPrev > 0 ? '+' : ''}{fromPrev} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>from prev</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
           </p>
         )}
         {fromPrev === 0 && (
           <p style={{ color: 'rgba(255,255,255,0.16)', fontSize: 10, marginTop: 1 }}>
-            ±0 {unitLabel}<span style={{ marginLeft: 4 }}>from prev</span>
+            ±0 {unitLabel}<span style={{ marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
           </p>
         )}
       </div>
@@ -362,16 +369,16 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       : null
     return (
       <div style={{ background: '#0d0d0d', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{formatTooltipDate(label)}</p>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
         <div style={{ marginBottom: sinceFirst !== null ? 4 : 0 }}>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>BODY WEIGHT  </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '体重  ' : 'BODY WEIGHT  '}</span>
           <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 900 }}>{current}</span>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 10, marginTop: 4 }}>
             {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>since first</span>
+            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
       </div>
@@ -388,15 +395,28 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
     return `${v.toLocaleString()}kg`
   }
 
+  const fmtDateJa = (dateStr: string) => {
+    const [, mm, dd] = dateStr.split('-')
+    return `${parseInt(mm)}月${parseInt(dd)}日`
+  }
+  const fmtDateJaYear = (dateStr: string) => {
+    const [year, mm] = dateStr.split('-')
+    return `${year}年${parseInt(mm)}月`
+  }
+  const jaAxisFmt = (base: (s: string) => string) => (dateStr: string): string => {
+    const r = base(dateStr)
+    return r.includes("'") ? fmtDateJaYear(dateStr) : fmtDateJa(dateStr)
+  }
+
   const volTooltip = (tProps: any) => {
     const { active, payload, label } = tProps
     if (!active || !payload?.length) return null
     const vol = payload[0].value as number
     return (
       <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{formatTooltipDate(label)}</p>
+        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>VOLUME  </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '総重量  ' : 'VOLUME  '}</span>
           <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 14, fontWeight: 900 }}>
             {fmtVolT(vol)}
           </span>
@@ -458,7 +478,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     border: muscleFilter === mg ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #1e1e1e',
                   }}
                   onClick={() => handleMuscleFilter(mg)}>
-                  {mg}
+                  {ja ? (MUSCLE_GROUP_LABEL_JA[mg] ?? mg) : mg}
                 </button>
               ))}
             </div>
@@ -499,7 +519,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               color: period === p ? '#fff' : '#555',
             }}
             onClick={() => setPeriod(p)}>
-            {p}
+            {ja ? (PERIOD_BTN_LABEL_JA[p] ?? p) : p}
           </button>
         ))}
       </div>
@@ -515,7 +535,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
             <div className="rounded-2xl p-8 text-center" style={CARD}>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.8 }}>
                 {locale === 'ja'
-                  ? `この種目をあと${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount}回記録するとグラフが解放されます`
+                  ? selectedExerciseLogCount === 0
+                    ? `同じ種目を${EXERCISE_GRAPH_REQUIRED}回以上記録すると、MAX 1RMグラフが使えます`
+                    : `あと${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount}回の記録で、MAX 1RMグラフが使えます`
                   : `Log this exercise ${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount} more time${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount !== 1 ? 's' : ''} to unlock the 1RM graph`}
               </p>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#444', marginTop: 8 }}>
@@ -554,7 +576,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     <p className="text-[10px] font-black tracking-widest" style={{ color: '#ED742F' }}>{ja ? '1RMの推移' : '1RM PROGRESSION'}</p>
                     {rmDataDisplay.length >= 2 && (
                       <p className="text-[9px] mt-0.5 tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                        {ja ? `${rmDataDisplay[0].label}から` : `Since ${rmDataDisplay[0].label}`}
+                        {ja ? `${fmtDateJa(rmDataDisplay[0].date)}から` : `Since ${rmDataDisplay[0].label}`}
                       </p>
                     )}
                   </div>
@@ -588,7 +610,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                       <LineChart width={rmChartW} height={380} data={rmDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
-                        <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={rmXAxis.formatter}
+                        <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={ja ? jaAxisFmt(rmXAxis.formatter) : rmXAxis.formatter}
                           tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false}
                           width={40} domain={[rmAxis.yMin, rmAxis.yMax]} ticks={rmTicks} />
@@ -608,7 +630,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <>
                   <div className="rounded-2xl overflow-hidden" style={CARD}>
                     <div className="px-4 pt-4 pb-2">
-                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSION HISTORY</p>
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録履歴' : 'SESSION HISTORY'}</p>
                     </div>
                     {[...rmDataDisplay].reverse().slice(0, 6).map((p, i) => {
                       const origEst1rm = [...rmData].reverse()[i]?.est1rm
@@ -652,7 +674,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
             <div className="rounded-2xl p-8 text-center" style={CARD}>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.8 }}>
                 {locale === 'ja'
-                  ? `ワークアウトをあと${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions}日記録するとグラフが解放されます`
+                  ? activeTotalSessions === 0
+                    ? `ワークアウトを${VOLUME_CHART_SESSION_REQUIRED}日記録すると、総重量グラフが使えます`
+                    : `あと${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions}日の記録で、総重量グラフが使えます`
                   : `Complete ${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions} more workout day${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions !== 1 ? 's' : ''} to unlock the volume graph`}
               </p>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#444', marginTop: 8 }}>
@@ -682,7 +706,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               {/* Summary card */}
               <div className="rounded-2xl p-4 mb-3 flex items-center justify-between" style={CARD}>
                 <div>
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>TOTAL VOLUME</p>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>{ja ? '合計' : 'TOTAL VOLUME'}</p>
                   {volLoading ? (
                     <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : totalVol > 0 ? (
@@ -730,7 +754,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                       <BarChart width={volChartW} height={380} data={volDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
-                        <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={volXAxis.formatter}
+                        <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={ja ? jaAxisFmt(volXAxis.formatter) : volXAxis.formatter}
                           tick={{ fill: '#4a4a4a', fontSize: 9 }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={44}
                           domain={[0, volAxis.yMax]} ticks={volTicks}
@@ -748,7 +772,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <>
                   <div className="rounded-2xl overflow-hidden" style={CARD}>
                     <div className="px-4 pt-4 pb-2">
-                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>SESSION HISTORY</p>
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録履歴' : 'SESSION HISTORY'}</p>
                     </div>
                     {[...volDataDisplay].reverse().slice(0, 8).map(p => (
                       <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
@@ -887,7 +911,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               <div className="h-[380px] flex items-center justify-center">
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
                   {locale === 'ja'
-                    ? '体重を記録すると、変化をグラフで見られます'
+                    ? `体重を${BW_CHART_REQUIRED}回以上記録すると、体重グラフが使えます`
                     : 'Log your body weight to see progress over time'}
                 </p>
               </div>
@@ -895,7 +919,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               <div className="h-[380px] flex items-center justify-center flex-col gap-3">
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
                   {locale === 'ja'
-                    ? `あと${BW_CHART_REQUIRED - ctxBwHistory.length}回体重を記録すると変化グラフが表示されます`
+                    ? `あと${BW_CHART_REQUIRED - ctxBwHistory.length}回の体重記録で、体重グラフが使えます`
                     : `Log ${BW_CHART_REQUIRED - ctxBwHistory.length} more weight entr${BW_CHART_REQUIRED - ctxBwHistory.length === 1 ? 'y' : 'ies'} to see your progress graph`}
                 </p>
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#444' }}>
@@ -913,7 +937,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                   <LineChart width={bwChartW} height={380} data={bwDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
-                    <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={bwXAxis.formatter}
+                    <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={ja ? jaAxisFmt(bwXAxis.formatter) : bwXAxis.formatter}
                       tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={40}
                       domain={[bwAxis.yMin, bwAxis.yMax]} ticks={bwTicks} />

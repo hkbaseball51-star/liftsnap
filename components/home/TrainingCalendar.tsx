@@ -146,8 +146,10 @@ export function getPPLDisplay(muscles: string[]): { label: string; color: string
   return classifyTraining(muscles)
 }
 
-const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+const MONTH_NAMES    = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const MONTH_NAMES_JA = ['1月', '2月', '3月', '4月', '5月', '6月',
+  '7月', '8月', '9月', '10月', '11月', '12月']
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
 // CALENDAR_LABEL_LEGEND is re-exported from lib/calendarLabel for external use
@@ -328,7 +330,7 @@ export default function TrainingCalendar({
               className="flex items-center gap-1 active:opacity-70 transition-opacity"
               aria-label={locale === 'ja' ? '月を選択' : 'Jump to month'}>
               <span className="text-xl font-black text-white tracking-wider">
-                {MONTH_NAMES[month]}
+                {locale === 'ja' ? MONTH_NAMES_JA[month] : MONTH_NAMES[month]}
               </span>
               <span className="text-lg font-bold" style={{ color: '#666' }}>{year}</span>
               <ChevronDown size={12} style={{ color: '#555', marginTop: 1 }} />
@@ -599,7 +601,7 @@ export default function TrainingCalendar({
                   {locale === 'ja' ? '今月に戻る' : 'Go to today'}
                 </span>
                 <span className="text-[11px]" style={{ color: 'rgba(237,116,47,0.72)' }}>
-                  {MONTH_NAMES[todayMonth]} {todayYear}
+                  {locale === 'ja' ? MONTH_NAMES_JA[todayMonth] : MONTH_NAMES[todayMonth]} {todayYear}
                 </span>
               </button>
             )}
@@ -633,7 +635,7 @@ export default function TrainingCalendar({
                         border: `1px solid ${isCurrent ? 'rgba(237,116,47,0.42)' : 'rgba(255,255,255,0.13)'}`,
                       }}>
                       <span className="text-[14px] font-bold" style={{ color: isCurrent ? '#ED742F' : '#fff' }}>
-                        {MONTH_NAMES[m]} {y}
+                        {locale === 'ja' ? MONTH_NAMES_JA[m] : MONTH_NAMES[m]} {y}
                       </span>
                       <span className="text-[11px]" style={{ color: isCurrent ? 'rgba(237,116,47,0.72)' : 'rgba(255,255,255,0.50)' }}>
                         {count} {locale === 'ja' ? 'sessions' : count === 1 ? 'session' : 'sessions'}
