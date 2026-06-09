@@ -205,15 +205,23 @@ const ExerciseCard = memo(function ExerciseCard({
                 FIRST LOG
               </span>
             )}
-            <button
-              className="ml-auto flex-shrink-0 active:opacity-60 transition-opacity"
-              style={{ fontSize: 9, fontWeight: 700, color: '#555', letterSpacing: '0.05em' }}
-              onClick={() => onShowHistory(ex.name)}>
-              {locale === 'ja' ? '履歴' : 'History'}
-            </button>
           </div>
         </div>
-        <button onClick={() => onRemoveExercise(ex.id)} className="p-1 flex-shrink-0">
+        <button
+          className="flex-shrink-0 flex items-center justify-center px-2.5 rounded-full active:opacity-70 transition-opacity"
+          style={{
+            background: 'rgba(237,116,47,0.10)',
+            border: '1px solid rgba(237,116,47,0.30)',
+            minHeight: 32,
+            minWidth: 48,
+          }}
+          aria-label={locale === 'ja' ? 'この種目の履歴を見る' : 'View exercise history'}
+          onClick={() => onShowHistory(ex.name)}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#ED742F', whiteSpace: 'nowrap', letterSpacing: '0.03em' }}>
+            {locale === 'ja' ? '履歴を見る' : 'History'}
+          </span>
+        </button>
+        <button onClick={() => onRemoveExercise(ex.id)} className="p-2 flex-shrink-0">
           <X size={14} style={{ color: '#555' }} />
         </button>
       </div>
