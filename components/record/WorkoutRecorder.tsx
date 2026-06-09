@@ -26,7 +26,7 @@ import { getDisplayName } from '@/lib/exerciseNames'
 
 /* ─── Types ───────────────────────────────────────────── */
 
-type AssistStatus = 'none' | 'assisted' | 'failed'
+type AssistStatus = 'none' | 'assisted' | 'failed' | 'warmup'
 
 type SetEntry = {
   id: string
@@ -167,6 +167,14 @@ const ASSIST_LABELS: Record<AssistStatus, { ja: string; en: string }> = {
   none:     { ja: '補助なし', en: 'No assist' },
   assisted: { ja: '補助あり', en: 'Assisted' },
   failed:   { ja: '失敗',     en: 'Failed' },
+  warmup:   { ja: 'ウォームアップ', en: 'Warm-up' },
+}
+
+const ASSIST_COLORS: Record<AssistStatus, { color: string; border: string; bg: string }> = {
+  none:     { color: 'rgba(255,255,255,0.22)', border: 'rgba(255,255,255,0.07)',    bg: 'transparent' },
+  assisted: { color: 'rgba(237,116,47,0.80)',  border: 'rgba(237,116,47,0.25)',     bg: 'rgba(237,116,47,0.07)' },
+  failed:   { color: 'rgba(255,120,120,0.75)', border: 'rgba(255,100,100,0.22)',    bg: 'rgba(255,100,100,0.06)' },
+  warmup:   { color: 'rgba(120,160,255,0.80)', border: 'rgba(100,140,255,0.25)',    bg: 'rgba(100,140,255,0.07)' },
 }
 
 const ExerciseCard = memo(function ExerciseCard({
@@ -253,15 +261,7 @@ const ExerciseCard = memo(function ExerciseCard({
         const canDelete = ex.sets.length > 1
 
         const currentAssist = set.assistStatus ?? 'none'
-        const tagColor = currentAssist === 'failed'   ? 'rgba(255,130,130,0.70)'
-                       : currentAssist === 'assisted' ? 'rgba(237,116,47,0.75)'
-                       :                                'rgba(255,255,255,0.22)'
-        const tagBorder = currentAssist === 'failed'   ? 'rgba(255,100,100,0.20)'
-                        : currentAssist === 'assisted' ? 'rgba(237,116,47,0.25)'
-                        :                               'rgba(255,255,255,0.07)'
-        const tagBg = currentAssist === 'failed'   ? 'rgba(255,100,100,0.06)'
-                    : currentAssist === 'assisted' ? 'rgba(237,116,47,0.07)'
-                    :                               'transparent'
+        const { color: tagColor, border: tagBorder, bg: tagBg } = ASSIST_COLORS[currentAssist]
         return (
           <div key={set.id}>
             <div className="grid grid-cols-12 items-center px-3"
@@ -1213,28 +1213,28 @@ export default function WorkoutRecorder({
             <div className="flex justify-center mb-4">
               <div className="w-10 h-1 rounded-full" style={{ background: '#333' }} />
             </div>
-            {(['none', 'assisted', 'failed'] as AssistStatus[]).map(status => {
+            {(['none', 'assisted', 'failed', 'warmup'] as AssistStatus[]).map(status => {
               const isSelected = assistMenuTarget.currentStatus === status
-              const itemColor = status === 'failed'   ? 'rgba(255,130,130,0.85)'
-                              : status === 'assisted' ? '#ED742F'
-                              :                        'rgba(255,255,255,0.70)'
+              const ac = ASSIST_COLORS[status]
               return (
                 <button
                   key={status}
-                  className="w-full py-3.5 rounded-xl text-sm font-black mb-2 active:opacity-70 transition-opacity"
+                  className="w-full py-3.5 rounded-xl text-sm font-black mb-2 active:opacity-70 transition-opacity flex items-center gap-3 px-4"
                   style={{
-                    background: isSelected
-                      ? (status === 'failed' ? 'rgba(255,100,100,0.08)' : status === 'assisted' ? 'rgba(237,116,47,0.12)' : 'rgba(255,255,255,0.06)')
-                      : '#1a1a1a',
-                    color: isSelected ? itemColor : 'rgba(255,255,255,0.55)',
-                    border: isSelected
-                      ? `1px solid ${status === 'failed' ? 'rgba(255,100,100,0.30)' : status === 'assisted' ? 'rgba(237,116,47,0.35)' : 'rgba(255,255,255,0.20)'}`
-                      : '1px solid rgba(255,255,255,0.07)',
+                    background: isSelected ? ac.bg : '#1a1a1a',
+                    color: isSelected ? ac.color : 'rgba(255,255,255,0.55)',
+                    border: isSelected ? `1.5px solid ${ac.border}` : '1px solid rgba(255,255,255,0.07)',
+                    justifyContent: 'center',
                   }}
                   onClick={() => {
                     handleSetAssistStatus(assistMenuTarget.exerciseId, assistMenuTarget.setId, status)
                     setAssistMenuTarget(null)
                   }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                    background: isSelected ? ac.color : 'rgba(255,255,255,0.18)',
+                    display: 'inline-block',
+                  }} />
                   {locale === 'ja' ? ASSIST_LABELS[status].ja : ASSIST_LABELS[status].en}
                 </button>
               )
@@ -1348,11 +1348,11 @@ export default function WorkoutRecorder({
                             {s.assistStatus && s.assistStatus !== 'none' && (
                               <span style={{
                                 fontSize: 9, fontWeight: 700,
-                                color: s.assistStatus === 'failed' ? 'rgba(255,130,130,0.65)' : 'rgba(237,116,47,0.75)',
+                                color: ASSIST_COLORS[s.assistStatus as AssistStatus]?.color ?? 'rgba(255,255,255,0.40)',
                               }}>
-                                {s.assistStatus === 'assisted'
-                                  ? (locale === 'ja' ? '補助あり' : 'Assisted')
-                                  : (locale === 'ja' ? '失敗' : 'Failed')}
+                                {locale === 'ja'
+                                  ? ASSIST_LABELS[s.assistStatus as AssistStatus]?.ja
+                                  : ASSIST_LABELS[s.assistStatus as AssistStatus]?.en}
                               </span>
                             )}
                           </div>

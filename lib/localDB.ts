@@ -19,7 +19,7 @@ export type LocalSession = {
   total_volume_kg: number
 }
 
-export type AssistStatus = 'none' | 'assisted' | 'failed'
+export type AssistStatus = 'none' | 'assisted' | 'failed' | 'warmup'
 
 export type LocalSet = {
   id: string
