@@ -160,7 +160,7 @@ type ExerciseCardProps = {
   onNoteTarget: (exerciseId: string) => void
   onRenameExercise: (exerciseId: string) => void
   onShowHistory: (exerciseName: string) => void
-  onSetAssistStatus: (exerciseId: string, setId: string, status: AssistStatus) => void
+  onOpenAssistMenu: (exerciseId: string, setId: string, currentStatus: AssistStatus) => void
 }
 
 const ASSIST_LABELS: Record<AssistStatus, { ja: string; en: string }> = {
@@ -170,7 +170,7 @@ const ASSIST_LABELS: Record<AssistStatus, { ja: string; en: string }> = {
 }
 
 const ExerciseCard = memo(function ExerciseCard({
-  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise, onShowHistory, onSetAssistStatus,
+  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise, onShowHistory, onOpenAssistMenu,
 }: ExerciseCardProps) {
   const { locale } = useLocale()
   const stats = useMemo(() => calcExerciseStats(ex), [ex])
@@ -253,10 +253,19 @@ const ExerciseCard = memo(function ExerciseCard({
         const canDelete = ex.sets.length > 1
 
         const currentAssist = set.assistStatus ?? 'none'
+        const tagColor = currentAssist === 'failed'   ? 'rgba(255,130,130,0.70)'
+                       : currentAssist === 'assisted' ? 'rgba(237,116,47,0.75)'
+                       :                                'rgba(255,255,255,0.22)'
+        const tagBorder = currentAssist === 'failed'   ? 'rgba(255,100,100,0.20)'
+                        : currentAssist === 'assisted' ? 'rgba(237,116,47,0.25)'
+                        :                               'rgba(255,255,255,0.07)'
+        const tagBg = currentAssist === 'failed'   ? 'rgba(255,100,100,0.06)'
+                    : currentAssist === 'assisted' ? 'rgba(237,116,47,0.07)'
+                    :                               'transparent'
         return (
           <div key={set.id}>
             <div className="grid grid-cols-12 items-center px-3"
-              style={{ gap: 6, paddingTop: 5, paddingBottom: 3 }}>
+              style={{ gap: 6, paddingTop: 5, paddingBottom: 5 }}>
               {/* Set number + delete */}
               <div className="col-span-2 flex items-center justify-center gap-1">
                 {canDelete ? (
@@ -311,8 +320,8 @@ const ExerciseCard = memo(function ExerciseCard({
                 {set.reps ?? '—'}
               </button>
 
-              {/* Set 1RM — orange for best set, gray otherwise. Never purple. */}
-              <div className="col-span-3 flex items-center justify-center">
+              {/* Set 1RM + assist tag — stacked in the same cell */}
+              <div className="col-span-3 flex flex-col items-center justify-center gap-0.5">
                 {setEst1rm !== null ? (
                   <span style={{ color: isBestSet ? '#ED742F' : '#666', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                     {toDisplayWeight(setEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
@@ -320,42 +329,18 @@ const ExerciseCard = memo(function ExerciseCard({
                 ) : (
                   <span style={{ color: '#444', fontSize: 13, fontWeight: 700 }}>—</span>
                 )}
+                <button
+                  onClick={() => onOpenAssistMenu(ex.id, set.id, currentAssist)}
+                  style={{
+                    fontSize: 8, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
+                    padding: '2px 5px', borderRadius: 99,
+                    border: `1px solid ${tagBorder}`,
+                    background: tagBg, color: tagColor,
+                    minHeight: 14,
+                  }}>
+                  {locale === 'ja' ? ASSIST_LABELS[currentAssist].ja : ASSIST_LABELS[currentAssist].en}
+                </button>
               </div>
-            </div>
-
-            {/* Assist status pills */}
-            <div className="flex items-center gap-1.5 px-3 pb-2.5">
-              {(['none', 'assisted', 'failed'] as AssistStatus[]).map(status => {
-                const isSelected = currentAssist === status
-                const border = isSelected
-                  ? (status === 'failed'   ? 'rgba(255,100,100,0.38)'
-                    : status === 'assisted' ? 'rgba(237,116,47,0.38)'
-                    :                        'rgba(255,255,255,0.20)')
-                  : 'rgba(255,255,255,0.06)'
-                const bg = isSelected
-                  ? (status === 'failed'   ? 'rgba(255,100,100,0.08)'
-                    : status === 'assisted' ? 'rgba(237,116,47,0.08)'
-                    :                        'rgba(255,255,255,0.05)')
-                  : 'transparent'
-                const color = isSelected
-                  ? (status === 'failed'   ? 'rgba(255,130,130,0.85)'
-                    : status === 'assisted' ? '#ED742F'
-                    :                        'rgba(255,255,255,0.48)')
-                  : 'rgba(255,255,255,0.15)'
-                return (
-                  <button
-                    key={status}
-                    onClick={() => onSetAssistStatus(ex.id, set.id, status)}
-                    style={{
-                      fontSize: 9, fontWeight: 700, letterSpacing: '0.02em',
-                      padding: '4px 9px', borderRadius: 99,
-                      minHeight: 26, border: `1px solid ${border}`,
-                      background: bg, color,
-                    }}>
-                    {locale === 'ja' ? ASSIST_LABELS[status].ja : ASSIST_LABELS[status].en}
-                  </button>
-                )
-              })}
             </div>
           </div>
         )
@@ -487,6 +472,7 @@ export default function WorkoutRecorder({
   const [copyNotFound, setCopyNotFound] = useState(false)
   const [historyExerciseName, setHistoryExerciseName] = useState<string | null>(null)
   const [historyData, setHistoryData] = useState<ExerciseHistoryResult | null>(null)
+  const [assistMenuTarget, setAssistMenuTarget] = useState<{ exerciseId: string; setId: string; currentStatus: AssistStatus } | null>(null)
   const [bwSaving, setBwSaving] = useState(false)
   const [bwSaved,  setBwSaved]  = useState(false)
 
@@ -653,6 +639,10 @@ export default function WorkoutRecorder({
       { ...ex, sets: ex.sets.map(s => s.id === setId ? { ...s, assistStatus: status } : s) }
     ))
     setIsDirty(true)
+  }, [])
+
+  const handleOpenAssistMenu = useCallback((exerciseId: string, setId: string, currentStatus: AssistStatus) => {
+    setAssistMenuTarget({ exerciseId, setId, currentStatus })
   }, [])
 
   /* ── Exercise addition: optimistic (instant UI, session creation in background) ── */
@@ -982,7 +972,7 @@ export default function WorkoutRecorder({
             onNoteTarget={handleNoteTarget}
             onRenameExercise={handleRenameTarget}
             onShowHistory={handleShowHistory}
-            onSetAssistStatus={handleSetAssistStatus}
+            onOpenAssistMenu={handleOpenAssistMenu}
           />
         ))}
 
@@ -1208,6 +1198,56 @@ export default function WorkoutRecorder({
           onPhotoSaved={() => setHasPhotoRecorded(true)}
           onPhotoDeleted={() => setHasPhotoRecorded(false)}
         />
+      )}
+
+      {/* ── Assist status menu ── */}
+      {mounted && assistMenuTarget && createPortal(
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.72)' }}
+          onClick={() => setAssistMenuTarget(null)}>
+          <div
+            className="w-full rounded-t-3xl p-5"
+            style={{ maxWidth: 480, background: '#131313', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center mb-4">
+              <div className="w-10 h-1 rounded-full" style={{ background: '#333' }} />
+            </div>
+            {(['none', 'assisted', 'failed'] as AssistStatus[]).map(status => {
+              const isSelected = assistMenuTarget.currentStatus === status
+              const itemColor = status === 'failed'   ? 'rgba(255,130,130,0.85)'
+                              : status === 'assisted' ? '#ED742F'
+                              :                        'rgba(255,255,255,0.70)'
+              return (
+                <button
+                  key={status}
+                  className="w-full py-3.5 rounded-xl text-sm font-black mb-2 active:opacity-70 transition-opacity"
+                  style={{
+                    background: isSelected
+                      ? (status === 'failed' ? 'rgba(255,100,100,0.08)' : status === 'assisted' ? 'rgba(237,116,47,0.12)' : 'rgba(255,255,255,0.06)')
+                      : '#1a1a1a',
+                    color: isSelected ? itemColor : 'rgba(255,255,255,0.55)',
+                    border: isSelected
+                      ? `1px solid ${status === 'failed' ? 'rgba(255,100,100,0.30)' : status === 'assisted' ? 'rgba(237,116,47,0.35)' : 'rgba(255,255,255,0.20)'}`
+                      : '1px solid rgba(255,255,255,0.07)',
+                  }}
+                  onClick={() => {
+                    handleSetAssistStatus(assistMenuTarget.exerciseId, assistMenuTarget.setId, status)
+                    setAssistMenuTarget(null)
+                  }}>
+                  {locale === 'ja' ? ASSIST_LABELS[status].ja : ASSIST_LABELS[status].en}
+                </button>
+              )
+            })}
+            <button
+              className="w-full py-3.5 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
+              style={{ background: 'rgba(255,255,255,0.05)', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}
+              onClick={() => setAssistMenuTarget(null)}>
+              {locale === 'ja' ? 'キャンセル' : 'Cancel'}
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Exercise history sheet ── */}
