@@ -1,4 +1,6 @@
 // Client-side localStorage data layer for MVP (no-auth) mode.
+import { matchesCopyFilter, type CopyFilterType } from '@/lib/copyFilter'
+export type { CopyFilterType } from '@/lib/copyFilter'
 // All functions are synchronous and browser-only.
 // TODO_SYNC: When cloud sync is added, merge localDB with Supabase on login.
 
@@ -122,6 +124,28 @@ export function localGetPreviousSession(beforeDate: string): PreviousSessionData
     .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets.sort((a, b) => a.set_number - b.set_number) }))
     .filter(ex => ex.sets.length > 0)
   return exercises.length > 0 ? { exercises } : null
+}
+
+export function localGetPreviousSessionByType(beforeDate: string, filterType: CopyFilterType): PreviousSessionData | null {
+  if (filterType === 'all') return localGetPreviousSession(beforeDate)
+  const sessions = getSessions()
+    .filter(s => s.completed_at !== null && s.trained_at < beforeDate)
+    .sort((a, b) => b.trained_at.localeCompare(a.trained_at))
+  const allSets = getSets()
+  for (const session of sessions) {
+    const matchingSets = allSets.filter(s => s.session_id === session.id && matchesCopyFilter(s.muscle_group, filterType))
+    if (matchingSets.length === 0) continue
+    const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+    for (const s of matchingSets) {
+      if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group, note: s.note, sets: [] })
+      map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+    }
+    const exercises = Array.from(map.entries())
+      .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets.sort((a, b) => a.set_number - b.set_number) }))
+      .filter(ex => ex.sets.length > 0)
+    if (exercises.length > 0) return { exercises }
+  }
+  return null
 }
 
 export function localGetSessionForDate(date: string): {
@@ -292,6 +316,66 @@ export function localGetExercisesWithHistory(): { name: string; muscle_group: st
     seen.get(s.exercise_name)!.sessions.add(s.session_id)
   }
   return Array.from(seen.entries()).map(([name, { muscle_group, sessions }]) => ({ name, muscle_group, logCount: sessions.size }))
+}
+
+export type ExerciseHistoryEntry = {
+  date: string
+  sets: { weight_kg: number; reps: number; set_number: number }[]
+  bestEst1rm: number
+  maxWeight: number
+}
+
+export type ExerciseHistoryResult = {
+  entries: ExerciseHistoryEntry[]   // newest first, max `limit`
+  totalSessions: number
+  allTimeBest1rm: number | null
+  allTimeBestWeight: number | null
+}
+
+export function localGetExerciseHistory(
+  exerciseName: string,
+  beforeDate?: string,
+  limit = 10,
+): ExerciseHistoryResult {
+  const empty: ExerciseHistoryResult = { entries: [], totalSessions: 0, allTimeBest1rm: null, allTimeBestWeight: null }
+  const sessions = getSessions().filter(s => s.completed_at !== null && (!beforeDate || s.trained_at < beforeDate))
+  if (!sessions.length) return empty
+  const sidToDate = new Map(sessions.map(s => [s.id, s.trained_at]))
+  const matchingSets = getSets().filter(s =>
+    s.exercise_name === exerciseName && s.is_completed && sidToDate.has(s.session_id) &&
+    s.weight_kg !== null && s.reps !== null
+  )
+  if (!matchingSets.length) return empty
+  const byDate = new Map<string, { weight_kg: number; reps: number; set_number: number }[]>()
+  for (const s of matchingSets) {
+    const date = sidToDate.get(s.session_id)!
+    if (!byDate.has(date)) byDate.set(date, [])
+    byDate.get(date)!.push({ weight_kg: s.weight_kg!, reps: s.reps!, set_number: s.set_number })
+  }
+  const sortedDates = Array.from(byDate.keys()).sort((a, b) => b.localeCompare(a))
+  const totalSessions = sortedDates.length
+  let allTimeBest1rm: number | null = null
+  let allTimeBestWeight: number | null = null
+  const entries: ExerciseHistoryEntry[] = sortedDates.slice(0, limit).map(date => {
+    const sets = byDate.get(date)!.sort((a, b) => a.set_number - b.set_number)
+    let bestEst1rm = 0, maxWeight = 0
+    for (const s of sets) {
+      const est = s.reps === 1 ? s.weight_kg : Math.round(s.weight_kg * (1 + s.reps / 30))
+      if (est > bestEst1rm) bestEst1rm = est
+      if (s.weight_kg > maxWeight) maxWeight = s.weight_kg
+    }
+    if (bestEst1rm > (allTimeBest1rm ?? 0)) allTimeBest1rm = bestEst1rm
+    if (maxWeight > (allTimeBestWeight ?? 0)) allTimeBestWeight = maxWeight
+    return { date, sets, bestEst1rm, maxWeight }
+  })
+  for (const date of sortedDates.slice(limit)) {
+    for (const s of byDate.get(date)!) {
+      const est = s.reps === 1 ? s.weight_kg : Math.round(s.weight_kg * (1 + s.reps / 30))
+      if (est > (allTimeBest1rm ?? 0)) allTimeBest1rm = est
+      if (s.weight_kg > (allTimeBestWeight ?? 0)) allTimeBestWeight = s.weight_kg
+    }
+  }
+  return { entries, totalSessions, allTimeBest1rm, allTimeBestWeight }
 }
 
 export function localGetExercise1RMData(exerciseName: string, startDate?: string): { date: string; label: string; est1rm: number; weight: number; reps: number }[] {

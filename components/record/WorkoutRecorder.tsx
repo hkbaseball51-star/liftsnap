@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
-import { localCreateSession, localSaveFullSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight, localGetPreviousSession, type PreviousSessionData } from '@/lib/localDB'
-import { getDemoPreviousSession } from '@/actions/demo'
+import { localCreateSession, localSaveFullSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight, localGetPreviousSession, localGetPreviousSessionByType, localGetExerciseHistory, type PreviousSessionData, type ExerciseHistoryResult } from '@/lib/localDB'
+import { getDemoPreviousSession, getDemoPreviousSessionByType } from '@/actions/demo'
 import { useDemoMode } from '@/lib/useDemoMode'
+import type { CopyFilterType } from '@/lib/copyFilter'
 import { useAppData } from '@/contexts/AppDataContext'
 import ExercisePicker, { type MuscleGroup } from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
@@ -75,6 +76,19 @@ type Props = {
   from?: string
 }
 
+/* ─── Copy filter definitions ─────────────────────────── */
+
+const COPY_FILTER_DEFS: { type: CopyFilterType; labelJa: string; labelEn: string }[] = [
+  { type: 'chest',     labelJa: '胸',       labelEn: 'Chest' },
+  { type: 'back',      labelJa: '背中',      labelEn: 'Back' },
+  { type: 'legs',      labelJa: '脚',        labelEn: 'Legs' },
+  { type: 'shoulders', labelJa: '肩',        labelEn: 'Shoulders' },
+  { type: 'arms',      labelJa: '腕',        labelEn: 'Arms' },
+  { type: 'abs',       labelJa: '腹筋',      labelEn: 'Abs' },
+  { type: 'push',      labelJa: 'Push',      labelEn: 'Push' },
+  { type: 'pull',      labelJa: 'Pull',      labelEn: 'Pull' },
+]
+
 /* ─── Pure helpers ────────────────────────────────────── */
 
 function uid() { return Math.random().toString(36).slice(2) }
@@ -91,6 +105,13 @@ function formatDateLabel(date: string) {
   const d = new Date(date + 'T00:00:00')
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+}
+
+function formatHistoryDate(dateStr: string, locale: Locale): string {
+  const [, mm, dd] = dateStr.split('-').map(Number)
+  if (locale === 'ja') return `${mm}月${dd}日`
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${months[mm - 1]} ${dd}`
 }
 
 function formatNavDate(dateStr: string, locale: Locale): string {
@@ -135,10 +156,11 @@ type ExerciseCardProps = {
   onSetTarget: (target: NumberTarget) => void
   onNoteTarget: (exerciseId: string) => void
   onRenameExercise: (exerciseId: string) => void
+  onShowHistory: (exerciseName: string) => void
 }
 
 const ExerciseCard = memo(function ExerciseCard({
-  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise,
+  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise, onShowHistory,
 }: ExerciseCardProps) {
   const { locale } = useLocale()
   const stats = useMemo(() => calcExerciseStats(ex), [ex])
@@ -183,6 +205,12 @@ const ExerciseCard = memo(function ExerciseCard({
                 FIRST LOG
               </span>
             )}
+            <button
+              className="ml-auto flex-shrink-0 active:opacity-60 transition-opacity"
+              style={{ fontSize: 9, fontWeight: 700, color: '#555', letterSpacing: '0.05em' }}
+              onClick={() => onShowHistory(ex.name)}>
+              {locale === 'ja' ? '履歴' : 'History'}
+            </button>
           </div>
         </div>
         <button onClick={() => onRemoveExercise(ex.id)} className="p-1 flex-shrink-0">
@@ -397,6 +425,11 @@ export default function WorkoutRecorder({
   const [prevSession, setPrevSession] = useState<PreviousSessionData | null>(null)
   const [copyToast, setCopyToast] = useState(false)
   const [showCopyConfirm, setShowCopyConfirm] = useState(false)
+  const [showCopyTypeSheet, setShowCopyTypeSheet] = useState(false)
+  const [pendingCopyData, setPendingCopyData] = useState<PreviousSessionData | null>(null)
+  const [copyNotFound, setCopyNotFound] = useState(false)
+  const [historyExerciseName, setHistoryExerciseName] = useState<string | null>(null)
+  const [historyData, setHistoryData] = useState<ExerciseHistoryResult | null>(null)
   const [bwSaving, setBwSaving] = useState(false)
   const [bwSaved,  setBwSaved]  = useState(false)
 
@@ -606,10 +639,9 @@ export default function WorkoutRecorder({
 
   /* ── Copy previous workout ── */
 
-  const applyPrevCopy = () => {
-    if (!prevSession) return
-    const prs = localGetExercisePRBatch(prevSession.exercises.map(ex => ex.name))
-    const newList: ExerciseEntry[] = prevSession.exercises.map(ex => ({
+  const applyFromData = (data: PreviousSessionData) => {
+    const prs = localGetExercisePRBatch(data.exercises.map(ex => ex.name))
+    const newList: ExerciseEntry[] = data.exercises.map(ex => ({
       id: uid(),
       name: ex.name,
       muscle_group: ex.muscle_group,
@@ -628,14 +660,45 @@ export default function WorkoutRecorder({
     setTimeout(() => setCopyToast(false), 2500)
   }
 
+  const applyPrevCopy = () => {
+    if (!pendingCopyData) return
+    applyFromData(pendingCopyData)
+  }
+
   const handleCopyPrev = () => {
     if (!prevSession) return
+    setShowCopyTypeSheet(true)
+  }
+
+  const handleFilterSelect = async (filterType: CopyFilterType) => {
+    setShowCopyTypeSheet(false)
+    let data: PreviousSessionData | null
+    if (isDemo && demoUserId) {
+      data = filterType === 'all'
+        ? await getDemoPreviousSession(demoUserId, date)
+        : await getDemoPreviousSessionByType(demoUserId, date, filterType)
+    } else {
+      data = localGetPreviousSessionByType(date, filterType)
+    }
+    if (!data || data.exercises.length === 0) {
+      setCopyNotFound(true)
+      setTimeout(() => setCopyNotFound(false), 3000)
+      return
+    }
+    setPendingCopyData(data)
     if (exerciseList.length > 0) {
       setShowCopyConfirm(true)
     } else {
-      applyPrevCopy()
+      applyFromData(data)
     }
   }
+
+  /* ── Exercise history (read-only) ── */
+
+  const handleShowHistory = useCallback((exerciseName: string) => {
+    setHistoryData(localGetExerciseHistory(exerciseName, date))
+    setHistoryExerciseName(exerciseName)
+  }, [date])
 
   /* ── Body weight (optional) ── */
 
@@ -733,6 +796,16 @@ export default function WorkoutRecorder({
             style={{ background: 'rgba(237,116,47,0.07)', borderBottom: '1px solid rgba(237,116,47,0.12)' }}>
             <span className="text-[11px] font-black tracking-wider" style={{ color: '#ED742F' }}>
               ✓ {locale === 'ja' ? '前回のワークアウトをコピーしました' : 'Previous workout copied'}
+            </span>
+          </div>
+        )}
+        {/* Copy not-found banner */}
+        {copyNotFound && (
+          <div
+            className="-mx-4 px-4 flex items-center py-1.5 mb-1"
+            style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="text-[11px] font-black tracking-wider" style={{ color: '#888' }}>
+              {locale === 'ja' ? 'この部位の前回メニューがありません' : 'No previous workout found for this type'}
             </span>
           </div>
         )}
@@ -840,6 +913,7 @@ export default function WorkoutRecorder({
             onSetTarget={handleSetTarget}
             onNoteTarget={handleNoteTarget}
             onRenameExercise={handleRenameTarget}
+            onShowHistory={handleShowHistory}
           />
         ))}
 
@@ -1067,14 +1141,211 @@ export default function WorkoutRecorder({
         />
       )}
 
+      {/* ── Exercise history sheet ── */}
+      {mounted && historyExerciseName && createPortal(
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={() => setHistoryExerciseName(null)}>
+          <div
+            className="w-full flex flex-col rounded-t-3xl"
+            style={{
+              maxWidth: 480,
+              background: '#0f0f0f',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderBottom: 'none',
+              maxHeight: '82vh',
+            }}
+            onClick={e => e.stopPropagation()}>
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full" style={{ background: '#2a2a2a' }} />
+            </div>
+            {/* Title */}
+            <div className="px-5 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-sm font-black text-white tracking-wide">
+                {getDisplayName(historyExerciseName, locale)}{locale === 'ja' ? ' の履歴' : ' History'}
+              </p>
+            </div>
+
+            {historyData && historyData.entries.length > 0 ? (
+              <>
+                {/* Summary row */}
+                <div
+                  className="grid grid-cols-4 px-5 py-3 flex-shrink-0"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {[
+                    {
+                      label: locale === 'ja' ? '前回' : 'PREVIOUS',
+                      value: (() => {
+                        const s = historyData.entries[0].sets.reduce((b, s) => s.weight_kg > b.weight_kg ? s : b, historyData.entries[0].sets[0])
+                        return `${toDisplayWeight(s.weight_kg, weightUnit)}×${s.reps}`
+                      })(),
+                      color: 'rgba(255,255,255,0.85)',
+                    },
+                    {
+                      label: locale === 'ja' ? 'ベスト' : 'BEST',
+                      value: historyData.allTimeBestWeight !== null
+                        ? `${toDisplayWeight(historyData.allTimeBestWeight, weightUnit)}${weightUnitLabel(weightUnit)}`
+                        : '—',
+                      color: '#ED742F',
+                    },
+                    {
+                      label: locale === 'ja' ? '推定1RM' : 'EST.1RM',
+                      value: historyData.allTimeBest1rm !== null
+                        ? `${toDisplayWeight(historyData.allTimeBest1rm, weightUnit)}${weightUnitLabel(weightUnit)}`
+                        : '—',
+                      color: '#ED742F',
+                    },
+                    {
+                      label: locale === 'ja' ? '記録回数' : 'SESSIONS',
+                      value: String(historyData.totalSessions),
+                      color: 'rgba(255,255,255,0.85)',
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="flex flex-col items-center gap-0.5">
+                      <p style={{ fontSize: 8, color: '#555', fontWeight: 700, letterSpacing: '0.07em' }}>{label}</p>
+                      <p style={{ fontSize: 12, color, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Session list */}
+                <div className="overflow-y-auto flex-1 px-5 py-3">
+                  {historyData.entries.map((entry, i) => (
+                    <div key={entry.date}>
+                      {/* Date + best 1RM */}
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#ED742F' }}>
+                          {formatHistoryDate(entry.date, locale)}
+                        </p>
+                        <p style={{ fontSize: 9, color: '#555', fontFamily: 'var(--font-mono)' }}>
+                          {locale === 'ja' ? '推定1RM ' : 'Est.1RM '}
+                          {toDisplayWeight(entry.bestEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
+                        </p>
+                      </div>
+                      {/* Sets */}
+                      {entry.sets.map((s, j) => {
+                        const setEst = s.reps === 1 ? s.weight_kg : Math.round(s.weight_kg * (1 + s.reps / 30))
+                        return (
+                          <div key={j} className="flex items-center gap-2 py-0.5">
+                            <span style={{ fontSize: 9, color: '#444', fontWeight: 700, minWidth: 14, textAlign: 'right' }}>{j + 1}</span>
+                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                              {toDisplayWeight(s.weight_kg, weightUnit)}{weightUnitLabel(weightUnit)} × {s.reps}
+                            </span>
+                            <span style={{ fontSize: 10, color: '#444', fontFamily: 'var(--font-mono)' }}>
+                              {toDisplayWeight(setEst, weightUnit)}{weightUnitLabel(weightUnit)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {i < historyData.entries.length - 1 && (
+                        <div className="my-3" style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+                      )}
+                    </div>
+                  ))}
+                  {historyData.totalSessions > historyData.entries.length && (
+                    <p className="mt-3 text-center" style={{ fontSize: 10, color: '#444' }}>
+                      {locale === 'ja'
+                        ? `他 ${historyData.totalSessions - historyData.entries.length} 件の記録`
+                        : `+${historyData.totalSessions - historyData.entries.length} more sessions`}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center py-14">
+                <p style={{ fontSize: 13, color: '#555', fontWeight: 700 }}>
+                  {locale === 'ja' ? 'まだ履歴がありません' : 'No history yet'}
+                </p>
+              </div>
+            )}
+
+            {/* Close */}
+            <div
+              className="px-5 py-3 flex-shrink-0"
+              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                className="w-full py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#888', border: '1px solid rgba(255,255,255,0.08)' }}
+                onClick={() => setHistoryExerciseName(null)}>
+                {locale === 'ja' ? '閉じる' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Copy type selector sheet ── */}
+      {mounted && showCopyTypeSheet && createPortal(
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.72)' }}
+          onClick={() => setShowCopyTypeSheet(false)}>
+          <div
+            className="w-full rounded-t-3xl p-5"
+            style={{ maxWidth: 480, background: '#131313', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+            onClick={e => e.stopPropagation()}>
+            {/* Handle */}
+            <div className="flex justify-center mb-4">
+              <div className="w-10 h-1 rounded-full" style={{ background: '#333' }} />
+            </div>
+            {/* Title */}
+            <p className="text-sm font-black text-white text-center mb-4 tracking-wide">
+              {locale === 'ja' ? 'コピーする部位を選択' : 'Select workout type'}
+            </p>
+            {/* Muscle group grid — 3 columns */}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {COPY_FILTER_DEFS.slice(0, 6).map(f => (
+                <button
+                  key={f.type}
+                  className="py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
+                  style={{ background: '#1e1e1e', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.10)' }}
+                  onClick={() => void handleFilterSelect(f.type)}>
+                  {locale === 'ja' ? f.labelJa : f.labelEn}
+                </button>
+              ))}
+            </div>
+            {/* PPL row — 2 columns */}
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              {COPY_FILTER_DEFS.slice(6).map(f => (
+                <button
+                  key={f.type}
+                  className="py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
+                  style={{ background: '#1e1e1e', color: '#ED742F', border: '1px solid rgba(237,116,47,0.22)' }}
+                  onClick={() => void handleFilterSelect(f.type)}>
+                  {f.labelJa}
+                </button>
+              ))}
+            </div>
+            {/* Copy all — full width */}
+            <button
+              className="w-full py-3 rounded-xl text-sm font-black mb-2 active:opacity-70 transition-opacity"
+              style={{ background: 'rgba(237,116,47,0.10)', color: '#ED742F', border: '1px solid rgba(237,116,47,0.25)' }}
+              onClick={() => void handleFilterSelect('all')}>
+              {locale === 'ja' ? '前回すべて' : 'Copy all previous'}
+            </button>
+            {/* Cancel */}
+            <button
+              className="w-full py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
+              style={{ background: 'rgba(255,255,255,0.05)', color: '#888', border: '1px solid rgba(255,255,255,0.08)' }}
+              onClick={() => setShowCopyTypeSheet(false)}>
+              {locale === 'ja' ? 'キャンセル' : 'Cancel'}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {mounted && showCopyConfirm && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
           style={{ background: 'rgba(0,0,0,0.72)' }}>
           <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
             <p className="text-base font-black text-white text-center mb-5 tracking-wide">
               {locale === 'ja'
-                ? '現在の入力内容を前回メニューで上書きしますか？'
-                : 'Replace current workout with previous workout?'}
+                ? '現在の入力内容を選択した前回メニューで上書きしますか？'
+                : 'Replace current workout with the selected previous workout?'}
             </p>
             <div className="flex gap-3">
               <button

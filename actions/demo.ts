@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { REPRA_DEMO_USER_ID } from '@/lib/demoConstants'
+import { matchesCopyFilter, type CopyFilterType } from '@/lib/copyFilter'
 
 function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -366,6 +367,45 @@ export async function getDemoPreviousSession(
     .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets }))
     .filter(ex => ex.sets.length > 0)
   return exercises.length > 0 ? { exercises } : null
+}
+
+export async function getDemoPreviousSessionByType(
+  userId: string,
+  beforeDate: string,
+  filterType: CopyFilterType,
+): Promise<DemoPreviousSession | null> {
+  if (filterType === 'all') return getDemoPreviousSession(userId, beforeDate)
+  assertDemoUser(userId)
+  const supabase = createAdminClient()
+  const { data: sessions } = await supabase
+    .from('workout_sessions')
+    .select('id')
+    .eq('user_id', userId)
+    .not('completed_at', 'is', null)
+    .lt('trained_at', beforeDate)
+    .order('trained_at', { ascending: false })
+    .limit(30)
+  if (!sessions?.length) return null
+  const { data: allSets } = await supabase
+    .from('workout_sets')
+    .select('session_id, exercise_name, muscle_group, set_number, weight_kg, reps, note')
+    .in('session_id', sessions.map(s => s.id))
+    .order('set_number')
+  if (!allSets?.length) return null
+  for (const session of sessions) {
+    const matchingSets = allSets.filter(s => s.session_id === session.id && matchesCopyFilter(s.muscle_group ?? '', filterType))
+    if (matchingSets.length === 0) continue
+    const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+    for (const s of matchingSets) {
+      if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group ?? '', note: s.note ?? null, sets: [] })
+      map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+    }
+    const exercises = Array.from(map.entries())
+      .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets }))
+      .filter(ex => ex.sets.length > 0)
+    if (exercises.length > 0) return { exercises }
+  }
+  return null
 }
 
 // ── Share data ───────────────────────────────────────────────────────────────
