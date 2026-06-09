@@ -324,6 +324,50 @@ export async function getDemoTotalSessions(userId: string): Promise<number> {
   return count ?? 0
 }
 
+// ── Previous session (copy feature) ─────────────────────────────────────────
+
+export type DemoPreviousSession = {
+  exercises: {
+    name: string
+    muscle_group: string
+    note: string | null
+    sets: { set_number: number; weight_kg: number | null; reps: number | null }[]
+  }[]
+}
+
+export async function getDemoPreviousSession(
+  userId: string,
+  beforeDate: string,
+): Promise<DemoPreviousSession | null> {
+  assertDemoUser(userId)
+  const supabase = createAdminClient()
+  const { data: session } = await supabase
+    .from('workout_sessions')
+    .select('id')
+    .eq('user_id', userId)
+    .not('completed_at', 'is', null)
+    .lt('trained_at', beforeDate)
+    .order('trained_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!session) return null
+  const { data: sets } = await supabase
+    .from('workout_sets')
+    .select('exercise_name, muscle_group, set_number, weight_kg, reps, note')
+    .eq('session_id', session.id)
+    .order('set_number')
+  if (!sets?.length) return null
+  const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+  for (const s of sets) {
+    if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group ?? '', note: s.note ?? null, sets: [] })
+    map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+  }
+  const exercises = Array.from(map.entries())
+    .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets }))
+    .filter(ex => ex.sets.length > 0)
+  return exercises.length > 0 ? { exercises } : null
+}
+
 // ── Share data ───────────────────────────────────────────────────────────────
 
 export async function getDemoTodayWorkoutForShare(userId: string, date: string) {

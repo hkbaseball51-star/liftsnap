@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
-import { localCreateSession, localSaveFullSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight } from '@/lib/localDB'
+import { localCreateSession, localSaveFullSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight, localGetPreviousSession, type PreviousSessionData } from '@/lib/localDB'
+import { getDemoPreviousSession } from '@/actions/demo'
+import { useDemoMode } from '@/lib/useDemoMode'
 import { useAppData } from '@/contexts/AppDataContext'
 import ExercisePicker, { type MuscleGroup } from './ExercisePicker'
 import NumberInputSheet from './NumberInputSheet'
@@ -348,6 +350,7 @@ export default function WorkoutRecorder({
   const router = useRouter()
   const { locale } = useLocale()
   const { unit: weightUnit } = useWeightUnit()
+  const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
   const { refreshData } = useAppData()
   const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
   const todayJST = new Date(Date.now() + 9 * 3600 * 1000).toISOString().split('T')[0]
@@ -391,6 +394,9 @@ export default function WorkoutRecorder({
 
   const [bwInput, setBwInput]   = useState('')
   const [mounted, setMounted] = useState(false)
+  const [prevSession, setPrevSession] = useState<PreviousSessionData | null>(null)
+  const [copyToast, setCopyToast] = useState(false)
+  const [showCopyConfirm, setShowCopyConfirm] = useState(false)
   const [bwSaving, setBwSaving] = useState(false)
   const [bwSaved,  setBwSaved]  = useState(false)
 
@@ -430,6 +436,16 @@ export default function WorkoutRecorder({
     const id = requestAnimationFrame(() => setMounted(true))
     return () => cancelAnimationFrame(id)
   }, [])
+
+  // Load previous session for copy feature
+  useEffect(() => {
+    if (!demoMounted) return
+    if (isDemo && demoUserId) {
+      getDemoPreviousSession(demoUserId, date).then(d => setPrevSession(d))
+    } else if (!isDemo) {
+      setPrevSession(localGetPreviousSession(date))
+    }
+  }, [demoMounted, isDemo, demoUserId, date])
 
   // Rest timer done
   useEffect(() => {
@@ -588,6 +604,39 @@ export default function WorkoutRecorder({
     }
   }
 
+  /* ── Copy previous workout ── */
+
+  const applyPrevCopy = () => {
+    if (!prevSession) return
+    const prs = localGetExercisePRBatch(prevSession.exercises.map(ex => ex.name))
+    const newList: ExerciseEntry[] = prevSession.exercises.map(ex => ({
+      id: uid(),
+      name: ex.name,
+      muscle_group: ex.muscle_group,
+      allTimePR: prs[ex.name] ?? null,
+      note: ex.note ?? '',
+      sets: ex.sets.map(s => ({
+        id: uid(),
+        set_number: s.set_number,
+        weight_kg: s.weight_kg,
+        reps: s.reps,
+      })),
+    }))
+    setExerciseList(newList)
+    setIsDirty(true)
+    setCopyToast(true)
+    setTimeout(() => setCopyToast(false), 2500)
+  }
+
+  const handleCopyPrev = () => {
+    if (!prevSession) return
+    if (exerciseList.length > 0) {
+      setShowCopyConfirm(true)
+    } else {
+      applyPrevCopy()
+    }
+  }
+
   /* ── Body weight (optional) ── */
 
   const handleBwSave = () => {
@@ -677,6 +726,17 @@ export default function WorkoutRecorder({
           </div>
         )}
 
+        {/* Copy toast banner */}
+        {copyToast && (
+          <div
+            className="-mx-4 px-4 flex items-center py-1.5 mb-1"
+            style={{ background: 'rgba(237,116,47,0.07)', borderBottom: '1px solid rgba(237,116,47,0.12)' }}>
+            <span className="text-[11px] font-black tracking-wider" style={{ color: '#ED742F' }}>
+              ✓ {locale === 'ja' ? '前回のワークアウトをコピーしました' : 'Previous workout copied'}
+            </span>
+          </div>
+        )}
+
         {/* Row 1: X | date | spacer */}
         <div className="flex items-center justify-between pb-1">
           <button
@@ -754,6 +814,18 @@ export default function WorkoutRecorder({
                 <p className="text-xs font-bold" style={{ color: '#777' }}>{t(locale, 'record.addExercise')}</p>
               </>
             )}
+            {prevSession ? (
+              <button
+                className="mt-4 px-5 py-2 rounded-xl text-xs font-black active:opacity-70 transition-opacity"
+                style={{ background: 'rgba(237,116,47,0.10)', color: '#ED742F', border: '1px solid rgba(237,116,47,0.25)' }}
+                onClick={handleCopyPrev}>
+                {locale === 'ja' ? '前回メニューをコピー' : 'Copy previous workout'}
+              </button>
+            ) : (
+              <p className="mt-4 text-[10px] font-bold" style={{ color: '#444' }}>
+                {locale === 'ja' ? 'コピーできる前回メニューがありません' : 'No previous workout to copy'}
+              </p>
+            )}
           </div>
         )}
 
@@ -827,6 +899,16 @@ export default function WorkoutRecorder({
           </div>
         )}
 
+        {prevSession && exerciseList.length > 0 && (
+          <div className="flex justify-center mb-2">
+            <button
+              className="text-xs font-bold px-3 py-1 rounded-full active:opacity-70 transition-opacity"
+              style={{ color: '#ED742F', background: 'rgba(237,116,47,0.08)', border: '1px solid rgba(237,116,47,0.18)' }}
+              onClick={handleCopyPrev}>
+              {locale === 'ja' ? '前回メニューをコピー' : 'Copy previous workout'}
+            </button>
+          </div>
+        )}
         <div className="flex gap-2.5">
           <button
             className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
@@ -983,6 +1065,34 @@ export default function WorkoutRecorder({
           onPhotoSaved={() => setHasPhotoRecorded(true)}
           onPhotoDeleted={() => setHasPhotoRecorded(false)}
         />
+      )}
+
+      {mounted && showCopyConfirm && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+          style={{ background: 'rgba(0,0,0,0.72)' }}>
+          <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
+            <p className="text-base font-black text-white text-center mb-5 tracking-wide">
+              {locale === 'ja'
+                ? '現在の入力内容を前回メニューで上書きしますか？'
+                : 'Replace current workout with previous workout?'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
+                style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.19)' }}
+                onClick={() => setShowCopyConfirm(false)}>
+                {locale === 'ja' ? 'キャンセル' : 'Cancel'}
+              </button>
+              <button
+                className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
+                style={{ background: '#ED742F', color: '#fff' }}
+                onClick={() => { setShowCopyConfirm(false); applyPrevCopy() }}>
+                {locale === 'ja' ? '上書きする' : 'Replace'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {mounted && showCancelConfirm && createPortal(

@@ -97,6 +97,33 @@ export function localSaveFullSession(
   ))
 }
 
+export type PreviousSessionData = {
+  exercises: {
+    name: string
+    muscle_group: string
+    note: string | null
+    sets: { set_number: number; weight_kg: number | null; reps: number | null }[]
+  }[]
+}
+
+export function localGetPreviousSession(beforeDate: string): PreviousSessionData | null {
+  const session = getSessions()
+    .filter(s => s.completed_at !== null && s.trained_at < beforeDate)
+    .sort((a, b) => b.trained_at.localeCompare(a.trained_at))[0]
+  if (!session) return null
+  const sets = getSets().filter(s => s.session_id === session.id)
+  if (sets.length === 0) return null
+  const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+  for (const s of sets) {
+    if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group, note: s.note, sets: [] })
+    map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+  }
+  const exercises = Array.from(map.entries())
+    .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets.sort((a, b) => a.set_number - b.set_number) }))
+    .filter(ex => ex.sets.length > 0)
+  return exercises.length > 0 ? { exercises } : null
+}
+
 export function localGetSessionForDate(date: string): {
   id: string
   title: string
