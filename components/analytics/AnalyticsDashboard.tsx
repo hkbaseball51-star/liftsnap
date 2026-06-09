@@ -468,14 +468,15 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
         <>
           {/* Muscle group filter */}
           <div className="overflow-x-auto no-scrollbar mb-3">
-            <div className="flex gap-1.5 pb-1">
+            <div className="flex gap-2.5 pb-1">
               {MUSCLE_GROUPS.map(mg => (
                 <button key={mg}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all"
+                  className="shrink-0 px-4 rounded-full text-[13px] font-bold tracking-wide transition-all"
                   style={{
+                    minHeight: 44,
                     background: muscleFilter === mg ? 'rgba(237, 116, 47,0.14)' : '#171717',
-                    color: muscleFilter === mg ? '#ED742F' : '#444',
-                    border: muscleFilter === mg ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #1e1e1e',
+                    color: muscleFilter === mg ? '#ED742F' : '#555',
+                    border: muscleFilter === mg ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #222',
                   }}
                   onClick={() => handleMuscleFilter(mg)}>
                   {ja ? (MUSCLE_GROUP_LABEL_JA[mg] ?? mg) : mg}
@@ -489,14 +490,15 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
             <p className="text-xs font-bold mb-4" style={{ color: '#444' }}>{t(locale, 'analytics.noGroupData')}</p>
           ) : (
             <div className="overflow-x-auto no-scrollbar mb-4">
-              <div className="flex gap-2 pb-1">
+              <div className="flex gap-2.5 pb-1">
                 {filteredExercises.map(e => (
                   <button key={e.name}
-                    className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all"
+                    className="shrink-0 px-4 rounded-full text-[13px] font-semibold tracking-wide transition-all"
                     style={{
+                      minHeight: 44,
                       background: selectedExercise === e.name ? '#ED742F' : '#171717',
-                      color: selectedExercise === e.name ? '#fff' : '#555',
-                      border: selectedExercise === e.name ? 'none' : '1px solid #1e1e1e',
+                      color: selectedExercise === e.name ? '#fff' : '#666',
+                      border: selectedExercise === e.name ? '1px solid transparent' : '1px solid #222',
                     }}
                     onClick={() => setSelectedExercise(e.name)}>
                     {e.name}
@@ -513,7 +515,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>
         {PERIODS.map(p => (
           <button key={p}
-            className="flex-1 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all"
+            className="flex-1 py-2.5 rounded-lg text-[11px] font-black tracking-widest transition-all"
             style={{
               background: period === p ? '#ED742F' : 'transparent',
               color: period === p ? '#fff' : '#555',
@@ -687,14 +689,15 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
           <>
               {/* Body part filter */}
               <div className="overflow-x-auto no-scrollbar mb-4">
-                <div className="flex gap-1.5 pb-1">
+                <div className="flex gap-2.5 pb-1">
                   {VOL_BODY_PARTS.map(bp => (
                     <button key={bp}
-                      className="shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all"
+                      className="shrink-0 px-4 rounded-full text-[13px] font-bold tracking-wide transition-all"
                       style={{
+                        minHeight: 44,
                         background: volBodyPart === bp ? 'rgba(237, 116, 47,0.14)' : '#171717',
-                        color: volBodyPart === bp ? '#ED742F' : '#444',
-                        border: volBodyPart === bp ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #1e1e1e',
+                        color: volBodyPart === bp ? '#ED742F' : '#555',
+                        border: volBodyPart === bp ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #222',
                       }}
                       onClick={() => setVolBodyPart(bp)}>
                       {locale === 'ja' ? VOL_BODY_PART_JA[bp] : bp}
