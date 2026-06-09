@@ -26,11 +26,14 @@ import { getDisplayName } from '@/lib/exerciseNames'
 
 /* ─── Types ───────────────────────────────────────────── */
 
+type AssistStatus = 'none' | 'assisted' | 'failed'
+
 type SetEntry = {
   id: string
   set_number: number
   weight_kg: number | null
   reps: number | null
+  assistStatus: AssistStatus
 }
 
 type ExerciseEntry = {
@@ -65,7 +68,7 @@ type InitialExercise = {
   name: string
   muscle_group: string
   note?: string | null
-  sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[]
+  sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null; assistStatus?: AssistStatus }[]
 }
 
 type Props = {
@@ -157,10 +160,17 @@ type ExerciseCardProps = {
   onNoteTarget: (exerciseId: string) => void
   onRenameExercise: (exerciseId: string) => void
   onShowHistory: (exerciseName: string) => void
+  onSetAssistStatus: (exerciseId: string, setId: string, status: AssistStatus) => void
+}
+
+const ASSIST_LABELS: Record<AssistStatus, { ja: string; en: string }> = {
+  none:     { ja: '補助なし', en: 'No assist' },
+  assisted: { ja: '補助あり', en: 'Assisted' },
+  failed:   { ja: '失敗',     en: 'Failed' },
 }
 
 const ExerciseCard = memo(function ExerciseCard({
-  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise, onShowHistory,
+  ex, weightUnit, onAddSet, onRemoveExercise, onRemoveSet, onSetTarget, onNoteTarget, onRenameExercise, onShowHistory, onSetAssistStatus,
 }: ExerciseCardProps) {
   const { locale } = useLocale()
   const stats = useMemo(() => calcExerciseStats(ex), [ex])
@@ -242,72 +252,110 @@ const ExerciseCard = memo(function ExerciseCard({
         const isBestSet = stats !== null && setEst1rm !== null && setEst1rm === stats.est1rm
         const canDelete = ex.sets.length > 1
 
+        const currentAssist = set.assistStatus ?? 'none'
         return (
-          <div key={set.id} className="grid grid-cols-12 items-center px-3"
-            style={{ gap: 6, paddingTop: 5, paddingBottom: 5 }}>
-            {/* Set number + delete */}
-            <div className="col-span-2 flex items-center justify-center gap-1">
-              {canDelete ? (
-                <button
-                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,80,80,0.28)' }}
-                  onClick={() => onRemoveSet(ex.id, set.id)}>
-                  <Minus size={8} style={{ color: 'rgba(255,100,100,0.9)' }} />
-                </button>
-              ) : (
-                <div className="w-5 h-5 flex-shrink-0" />
-              )}
-              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
+          <div key={set.id}>
+            <div className="grid grid-cols-12 items-center px-3"
+              style={{ gap: 6, paddingTop: 5, paddingBottom: 3 }}>
+              {/* Set number + delete */}
+              <div className="col-span-2 flex items-center justify-center gap-1">
+                {canDelete ? (
+                  <button
+                    className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,80,80,0.28)' }}
+                    onClick={() => onRemoveSet(ex.id, set.id)}>
+                    <Minus size={8} style={{ color: 'rgba(255,100,100,0.9)' }} />
+                  </button>
+                ) : (
+                  <div className="w-5 h-5 flex-shrink-0" />
+                )}
+                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
+                  style={{
+                    background: isBestSet ? 'rgba(237, 116, 47,0.15)' : '#222',
+                    color: isBestSet ? '#ff7a1a' : '#888',
+                    fontFamily: 'var(--font-mono)',
+                    border: isBestSet ? '1px solid rgba(237, 116, 47,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                    flexShrink: 0,
+                  }}>
+                  {set.set_number}
+                </span>
+              </div>
+
+              {/* KG input */}
+              <button
+                className="col-span-4 active:scale-95 transition-transform"
                 style={{
-                  background: isBestSet ? 'rgba(237, 116, 47,0.15)' : '#222',
-                  color: isBestSet ? '#ff7a1a' : '#888',
-                  fontFamily: 'var(--font-mono)',
-                  border: isBestSet ? '1px solid rgba(237, 116, 47,0.55)' : '1px solid rgba(255,255,255,0.08)',
-                  flexShrink: 0,
-                }}>
-                {set.set_number}
-              </span>
+                  height: 40, borderRadius: 10,
+                  background: '#1e1e1e',
+                  border: '1px solid rgba(255,255,255,0.11)',
+                  color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
+                  fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
+                {set.weight_kg !== null ? toDisplayWeight(set.weight_kg, weightUnit) : '—'}
+              </button>
+
+              {/* REPS input */}
+              <button
+                className="col-span-3 active:scale-95 transition-transform"
+                style={{
+                  height: 40, borderRadius: 10,
+                  background: '#1e1e1e',
+                  border: '1px solid rgba(255,255,255,0.11)',
+                  color: set.reps !== null ? '#fff' : '#6a6a6a',
+                  fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
+                {set.reps ?? '—'}
+              </button>
+
+              {/* Set 1RM — orange for best set, gray otherwise. Never purple. */}
+              <div className="col-span-3 flex items-center justify-center">
+                {setEst1rm !== null ? (
+                  <span style={{ color: isBestSet ? '#ED742F' : '#666', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                    {toDisplayWeight(setEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
+                  </span>
+                ) : (
+                  <span style={{ color: '#444', fontSize: 13, fontWeight: 700 }}>—</span>
+                )}
+              </div>
             </div>
 
-            {/* KG input */}
-            <button
-              className="col-span-4 active:scale-95 transition-transform"
-              style={{
-                height: 40, borderRadius: 10,
-                background: '#1e1e1e',
-                border: '1px solid rgba(255,255,255,0.11)',
-                color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
-                fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-              onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'weight_kg' })}>
-              {set.weight_kg !== null ? toDisplayWeight(set.weight_kg, weightUnit) : '—'}
-            </button>
-
-            {/* REPS input */}
-            <button
-              className="col-span-3 active:scale-95 transition-transform"
-              style={{
-                height: 40, borderRadius: 10,
-                background: '#1e1e1e',
-                border: '1px solid rgba(255,255,255,0.11)',
-                color: set.reps !== null ? '#fff' : '#6a6a6a',
-                fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-              onClick={() => onSetTarget({ exerciseId: ex.id, setId: set.id, field: 'reps' })}>
-              {set.reps ?? '—'}
-            </button>
-
-            {/* Set 1RM — orange for best set, gray otherwise. Never purple. */}
-            <div className="col-span-3 flex items-center justify-center">
-              {setEst1rm !== null ? (
-                <span style={{ color: isBestSet ? '#ED742F' : '#666', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                  {toDisplayWeight(setEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
-                </span>
-              ) : (
-                <span style={{ color: '#444', fontSize: 13, fontWeight: 700 }}>—</span>
-              )}
+            {/* Assist status pills */}
+            <div className="flex items-center gap-1.5 px-3 pb-2.5">
+              {(['none', 'assisted', 'failed'] as AssistStatus[]).map(status => {
+                const isSelected = currentAssist === status
+                const border = isSelected
+                  ? (status === 'failed'   ? 'rgba(255,100,100,0.38)'
+                    : status === 'assisted' ? 'rgba(237,116,47,0.38)'
+                    :                        'rgba(255,255,255,0.20)')
+                  : 'rgba(255,255,255,0.06)'
+                const bg = isSelected
+                  ? (status === 'failed'   ? 'rgba(255,100,100,0.08)'
+                    : status === 'assisted' ? 'rgba(237,116,47,0.08)'
+                    :                        'rgba(255,255,255,0.05)')
+                  : 'transparent'
+                const color = isSelected
+                  ? (status === 'failed'   ? 'rgba(255,130,130,0.85)'
+                    : status === 'assisted' ? '#ED742F'
+                    :                        'rgba(255,255,255,0.48)')
+                  : 'rgba(255,255,255,0.15)'
+                return (
+                  <button
+                    key={status}
+                    onClick={() => onSetAssistStatus(ex.id, set.id, status)}
+                    style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.02em',
+                      padding: '4px 9px', borderRadius: 99,
+                      minHeight: 26, border: `1px solid ${border}`,
+                      background: bg, color,
+                    }}>
+                    {locale === 'ja' ? ASSIST_LABELS[status].ja : ASSIST_LABELS[status].en}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )
@@ -407,6 +455,7 @@ export default function WorkoutRecorder({
         set_number: s.set_number,
         weight_kg: s.weight_kg,
         reps: s.reps,
+        assistStatus: (s.assistStatus as AssistStatus) ?? 'none',
       })),
     }))
   )
@@ -551,6 +600,7 @@ export default function WorkoutRecorder({
           set_number: ex.sets.length + 1,
           weight_kg: last?.weight_kg ?? null,
           reps: last?.reps ?? null,
+          assistStatus: 'none' as AssistStatus,
         }],
       }
     }))
@@ -597,6 +647,14 @@ export default function WorkoutRecorder({
 
   const handleNoteTarget = useCallback((exerciseId: string) => setNoteTarget(exerciseId), [])
 
+  const handleSetAssistStatus = useCallback((exerciseId: string, setId: string, status: AssistStatus) => {
+    setExerciseList(prev => prev.map(ex =>
+      ex.id !== exerciseId ? ex :
+      { ...ex, sets: ex.sets.map(s => s.id === setId ? { ...s, assistStatus: status } : s) }
+    ))
+    setIsDirty(true)
+  }, [])
+
   /* ── Exercise addition: optimistic (instant UI, session creation in background) ── */
 
   const addExercise = (exercise: Exercise) => {
@@ -607,7 +665,7 @@ export default function WorkoutRecorder({
       muscle_group: exercise.muscle_group,
       allTimePR: null,
       note: '',
-      sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null }],
+      sets: [{ id: uid(), set_number: 1, weight_kg: null, reps: null, assistStatus: 'none' as AssistStatus }],
     }])
     setIsDirty(true)
     setShowPicker(false)
@@ -660,6 +718,7 @@ export default function WorkoutRecorder({
         set_number: s.set_number,
         weight_kg: s.weight_kg,
         reps: s.reps,
+        assistStatus: s.assistStatus ?? 'none' as AssistStatus,
       })),
     }))
     setExerciseList(newList)
@@ -739,6 +798,7 @@ export default function WorkoutRecorder({
             weight_kg: s.weight_kg,
             reps: s.reps,
             note: ex.note || null,
+            assistStatus: s.assistStatus,
           }))
       )
       localSaveFullSession(sid, title, setsToSave)
@@ -922,6 +982,7 @@ export default function WorkoutRecorder({
             onNoteTarget={handleNoteTarget}
             onRenameExercise={handleRenameTarget}
             onShowHistory={handleShowHistory}
+            onSetAssistStatus={handleSetAssistStatus}
           />
         ))}
 
@@ -1244,6 +1305,16 @@ export default function WorkoutRecorder({
                             <span style={{ fontSize: 10, color: '#444', fontFamily: 'var(--font-mono)' }}>
                               {toDisplayWeight(setEst, weightUnit)}{weightUnitLabel(weightUnit)}
                             </span>
+                            {s.assistStatus && s.assistStatus !== 'none' && (
+                              <span style={{
+                                fontSize: 9, fontWeight: 700,
+                                color: s.assistStatus === 'failed' ? 'rgba(255,130,130,0.65)' : 'rgba(237,116,47,0.75)',
+                              }}>
+                                {s.assistStatus === 'assisted'
+                                  ? (locale === 'ja' ? '補助あり' : 'Assisted')
+                                  : (locale === 'ja' ? '失敗' : 'Failed')}
+                              </span>
+                            )}
                           </div>
                         )
                       })}

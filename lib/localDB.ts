@@ -19,6 +19,8 @@ export type LocalSession = {
   total_volume_kg: number
 }
 
+export type AssistStatus = 'none' | 'assisted' | 'failed'
+
 export type LocalSet = {
   id: string
   session_id: string
@@ -29,6 +31,7 @@ export type LocalSet = {
   reps: number | null
   note: string | null
   is_completed: boolean
+  assistStatus?: AssistStatus
 }
 
 export type LocalExercise = {
@@ -74,7 +77,7 @@ export function localCreateSession(date: string, title: string): string {
 export function localSaveFullSession(
   sessionId: string,
   title: string,
-  sets: { exercise_name: string; muscle_group: string; set_number: number; weight_kg: number | null; reps: number | null; note?: string | null }[],
+  sets: { exercise_name: string; muscle_group: string; set_number: number; weight_kg: number | null; reps: number | null; note?: string | null; assistStatus?: AssistStatus }[],
 ): void {
   // Replace sets for this session
   const otherSets = getSets().filter(s => s.session_id !== sessionId)
@@ -88,6 +91,7 @@ export function localSaveFullSession(
     reps: s.reps,
     note: s.note ?? null,
     is_completed: true,
+    assistStatus: s.assistStatus,
   }))
   setSets([...otherSets, ...newSets])
 
@@ -104,7 +108,7 @@ export type PreviousSessionData = {
     name: string
     muscle_group: string
     note: string | null
-    sets: { set_number: number; weight_kg: number | null; reps: number | null }[]
+    sets: { set_number: number; weight_kg: number | null; reps: number | null; assistStatus?: AssistStatus }[]
   }[]
 }
 
@@ -115,10 +119,10 @@ export function localGetPreviousSession(beforeDate: string): PreviousSessionData
   if (!session) return null
   const sets = getSets().filter(s => s.session_id === session.id)
   if (sets.length === 0) return null
-  const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+  const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null; assistStatus?: AssistStatus }[] }>()
   for (const s of sets) {
     if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group, note: s.note, sets: [] })
-    map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+    map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps, assistStatus: s.assistStatus })
   }
   const exercises = Array.from(map.entries())
     .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets.sort((a, b) => a.set_number - b.set_number) }))
@@ -135,10 +139,10 @@ export function localGetPreviousSessionByType(beforeDate: string, filterType: Co
   for (const session of sessions) {
     const matchingSets = allSets.filter(s => s.session_id === session.id && matchesCopyFilter(s.muscle_group, filterType))
     if (matchingSets.length === 0) continue
-    const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+    const map = new Map<string, { muscle_group: string; note: string | null; sets: { set_number: number; weight_kg: number | null; reps: number | null; assistStatus?: AssistStatus }[] }>()
     for (const s of matchingSets) {
       if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group, note: s.note, sets: [] })
-      map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+      map.get(s.exercise_name)!.sets.push({ set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps, assistStatus: s.assistStatus })
     }
     const exercises = Array.from(map.entries())
       .map(([name, d]) => ({ name, muscle_group: d.muscle_group, note: d.note, sets: d.sets.sort((a, b) => a.set_number - b.set_number) }))
@@ -151,15 +155,15 @@ export function localGetPreviousSessionByType(beforeDate: string, filterType: Co
 export function localGetSessionForDate(date: string): {
   id: string
   title: string
-  exercises: { name: string; muscle_group: string; note: string | null; sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[] }[]
+  exercises: { name: string; muscle_group: string; note: string | null; sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null; assistStatus?: AssistStatus }[] }[]
 } | null {
   const session = getSessions().find(s => s.trained_at === date && s.completed_at !== null)
   if (!session) return null
   const sets = getSets().filter(s => s.session_id === session.id)
-  const map = new Map<string, { muscle_group: string; note: string | null; sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+  const map = new Map<string, { muscle_group: string; note: string | null; sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null; assistStatus?: AssistStatus }[] }>()
   for (const s of sets) {
     if (!map.has(s.exercise_name)) map.set(s.exercise_name, { muscle_group: s.muscle_group, note: s.note, sets: [] })
-    map.get(s.exercise_name)!.sets.push({ id: s.id, set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps })
+    map.get(s.exercise_name)!.sets.push({ id: s.id, set_number: s.set_number, weight_kg: s.weight_kg, reps: s.reps, assistStatus: s.assistStatus })
   }
   return {
     id: session.id,
@@ -320,7 +324,7 @@ export function localGetExercisesWithHistory(): { name: string; muscle_group: st
 
 export type ExerciseHistoryEntry = {
   date: string
-  sets: { weight_kg: number; reps: number; set_number: number }[]
+  sets: { weight_kg: number; reps: number; set_number: number; assistStatus?: AssistStatus }[]
   bestEst1rm: number
   maxWeight: number
 }
@@ -346,11 +350,11 @@ export function localGetExerciseHistory(
     s.weight_kg !== null && s.reps !== null
   )
   if (!matchingSets.length) return empty
-  const byDate = new Map<string, { weight_kg: number; reps: number; set_number: number }[]>()
+  const byDate = new Map<string, { weight_kg: number; reps: number; set_number: number; assistStatus?: AssistStatus }[]>()
   for (const s of matchingSets) {
     const date = sidToDate.get(s.session_id)!
     if (!byDate.has(date)) byDate.set(date, [])
-    byDate.get(date)!.push({ weight_kg: s.weight_kg!, reps: s.reps!, set_number: s.set_number })
+    byDate.get(date)!.push({ weight_kg: s.weight_kg!, reps: s.reps!, set_number: s.set_number, assistStatus: s.assistStatus })
   }
   const sortedDates = Array.from(byDate.keys()).sort((a, b) => b.localeCompare(a))
   const totalSessions = sortedDates.length

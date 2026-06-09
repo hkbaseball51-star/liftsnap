@@ -10,6 +10,7 @@ import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit, type WeightUnit
 import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
+import { useCardLang } from '@/lib/useCardLang'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -63,22 +64,27 @@ const BODY_PART_DISPLAY: Record<string, string> = {
   shoulders: 'SHOULDERS', arms: 'ARMS', abs: 'ABS', other: 'OTHER',
 }
 
+const BODY_PART_DISPLAY_JA: Record<string, string> = {
+  all: 'すべて', chest: '胸', back: '背中', legs: '脚',
+  shoulders: '肩', arms: '腕', abs: '腹筋', other: 'その他',
+}
+
 const VOL_BODY_PARTS = [
-  { key: 'all',       label: 'All'  },
-  { key: 'chest',     label: 'Chest' },
-  { key: 'back',      label: 'Back'  },
-  { key: 'legs',      label: 'Legs'  },
-  { key: 'shoulders', label: 'Shoulder' },
-  { key: 'arms',      label: 'Arms'  },
-  { key: 'abs',       label: 'Abs'   },
-  { key: 'other',     label: 'Other' },
+  { key: 'all',       label: 'All',      labelJa: 'すべて' },
+  { key: 'chest',     label: 'Chest',    labelJa: '胸' },
+  { key: 'back',      label: 'Back',     labelJa: '背中' },
+  { key: 'legs',      label: 'Legs',     labelJa: '脚' },
+  { key: 'shoulders', label: 'Shoulder', labelJa: '肩' },
+  { key: 'arms',      label: 'Arms',     labelJa: '腕' },
+  { key: 'abs',       label: 'Abs',      labelJa: '腹筋' },
+  { key: 'other',     label: 'Other',    labelJa: 'その他' },
 ]
 
 const VOL_PPL_GROUPS = [
-  { key: 'all',  label: 'All'  },
-  { key: 'push', label: 'Push' },
-  { key: 'pull', label: 'Pull' },
-  { key: 'legs', label: 'Legs' },
+  { key: 'all',  label: 'All',  labelJa: 'すべて' },
+  { key: 'push', label: 'Push', labelJa: 'Push' },
+  { key: 'pull', label: 'Pull', labelJa: 'Pull' },
+  { key: 'legs', label: 'Legs', labelJa: 'Legs' },
 ] as const
 
 const GRAPH_LAYOUTS = [
@@ -622,6 +628,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const { locale } = useLocale()
   const ja         = locale === 'ja'
   const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
+  const [cardLang, setCardLang] = useCardLang(locale)
+  const cl = (en: string, ja2: string) => cardLang === 'ja' ? ja2 : en
 
   const [theme,      setTheme]      = useState<Theme>('dark')
   const [accent,     setAccent]     = useState<Accent>('dark')
@@ -762,6 +770,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const volDisplayLabel: string = volViewType === 'ppl'
     ? (pplGroup === 'push' ? 'PUSH' : pplGroup === 'pull' ? 'PULL' : pplGroup === 'legs' ? 'LEGS' : 'ALL')
     : volBodyPartLabel
+
+  // Card-language-aware display label
+  const volCardLabel: string = volViewType === 'ppl'
+    ? volDisplayLabel
+    : (cardLang === 'ja' ? (BODY_PART_DISPLAY_JA[volBodyPart] ?? volBodyPart) : volBodyPartLabel)
 
   // Active totals — computed from active history for consistency in PPL mode
   const activeVolTotalRaw     = activeVolHistory.reduce((s, d) => s + d.volume, 0)
@@ -945,7 +958,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <>
           {/* View Type switcher */}
           <div className="px-4 mb-3">
-            {sectionLabel('VIEW TYPE')}
+            {sectionLabel(ja ? '表示タイプ' : 'VIEW TYPE')}
             <div className="flex gap-2">
               {(['bodypart', 'ppl'] as VolViewType[]).map(vt => {
                 const sel = volViewType === vt
@@ -958,7 +971,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       color: sel ? uiAc : '#666',
                       border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
                     }}>
-                    {vt === 'bodypart' ? 'Body Part' : 'PPL'}
+                    {vt === 'bodypart' ? (ja ? '部位別' : 'Body Part') : 'PPL'}
                   </button>
                 )
               })}
@@ -968,7 +981,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           {/* Body Part filter */}
           {volViewType === 'bodypart' && (
             <div className="px-4 mb-4">
-              {sectionLabel('BODY PART')}
+              {sectionLabel(ja ? '部位' : 'BODY PART')}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {VOL_BODY_PARTS.map(bp => {
                   const sel = volBodyPart === bp.key
@@ -982,7 +995,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                         color: sel ? uiAc : '#666',
                         border: `1.5px solid ${sel ? uiAc : 'rgba(255,255,255,0.08)'}`,
                       }}>
-                      {bp.label}
+                      {ja ? bp.labelJa : bp.label}
                     </button>
                   )
                 })}
@@ -1007,7 +1020,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                         color: sel ? uiAc : '#666',
                         border: `1.5px solid ${sel ? uiAc : 'rgba(255,255,255,0.08)'}`,
                       }}>
-                      {pg.label}
+                      {ja ? pg.labelJa : pg.label}
                     </button>
                   )
                 })}
@@ -1016,6 +1029,31 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           )}
         </>
       )}
+
+      {/* ② CARD LANGUAGE ──────────────────────────────────── */}
+      <div className="px-4 mb-3">
+        {sectionLabel(ja ? 'カード表示言語' : 'CARD LANGUAGE')}
+        <div className="flex gap-2">
+          {([
+            { value: 'en' as const, label: ja ? '英語' : 'English' },
+            { value: 'ja' as const, label: '日本語' },
+          ]).map(({ value, label }) => {
+            const sel = cardLang === value
+            const uiAc = gp.uiSwatch ?? gp.accentHex
+            return (
+              <button key={value} onClick={() => setCardLang(value)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{
+                  background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
+                  color: sel ? uiAc : '#666',
+                  border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                }}>
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       {/* ③ CARD STYLE ───────────────────────────────────────── */}
       <div className="px-4 mb-3">
@@ -1147,7 +1185,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
                   <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>MAX 1RM PROGRESS</p>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>{cl('MAX 1RM PROGRESS', '最大1RMの推移')}</p>
                   <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{exName}</p>
                 </div>
                 <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
@@ -1155,21 +1193,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   {rm1FirstVal !== null && (
                     <>
                       <div>
-                        <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
+                        <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('START', 'スタート')}</p>
                         <p style={{ fontSize: 17, fontWeight: 700, color: ptxt(0.70), margin: 0, lineHeight: 1 }}>{rm1FirstVal}<span style={{ fontSize: 8.5, color: ptxt(0.42), marginLeft: 1 }}>{unitLabel}</span></p>
                       </div>
                       <p style={{ fontSize: 13, color: ptxt(0.22), margin: '7px 0 0' }}>→</p>
                     </>
                   )}
                   <div>
-                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>BEST</p>
+                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('BEST', 'ベスト')}</p>
                     <p style={{ fontSize: rm1FirstVal !== null ? 24 : 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>
                       {bestRMDisplay}<span style={{ fontSize: 10, color: ptxt(0.50), fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
                     </p>
                   </div>
                   {rm1Growth !== null && (
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                      <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>GAIN</p>
+                      <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('GAIN', '成長')}</p>
                       <p style={{ fontSize: 17, fontWeight: 800, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1 }}>
                         {rm1Growth >= 0 ? '+' : ''}{rm1Growth}<span style={{ fontSize: 8.5, marginLeft: 1 }}>{unitLabel}</span>
                       </p>
@@ -1203,14 +1241,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
                   <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 1px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
                   <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
-                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} best</p>
+                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} {cl('best', 'ベスト')}</p>
                   {rm1Growth !== null && (
                     <p style={{ fontSize: 10, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
                       {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
@@ -1229,7 +1267,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 }}>
                   {gpBadge}
                   <p style={{ fontSize: 13, fontWeight: 900, color: textPrimary, margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '8px 0' }}>
                     <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.6} isDarkBg={isDarkBg} />
                   </div>
@@ -1240,7 +1278,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     </div>
                     {rm1Growth !== null && (
                       <p style={{ fontSize: 11, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
-                        {rm1Growth >= 0 ? '+' : ''}{rm1Growth}{unitLabel} GAIN
+                        {rm1Growth >= 0 ? '+' : ''}{rm1Growth}{unitLabel} {cl('GAIN', '成長')}
                       </p>
                     )}
                   </div>
@@ -1257,7 +1295,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
                   <p style={{ fontSize: 13, fontWeight: 900, color: textPrimary, margin: '6px 0 1px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>1RM PROGRESS</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                   <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '8px 0' }} />
                   {rm1FirstVal !== null && (
                     <p style={{ fontSize: 8.5, color: ptxt(0.45), margin: '0 0 3px' }}>
@@ -1296,28 +1334,28 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
                   <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 0' }}>BODY WEIGHT PROGRESS</p>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 0' }}>{cl('BODY WEIGHT PROGRESS', '体重の変化')}</p>
                 </div>
                 <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
                 <div style={{ padding: '0 18px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   {bwHistory.length >= 2 && (
                     <>
                       <div>
-                        <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>START</p>
+                        <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('START', 'スタート')}</p>
                         <p style={{ fontSize: 17, fontWeight: 700, color: ptxt(0.70), margin: 0, lineHeight: 1 }}>{bwStartDisplay}<span style={{ fontSize: 8.5, color: ptxt(0.42), marginLeft: 1 }}>{unitLabel}</span></p>
                       </div>
                       <p style={{ fontSize: 13, color: ptxt(0.22), margin: '7px 0 0' }}>→</p>
                     </>
                   )}
                   <div>
-                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>LATEST</p>
+                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('LATEST', '現在')}</p>
                     <p style={{ fontSize: bwHistory.length >= 2 ? 24 : 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>
                       {bwCurrentDisplay}<span style={{ fontSize: 10, color: ptxt(0.50), fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
                     </p>
                   </div>
                   {bwChangeRaw !== 0 && (
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                      <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>CHANGE</p>
+                      <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('CHANGE', '変化')}</p>
                       <p style={{ fontSize: 17, fontWeight: 800, color: gpAccent, margin: 0, lineHeight: 1 }}>
                         {bwChangeStr}<span style={{ fontSize: 8.5, marginLeft: 1 }}>{unitLabel}</span>
                       </p>
@@ -1354,7 +1392,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>BODY WEIGHT</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('BODY WEIGHT', '体重')}</p>
                   <p style={{ fontSize: 10, fontWeight: 700, color: textPrimary, margin: 0, lineHeight: 1.2 }}>
                     {bwHistory.length >= 2
                       ? <>{bwStartDisplay}<span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span><span style={{ color: ptxt(0.30), margin: '0 3px' }}>→</span><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
@@ -1381,7 +1419,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>BODY WEIGHT</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>{cl('BODY WEIGHT', '体重')}</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '6px 0' }}>
                     <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.6} isDarkBg={isDarkBg} />
                   </div>
@@ -1404,8 +1442,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '6px 0 0' }}>BODY WEIGHT</p>
-                  <p style={{ fontSize: 7, fontWeight: 500, color: ptxt(0.35), margin: '1px 0 0', letterSpacing: '0.1em' }}>PROGRESS</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '6px 0 0' }}>{cl('BODY WEIGHT', '体重')}</p>
+                  <p style={{ fontSize: 7, fontWeight: 500, color: ptxt(0.35), margin: '1px 0 0', letterSpacing: '0.1em' }}>{cl('PROGRESS', '変化')}</p>
                   <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '7px 0' }} />
                   {bwHistory.length >= 2 && (
                     <p style={{ fontSize: 8.5, color: ptxt(0.45), margin: '0 0 4px' }}>
@@ -1444,8 +1482,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
                     <span style={{ fontSize: 7, fontWeight: 700, color: acRgba(gpAccent, 0.6), letterSpacing: '0.12em' }}>{volGranLabel}</span>
                   </div>
-                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>{cl('DAILY VOLUME', '総重量')}</p>
+                  <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{volCardLabel}</p>
                 </div>
 
                 <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
@@ -1454,11 +1492,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ padding: '0 18px', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 2 }}>
                     <span style={{ fontSize: 26, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
-                    <span style={{ fontSize: 8, color: ptxt(0.40), paddingBottom: 3, fontWeight: 600 }}>TOTAL</span>
+                    <span style={{ fontSize: 8, color: ptxt(0.40), paddingBottom: 3, fontWeight: 600 }}>{cl('TOTAL', '合計')}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>Best day: <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
-                    <p style={{ fontSize: 8.5, color: ptxt(0.40), margin: 0 }}>{activeVolSessionCount} sessions</p>
+                    {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>{cl('Best day:', 'ベスト:')} <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
+                    <p style={{ fontSize: 8.5, color: ptxt(0.40), margin: 0 }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                   </div>
                 </div>
 
@@ -1496,16 +1534,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volCardLabel}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '65%' }}>
                   <VolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <p style={{ fontSize: 22, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
-                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>total</p>
-                  <p style={{ fontSize: 8.5, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
+                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>{cl('total', '合計')}</p>
+                  <p style={{ fontSize: 8.5, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                 </div>
               </div>
             )}
@@ -1518,8 +1556,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 11, fontWeight: 900, color: textPrimary, margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>{cl('DAILY VOLUME', '総重量')}</p>
+                  <p style={{ fontSize: 11, fontWeight: 900, color: textPrimary, margin: '2px 0 0', lineHeight: 1.1 }}>{volCardLabel}</p>
                   <div style={{ flex: 1, minHeight: 0, margin: '6px 0' }}>
                     <VolBarSVG bars={volBars14.bars} accentHex={gpAccent} latestHex={gpLatest} />
                   </div>
@@ -1527,7 +1565,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
                       <span style={{ fontSize: 28, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
                     </div>
-                    <p style={{ fontSize: 9, color: ptxt(0.45), margin: '2px 0 0' }}>{activeVolSessionCount} sessions</p>
+                    <p style={{ fontSize: 9, color: ptxt(0.45), margin: '2px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                   </div>
                 </div>
               </div>
@@ -1542,15 +1580,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {/* Left info */}
                 <div style={{ width: '34%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '6px 0 0' }}>DAILY VOLUME</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '2px 0 0', lineHeight: 1.1 }}>{volDisplayLabel}</p>
+                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '6px 0 0' }}>{cl('DAILY VOLUME', '総重量')}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '2px 0 0', lineHeight: 1.1 }}>{volCardLabel}</p>
                   <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '7px 0' }} />
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 3 }}>
                     <span style={{ fontSize: 22, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
                   </div>
-                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '0 0 2px' }}>total</p>
-                  {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>Best: <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
-                  <p style={{ fontSize: 8, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} sessions</p>
+                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '0 0 2px' }}>{cl('total', '合計')}</p>
+                  {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>{cl('Best:', 'ベスト:')} <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
+                  <p style={{ fontSize: 8, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                   <div style={{ flex: 1 }} />
                   <p style={{ fontSize: 7, color: ptxt(0.30), margin: 0 }}>Made with REPRA</p>
                 </div>
