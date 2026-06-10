@@ -25,6 +25,10 @@ export const metadata: Metadata = {
   title: 'REPRA',
   description: 'Every rep becomes proof.',
   manifest: '/manifest.json',
+  robots: {
+    index: false,
+    follow: false,
+  },
   icons: {
     icon: [{ url: '/repra-app-icon.png', type: 'image/png' }],
     shortcut: '/repra-app-icon.png',

@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     // Live URL — the iOS WebView loads the production Next.js app directly.
     // The public/index.html is only a placeholder to satisfy `cap sync`.
-    url: 'https://repraworkout.com',
+    url: 'https://app.repraworkout.com',
     cleartext: false,
   },
   ios: {
