@@ -18,6 +18,7 @@ import {
   getDemoBodyPartVolumeData,
 } from '@/actions/demo'
 import { parseFlexibleNumber } from '@/lib/number'
+import { getDisplayName } from '@/lib/exerciseNames'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, weightUnitLabel } from '@/lib/units'
@@ -501,7 +502,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       border: selectedExercise === e.name ? '1px solid transparent' : '1px solid #222',
                     }}
                     onClick={() => setSelectedExercise(e.name)}>
-                    {e.name}
+                    {getDisplayName(e.name, locale)}
                   </button>
                 ))}
               </div>

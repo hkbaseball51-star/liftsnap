@@ -19,6 +19,7 @@ import {
   localGetBodyPartDailyVolumeData,
   localGetBodyWeightHistory,
 } from '@/lib/localDB'
+import { getDisplayName } from '@/lib/exerciseNames'
 
 type WeightPoint = { date: string; label: string; weight: number }
 type RMPoint     = { date: string; label: string; est1rm: number }
@@ -634,7 +635,7 @@ export default function FullScreenChart({
 
   const metricLabel = metric === 'max1rm' ? 'MAX 1RM' : metric === 'daily-volume' ? 'DAILY VOLUME' : 'BODY WEIGHT'
   const rangeLabel  = ({ '30D':'30D','90D':'90D','6M':'6M','1Y':'1Y','All':'ALL' } as Record<Period,string>)[period]
-  const titleMain   = exercise || metricLabel
+  const titleMain   = exercise ? getDisplayName(exercise, locale) : metricLabel
   const titleSub    = exercise ? `${metricLabel} · ${rangeLabel}` : rangeLabel
 
   // ── Sub-components ────────────────────────────────────────────
