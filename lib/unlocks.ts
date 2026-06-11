@@ -49,13 +49,16 @@ export function isTrainingFeatureUnlocked(id: TrainingMilestoneId, totalSessions
   return totalSessions >= m.requiredSessions
 }
 
+// ─── Chart unlock threshold (shared across all three graph types) ──
+export const GRAPH_UNLOCK_REQUIRED = 3
+
 // ─── Exercise Graph Share ─────────────────────────────────────
-export const EXERCISE_GRAPH_REQUIRED = 5
+export const EXERCISE_GRAPH_REQUIRED = GRAPH_UNLOCK_REQUIRED
 export const EXERCISE_PROGRESS_REQUIRED = 10
 
 // ─── Chart unlock thresholds ─────────────────────────────────
-export const VOLUME_CHART_SESSION_REQUIRED = 5
-export const BW_CHART_REQUIRED = 5
+export const VOLUME_CHART_SESSION_REQUIRED = GRAPH_UNLOCK_REQUIRED
+export const BW_CHART_REQUIRED = GRAPH_UNLOCK_REQUIRED
 
 export type ExerciseGraphProgress = {
   unlocked: boolean

@@ -15,6 +15,7 @@ import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import { useDemoMode } from '@/lib/useDemoMode'
 import { REPRA_DEMO_USER_ID } from '@/lib/demoConstants'
+import DataManagementSection from '@/components/settings/DataManagementSection'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
@@ -186,18 +187,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ── Backup & Sync — Coming Soon ── */}
-      <div className="mx-4 mb-4">
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <Database size={12} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
-            {locale === 'ja'
-              ? 'クラウド同期とアカウント連携は今後対応予定です。'
-              : 'Cloud sync and account features are planned for a future update.'}
-          </p>
-        </div>
-      </div>
+      {/* ── Data Management ── */}
+      <DataManagementSection />
 
       {/* ── Version tap target (hidden) — 5 taps reveals Demo Mode ── */}
       <div className="mx-4 mb-3 flex justify-center">

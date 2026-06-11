@@ -530,28 +530,22 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       {/* MAX 1RM Tab */}
       {tab === 'MAX 1RM' && (
         <div>
-          {activeExercises.length === 0 ? (
-            <EmptyState />
-          ) : filteredExercises.length === 0 ? (
+          {filteredExercises.length === 0 && activeExercises.length > 0 ? (
             <NoGroupData />
-          ) : selectedExercise && selectedExerciseLogCount < EXERCISE_GRAPH_REQUIRED ? (
-            <div className="rounded-2xl p-6 text-center" style={CARD}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textAlign: 'center', lineHeight: 1.7, marginBottom: 6 }}>
-                {locale === 'ja'
-                  ? `同じ種目を${EXERCISE_GRAPH_REQUIRED}回記録すると、このグラフが表示されます。`
-                  : `Record the same exercise ${EXERCISE_GRAPH_REQUIRED} times to unlock this graph.`}
-              </p>
-              <p style={{ fontSize: 11.5, color: '#555', textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
-                {locale === 'ja'
-                  ? '記録するほど、成長の変化が見えるようになります。'
-                  : 'The more you log, the easier it becomes to see your progress.'}
-              </p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em' }}>
-                {locale === 'ja'
-                  ? `この種目の記録回数：${selectedExerciseLogCount} / ${EXERCISE_GRAPH_REQUIRED}`
-                  : `Exercise logs: ${selectedExerciseLogCount} / ${EXERCISE_GRAPH_REQUIRED}`}
-              </p>
-            </div>
+          ) : selectedExerciseLogCount < EXERCISE_GRAPH_REQUIRED ? (
+            <GraphLockCard
+              current={selectedExerciseLogCount}
+              required={EXERCISE_GRAPH_REQUIRED}
+              locale={locale}
+              zeroTitleJa="まだ1RMデータがありません。"
+              zeroDescJa={`同じ種目を${EXERCISE_GRAPH_REQUIRED}回記録すると、1RMの推移が表示されます。`}
+              partialJa="1RMの推移が見えるようになります。"
+              progressLabelJa="この種目の記録回数"
+              zeroTitleEn="No 1RM data yet."
+              zeroDescEn={`Record the same exercise ${EXERCISE_GRAPH_REQUIRED} times to see your 1RM progress.`}
+              partialEn="your 1RM progress will be visible."
+              progressLabelEn="Exercise logs"
+            />
           ) : (
             <>
               {/* Summary card */}
@@ -679,23 +673,19 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       {tab === 'DAILY VOLUME' && (
         <div>
           {activeTotalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
-            <div className="rounded-2xl p-6 text-center" style={CARD}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textAlign: 'center', lineHeight: 1.7, marginBottom: 6 }}>
-                {locale === 'ja'
-                  ? `ワークアウトを${VOLUME_CHART_SESSION_REQUIRED}回記録すると、このグラフが表示されます。`
-                  : `Complete ${VOLUME_CHART_SESSION_REQUIRED} workouts to unlock this graph.`}
-              </p>
-              <p style={{ fontSize: 11.5, color: '#555', textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
-                {locale === 'ja'
-                  ? '記録するほど、成長の変化が見えるようになります。'
-                  : 'The more you log, the easier it becomes to see your progress.'}
-              </p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em' }}>
-                {locale === 'ja'
-                  ? `記録回数：${activeTotalSessions} / ${VOLUME_CHART_SESSION_REQUIRED}`
-                  : `Workouts: ${activeTotalSessions} / ${VOLUME_CHART_SESSION_REQUIRED}`}
-              </p>
-            </div>
+            <GraphLockCard
+              current={activeTotalSessions}
+              required={VOLUME_CHART_SESSION_REQUIRED}
+              locale={locale}
+              zeroTitleJa="まだ総重量データがありません。"
+              zeroDescJa={`トレーニングを${VOLUME_CHART_SESSION_REQUIRED}回記録すると、総重量グラフが表示されます。`}
+              partialJa="総重量の推移が見えるようになります。"
+              progressLabelJa="記録回数"
+              zeroTitleEn="No volume data yet."
+              zeroDescEn={`Record ${VOLUME_CHART_SESSION_REQUIRED} workouts to see your volume graph.`}
+              partialEn="your volume progress will be visible."
+              progressLabelEn="Workout logs"
+            />
           ) : (
           <>
               {/* Body part filter */}
@@ -921,25 +911,21 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
               </Link>
             </div>
-            {ctxBwHistory.length === 0 ? (
-              <div className="h-[380px] flex items-center justify-center">
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
-                  {locale === 'ja'
-                    ? `体重を${BW_CHART_REQUIRED}回以上記録すると、体重グラフが使えます`
-                    : 'Log your body weight to see progress over time'}
-                </p>
-              </div>
-            ) : ctxBwHistory.length < BW_CHART_REQUIRED ? (
-              <div className="h-[380px] flex items-center justify-center flex-col gap-3">
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
-                  {locale === 'ja'
-                    ? `あと${BW_CHART_REQUIRED - ctxBwHistory.length}回の体重記録で、体重グラフが使えます`
-                    : `Log ${BW_CHART_REQUIRED - ctxBwHistory.length} more weight entr${BW_CHART_REQUIRED - ctxBwHistory.length === 1 ? 'y' : 'ies'} to see your progress graph`}
-                </p>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#444' }}>
-                  {ctxBwHistory.length} / {BW_CHART_REQUIRED}
-                </p>
-              </div>
+            {ctxBwHistory.length < BW_CHART_REQUIRED ? (
+              <GraphLockCard
+                compact
+                current={ctxBwHistory.length}
+                required={BW_CHART_REQUIRED}
+                locale={locale}
+                zeroTitleJa="まだ体重データがありません。"
+                zeroDescJa="体重を記録すると、変化をグラフで確認できます。"
+                partialJa="体重の推移が見えるようになります。"
+                progressLabelJa="体重記録"
+                zeroTitleEn="No body weight data yet."
+                zeroDescEn="Log your body weight to see changes over time."
+                partialEn="your body weight trend will be visible."
+                progressLabelEn="Body weight logs"
+              />
             ) : (
               <div className="relative">
                 {bwChartW > innerW && (
@@ -988,22 +974,62 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   )
 }
 
-function EmptyState() {
-  const { locale } = useLocale()
+function GraphLockCard({
+  current, required, locale, compact = false,
+  zeroTitleJa, zeroDescJa, partialJa, progressLabelJa,
+  zeroTitleEn, zeroDescEn, partialEn, progressLabelEn,
+}: {
+  current: number
+  required: number
+  locale: Locale
+  compact?: boolean
+  zeroTitleJa: string
+  zeroDescJa: string
+  partialJa: string
+  progressLabelJa: string
+  zeroTitleEn: string
+  zeroDescEn: string
+  partialEn: string
+  progressLabelEn: string
+}) {
+  const ja = locale === 'ja'
+  const remaining = required - current
+
+  const inner = current === 0 ? (
+    <>
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 8 }}>
+        {ja ? zeroTitleJa : zeroTitleEn}
+      </p>
+      <p style={{ fontSize: 12, color: '#555', lineHeight: 1.55 }}>
+        {ja ? zeroDescJa : zeroDescEn}
+      </p>
+    </>
+  ) : (
+    <>
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 12 }}>
+        {ja
+          ? `あと${remaining}回記録すると、${partialJa}`
+          : `After ${remaining} more log${remaining !== 1 ? 's' : ''}, ${partialEn}`}
+      </p>
+      <p style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em' }}>
+        {ja
+          ? `${progressLabelJa}：${current} / ${required}`
+          : `${progressLabelEn}: ${current} / ${required}`}
+      </p>
+    </>
+  )
+
+  if (compact) {
+    return (
+      <div style={{ height: 380, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ maxWidth: 280, textAlign: 'center' }}>{inner}</div>
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-2xl p-8 text-center" style={{
-      background: 'linear-gradient(135deg, rgba(237, 116, 47,0.05), rgba(255,255,255,0.01) 40%, rgba(237, 116, 47,0.03))',
-      border: '1px solid rgba(237, 116, 47,0.38)',
-      borderRadius: 18,
-    }}>
-      <p style={{ fontSize: 32, marginBottom: 12 }}>📊</p>
-      <p className="text-base font-bold text-white mb-2">{t(locale, 'emptyState.statsTitle')}</p>
-      <p className="text-sm font-bold mb-6" style={{ color: '#555' }}>{t(locale, 'emptyState.statsDesc')}</p>
-      <Link href="/record"
-        className="inline-block px-6 py-3 rounded-2xl text-sm font-black"
-        style={{ background: '#ED742F', color: '#fff' }}>
-        {t(locale, 'emptyState.statsCTA')}
-      </Link>
+    <div className="rounded-2xl p-6 text-center" style={CARD}>
+      {inner}
     </div>
   )
 }
