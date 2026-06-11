@@ -19,6 +19,7 @@ export type LocalSession = {
   total_volume_kg: number
   created_at?: string        // ISO 8601 — filled by normalize; always present after migration
   updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  deleted_at?: string | null // ISO 8601 if soft-deleted; null otherwise
 }
 
 export type AssistStatus = 'none' | 'assisted' | 'failed' | 'warmup'
@@ -36,6 +37,7 @@ export type LocalSet = {
   assistStatus?: AssistStatus
   created_at?: string        // ISO 8601 — filled by normalize; always present after migration
   updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  deleted_at?: string | null // ISO 8601 if soft-deleted; null otherwise
 }
 
 export type LocalExercise = {
@@ -46,6 +48,7 @@ export type LocalExercise = {
   is_custom: boolean
   created_at?: string        // ISO 8601 — filled by normalize; always present after migration
   updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  deleted_at?: string | null // ISO 8601 if soft-deleted; null otherwise
 }
 
 export type LocalBodyWeight = {
@@ -54,6 +57,7 @@ export type LocalBodyWeight = {
   weight_kg: number
   created_at?: string        // ISO 8601 — filled by normalize; always present after migration
   updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  deleted_at?: string | null // ISO 8601 if soft-deleted; null otherwise
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -86,8 +90,9 @@ function dateToIso(date: string): string {
   return `${date}T00:00:00.000Z`
 }
 
-// Normalize functions ensure created_at / updated_at are always present.
-// Used both for migrate-on-read and for the one-time migration write-back.
+// ── Normalize functions ────────────────────────────────────────────────────
+// Ensure created_at / updated_at / deleted_at are always present.
+// Used both for normalize-on-read and one-time migration write-backs.
 
 export function normalizeSession(raw: Record<string, unknown>): LocalSession {
   const created_at = (raw.created_at as string | undefined)
@@ -101,6 +106,7 @@ export function normalizeSession(raw: Record<string, unknown>): LocalSession {
     total_volume_kg:  (raw.total_volume_kg as number) ?? 0,
     created_at,
     updated_at:       (raw.updated_at as string | undefined) || created_at,
+    deleted_at:       (raw.deleted_at as string | null | undefined) ?? null,
   }
 }
 
@@ -122,6 +128,7 @@ export function normalizeSet(
     assistStatus:  raw.assistStatus as AssistStatus | undefined,
     created_at,
     updated_at:    (raw.updated_at as string | undefined) || created_at,
+    deleted_at:    (raw.deleted_at as string | null | undefined) ?? null,
   }
 }
 
@@ -135,6 +142,7 @@ export function normalizeExercise(raw: Record<string, unknown>): LocalExercise {
     is_custom:    (raw.is_custom as boolean) ?? false,
     created_at,
     updated_at:   (raw.updated_at as string | undefined) || created_at,
+    deleted_at:   (raw.deleted_at as string | null | undefined) ?? null,
   }
 }
 
@@ -142,15 +150,16 @@ export function normalizeBodyWeight(raw: Record<string, unknown>): LocalBodyWeig
   const created_at = (raw.created_at as string | undefined)
     || (raw.date ? dateToIso(raw.date as string) : nowIso())
   return {
-    id:        (raw.id as string | undefined) || bwUid(),
-    date:      raw.date as string,
-    weight_kg: (raw.weight_kg as number) ?? 0,
+    id:         (raw.id as string | undefined) || bwUid(),
+    date:       raw.date as string,
+    weight_kg:  (raw.weight_kg as number) ?? 0,
     created_at,
     updated_at: (raw.updated_at as string | undefined) || created_at,
+    deleted_at: (raw.deleted_at as string | null | undefined) ?? null,
   }
 }
 
-// ── One-time migration: stamp existing data with created_at / updated_at ──
+// ── One-time migration v2: stamp created_at / updated_at ──────────────────
 
 const MIGRATION_V2_KEY = 'repra_db_v2'
 
@@ -159,25 +168,19 @@ export function runLocalDBMigration(): void {
   if (localStorage.getItem(MIGRATION_V2_KEY)) return
 
   try {
-    // Normalize sessions
     const rawSessions = read<Record<string, unknown>[]>(KEYS.sessions, [])
     const sessions = rawSessions.map(normalizeSession)
     write(KEYS.sessions, sessions)
 
-    // Use each session's created_at as fallback for its sets
     const sessionCreatedAt = new Map(sessions.map(s => [s.id, s.created_at!]))
-
-    // Normalize sets
     const rawSets = read<Record<string, unknown>[]>(KEYS.sets, [])
     write(KEYS.sets, rawSets.map(s =>
       normalizeSet(s, sessionCreatedAt.get(s.session_id as string) ?? nowIso()),
     ))
 
-    // Normalize custom exercises
     const rawExercises = read<Record<string, unknown>[]>(KEYS.customExercises, [])
     write(KEYS.customExercises, rawExercises.map(normalizeExercise))
 
-    // Normalize body weights
     const rawBodyWeights = read<Record<string, unknown>[]>(KEYS.bodyWeights, [])
     write(KEYS.bodyWeights, rawBodyWeights.map(normalizeBodyWeight))
 
@@ -187,7 +190,7 @@ export function runLocalDBMigration(): void {
   }
 }
 
-// ── Migration v3: add id to existing body weight records ──────
+// ── Migration v3: add id to body weight records ───────────────────────────
 
 const MIGRATION_V3_KEY = 'repra_db_v3_bw_id'
 
@@ -197,7 +200,6 @@ export function runBodyWeightIdMigration(): void {
 
   try {
     const raw = read<Record<string, unknown>[]>(KEYS.bodyWeights, [])
-    // normalizeBodyWeight already fills id when missing
     write(KEYS.bodyWeights, raw.map(normalizeBodyWeight))
     localStorage.setItem(MIGRATION_V3_KEY, 'true')
   } catch {
@@ -205,20 +207,83 @@ export function runBodyWeightIdMigration(): void {
   }
 }
 
-// ── Sessions ──────────────────────────────────────────────────
+// ── Migration v4: stamp deleted_at: null on existing records ─────────────
 
-function getSessions(): LocalSession[] {
+const MIGRATION_V4_KEY = 'repra_db_v4_soft_delete'
+
+export function runSoftDeleteMigration(): void {
+  if (typeof window === 'undefined') return
+  if (localStorage.getItem(MIGRATION_V4_KEY)) return
+
+  try {
+    const rawSessions = read<Record<string, unknown>[]>(KEYS.sessions, [])
+    write(KEYS.sessions, rawSessions.map(normalizeSession))
+
+    const rawSets = read<Record<string, unknown>[]>(KEYS.sets, [])
+    write(KEYS.sets, rawSets.map(s => normalizeSet(s, nowIso())))
+
+    const rawExercises = read<Record<string, unknown>[]>(KEYS.customExercises, [])
+    write(KEYS.customExercises, rawExercises.map(normalizeExercise))
+
+    const rawBodyWeights = read<Record<string, unknown>[]>(KEYS.bodyWeights, [])
+    write(KEYS.bodyWeights, rawBodyWeights.map(normalizeBodyWeight))
+
+    localStorage.setItem(MIGRATION_V4_KEY, 'true')
+  } catch {
+    // Non-fatal: normalize-on-read ensures deleted_at is filled in memory
+  }
+}
+
+// ── Internal raw readers (include soft-deleted records) ───────────────────
+// Used by write-back operations to preserve deleted data in localStorage.
+// Display/analytics functions use the active-only getters below.
+
+function getSessionsRaw(): LocalSession[] {
   return read<Record<string, unknown>[]>(KEYS.sessions, []).map(normalizeSession)
 }
+function getSetsRaw(): LocalSet[] {
+  return read<Record<string, unknown>[]>(KEYS.sets, []).map(s => normalizeSet(s, nowIso()))
+}
+function getCustomExercisesRaw(): LocalExercise[] {
+  return read<Record<string, unknown>[]>(KEYS.customExercises, []).map(normalizeExercise)
+}
+function getBodyWeightsRaw(): LocalBodyWeight[] {
+  return read<Record<string, unknown>[]>(KEYS.bodyWeights, []).map(normalizeBodyWeight)
+}
+
+// ── Active-only readers (filter deleted_at) ───────────────────────────────
+// Used everywhere data is displayed or aggregated.
+
+function getSessions(): LocalSession[] {
+  return getSessionsRaw().filter(s => s.deleted_at == null)
+}
 function setSessions(s: LocalSession[]) { write(KEYS.sessions, s) }
+
+function getSets(): LocalSet[] {
+  return getSetsRaw().filter(s => s.deleted_at == null)
+}
+function setSets(s: LocalSet[]) { write(KEYS.sets, s) }
+
+function getCustomExercises(): LocalExercise[] {
+  return getCustomExercisesRaw().filter(e => e.deleted_at == null)
+}
+function setCustomExercises(e: LocalExercise[]) { write(KEYS.customExercises, e) }
+
+function getBodyWeights(): LocalBodyWeight[] {
+  return getBodyWeightsRaw().filter(w => w.deleted_at == null)
+}
+function setBodyWeights(w: LocalBodyWeight[]) { write(KEYS.bodyWeights, w) }
+
+// ── Sessions ──────────────────────────────────────────────────────────────
 
 export function localCreateSession(date: string, title: string): string {
   const id  = uid()
   const now = nowIso()
-  const all = getSessions()
-  // Remove any incomplete (draft) session for this date first
-  const filtered = all.filter(s => !(s.trained_at === date && s.completed_at === null))
-  filtered.push({ id, title, trained_at: date, completed_at: null, total_volume_kg: 0, created_at: now, updated_at: now })
+  // Use raw to preserve any soft-deleted sessions when writing back
+  const all = getSessionsRaw()
+  // Hard-delete only ACTIVE draft sessions for this date (uncompleted, ephemeral)
+  const filtered = all.filter(s => !(s.trained_at === date && s.completed_at === null && s.deleted_at === null))
+  filtered.push({ id, title, trained_at: date, completed_at: null, total_volume_kg: 0, created_at: now, updated_at: now, deleted_at: null })
   setSessions(filtered)
   return id
 }
@@ -230,8 +295,9 @@ export function localSaveFullSession(
 ): void {
   const now = nowIso()
 
-  // Replace sets for this session
-  const otherSets = getSets().filter(s => s.session_id !== sessionId)
+  // Preserve all records EXCEPT active sets for this session (they are replaced).
+  // Deleted sets from this session and all sets from other sessions are kept.
+  const preserved = getSetsRaw().filter(s => s.session_id !== sessionId || s.deleted_at !== null)
   const newSets: LocalSet[] = sets.map(s => ({
     id: uid(),
     session_id: sessionId,
@@ -245,13 +311,31 @@ export function localSaveFullSession(
     assistStatus: s.assistStatus,
     created_at: now,
     updated_at: now,
+    deleted_at: null,
   }))
-  setSets([...otherSets, ...newSets])
+  setSets([...preserved, ...newSets])
 
   const totalVolume = sets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0)
-  setSessions(getSessions().map(s =>
+  // Use raw to preserve deleted sessions when writing back
+  setSessions(getSessionsRaw().map(s =>
     s.id === sessionId
       ? { ...s, title, total_volume_kg: totalVolume, completed_at: now, updated_at: now }
+      : s,
+  ))
+}
+
+export function localDeleteSession(sessionId: string): void {
+  const now = nowIso()
+  // Soft delete all active sets belonging to this session
+  setSets(getSetsRaw().map(s =>
+    s.session_id === sessionId && s.deleted_at === null
+      ? { ...s, deleted_at: now, updated_at: now }
+      : s,
+  ))
+  // Soft delete the session itself
+  setSessions(getSessionsRaw().map(s =>
+    s.id === sessionId && s.deleted_at === null
+      ? { ...s, deleted_at: now, updated_at: now }
       : s,
   ))
 }
@@ -404,19 +488,7 @@ export function localGetTodayWorkoutForShare(date: string): {
   }
 }
 
-// ── Sets ──────────────────────────────────────────────────────
-
-function getSets(): LocalSet[] {
-  return read<Record<string, unknown>[]>(KEYS.sets, []).map(s => normalizeSet(s, nowIso()))
-}
-function setSets(s: LocalSet[]) { write(KEYS.sets, s) }
-
-// ── Exercises ─────────────────────────────────────────────────
-
-function getCustomExercises(): LocalExercise[] {
-  return read<Record<string, unknown>[]>(KEYS.customExercises, []).map(normalizeExercise)
-}
-function setCustomExercises(e: LocalExercise[]) { write(KEYS.customExercises, e) }
+// ── Exercises ─────────────────────────────────────────────────────────────
 
 export function localGetCustomExercises(): LocalExercise[] { return getCustomExercises() }
 
@@ -430,13 +502,21 @@ export function localCreateCustomExercise(name: string, muscleGroup: string, equ
     is_custom: true,
     created_at: now,
     updated_at: now,
+    deleted_at: null,
   }
-  setCustomExercises([...getCustomExercises(), ex])
+  // Use raw to preserve any soft-deleted exercises when writing back
+  setCustomExercises([...getCustomExercisesRaw(), ex])
   return ex
 }
 
 export function localDeleteCustomExercise(exerciseId: string): void {
-  setCustomExercises(getCustomExercises().filter(e => e.id !== exerciseId))
+  const now = nowIso()
+  // Soft delete: mark deleted_at instead of removing from storage
+  setCustomExercises(getCustomExercisesRaw().map(e =>
+    e.id === exerciseId && e.deleted_at === null
+      ? { ...e, deleted_at: now, updated_at: now }
+      : e,
+  ))
 }
 
 export function localGetExerciseUsageCounts(): Record<string, number> {
@@ -445,24 +525,30 @@ export function localGetExerciseUsageCounts(): Record<string, number> {
   return counts
 }
 
-// ── Body Weight ───────────────────────────────────────────────
-
-function getBodyWeights(): LocalBodyWeight[] {
-  return read<Record<string, unknown>[]>(KEYS.bodyWeights, []).map(normalizeBodyWeight)
-}
-function setBodyWeights(w: LocalBodyWeight[]) { write(KEYS.bodyWeights, w) }
+// ── Body Weight ───────────────────────────────────────────────────────────
 
 export function localUpsertBodyWeight(weightKg: number, date: string): void {
-  const all = getBodyWeights()
-  const idx = all.findIndex(w => w.date === date)
+  // Use raw to preserve soft-deleted records when writing back
+  const all = getBodyWeightsRaw()
+  // Find active record for this date only (skip soft-deleted)
+  const idx = all.findIndex(w => w.date === date && w.deleted_at === null)
   const now = nowIso()
   if (idx >= 0) {
-    // Preserve existing id and created_at; update only weight and updated_at
+    // Preserve existing id and created_at; update weight and updated_at only
     all[idx] = { ...all[idx], weight_kg: weightKg, updated_at: now }
   } else {
-    all.push({ id: bwUid(), date, weight_kg: weightKg, created_at: now, updated_at: now })
+    all.push({ id: bwUid(), date, weight_kg: weightKg, created_at: now, updated_at: now, deleted_at: null })
   }
   setBodyWeights(all)
+}
+
+export function localDeleteBodyWeight(date: string): void {
+  const now = nowIso()
+  setBodyWeights(getBodyWeightsRaw().map(w =>
+    w.date === date && w.deleted_at === null
+      ? { ...w, deleted_at: now, updated_at: now }
+      : w,
+  ))
 }
 
 export function localGetBodyWeightHistory(days = 730): { date: string; label: string; weight: number }[] {
@@ -481,7 +567,7 @@ export function localGetBodyWeightByDate(): Record<string, number> {
   return result
 }
 
-// ── Analytics ─────────────────────────────────────────────────
+// ── Analytics ─────────────────────────────────────────────────────────────
 
 export function localGetExercisesWithHistory(): { name: string; muscle_group: string; logCount: number }[] {
   const sessions = getSessions().filter(s => s.completed_at !== null)

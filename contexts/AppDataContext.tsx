@@ -22,6 +22,7 @@ import {
   localUpsertBodyWeight,
   runLocalDBMigration,
   runBodyWeightIdMigration,
+  runSoftDeleteMigration,
 } from '@/lib/localDB'
 import {
   getDemoCalendarData,
@@ -277,6 +278,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     runLocalDBMigration()
     runBodyWeightIdMigration()
+    runSoftDeleteMigration()
     loadLocal()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // mount only

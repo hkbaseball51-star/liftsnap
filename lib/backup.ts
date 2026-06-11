@@ -29,6 +29,7 @@ const DATA_KEYS = {
 // Must match the gate keys in lib/localDB.ts
 const MIGRATION_V2_KEY = 'repra_db_v2'
 const MIGRATION_V3_KEY = 'repra_db_v3_bw_id'
+const MIGRATION_V4_KEY = 'repra_db_v4_soft_delete'
 
 const EXCLUDED_PATTERNS = [
   'access_token',
@@ -182,4 +183,5 @@ export async function importBackup(file: File): Promise<void> {
   // next app load. Catches any edge case where normalization above was skipped.
   localStorage.removeItem(MIGRATION_V2_KEY)
   localStorage.removeItem(MIGRATION_V3_KEY)
+  localStorage.removeItem(MIGRATION_V4_KEY)
 }
