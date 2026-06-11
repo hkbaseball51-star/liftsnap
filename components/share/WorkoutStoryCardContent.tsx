@@ -193,6 +193,33 @@ export function glassCardStyle(accentHex: string, isDark: boolean): { background
   }
 }
 
+// ── Workout card glass — warmer, lighter than glassCardStyle ─────────
+// glassCardStyle uses very dark accent-derived bases (e.g. rgb(40,15,3) for orange).
+// workoutGlassStyle adds a warm neutral offset so the card reads as rich warm-brown
+// rather than near-black. pearl-white and premium-black delegate to glassCardStyle.
+function workoutGlassStyle(accentHex: string, isDark: boolean): { background: string } {
+  if (!isDark) return glassCardStyle(accentHex, false)
+  const r = parseInt(accentHex.slice(1, 3), 16)
+  const g = parseInt(accentHex.slice(3, 5), 16)
+  const b = parseInt(accentHex.slice(5, 7), 16)
+  if (r > 200 && g > 200 && b > 200) return glassCardStyle(accentHex, true)
+  // Warm-neutral base offset + gentle accent tint, at 0.90 opacity (more opaque / defined)
+  const mr = Math.round(70 + r * 0.16)
+  const mg = Math.round(55 + g * 0.13)
+  const mb = Math.round(45 + b * 0.15)
+  const er = Math.round(49 + r * 0.09)
+  const eg = Math.round(39 + g * 0.07)
+  const eb = Math.round(32 + b * 0.09)
+  return {
+    background: [
+      `radial-gradient(ellipse 50% 34% at 88% 4%, rgba(255,255,255,0.16), transparent)`,
+      `radial-gradient(ellipse 70% 45% at 12% 100%, rgba(${r},${g},${b},0.22), transparent)`,
+      `linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 8%)`,
+      `linear-gradient(160deg, rgba(${mr},${mg},${mb},0.90) 0%, rgba(${er},${eg},${eb},0.90) 100%)`,
+    ].join(', '),
+  }
+}
+
 // ── Pure helpers ──────────────────────────────────────────────────────
 const JA_EN: Record<string, string> = {
   'デッドリフト': 'Deadlift',                   'ベントオーバーロウ': 'Bent Over Row',
@@ -317,7 +344,7 @@ export default function WorkoutStoryCardContent({
       borderRadius: '24px',
       textShadow: ts,
       ...(isTransparent ? { background: 'transparent' } : {
-        ...glassCardStyle(p.accentHex, p.isDark !== false),
+        ...workoutGlassStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
         boxShadow: p.isDark !== false
           ? `0 8px 28px rgba(0,0,0,0.60), 0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.13)`
@@ -508,7 +535,7 @@ export function ExerciseStoryCard({
       borderRadius: '24px',
       textShadow: ts,
       ...(isTransparent ? { background: 'transparent' } : {
-        ...glassCardStyle(p.accentHex, p.isDark !== false),
+        ...workoutGlassStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
         boxShadow: p.isDark !== false
           ? `0 8px 28px rgba(0,0,0,0.60), 0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.13)`

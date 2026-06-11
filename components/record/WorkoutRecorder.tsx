@@ -198,7 +198,7 @@ const ExerciseCard = memo(function ExerciseCard({
       }}>
 
       {/* Exercise header */}
-      <div className="flex items-center gap-2.5 px-3 py-2">
+      <div className="flex items-center gap-2.5 px-3 py-1.5">
         <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
           style={{ background: isNewPR ? '#ED742F' : 'var(--text-disabled)' }} />
         <div className="flex-1 min-w-0">
@@ -246,7 +246,7 @@ const ExerciseCard = memo(function ExerciseCard({
       </div>
 
       {/* Column labels */}
-      <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
+      <div className="grid grid-cols-12 gap-1.5 px-3 pt-0.5 pb-0.5"
         style={{ borderTop: '1px solid var(--card-divider)' }}>
         <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>#</span>
         <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>{weightUnitLabel(weightUnit).toUpperCase()}</span>
@@ -266,7 +266,7 @@ const ExerciseCard = memo(function ExerciseCard({
         return (
           <div key={set.id}>
             <div className="grid grid-cols-12 items-center px-3"
-              style={{ gap: 6, paddingTop: 5, paddingBottom: 5 }}>
+              style={{ gap: 5, paddingTop: 4, paddingBottom: 4 }}>
               {/* Set number + delete */}
               <div className="col-span-2 flex items-center justify-center gap-1">
                 {canDelete ? (
@@ -349,7 +349,7 @@ const ExerciseCard = memo(function ExerciseCard({
 
       {/* Stats summary — single line */}
       {stats && (
-        <div style={{ padding: '5px 14px 9px' }}>
+        <div style={{ padding: '4px 14px 7px' }}>
           <p style={{ fontSize: 11, lineHeight: 1 }}>
             <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Volume </span>
             <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
@@ -377,7 +377,7 @@ const ExerciseCard = memo(function ExerciseCard({
       </button>
 
       {/* Note */}
-      <div style={{ borderTop: '1px solid var(--card-divider)', padding: '7px 12px 10px' }}>
+      <div style={{ borderTop: '1px solid var(--card-divider)', padding: '5px 12px 8px' }}>
         {ex.note ? (
           <button
             className="w-full text-left active:opacity-70 transition-opacity"
@@ -924,7 +924,7 @@ export default function WorkoutRecorder({
       </div>
 
       {/* ── Exercise list ── */}
-      <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-3"
+      <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-2.5"
         style={{ paddingBottom: 'calc(13rem + env(safe-area-inset-bottom))' }}>
 
         {exerciseList.length === 0 && (
