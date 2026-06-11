@@ -229,17 +229,17 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-12 pb-3 flex-shrink-0">
-        <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: '#1a1a1a' }}>
-          <ArrowLeft size={16} style={{ color: '#777' }} />
+        <button onClick={() => router.back()} className="p-1.5 rounded-lg" style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
+          <ArrowLeft size={16} style={{ color: 'var(--text-muted)' }} />
         </button>
         <div>
-          <h1 className="text-sm font-black tracking-widest text-white">
+          <h1 className="text-sm font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>
             {isPast
               ? (ja ? 'この日のワークアウトStory' : 'Workout Story')
               : (ja ? '今日のワークアウトStory' : "Today's Workout Story")}
           </h1>
           {isPast && (
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 2 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               {fmtDateShort(data.date)}
             </p>
           )}
@@ -367,9 +367,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                     className="flex items-center gap-1.5 rounded-xl text-xs font-bold active:opacity-70 transition-opacity"
                     style={{
                       padding: '8px 14px',
-                      background: '#1a1a1a',
-                      color: '#888',
-                      border: '1px solid #2a2a2a',
+                      background: 'var(--surface-chip)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
                     }}
                   >
                     <Download size={13} />
@@ -386,11 +386,11 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       {/* ── Controls panel ── */}
       <div
         className="flex-1 overflow-y-auto"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+        style={{ paddingBottom: 'calc(4.75rem + env(safe-area-inset-bottom))' }}
       >
         {/* Card Style */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
             {ja ? 'カードスタイル' : 'Card Style'}
           </p>
           <div className="flex gap-2">
@@ -401,9 +401,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               <button key={value}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: cardStyle === value ? '#ED742F' : '#1a1a1a',
-                  color:      cardStyle === value ? '#fff'    : '#666',
-                  border:     `1px solid ${cardStyle === value ? '#ED742F' : '#2a2a2a'}`,
+                  background: cardStyle === value ? '#ED742F' : 'var(--surface-chip)',
+                  color:      cardStyle === value ? '#fff'    : 'var(--text-secondary)',
+                  border:     `1px solid ${cardStyle === value ? '#ED742F' : 'var(--border-subtle)'}`,
                 }}
                 onClick={() => handleSetCardStyle(value)}>
                 {ja ? labelJa : labelEn}
@@ -414,7 +414,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Design Preset */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
             {ja ? 'デザインプリセット' : 'Design Preset'}
           </p>
           <div className="grid grid-cols-2 gap-1.5">
@@ -424,9 +424,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 <button key={value}
                   className="py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
                   style={{
-                    background: sel ? `${swatch}22` : '#1a1a1a',
-                    color:      sel ? swatch         : '#666',
-                    border:     `1px solid ${sel ? swatch : '#2a2a2a'}`,
+                    background: sel ? `${swatch}22` : 'var(--surface-chip)',
+                    color:      sel ? swatch         : 'var(--text-secondary)',
+                    border:     `1px solid ${sel ? swatch : 'var(--border-subtle)'}`,
                     minHeight: 44,
                   }}
                   onClick={() => handleSetPreset(value)}>
@@ -444,7 +444,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Text Shadow */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
             {ja ? 'テキストシャドウ' : 'Text Shadow'}
           </p>
           <div className="flex gap-2">
@@ -452,9 +452,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               <button key={value}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: shadowMode === value ? '#333333' : '#1a1a1a',
-                  color:      shadowMode === value ? '#fff'    : '#666',
-                  border:     `1px solid ${shadowMode === value ? '#555555' : '#2a2a2a'}`,
+                  background: shadowMode === value ? '#ED742F' : 'var(--surface-chip)',
+                  color:      shadowMode === value ? '#fff'    : 'var(--text-secondary)',
+                  border:     `1px solid ${shadowMode === value ? '#ED742F' : 'var(--border-subtle)'}`,
                 }}
                 onClick={() => setShadowMode(value)}>
                 {ja ? labelJa : labelEn}
@@ -465,7 +465,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Save Format */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
             {ja ? '保存形式' : 'Save Format'}
           </p>
           <div className="flex gap-2">
@@ -476,9 +476,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               <button key={value}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: saveFormat === value ? '#ED742F' : '#1a1a1a',
-                  color:      saveFormat === value ? '#fff'    : '#666',
-                  border:     `1px solid ${saveFormat === value ? '#ED742F' : '#2a2a2a'}`,
+                  background: saveFormat === value ? '#ED742F' : 'var(--surface-chip)',
+                  color:      saveFormat === value ? '#fff'    : 'var(--text-secondary)',
+                  border:     `1px solid ${saveFormat === value ? '#ED742F' : 'var(--border-subtle)'}`,
                 }}
                 onClick={() => setSaveFormat(value)}>
                 {ja ? labelJa : labelEn}
@@ -489,7 +489,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Exercise Name Language */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: '#555', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
             {ja ? '種目名の表示' : 'Exercise names'}
           </p>
           <div className="flex gap-2">
@@ -500,9 +500,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               <button key={value}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: exerciseNameLang === value ? '#ED742F' : '#1a1a1a',
-                  color:      exerciseNameLang === value ? '#fff'    : '#666',
-                  border:     `1px solid ${exerciseNameLang === value ? '#ED742F' : '#2a2a2a'}`,
+                  background: exerciseNameLang === value ? '#ED742F' : 'var(--surface-chip)',
+                  color:      exerciseNameLang === value ? '#fff'    : 'var(--text-secondary)',
+                  border:     `1px solid ${exerciseNameLang === value ? '#ED742F' : 'var(--border-subtle)'}`,
                 }}
                 onClick={() => setExerciseNameLang(value)}>
                 {ja ? labelJa : labelEn}
@@ -533,7 +533,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 ? (ja ? 'まとめてカードを保存' : 'Save Full Card')
                 : (ja ? '種目カードを保存' : 'Save Exercise Cards')}
           </button>
-          <p className="text-center text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
+          <p className="text-center text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
             {ja
               ? '保存後、Instagramで写真や動画に重ねて使えます'
               : 'Save it, then layer it over your photo or video on Instagram.'}

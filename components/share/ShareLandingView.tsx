@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { TrendingUp, BarChart2, Activity, Lock, ChevronRight, Settings, Crown } from 'lucide-react'
 import { useWeightUnit } from '@/lib/useWeightUnit'
+import { useTheme } from '@/lib/useTheme'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import WorkoutStoryCardContent, { glassCardStyle, tname } from '@/components/share/WorkoutStoryCardContent'
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
@@ -124,6 +125,8 @@ export default function ShareLandingView({
 }: Props) {
   const router = useRouter()
   const { unit } = useWeightUnit()
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
   const unitLabel = weightUnitLabel(unit)
   const { daySummaries, totalSessions, bodyWeightHistory: ctxBwHistory, exercises } = useAppData()
 
@@ -172,6 +175,17 @@ export default function ShareLandingView({
     overflow: 'hidden' as const,
     opacity: enabled ? 1 : 0.55,
   })
+
+  const miniWrap: React.CSSProperties = {
+    width: 96, flexShrink: 0,
+    ...(isLight ? {
+      padding: 3,
+      background: 'rgba(0,0,0,0.04)',
+      border: '1px solid rgba(0,0,0,0.09)',
+      borderRadius: 14,
+      boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+    } : {}),
+  }
 
   const iconBox = (accentHex: string, bgAlpha = 0.14) => ({
     flexShrink: 0, width: 40, height: 40, borderRadius: 12,
@@ -281,7 +295,7 @@ export default function ShareLandingView({
                 {ja ? 'トレーニングをInstagramストーリー用カードに変換' : "Today's training as an Instagram story card."}
               </p>
               {/* Preview — unit-aware */}
-              <div style={{ position: 'relative', height: 188, overflow: 'hidden', borderRadius: 12, marginBottom: 11, background: '#121212' }}>
+              <div style={{ position: 'relative', height: 188, overflow: 'hidden', borderRadius: 12, marginBottom: 11, background: '#121212', ...(isLight ? { border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' } : {}) }}>
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%) scale(0.62)', transformOrigin: 'top center', width: 420, pointerEvents: 'none' }}>
                   <WorkoutStoryCardContent
                     data={displayPreviewData}
@@ -365,7 +379,7 @@ export default function ShareLandingView({
                       </div>
                     </div>
                     {/* Mini preview */}
-                    <div style={{ width: 96, flexShrink: 0 }}>
+                    <div style={miniWrap}>
                       <MiniGlassCard accentHex="#ED742F" label="MAX 1RM PROGRESS" metric={rm1ExerciseName} value={sampleRM} sub={sampleRMSub}>
                         <LineChart pts={RM_PTS} color="#ED742F" areaColor="rgba(237,116,47,0.12)" />
                       </MiniGlassCard>
@@ -439,7 +453,7 @@ export default function ShareLandingView({
                       </div>
                     </div>
                     {/* Mini preview — unit-aware */}
-                    <div style={{ width: 96, flexShrink: 0 }}>
+                    <div style={miniWrap}>
                       <MiniGlassCard accentHex="#22c55e" label="DAILY VOLUME" metric="ALL" value={sampleVol} sub="total · 94 sessions">
                         <BarChart heights={VOL_H} color="#22c55e" />
                       </MiniGlassCard>
@@ -515,7 +529,7 @@ export default function ShareLandingView({
                       </div>
                     </div>
                     {/* Mini preview — unit-aware */}
-                    <div style={{ width: 96, flexShrink: 0 }}>
+                    <div style={miniWrap}>
                       <MiniGlassCard accentHex="#60a5fa" label="BODY WEIGHT" metric="PROGRESS" value={sampleBW} sub={sampleBWSub}>
                         <LineChart pts={BW_PTS} color="#60a5fa" areaColor="rgba(96,165,250,0.12)" />
                       </MiniGlassCard>
