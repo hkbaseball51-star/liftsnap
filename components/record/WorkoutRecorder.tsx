@@ -873,15 +873,15 @@ export default function WorkoutRecorder({
           <button
             className="p-1 -ml-1 flex-shrink-0"
             onClick={() => isDirty ? setShowCancelConfirm(true) : handleClose()}>
-            <X size={18} style={{ color: '#555' }} />
+            <X size={18} style={{ color: 'var(--text-muted)' }} />
           </button>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
             {formatNavDate(date, locale)}
           </span>
           <Link href="/profile/settings"
             className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }}>
-            <Settings size={16} style={{ color: 'rgba(255,255,255,0.45)' }} />
+            style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
+            <Settings size={16} style={{ color: 'var(--header-icon-color)' }} />
           </Link>
         </div>
 
@@ -892,20 +892,20 @@ export default function WorkoutRecorder({
               onChange={e => { setTitle(e.target.value); setIsDirty(true) }}
               onBlur={() => { if (!title.trim()) setTitle(getDefaultTitle(locale)); setEditingTitle(false) }}
               onKeyDown={e => e.key === 'Enter' && setEditingTitle(false)}
-              className="text-sm font-black text-white bg-transparent outline-none"
-              style={{ borderBottom: '1px solid #ED742F', maxWidth: 200 }}
+              className="text-sm font-black bg-transparent outline-none"
+              style={{ color: 'var(--text-primary)', borderBottom: '1px solid #ED742F', maxWidth: 200 }}
             />
           ) : (
             <button onClick={() => setEditingTitle(true)} className="flex items-center gap-1">
-              <span className="text-sm font-black text-white truncate" style={{ maxWidth: 200 }}>{title}</span>
-              <Pencil size={9} style={{ color: '#444', flexShrink: 0 }} />
+              <span className="text-sm font-black truncate" style={{ color: 'var(--text-primary)', maxWidth: 200 }}>{title}</span>
+              <Pencil size={9} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             </button>
           )}
         </div>
 
         {/* Row 2: stats summary + save status */}
         <div className="flex items-center justify-between pb-2">
-          <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.54)' }}>
+          <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)' }}>
             {[
               displayVolume > 0 ? formatVolumeWithUnit(displayVolume, weightUnit) : null,
               displaySetsCount > 0 ? `${displaySetsCount} sets` : null,
@@ -983,7 +983,7 @@ export default function WorkoutRecorder({
       <div className="fixed inset-x-0 z-40 px-4 py-3"
         style={{
           bottom: 'calc(4.75rem + env(safe-area-inset-bottom))',
-          background: 'linear-gradient(to top, #080808 70%, transparent)',
+          background: 'linear-gradient(to top, var(--app-bg) 70%, transparent)',
         }}>
         {/* Rest button */}
         <div className="flex justify-end mb-2">
@@ -1014,8 +1014,8 @@ export default function WorkoutRecorder({
               placeholder={weightUnit === 'lbs' ? '154.0' : '70.0'}
               value={bwInput}
               onChange={e => setBwInput(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent text-white text-sm font-bold outline-none text-right"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.09)', paddingBottom: 1 }}
+              className="flex-1 min-w-0 bg-transparent text-sm font-bold outline-none text-right"
+              style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--input-border)', paddingBottom: 1 }}
             />
             <span style={{ fontSize: 11, color: '#444', flexShrink: 0 }}>{weightUnitLabel(weightUnit)}</span>
             <button

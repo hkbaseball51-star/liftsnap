@@ -29,7 +29,7 @@ export default async function SharePage({
     if (!date) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
-          <p className="text-white mb-4">Date not specified</p>
+          <p style={{ color: 'var(--text-primary)', marginBottom: 16 }}>Date not specified</p>
           <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>Back to Home</Link>
         </div>
       )
@@ -41,7 +41,7 @@ export default async function SharePage({
       if (!data) {
         return (
           <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: 'var(--app-bg)' }}>
-            <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10 }}>
+            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 10 }}>
               No workout found for this date
             </p>
             <Link href="/home" className="px-8 py-3 rounded-2xl text-sm font-black text-white"
@@ -74,10 +74,10 @@ export default async function SharePage({
     if (!data) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: 'var(--app-bg)' }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 10, lineHeight: 1.4 }}>
             今日のワークアウト記録がありません
           </p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.42)', textAlign: 'center', marginBottom: 28 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 28 }}>
             まずRecordから記録してください
           </p>
           <Link href={`/record?date=${date}`}
@@ -112,7 +112,7 @@ export default async function SharePage({
     if (!data) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
-          <p className="text-white mb-4">Data not found</p>
+          <p style={{ color: 'var(--text-primary)', marginBottom: 16 }}>Data not found</p>
           <Link href="/analytics" className="text-sm" style={{ color: '#ED742F' }}>Back to Analytics</Link>
         </div>
       )
@@ -185,7 +185,7 @@ export default async function SharePage({
   if (!sessionId) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
-        <p className="text-white mb-4">セッションが見つかりません</p>
+        <p style={{ color: 'var(--text-primary)', marginBottom: 16 }}>セッションが見つかりません</p>
         <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>ホームへ戻る</Link>
       </div>
     )
@@ -195,7 +195,7 @@ export default async function SharePage({
   if (!data) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
-        <p className="text-white mb-4">データが見つかりません</p>
+        <p style={{ color: 'var(--text-primary)', marginBottom: 16 }}>データが見つかりません</p>
         <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>ホームへ戻る</Link>
       </div>
     )

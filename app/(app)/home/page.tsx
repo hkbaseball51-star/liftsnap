@@ -112,7 +112,7 @@ export default function HomePage() {
   const profileComplete = true
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* ── Header ── Logo left · Settings right ── */}
       <div className="flex items-start justify-between px-4 pt-8 pb-2">
@@ -126,8 +126,8 @@ export default function HomePage() {
         />
         <Link href="/profile/settings"
           className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-1"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
-          <Settings size={18} style={{ color: 'rgba(255,255,255,0.52)' }} />
+          style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
+          <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
         </Link>
       </div>
 
@@ -142,10 +142,10 @@ export default function HomePage() {
           </>
         ) : (
           <>
-            <p style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
               Don&apos;t skip the log.
             </p>
-            <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginTop: 6 }}>
+            <p style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginTop: 6 }}>
               {"No session today — let's change that."}
             </p>
           </>
@@ -188,7 +188,7 @@ export default function HomePage() {
 
       {/* ── WEEKLY EFFORT ── */}
       <div className="px-4 mb-4">
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)', marginBottom: 10 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 10 }}>
           {t(locale, 'home.weeklyEffort')}
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -221,21 +221,21 @@ export default function HomePage() {
             },
           ]).map(({ label, value, sub, subColor, active, cardUnit }) => (
             <div key={label} className="premium-card rounded-xl p-3">
-              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.58)', marginBottom: 8 }}>
+              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 8 }}>
                 {label}
               </p>
               <div className="flex items-baseline gap-0.5">
-                <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}>
+                <p style={{ fontSize: 20, fontWeight: 600, lineHeight: 1, color: active ? 'var(--text-primary)' : 'var(--text-disabled)' }}>
                   {value}
                 </p>
                 {cardUnit && (
-                  <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.44)', marginLeft: 1 }}>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 1 }}>
                     {cardUnit}
                   </span>
                 )}
               </div>
               {sub && (
-                <p style={{ fontSize: 9, fontWeight: 500, marginTop: 5, color: subColor ?? 'rgba(255,255,255,0.44)' }}>
+                <p style={{ fontSize: 9, fontWeight: 500, marginTop: 5, color: subColor ?? 'var(--text-muted)' }}>
                   {sub}
                 </p>
               )}
@@ -248,16 +248,16 @@ export default function HomePage() {
       <div className="px-4 mb-4">
         <div className="premium-card rounded-xl px-4 py-3 flex items-center justify-between">
           <div>
-            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.56)', marginBottom: 5 }}>
+            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 5 }}>
               {locale === 'ja' ? '体重' : 'BODY WEIGHT'}
             </p>
             {todayWeight ? (
               <div className="flex items-baseline gap-1">
-                <p style={{ fontSize: 22, fontWeight: 600, color: '#fff' }}>{toDisplayWeight(todayWeight, unit)}</p>
-                <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.52)' }}>{weightUnitLabel(unit)}</span>
+                <p style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-primary)' }}>{toDisplayWeight(todayWeight, unit)}</p>
+                <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>{weightUnitLabel(unit)}</span>
               </div>
             ) : (
-              <p style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.54)' }}>{t(locale, 'home.notLogged')}</p>
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)' }}>{t(locale, 'home.notLogged')}</p>
             )}
           </div>
           <Link href="/analytics"
@@ -266,7 +266,7 @@ export default function HomePage() {
               padding: '7px 14px',
               background: todayWeight ? 'rgba(255,255,255,0.04)' : '#ED742F',
               border: todayWeight ? '1px solid rgba(255,255,255,0.08)' : 'none',
-              color: todayWeight ? 'rgba(255,255,255,0.60)' : '#fff',
+              color: todayWeight ? 'var(--text-muted)' : '#fff',
               fontSize: 11,
               fontWeight: 500,
             }}>

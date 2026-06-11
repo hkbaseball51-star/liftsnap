@@ -184,20 +184,20 @@ export default function ShareLandingView({
 
   if (!hasAnyData) {
     return (
-      <div className="min-h-screen pb-nav flex flex-col items-center justify-center px-6" style={{ background: '#080808' }}>
+      <div className="min-h-screen pb-nav flex flex-col items-center justify-center px-6" style={{ background: 'var(--app-bg)' }}>
         <div style={{
           width: '100%', maxWidth: 340,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.09)',
+          background: 'var(--card-bg-primary)',
+          border: '1px solid var(--card-border-primary)',
           borderRadius: 20,
           padding: '32px 24px',
           textAlign: 'center',
         }}>
           <p style={{ fontSize: 36, marginBottom: 14 }}>📸</p>
-          <p style={{ fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+          <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
             {t(locale, 'emptyState.shareTitle')}
           </p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.44)', lineHeight: 1.6, marginBottom: 24 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
             {t(locale, 'emptyState.shareDesc')}
           </p>
           <Link href="/record"
@@ -218,26 +218,26 @@ export default function ShareLandingView({
   }
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="px-4 pt-10 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.36)', marginBottom: 5 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-label)', marginBottom: 5 }}>
               SHARE
             </p>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: 4 }}>
               {ja ? '今日の努力を、1枚の証拠に。' : 'Create your proof.'}
             </h1>
-            <p style={{ fontSize: 12.5, fontWeight: 400, color: 'rgba(255,255,255,0.40)', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12.5, fontWeight: 400, color: 'var(--text-muted)', lineHeight: 1.5 }}>
               {ja ? '今日の努力をストーリーカードに変換する' : "Turn today's effort into a story."}
             </p>
           </div>
           <Link href="/profile/settings"
             className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-0.5"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
-            <Settings size={18} style={{ color: 'rgba(255,255,255,0.52)' }} />
+            style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
+            <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
           </Link>
         </div>
       </div>

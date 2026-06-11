@@ -318,22 +318,22 @@ export default function TrainingCalendar({
 
   return (
     <>
-    <div className="premium-card rounded-2xl overflow-hidden" style={{ background: '#1E1E1E' }}>
+    <div className="premium-card rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>
-          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#777' }}>TRAINING LOG</p>
+          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: 'var(--text-label)' }}>TRAINING LOG</p>
           <div className="flex items-center gap-2">
             {/* Tappable month title → opens jump sheet */}
             <button
               onClick={() => setJumpOpen(true)}
               className="flex items-center gap-1 active:opacity-70 transition-opacity"
               aria-label={locale === 'ja' ? '月を選択' : 'Jump to month'}>
-              <span className="text-xl font-black text-white tracking-wider">
+              <span className="text-xl font-black tracking-wider" style={{ color: 'var(--text-primary)' }}>
                 {locale === 'ja' ? MONTH_NAMES_JA[month] : MONTH_NAMES[month]}
               </span>
-              <span className="text-lg font-bold" style={{ color: '#666' }}>{year}</span>
-              <ChevronDown size={12} style={{ color: '#555', marginTop: 1 }} />
+              <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>{year}</span>
+              <ChevronDown size={12} style={{ color: 'var(--text-muted)', marginTop: 1 }} />
             </button>
             {thisMonthCount > 0 && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -378,7 +378,7 @@ export default function TrainingCalendar({
           <div className="grid grid-cols-7 mb-1">
             {DAY_NAMES.map(d => (
               <div key={d} className="text-center py-1">
-                <span className="text-[9px] font-black tracking-wider" style={{ color: '#666' }}>{d}</span>
+                <span className="text-[9px] font-black tracking-wider" style={{ color: 'var(--text-muted)' }}>{d}</span>
               </div>
             ))}
           </div>
@@ -528,10 +528,10 @@ export default function TrainingCalendar({
           {/* Empty state — shown only when the user has no recorded sessions */}
           {sessions.length === 0 && (
             <div style={{ textAlign: 'center', padding: '14px 0 4px' }}>
-              <p style={{ color: 'rgba(255,255,255,0.22)', fontSize: 12, fontWeight: 700 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700 }}>
                 {locale === 'ja' ? 'まだ記録がありません' : 'No workouts yet'}
               </p>
-              <p style={{ color: 'rgba(255,255,255,0.14)', fontSize: 11, marginTop: 4 }}>
+              <p style={{ color: 'var(--text-disabled)', fontSize: 11, marginTop: 4 }}>
                 {locale === 'ja' ? '今日のワークアウトを記録して始めましょう' : 'Start by logging today\'s workout'}
               </p>
             </div>

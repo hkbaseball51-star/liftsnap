@@ -30,6 +30,13 @@
   --text-chevron: rgba(255,255,255,0.28);
   --input-bg: #1e1e1e;
   --input-border: rgba(255,255,255,0.11);
+  /* Chip / surface / inactive patterns */
+  --surface-chip: #171717;
+  --text-inactive: #555555;
+  --border-subtle: #222222;
+  --header-icon-bg: rgba(255,255,255,0.08);
+  --header-icon-border: rgba(255,255,255,0.10);
+  --header-icon-color: rgba(255,255,255,0.52);
 }
 
 [data-theme="light"] {
@@ -46,9 +53,9 @@
 
   /* Theme-switchable tokens (light) */
   --app-bg: #F8F7F3;
-  --nav-bg: rgba(248,247,243,0.97);
-  --nav-border: rgba(0,0,0,0.09);
-  --card-bg-primary: rgba(255,255,255,0.90);
+  --nav-bg: rgba(255,255,255,0.92);
+  --nav-border: rgba(0,0,0,0.08);
+  --card-bg-primary: #FFFFFF;
   --card-border-primary: rgba(0,0,0,0.08);
   --card-divider: rgba(0,0,0,0.06);
   --card-icon-bg: rgba(0,0,0,0.05);
@@ -57,6 +64,13 @@
   --text-chevron: rgba(0,0,0,0.28);
   --input-bg: rgba(0,0,0,0.04);
   --input-border: rgba(0,0,0,0.12);
+  /* Chip / surface / inactive patterns */
+  --surface-chip: rgba(0,0,0,0.05);
+  --text-inactive: #6B7280;
+  --border-subtle: rgba(0,0,0,0.09);
+  --header-icon-bg: rgba(0,0,0,0.06);
+  --header-icon-border: rgba(0,0,0,0.10);
+  --header-icon-color: #6B7280;
 }
 
 @theme inline {

@@ -25,7 +25,7 @@ function LegendItem({ label, name, color, ja }: { label: string; name: string; c
       </span>
       <span style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-        color: 'rgba(255,255,255,0.36)', lineHeight: 1,
+        color: 'var(--text-muted)', lineHeight: 1,
       }}>
         {ja ? (LEGEND_NAME_JA[label] ?? name) : name}
       </span>
@@ -35,15 +35,15 @@ function LegendItem({ label, name, color, ja }: { label: string; name: string; c
 
 const SECTION_TITLE: React.CSSProperties = {
   fontSize: 9, fontWeight: 800, letterSpacing: '0.14em',
-  color: 'rgba(255,255,255,0.28)', marginBottom: 8,
+  color: 'var(--text-label)', marginBottom: 8,
   textTransform: 'uppercase',
 }
 
 function CalendarLegend({ ja }: { ja: boolean }) {
   return (
     <div style={{
-      background: '#141414',
-      border: '1px solid rgba(255,255,255,0.07)',
+      background: 'var(--card-bg-primary)',
+      border: '1px solid var(--card-border-primary)',
       borderRadius: 14,
       padding: '10px 14px',
       marginTop: 10,
@@ -57,7 +57,7 @@ function CalendarLegend({ ja }: { ja: boolean }) {
       </div>
 
       {/* Horizontal divider */}
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 10 }} />
+      <div style={{ height: 1, background: 'var(--card-divider)', marginBottom: 10 }} />
 
       {/* MUSCLE — horizontal wrap */}
       <p style={SECTION_TITLE}>MUSCLE</p>
@@ -123,18 +123,18 @@ export default function CalendarWithSummary({
           marginTop: 12,
           padding: '16px 18px',
           borderRadius: 14,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--card-bg-primary)',
+          border: '1px solid var(--card-border-primary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
         }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.70)', marginBottom: 4 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
               {t(locale, 'emptyState.calendarTitle')}
             </p>
-            <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
               {t(locale, 'emptyState.calendarDesc')}
             </p>
           </div>

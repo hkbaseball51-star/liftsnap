@@ -432,22 +432,22 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   return (
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: 'var(--app-bg)' }}>
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-black tracking-widest text-white">{ja ? '成長データ' : 'ANALYTICS'}</h1>
+        <h1 className="text-xl font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>{ja ? '成長データ' : 'ANALYTICS'}</h1>
         <Link href="/profile/settings"
           className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
-          <Settings size={18} style={{ color: 'rgba(255,255,255,0.52)' }} />
+          style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
+          <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
         </Link>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-4 p-1 rounded-2xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>
+      <div className="flex gap-1 mb-4 p-1 rounded-2xl" style={{ background: 'var(--surface-chip)', border: '1px solid rgba(237, 116, 47,0.1)' }}>
         {TABS.map(t => (
           <button key={t}
             className="flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all"
             style={{
               background: tab === t ? '#ED742F' : 'transparent',
-              color: tab === t ? '#fff' : '#555',
+              color: tab === t ? '#fff' : 'var(--text-inactive)',
             }}
             onClick={() => setTab(t)}>
             {ja ? ({ 'MAX 1RM': 'MAX 1RM', 'DAILY VOLUME': '総重量', 'BODY WEIGHT': '体重' } as Record<Tab, string>)[t] : t}
@@ -456,7 +456,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       </div>
 
       {/* Tab description */}
-      <p className="text-[11px] mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
+      <p className="text-[11px] mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
         {tab === 'MAX 1RM'
           ? t(locale, 'analytics.tab1RMDesc')
           : tab === 'DAILY VOLUME'
@@ -475,9 +475,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   className="shrink-0 px-4 rounded-full text-[13px] font-bold tracking-wide transition-all"
                   style={{
                     minHeight: 44,
-                    background: muscleFilter === mg ? 'rgba(237, 116, 47,0.14)' : '#171717',
-                    color: muscleFilter === mg ? '#ED742F' : '#555',
-                    border: muscleFilter === mg ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #222',
+                    background: muscleFilter === mg ? 'rgba(237, 116, 47,0.14)' : 'var(--surface-chip)',
+                    color: muscleFilter === mg ? '#ED742F' : 'var(--text-inactive)',
+                    border: muscleFilter === mg ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid var(--border-subtle)',
                   }}
                   onClick={() => handleMuscleFilter(mg)}>
                   {ja ? (MUSCLE_GROUP_LABEL_JA[mg] ?? mg) : mg}
@@ -488,7 +488,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
 
           {/* Exercise chips */}
           {filteredExercises.length === 0 ? (
-            <p className="text-xs font-bold mb-4" style={{ color: '#444' }}>{t(locale, 'analytics.noGroupData')}</p>
+            <p className="text-xs font-bold mb-4" style={{ color: 'var(--text-muted)' }}>{t(locale, 'analytics.noGroupData')}</p>
           ) : (
             <div className="overflow-x-auto no-scrollbar mb-4">
               <div className="flex gap-2.5 pb-1">
@@ -497,9 +497,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     className="shrink-0 px-4 rounded-full text-[13px] font-semibold tracking-wide transition-all"
                     style={{
                       minHeight: 44,
-                      background: selectedExercise === e.name ? '#ED742F' : '#171717',
-                      color: selectedExercise === e.name ? '#fff' : '#666',
-                      border: selectedExercise === e.name ? '1px solid transparent' : '1px solid #222',
+                      background: selectedExercise === e.name ? '#ED742F' : 'var(--surface-chip)',
+                      color: selectedExercise === e.name ? '#fff' : 'var(--text-inactive)',
+                      border: selectedExercise === e.name ? '1px solid transparent' : '1px solid var(--border-subtle)',
                     }}
                     onClick={() => setSelectedExercise(e.name)}>
                     {getDisplayName(e.name, locale)}
@@ -513,13 +513,13 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
 
       {/* Period filter */}
       {/* TODO_PRO: longRangeStats — '1Y' and 'All' periods are candidates for Pro-only access. Currently free. */}
-      <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: '#171717', border: '1px solid rgba(237, 116, 47,0.1)' }}>
+      <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: 'var(--surface-chip)', border: '1px solid rgba(237, 116, 47,0.1)' }}>
         {PERIODS.map(p => (
           <button key={p}
             className="flex-1 py-2.5 rounded-lg text-[11px] font-black tracking-widest transition-all"
             style={{
               background: period === p ? '#ED742F' : 'transparent',
-              color: period === p ? '#fff' : '#555',
+              color: period === p ? '#fff' : 'var(--text-inactive)',
             }}
             onClick={() => setPeriod(p)}>
             {ja ? (PERIOD_BTN_LABEL_JA[p] ?? p) : p}
