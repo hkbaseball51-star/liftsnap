@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Settings } from 'lucide-react'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import { useWeightUnit } from '@/lib/useWeightUnit'
@@ -25,15 +24,13 @@ function HomeSkeleton() {
   }
   return (
     <div style={{ background: 'var(--app-bg)', minHeight: '100svh' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '32px 16px 8px' }}>
-        <div style={{ ...shimmer, width: 100, height: 22, borderRadius: 6 }} />
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />
-      </div>
-      {/* Greeting */}
-      <div style={{ padding: '8px 16px 16px' }}>
-        <div style={{ ...shimmer, width: 190, height: 24, borderRadius: 7, marginBottom: 8 }} />
-        <div style={{ ...shimmer, width: 230, height: 14, borderRadius: 6 }} />
+      {/* Header + Greeting */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '48px 16px 16px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ ...shimmer, width: 190, height: 24, borderRadius: 7, marginBottom: 8 }} />
+          <div style={{ ...shimmer, width: 230, height: 14, borderRadius: 6 }} />
+        </div>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', flexShrink: 0, marginTop: 4 }} />
       </div>
       {/* CTA card */}
       <div style={{ padding: '0 16px 20px' }}>
@@ -114,42 +111,32 @@ export default function HomePage() {
   return (
     <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
-      {/* ── Header ── Logo left · Settings right ── */}
-      <div className="flex items-start justify-between px-4 pt-8 pb-2">
-        <Image
-          src="/brand/repra-logo-cropped.png"
-          alt="REPRA"
-          width={949}
-          height={188}
-          priority
-          style={{ width: 100, height: 'auto', display: 'block' }}
-        />
+      {/* ── Header + Greeting ── */}
+      <div className="flex items-start justify-between gap-3 px-4 pt-12 pb-4">
+        <div className="flex-1">
+          {todayWorked ? (
+            <>
+              <HomeGreeting displayName={displayName} />
+              <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 8 }}>
+                Great work today.
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                Don&apos;t skip the log.
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginTop: 6 }}>
+                {"No session today — let's change that."}
+              </p>
+            </>
+          )}
+        </div>
         <Link href="/profile/settings"
           className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-1"
           style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
           <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
         </Link>
-      </div>
-
-      {/* ── WELCOME ── */}
-      <div className="px-4 pt-2 pb-4">
-        {todayWorked ? (
-          <>
-            <HomeGreeting displayName={displayName} />
-            <p style={{ fontSize: 13, fontWeight: 400, color: '#22c55e', marginTop: 8 }}>
-              Great work today.
-            </p>
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              Don&apos;t skip the log.
-            </p>
-            <p style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginTop: 6 }}>
-              {"No session today — let's change that."}
-            </p>
-          </>
-        )}
       </div>
 
       {/* ── TODAY'S CTA ── */}

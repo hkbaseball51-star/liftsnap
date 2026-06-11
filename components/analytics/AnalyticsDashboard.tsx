@@ -605,7 +605,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   <div className="relative">
                     {rmChartW > innerW && (
                       <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
-                        style={{ background: 'linear-gradient(to right, rgba(10,10,10,0.9), transparent)' }} />
+                        style={{ background: 'var(--chart-edge-fade)' }} />
                     )}
                     <div ref={rmScrollRef}
                       className="overflow-x-auto overscroll-x-contain no-scrollbar"
@@ -751,7 +751,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   <div className="relative">
                     {volChartW > innerW && (
                       <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
-                        style={{ background: 'linear-gradient(to right, rgba(10,10,10,0.9), transparent)' }} />
+                        style={{ background: 'var(--chart-edge-fade)' }} />
                     )}
                     <div ref={volScrollRef}
                       className="overflow-x-auto overscroll-x-contain no-scrollbar"

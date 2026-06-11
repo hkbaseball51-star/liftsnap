@@ -147,12 +147,12 @@ function computeDynamic(props: HomeCTACardProps, seen: Seen, fallback: CTAItem):
 function IconBox({ icon, accent }: { icon: CTAIcon; accent: Accent }) {
   const solid  = accent === 'orange-solid'
   const muted  = accent === 'orange-muted'
-  const color  = solid ? '#fff' : muted ? '#ED742F' : 'rgba(255,255,255,0.52)'
+  const color  = solid ? '#fff' : muted ? '#ED742F' : 'var(--text-secondary)'
   const box    = solid
     ? { background: '#ED742F', boxShadow: '0 4px 18px rgba(237,116,47,0.42)' } as React.CSSProperties
     : muted
       ? { background: 'rgba(237,116,47,0.14)', border: '1px solid rgba(237,116,47,0.30)' } as React.CSSProperties
-      : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' } as React.CSSProperties
+      : { background: 'var(--surface-chip)', border: '1px solid var(--border-subtle)' } as React.CSSProperties
 
   return (
     <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={box}>
@@ -198,10 +198,10 @@ function CTACard({ cta }: { cta: CTAItem }) {
       <div
         className="rounded-2xl overflow-hidden"
         style={{
-          background: isOrange ? '#1C1C1C' : '#181818',
+          background: 'var(--card-bg-primary)',
           border: isOrange
             ? '1px solid rgba(237,116,47,0.28)'
-            : '1px solid rgba(255,255,255,0.09)',
+            : '1px solid var(--card-border-primary)',
           boxShadow: pressed && isOrange
             ? '0 0 28px rgba(237,116,47,0.28), 0 0 8px rgba(237,116,47,0.14)'
             : 'none',
@@ -212,24 +212,24 @@ function CTACard({ cta }: { cta: CTAItem }) {
           height: cta.accent === 'orange-solid' ? 2 : 1,
           background: isOrange
             ? 'linear-gradient(90deg, #ED742F 0%, rgba(237,116,47,0.18) 60%, transparent 100%)'
-            : 'linear-gradient(90deg, rgba(255,255,255,0.13) 0%, transparent 55%)',
+            : 'linear-gradient(90deg, var(--card-divider) 0%, transparent 55%)',
         }} />
 
         <div className="px-5 py-4 flex items-center gap-4">
           <div className="flex-1 min-w-0">
             <p style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 5,
-              color: isOrange ? 'rgba(237,116,47,0.82)' : 'rgba(255,255,255,0.40)',
+              color: isOrange ? 'rgba(237,116,47,0.82)' : 'var(--text-muted)',
             }}>
               {cta.sub}
             </p>
             <p style={{
               fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em',
-              lineHeight: 1.25, marginBottom: 5, color: '#fff',
+              lineHeight: 1.25, marginBottom: 5, color: 'var(--text-primary)',
             }}>
               {cta.title}
             </p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.46)' }}>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>
               {cta.desc}
             </p>
           </div>

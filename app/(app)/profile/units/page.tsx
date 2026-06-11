@@ -17,18 +17,18 @@ export default function UnitsPage() {
   const { unit, setUnit } = useWeightUnit()
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile/settings" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
+          <ChevronLeft size={22} style={{ color: 'var(--text-chevron)' }} />
         </Link>
-        <h1 className="text-base font-black tracking-widest" style={{ color: '#f5f5f5' }}>
+        <h1 className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>
           {t(locale, 'settings.units').toUpperCase()}
         </h1>
       </div>
 
       <div className="mx-4">
-        <div style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 20, overflow: 'hidden' }}>
           {OPTIONS.map((opt, i) => {
             const selected = unit === opt.value
             const isLast = i === OPTIONS.length - 1
@@ -36,13 +36,13 @@ export default function UnitsPage() {
               <button
                 key={opt.value}
                 className="w-full flex items-center gap-3 px-4 py-4 text-left active:opacity-70 transition-opacity"
-                style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.07)' }}
+                style={{ borderBottom: isLast ? 'none' : '1px solid var(--card-divider)' }}
                 onClick={() => setUnit(opt.value)}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold" style={{ color: selected ? '#fff' : 'rgba(255,255,255,0.65)' }}>
+                  <p className="text-sm font-bold" style={{ color: selected ? '#ED742F' : 'var(--text-primary)' }}>
                     {t(locale, opt.labelKey)}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     {t(locale, opt.subKey)}
                   </p>
                 </div>

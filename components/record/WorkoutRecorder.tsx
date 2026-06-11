@@ -1204,14 +1204,14 @@ export default function WorkoutRecorder({
       {mounted && assistMenuTarget && createPortal(
         <div
           className="fixed inset-0 z-[60] flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.72)' }}
+          style={{ background: 'var(--overlay-bg)' }}
           onClick={() => setAssistMenuTarget(null)}>
           <div
             className="w-full rounded-t-3xl p-5"
-            style={{ maxWidth: 480, background: '#131313', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+            style={{ maxWidth: 480, background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderBottom: 'none', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
             onClick={e => e.stopPropagation()}>
             <div className="flex justify-center mb-4">
-              <div className="w-10 h-1 rounded-full" style={{ background: '#333' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--drag-handle)' }} />
             </div>
             {(['none', 'assisted', 'failed', 'warmup'] as AssistStatus[]).map(status => {
               const isSelected = assistMenuTarget.currentStatus === status
@@ -1221,9 +1221,9 @@ export default function WorkoutRecorder({
                   key={status}
                   className="w-full py-3.5 rounded-xl text-sm font-black mb-2 active:opacity-70 transition-opacity flex items-center gap-3 px-4"
                   style={{
-                    background: isSelected ? ac.bg : '#1a1a1a',
-                    color: isSelected ? ac.color : 'rgba(255,255,255,0.55)',
-                    border: isSelected ? `1.5px solid ${ac.border}` : '1px solid rgba(255,255,255,0.07)',
+                    background: isSelected ? ac.bg : 'var(--surface-chip)',
+                    color: isSelected ? ac.color : 'var(--text-primary)',
+                    border: isSelected ? `1.5px solid ${ac.border}` : '1px solid var(--card-border-primary)',
                     justifyContent: 'center',
                   }}
                   onClick={() => {
@@ -1232,7 +1232,7 @@ export default function WorkoutRecorder({
                   }}>
                   <span style={{
                     width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                    background: isSelected ? ac.color : 'rgba(255,255,255,0.18)',
+                    background: isSelected ? ac.color : 'var(--drag-handle)',
                     display: 'inline-block',
                   }} />
                   {locale === 'ja' ? ASSIST_LABELS[status].ja : ASSIST_LABELS[status].en}
@@ -1241,7 +1241,7 @@ export default function WorkoutRecorder({
             })}
             <button
               className="w-full py-3.5 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
-              style={{ background: 'rgba(255,255,255,0.05)', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--card-border-primary)' }}
               onClick={() => setAssistMenuTarget(null)}>
               {locale === 'ja' ? 'キャンセル' : 'Cancel'}
             </button>

@@ -17,27 +17,12 @@ import { useDemoMode } from '@/lib/useDemoMode'
 import { REPRA_DEMO_USER_ID } from '@/lib/demoConstants'
 import DataManagementSection from '@/components/settings/DataManagementSection'
 import AppearanceSection from '@/components/settings/AppearanceSection'
-import { useTheme } from '@/lib/useTheme'
 
-function makeT(isLight: boolean) {
-  return isLight ? {
-    main:     '#111827',
-    secondary:'#374151',
-    label:    '#6B7280',
-    chevron:  'rgba(0,0,0,0.28)',
-    card:     { background: 'rgba(255,255,255,0.90)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, overflow: 'hidden' } as React.CSSProperties,
-    divider:  '1px solid rgba(0,0,0,0.06)',
-    iconWrap: { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.10)' } as React.CSSProperties,
-  } : {
-    main:     '#f5f5f5',
-    secondary:'rgba(255,255,255,0.58)',
-    label:    'rgba(255,255,255,0.52)',
-    chevron:  'rgba(255,255,255,0.28)',
-    card:     { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as React.CSSProperties,
-    divider:  '1px solid rgba(255,255,255,0.07)',
-    iconWrap: { background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' } as React.CSSProperties,
-  }
-}
+/* CSS-var-based theme tokens — update immediately when data-theme changes */
+const T = {
+  card:     { background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 20, overflow: 'hidden' } as React.CSSProperties,
+  divider:  '1px solid var(--card-divider)' as const,
+} as const
 
 type LiveRow = {
   label:    string
@@ -97,8 +82,6 @@ function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
 export default function SettingsPage() {
   const router = useRouter()
   const { locale } = useLocale()
-  const { theme } = useTheme()
-  const T = makeT(theme === 'light')
   const { demoUserId, isDemo, enableDemo, disableDemo, mounted: demoMounted } = useDemoMode()
 
   // 5-tap reveal for hidden demo section
@@ -150,9 +133,9 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <button onClick={() => router.back()} className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
+          <ChevronLeft size={22} style={{ color: 'var(--text-chevron)' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'settings.settingsTitle')}</h1>
+        <h1 className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>{t(locale, 'settings.settingsTitle')}</h1>
       </div>
 
       {/* ── APP ── */}
@@ -187,8 +170,8 @@ export default function SettingsPage() {
               <Crown size={14} style={{ color: '#ED742F' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-black" style={{ color: T.main }}>{t(locale, 'settings.proTeaserTitle')}</p>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: T.secondary }}>{t(locale, 'settings.proTeaserBody')}</p>
+              <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{t(locale, 'settings.proTeaserTitle')}</p>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t(locale, 'settings.proTeaserBody')}</p>
             </div>
           </div>
           <div className="flex items-center justify-center py-2.5 rounded-xl"
@@ -209,7 +192,7 @@ export default function SettingsPage() {
       {/* ── Version tap target (hidden) — 5 taps reveals Demo Mode ── */}
       <div className="mx-4 mb-3 flex justify-center">
         <button onClick={handleVersionTap} className="px-4 py-1 active:opacity-40">
-          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.10)' }}>v1.0.0</span>
+          <span className="text-[9px]" style={{ color: 'var(--text-disabled)' }}>v1.0.0</span>
         </button>
       </div>
 
@@ -222,16 +205,16 @@ export default function SettingsPage() {
             {/* Status row */}
             <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: T.divider }}>
               <div>
-                <p className="text-sm font-bold" style={{ color: T.main }}>Demo Data Mode</p>
-                <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Demo Data Mode</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {locale === 'ja' ? 'デモユーザーIDのSupabaseデータを読み込む' : 'Loads demo user data from Supabase'}
                 </p>
               </div>
               <div className="px-2.5 py-1 rounded-lg" style={{
-                background: isDemo ? 'rgba(237,116,47,0.14)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${isDemo ? 'rgba(237,116,47,0.40)' : 'rgba(255,255,255,0.12)'}`,
+                background: isDemo ? 'rgba(237,116,47,0.14)' : 'var(--surface-chip)',
+                border: `1px solid ${isDemo ? 'rgba(237,116,47,0.40)' : 'var(--card-border-primary)'}`,
               }}>
-                <span className="text-[10px] font-black" style={{ color: isDemo ? '#ED742F' : 'rgba(255,255,255,0.32)' }}>
+                <span className="text-[10px] font-black" style={{ color: isDemo ? '#ED742F' : 'var(--text-muted)' }}>
                   {isDemo ? 'ON' : 'OFF'}
                 </span>
               </div>
@@ -240,8 +223,8 @@ export default function SettingsPage() {
             {/* Current user ID */}
             {demoUserId && (
               <div className="px-4 py-3" style={{ borderBottom: T.divider }}>
-                <p className="text-[9px] font-bold mb-1" style={{ color: T.label }}>CURRENT DEMO USER ID</p>
-                <p className="text-[9px] font-mono" style={{ color: 'rgba(255,255,255,0.42)', wordBreak: 'break-all' }}>
+                <p className="text-[9px] font-bold mb-1" style={{ color: 'var(--text-label)' }}>CURRENT DEMO USER ID</p>
+                <p className="text-[9px] font-mono" style={{ color: 'var(--text-muted)', wordBreak: 'break-all' }}>
                   {demoUserId}
                 </p>
               </div>
@@ -285,7 +268,7 @@ export default function SettingsPage() {
             </p>
           )}
 
-          <p className="text-[9px] mt-2 px-1" style={{ color: 'rgba(255,255,255,0.16)' }}>
+          <p className="text-[9px] mt-2 px-1" style={{ color: 'var(--text-disabled)' }}>
             {locale === 'ja'
               ? '有効化後、ホームへ移動するとデモデータが読み込まれます。URL ?demoUserId= でも有効化できます。'
               : 'After enabling, navigate to Home to load demo data. URL ?demoUserId= also activates demo mode.'}

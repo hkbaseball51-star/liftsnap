@@ -63,23 +63,23 @@ export default function NumberInputSheet({
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end"
-      style={{ background: 'rgba(0,0,0,0.75)' }}
+      style={{ background: 'var(--overlay-bg)' }}
       onClick={onClose}>
 
       {/* Sheet — max-height constrains to viewport, flex-col keeps footer pinned */}
       <div
         className="w-full rounded-t-3xl flex flex-col"
         style={{
-          background: '#171717',
-          border: '1px solid #1e1e1e',
+          background: 'var(--card-bg-primary)',
+          border: '1px solid var(--card-border-primary)',
           maxHeight: 'calc(100dvh - 4rem)',
         }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
-          <span className="text-[10px] font-black tracking-widest" style={{ color: '#555' }}>{label}</span>
-          <button onClick={onClose}><X size={20} style={{ color: '#555' }} /></button>
+          <span className="text-[10px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>{label}</span>
+          <button onClick={onClose}><X size={20} style={{ color: 'var(--text-muted)' }} /></button>
         </div>
 
         {/* Body — scrolls if content overflows on very small screens */}
@@ -93,15 +93,16 @@ export default function NumberInputSheet({
               pattern={isInteger ? '[0-9０-９]*' : '[0-9０-９]*[.]?[0-9０-９]*'}
               value={inputVal}
               onChange={e => handleInput(e.target.value)}
-              className="bg-transparent text-center font-black text-white outline-none"
+              className="bg-transparent text-center font-black outline-none"
               style={{
                 fontSize: dispFontSize,
                 width: dispInputWidth,
                 fontFamily: 'var(--font-mono)',
                 caretColor: '#ED742F',
+                color: 'var(--text-primary)',
               }}
             />
-            <span className="text-xl font-black" style={{ color: '#444', fontFamily: 'var(--font-mono)' }}>
+            <span className="text-xl font-black" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
               {unit}
             </span>
           </div>
@@ -117,9 +118,9 @@ export default function NumberInputSheet({
                     className="rounded-xl font-black"
                     style={{
                       fontSize: 13,
-                      background: '#222222',
-                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
-                      border: '1px solid #222',
+                      background: 'var(--surface-chip)',
+                      color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
                       minHeight: 42,
                     }}
                     onClick={() => adjust(s)}>
@@ -134,9 +135,9 @@ export default function NumberInputSheet({
                     className="rounded-2xl font-black"
                     style={{
                       fontSize: 15,
-                      background: '#222222',
-                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
-                      border: '1px solid #222',
+                      background: 'var(--surface-chip)',
+                      color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
                       minHeight: 46,
                     }}
                     onClick={() => adjust(s)}>
@@ -151,9 +152,9 @@ export default function NumberInputSheet({
                     className="rounded-2xl font-black"
                     style={{
                       fontSize: 15,
-                      background: '#222222',
-                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
-                      border: '1px solid #222',
+                      background: 'var(--surface-chip)',
+                      color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
                       minHeight: 46,
                     }}
                     onClick={() => adjust(s)}>
@@ -172,9 +173,9 @@ export default function NumberInputSheet({
                     className="rounded-xl font-black"
                     style={{
                       fontSize: 13,
-                      background: '#222222',
-                      color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
-                      border: '1px solid #222',
+                      background: 'var(--surface-chip)',
+                      color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
                       minHeight: 42,
                     }}
                     onClick={() => adjust(s)}>
@@ -190,9 +191,9 @@ export default function NumberInputSheet({
                       className="rounded-2xl font-black"
                       style={{
                         fontSize: 15,
-                        background: '#222222',
-                        color: s > 0 ? '#ED742F' : 'rgba(255,255,255,0.54)',
-                        border: '1px solid #222',
+                        background: 'var(--surface-chip)',
+                        color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
+                        border: '1px solid var(--border-subtle)',
                         minHeight: 46,
                       }}
                       onClick={() => adjust(s)}>
@@ -213,9 +214,9 @@ export default function NumberInputSheet({
                   className="py-3 rounded-2xl font-black"
                   style={{
                     fontSize: 14,
-                    background: '#222222',
-                    color: s > 0 ? '#ED742F' : '#555',
-                    border: '1px solid #222',
+                    background: 'var(--surface-chip)',
+                    color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
                     minHeight: 44,
                   }}
                   onClick={() => adjust(s)}>

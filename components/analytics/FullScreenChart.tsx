@@ -555,7 +555,7 @@ export default function FullScreenChart({
         <div style={{ position: 'relative' }}>
           {w > chartAreaW && (
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 20, zIndex: 1, pointerEvents: 'none',
-              background: 'linear-gradient(to right, rgba(8,8,8,0.92), transparent)' }} />
+              background: 'var(--chart-edge-fade)' }} />
           )}
           <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain no-scrollbar"
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
@@ -583,7 +583,7 @@ export default function FullScreenChart({
         <div style={{ position: 'relative' }}>
           {w > chartAreaW && (
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 20, zIndex: 1, pointerEvents: 'none',
-              background: 'linear-gradient(to right, rgba(8,8,8,0.92), transparent)' }} />
+              background: 'var(--chart-edge-fade)' }} />
           )}
           <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain no-scrollbar"
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>

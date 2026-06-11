@@ -5,23 +5,23 @@ import { ChevronLeft, ChevronRight, Mail, BookOpen } from 'lucide-react'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 
-/* ── shared tokens ─────────────────────────────────── */
+/* ── CSS-var-based tokens ──────────────────────────────── */
 const T = {
-  main:      '#f5f5f5',
-  secondary: 'rgba(255,255,255,0.58)',
-  label:     'rgba(255,255,255,0.52)',
-  chevron:   'rgba(255,255,255,0.28)',
-  card:      { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
-  divider:   '1px solid rgba(255,255,255,0.07)',
+  main:      'var(--text-primary)',
+  secondary: 'var(--text-secondary)',
+  label:     'var(--text-label)',
+  chevron:   'var(--text-chevron)',
+  card:      { background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 20, overflow: 'hidden' } as React.CSSProperties,
+  divider:   '1px solid var(--card-divider)',
   soon: {
-    background: 'rgba(255,255,255,0.12)',
-    color: 'rgba(255,255,255,0.58)',
-    border:     '1px solid rgba(255,255,255,0.17)',
-  },
+    background: 'var(--surface-chip)',
+    color:      'var(--text-secondary)',
+    border:     '1px solid var(--card-border-primary)',
+  } as React.CSSProperties,
   iconWrap: {
-    background: 'rgba(255,255,255,0.11)',
-    border:     '1px solid rgba(255,255,255,0.15)',
-  },
+    background: 'var(--card-icon-bg)',
+    border:     '1px solid var(--card-icon-border)',
+  } as React.CSSProperties,
 }
 
 const SectionLabel = ({ text }: { text: string }) => (
@@ -93,12 +93,12 @@ export default function SupportPage() {
   ]
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile/settings" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
+          <ChevronLeft size={22} style={{ color: 'var(--text-chevron)' }} />
         </Link>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>{t(locale, 'support.title')}</h1>
       </div>
@@ -112,7 +112,7 @@ export default function SupportPage() {
       </div>
 
       {/* App version */}
-      <p className="text-center text-[10px] pb-6" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'var(--font-mono)' }}>
+      <p className="text-center text-[10px] pb-6" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
         REPRA v1.0.0
       </p>
 

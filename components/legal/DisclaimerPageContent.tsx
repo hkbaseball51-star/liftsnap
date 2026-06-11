@@ -4,7 +4,7 @@ import { useLocale } from '@/lib/useLocale'
 import LegalPageLayout, { LegalSection, LegalList } from '@/components/legal/LegalPageLayout'
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.60)' }}>
+  <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
     {children}
   </p>
 )

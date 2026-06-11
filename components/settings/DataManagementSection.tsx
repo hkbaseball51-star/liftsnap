@@ -131,13 +131,13 @@ export default function DataManagementSection() {
         }}>
           <div style={{
             width: '100%', maxWidth: 360,
-            background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)',
+            background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)',
             borderRadius: 20, padding: '28px 24px 20px',
           }}>
-            <p style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 10 }}>
+            <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
               {t(locale, 'settings.importConfirmTitle')}
             </p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 24 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 24 }}>
               {t(locale, 'settings.importConfirmBody')}
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -145,8 +145,8 @@ export default function DataManagementSection() {
                 onClick={() => setConfirmFile(null)}
                 style={{
                   flex: 1, padding: '12px 0', borderRadius: 12,
-                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-                  color: 'rgba(255,255,255,0.60)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  background: 'var(--surface-chip)', border: '1px solid var(--card-border-primary)',
+                  color: 'var(--text-secondary)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}>
                 {t(locale, 'settings.importConfirmCancel')}
               </button>

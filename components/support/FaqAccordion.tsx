@@ -8,7 +8,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ borderBottom: '1px solid var(--card-divider)' }}>
       <button
         className="w-full flex items-start gap-3 px-4 py-4 text-left active:opacity-70 transition-opacity"
         onClick={() => setOpen(v => !v)}
@@ -20,13 +20,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         >
           Q
         </span>
-        <span className="flex-1 text-sm font-bold leading-snug" style={{ color: '#f5f5f5' }}>
+        <span className="flex-1 text-sm font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
           {q}
         </span>
         <ChevronDown
           size={14}
           style={{
-            color: 'rgba(255,255,255,0.32)',
+            color: 'var(--text-muted)',
             flexShrink: 0,
             marginTop: 2,
             transition: 'transform 200ms',
@@ -39,11 +39,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         <div className="flex items-start gap-3 px-4 pb-4">
           <span
             className="text-[10px] font-black shrink-0 mt-0.5 w-4 text-center"
-            style={{ color: 'rgba(255,255,255,0.38)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             A
           </span>
-          <p className="flex-1 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.62)' }}>
+          <p className="flex-1 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {a}
           </p>
         </div>
@@ -59,14 +59,14 @@ export default function FaqAccordion({ categories }: { categories: FaqCategory[]
         <section key={cat.id}>
           <p
             className="text-[10px] font-black tracking-widest mb-2 px-1"
-            style={{ color: 'rgba(255,255,255,0.42)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {cat.title}
           </p>
           <div
             style={{
-              background: '#1D1D1D',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'var(--card-bg-primary)',
+              border: '1px solid var(--card-border-primary)',
               borderRadius: 16,
               overflow: 'hidden',
             }}

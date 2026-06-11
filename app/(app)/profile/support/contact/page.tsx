@@ -10,7 +10,7 @@ export default function ContactPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen pb-32" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-32" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
@@ -18,9 +18,9 @@ export default function ContactPage() {
           onClick={() => router.back()}
           aria-label="戻る"
           className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
+          <ChevronLeft size={22} style={{ color: 'var(--text-chevron)' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest" style={{ color: '#f5f5f5' }}>
+        <h1 className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>
           お問い合わせ
         </h1>
       </div>
@@ -29,7 +29,7 @@ export default function ContactPage() {
       <div className="px-5 max-w-lg mx-auto">
 
         {/* Body */}
-        <p className="text-sm leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.58)' }}>
+        <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--text-secondary)' }}>
           ご不明点、不具合、アカウント削除、データ削除、プライバシーに関するお問い合わせは、以下のメールアドレスまでご連絡ください。
         </p>
 
@@ -37,10 +37,10 @@ export default function ContactPage() {
         <div
           className="rounded-2xl p-5 mb-8"
           style={{
-            background: '#1D1D1D',
-            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'var(--card-bg-primary)',
+            border: '1px solid var(--card-border-primary)',
           }}>
-          <p className="text-[10px] font-black tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.42)' }}>
+          <p className="text-[10px] font-black tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
             メールアドレス
           </p>
           <a

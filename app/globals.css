@@ -37,6 +37,9 @@
   --header-icon-bg: rgba(255,255,255,0.08);
   --header-icon-border: rgba(255,255,255,0.10);
   --header-icon-color: rgba(255,255,255,0.52);
+  --overlay-bg: rgba(0,0,0,0.75);
+  --drag-handle: rgba(255,255,255,0.15);
+  --chart-edge-fade: linear-gradient(to right, rgba(10,10,10,0.9), transparent);
 }
 
 [data-theme="light"] {
@@ -71,6 +74,9 @@
   --header-icon-bg: rgba(0,0,0,0.06);
   --header-icon-border: rgba(0,0,0,0.10);
   --header-icon-color: #6B7280;
+  --overlay-bg: rgba(0,0,0,0.35);
+  --drag-handle: rgba(0,0,0,0.18);
+  --chart-edge-fade: linear-gradient(to right, rgba(248,247,243,0.85), transparent);
 }
 
 @theme inline {
