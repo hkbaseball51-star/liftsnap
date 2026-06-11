@@ -49,6 +49,7 @@ export type LocalExercise = {
 }
 
 export type LocalBodyWeight = {
+  id?: string                // filled by normalize; always present after migration
   date: string               // YYYY-MM-DD
   weight_kg: number
   created_at?: string        // ISO 8601 — filled by normalize; always present after migration
@@ -66,6 +67,14 @@ function write(key: string, value: unknown) {
 }
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
+
+// crypto.randomUUID() for body weight ids; falls back to a timestamp-based id
+function bwUid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `bw_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`
+}
 
 // ── Timestamp helpers ──────────────────────────────────────────────────────
 
@@ -133,6 +142,7 @@ export function normalizeBodyWeight(raw: Record<string, unknown>): LocalBodyWeig
   const created_at = (raw.created_at as string | undefined)
     || (raw.date ? dateToIso(raw.date as string) : nowIso())
   return {
+    id:        (raw.id as string | undefined) || bwUid(),
     date:      raw.date as string,
     weight_kg: (raw.weight_kg as number) ?? 0,
     created_at,
@@ -174,6 +184,24 @@ export function runLocalDBMigration(): void {
     localStorage.setItem(MIGRATION_V2_KEY, 'true')
   } catch {
     // Non-fatal: normalize-on-read still ensures consistent in-memory data
+  }
+}
+
+// ── Migration v3: add id to existing body weight records ──────
+
+const MIGRATION_V3_KEY = 'repra_db_v3_bw_id'
+
+export function runBodyWeightIdMigration(): void {
+  if (typeof window === 'undefined') return
+  if (localStorage.getItem(MIGRATION_V3_KEY)) return
+
+  try {
+    const raw = read<Record<string, unknown>[]>(KEYS.bodyWeights, [])
+    // normalizeBodyWeight already fills id when missing
+    write(KEYS.bodyWeights, raw.map(normalizeBodyWeight))
+    localStorage.setItem(MIGRATION_V3_KEY, 'true')
+  } catch {
+    // Non-fatal: normalize-on-read fills id in memory even if write-back failed
   }
 }
 
@@ -429,10 +457,10 @@ export function localUpsertBodyWeight(weightKg: number, date: string): void {
   const idx = all.findIndex(w => w.date === date)
   const now = nowIso()
   if (idx >= 0) {
-    // Preserve original created_at; update only weight and updated_at
+    // Preserve existing id and created_at; update only weight and updated_at
     all[idx] = { ...all[idx], weight_kg: weightKg, updated_at: now }
   } else {
-    all.push({ date, weight_kg: weightKg, created_at: now, updated_at: now })
+    all.push({ id: bwUid(), date, weight_kg: weightKg, created_at: now, updated_at: now })
   }
   setBodyWeights(all)
 }

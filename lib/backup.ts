@@ -26,8 +26,9 @@ const DATA_KEYS = {
   bodyWeights:     'repra_body_weights',
 } as const
 
-// Must match the gate key in lib/localDB.ts
+// Must match the gate keys in lib/localDB.ts
 const MIGRATION_V2_KEY = 'repra_db_v2'
+const MIGRATION_V3_KEY = 'repra_db_v3_bw_id'
 
 const EXCLUDED_PATTERNS = [
   'access_token',
@@ -177,9 +178,8 @@ export async function importBackup(file: File): Promise<void> {
     localStorage.setItem(key, String(value))
   }
 
-  // Safety net: clear the migration gate key so runLocalDBMigration() will
-  // re-run on next app startup. This catches any edge case where the
-  // normalization above was skipped (e.g. malformed collection) and ensures
-  // the startup migration sees the restored data fresh.
+  // Safety net: clear migration gate keys so all startup migrations re-run on
+  // next app load. Catches any edge case where normalization above was skipped.
   localStorage.removeItem(MIGRATION_V2_KEY)
+  localStorage.removeItem(MIGRATION_V3_KEY)
 }
