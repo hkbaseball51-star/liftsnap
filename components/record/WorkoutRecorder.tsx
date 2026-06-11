@@ -803,7 +803,7 @@ export default function WorkoutRecorder({
     <div
       className="min-h-screen flex flex-col"
       style={{
-        background: '#080808',
+        background: 'var(--app-bg)',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(10px)',
         transition: 'opacity 160ms ease-out, transform 160ms ease-out',
@@ -812,7 +812,7 @@ export default function WorkoutRecorder({
 
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-20 px-4 pt-14"
-        style={{ background: '#080808', borderBottom: '1px solid rgba(255,255,255,0.13)' }}>
+        style={{ background: 'var(--app-bg)', borderBottom: '1px solid var(--border)' }}>
 
         {/* Rest timer banner */}
         {(restRemaining !== null || restDone) && (

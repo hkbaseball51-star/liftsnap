@@ -6,10 +6,10 @@ import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import { exportBackup, importBackup } from '@/lib/backup'
 
-const CARD  = { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' }
+const CARD  = { background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 20, overflow: 'hidden' }
 const ROW   = { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }
-const ICON  = { width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-const DIVIDER = { height: 1, background: 'rgba(255,255,255,0.07)', margin: '0 16px' }
+const ICON  = { width: 34, height: 34, borderRadius: 10, background: 'var(--card-icon-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+const DIVIDER = { height: 1, background: 'var(--card-divider)', margin: '0 16px' }
 const ACCENT = '#ED742F'
 
 type Toast = { msg: string; ok: boolean } | null
@@ -57,7 +57,7 @@ export default function DataManagementSection() {
   return (
     <div className="mx-4 mb-4">
       {/* Section label */}
-      <p className="px-1 mb-2 text-[11px] font-bold tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <p className="px-1 mb-2 text-[11px] font-bold tracking-widest" style={{ color: 'var(--text-label)' }}>
         {t(locale, 'settings.sectionData')}
       </p>
 
@@ -71,10 +71,10 @@ export default function DataManagementSection() {
             <Download size={16} style={{ color: ACCENT }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', lineHeight: 1.3 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
               {t(locale, 'settings.backupBtn')}
             </p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 2, lineHeight: 1.4 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
               {t(locale, 'settings.backupDesc')}
             </p>
           </div>
@@ -88,10 +88,10 @@ export default function DataManagementSection() {
           style={{ ...ROW, width: '100%', background: 'none', border: 'none', textAlign: 'left' }}
         >
           <div style={ICON}>
-            <Upload size={16} style={{ color: 'rgba(255,255,255,0.55)' }} />
+            <Upload size={16} style={{ color: 'var(--text-muted)' }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', lineHeight: 1.3 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
               {t(locale, 'settings.importBtn')}
             </p>
           </div>

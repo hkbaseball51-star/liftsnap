@@ -16,6 +16,47 @@
   --accent-purple: #6E38D4;
   --success: #22c55e;
   --danger: #ef4444;
+
+  /* Theme-switchable tokens (default = dark) */
+  --app-bg: #0a0a0a;
+  --nav-bg: #0a0a0a;
+  --nav-border: #1e1e1e;
+  --card-bg-primary: #1D1D1D;
+  --card-border-primary: rgba(255,255,255,0.17);
+  --card-divider: rgba(255,255,255,0.07);
+  --card-icon-bg: rgba(255,255,255,0.11);
+  --card-icon-border: rgba(255,255,255,0.15);
+  --text-label: rgba(255,255,255,0.52);
+  --text-chevron: rgba(255,255,255,0.28);
+  --input-bg: #1e1e1e;
+  --input-border: rgba(255,255,255,0.11);
+}
+
+[data-theme="light"] {
+  --bg: #F8F7F3;
+  --bg-card: rgba(255,255,255,0.85);
+  --bg-card-inner: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.14);
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6B7280;
+  --text-disabled: rgba(0,0,0,0.38);
+
+  /* Theme-switchable tokens (light) */
+  --app-bg: #F8F7F3;
+  --nav-bg: rgba(248,247,243,0.97);
+  --nav-border: rgba(0,0,0,0.09);
+  --card-bg-primary: rgba(255,255,255,0.90);
+  --card-border-primary: rgba(0,0,0,0.08);
+  --card-divider: rgba(0,0,0,0.06);
+  --card-icon-bg: rgba(0,0,0,0.05);
+  --card-icon-border: rgba(0,0,0,0.10);
+  --text-label: #6B7280;
+  --text-chevron: rgba(0,0,0,0.28);
+  --input-bg: rgba(0,0,0,0.04);
+  --input-border: rgba(0,0,0,0.12);
 }
 
 @theme inline {
@@ -66,8 +107,8 @@ h1, h2 {
 
 /* Shared premium card shell */
 .premium-card {
-  background: #181818;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--card-bg-primary);
+  border: 1px solid var(--card-border-primary);
 }
 
 input[type=number]::-webkit-inner-spin-button,

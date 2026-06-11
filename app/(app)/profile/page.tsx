@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -47,17 +48,17 @@ type RecentSession = {
 
 /* ── Design tokens ───────────────────────────────────── */
 const T = {
-  main:      '#f5f5f5',
-  secondary: 'rgba(255,255,255,0.78)',
-  muted:     'rgba(255,255,255,0.65)',
-  empty:     'rgba(255,255,255,0.65)',
-  label:     'rgba(255,255,255,0.72)',
-  divider:   'rgba(255,255,255,0.12)',
+  main:      'var(--text-primary)',
+  secondary: 'var(--text-secondary)',
+  muted:     'var(--text-muted)',
+  empty:     'var(--text-muted)',
+  label:     'var(--text-secondary)',
+  divider:   'var(--card-divider)',
   card: {
-    background: '#1E1E1E',
-    border: '1px solid rgba(255,255,255,0.19)',
+    background: 'var(--card-bg-primary)',
+    border: '1px solid var(--card-border-primary)',
     borderRadius: 20,
-  } as const,
+  } as CSSProperties,
 }
 
 /* ── Page ────────────────────────────────────────────── */
@@ -133,7 +134,7 @@ export default async function ProfilePage() {
   )
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* ── 1. Header ─────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 pt-14 pb-4">
@@ -142,7 +143,7 @@ export default async function ProfilePage() {
           href="/profile/settings"
           aria-label="Open settings"
           className="p-2 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
-          style={{ background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)' }}>
+          style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
           <Settings size={18} style={{ color: T.secondary }} />
         </Link>
       </div>

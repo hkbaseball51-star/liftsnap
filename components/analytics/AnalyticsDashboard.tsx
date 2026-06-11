@@ -430,7 +430,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
   }
 
   return (
-    <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: 'var(--app-bg)' }}>
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-black tracking-widest text-white">{ja ? '成長データ' : 'ANALYTICS'}</h1>
         <Link href="/profile/settings"

@@ -24,7 +24,7 @@ function HomeSkeleton() {
     animation: 'shimmer 1.4s ease-in-out infinite',
   }
   return (
-    <div style={{ background: '#080808', minHeight: '100svh' }}>
+    <div style={{ background: 'var(--app-bg)', minHeight: '100svh' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '32px 16px 8px' }}>
         <div style={{ ...shimmer, width: 100, height: 22, borderRadius: 6 }} />

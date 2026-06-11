@@ -16,16 +16,27 @@ import { t } from '@/lib/i18n'
 import { useDemoMode } from '@/lib/useDemoMode'
 import { REPRA_DEMO_USER_ID } from '@/lib/demoConstants'
 import DataManagementSection from '@/components/settings/DataManagementSection'
+import AppearanceSection from '@/components/settings/AppearanceSection'
+import { useTheme } from '@/lib/useTheme'
 
-/* ── shared tokens ─────────────────────────────────── */
-const T = {
-  main:     '#f5f5f5',
-  secondary:'rgba(255,255,255,0.58)',
-  label:    'rgba(255,255,255,0.52)',
-  chevron:  'rgba(255,255,255,0.28)',
-  card:     { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
-  divider:  '1px solid rgba(255,255,255,0.07)',
-  iconWrap: { background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' } as const,
+function makeT(isLight: boolean) {
+  return isLight ? {
+    main:     '#111827',
+    secondary:'#374151',
+    label:    '#6B7280',
+    chevron:  'rgba(0,0,0,0.28)',
+    card:     { background: 'rgba(255,255,255,0.90)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, overflow: 'hidden' } as React.CSSProperties,
+    divider:  '1px solid rgba(0,0,0,0.06)',
+    iconWrap: { background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.10)' } as React.CSSProperties,
+  } : {
+    main:     '#f5f5f5',
+    secondary:'rgba(255,255,255,0.58)',
+    label:    'rgba(255,255,255,0.52)',
+    chevron:  'rgba(255,255,255,0.28)',
+    card:     { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as React.CSSProperties,
+    divider:  '1px solid rgba(255,255,255,0.07)',
+    iconWrap: { background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' } as React.CSSProperties,
+  }
 }
 
 type LiveRow = {
@@ -39,7 +50,7 @@ type LiveRow = {
 }
 
 const SectionLabel = ({ text }: { text: string }) => (
-  <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: T.label }}>{text}</p>
+  <p className="text-[10px] font-black tracking-widest mb-2 px-1" style={{ color: 'var(--text-label)' }}>{text}</p>
 )
 
 function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
@@ -48,13 +59,13 @@ function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
     ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.14)' }
     : row.accent
     ? { background: 'rgba(237,116,47,0.12)', border: '1px solid rgba(237,116,47,0.35)' }
-    : T.iconWrap
-  const iconColor    = row.danger ? '#f87171' : row.accent ? '#ED742F' : T.secondary
-  const labelColor   = row.danger ? '#f87171' : row.accent ? '#ED742F' : T.main
-  const chevronColor = row.danger ? 'rgba(248,113,113,0.4)' : row.accent ? 'rgba(237,116,47,0.4)' : T.chevron
+    : { background: 'var(--card-icon-bg)', border: '1px solid var(--card-icon-border)' }
+  const iconColor    = row.danger ? '#f87171' : row.accent ? '#ED742F' : 'var(--text-secondary)'
+  const labelColor   = row.danger ? '#f87171' : row.accent ? '#ED742F' : 'var(--text-primary)'
+  const chevronColor = row.danger ? 'rgba(248,113,113,0.4)' : row.accent ? 'rgba(237,116,47,0.4)' : 'var(--text-chevron)'
 
   const cls   = 'flex items-center gap-3 px-4 py-3.5 active:opacity-70 transition-opacity'
-  const style = { borderBottom: last ? 'none' : T.divider }
+  const style = { borderBottom: last ? 'none' : '1px solid var(--card-divider)' }
   const inner = (
     <>
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={iconStyle}>
@@ -62,7 +73,7 @@ function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold" style={{ color: labelColor }}>{row.label}</p>
-        {row.sub && <p className="text-[10px] mt-0.5" style={{ color: T.secondary }}>{row.sub}</p>}
+        {row.sub && <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{row.sub}</p>}
       </div>
       <ChevronRight size={13} style={{ color: chevronColor }} />
     </>
@@ -86,6 +97,8 @@ function LiveRowEl({ row, last }: { row: LiveRow; last: boolean }) {
 export default function SettingsPage() {
   const router = useRouter()
   const { locale } = useLocale()
+  const { theme } = useTheme()
+  const T = makeT(theme === 'light')
   const { demoUserId, isDemo, enableDemo, disableDemo, mounted: demoMounted } = useDemoMode()
 
   // 5-tap reveal for hidden demo section
@@ -132,7 +145,7 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
@@ -186,6 +199,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Appearance ── */}
+      <AppearanceSection />
 
       {/* ── Data Management ── */}
       <DataManagementSection />

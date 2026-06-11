@@ -79,7 +79,7 @@ export default function BodyTimeline({
   if (photos.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-        style={{ background: '#080808' }}>
+        style={{ background: 'var(--app-bg)' }}>
         <div className="flex flex-col items-center gap-4 px-8 text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{ background: 'rgba(237, 116, 47,0.12)', border: '1px solid rgba(237, 116, 47,0.32)' }}>
@@ -106,7 +106,7 @@ export default function BodyTimeline({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#080808' }}>
+      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'var(--app-bg)' }}>
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-4 pt-safe"

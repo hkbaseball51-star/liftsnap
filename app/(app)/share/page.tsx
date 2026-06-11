@@ -28,7 +28,7 @@ export default async function SharePage({
     const date = params.date ?? ''
     if (!date) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
           <p className="text-white mb-4">Date not specified</p>
           <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>Back to Home</Link>
         </div>
@@ -40,7 +40,7 @@ export default async function SharePage({
       const data = await getDemoTodayWorkoutForShare(demoUserId, date)
       if (!data) {
         return (
-          <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#0a0a0a' }}>
+          <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: 'var(--app-bg)' }}>
             <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10 }}>
               No workout found for this date
             </p>
@@ -73,7 +73,7 @@ export default async function SharePage({
     const data = await getTodayWorkoutForShare(date)
     if (!data) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#0a0a0a' }}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: 'var(--app-bg)' }}>
           <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10, lineHeight: 1.4 }}>
             今日のワークアウト記録がありません
           </p>
@@ -111,7 +111,7 @@ export default async function SharePage({
     const data = await getStatsForShare(params.metric ?? '', params.exercise, params.bodypart).catch(() => null)
     if (!data) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
           <p className="text-white mb-4">Data not found</p>
           <Link href="/analytics" className="text-sm" style={{ color: '#ED742F' }}>Back to Analytics</Link>
         </div>
@@ -184,7 +184,7 @@ export default async function SharePage({
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
         <p className="text-white mb-4">セッションが見つかりません</p>
         <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>ホームへ戻る</Link>
       </div>
@@ -194,7 +194,7 @@ export default async function SharePage({
   const data = await getSessionForShare(sessionId)
   if (!data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0a0a0a' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--app-bg)' }}>
         <p className="text-white mb-4">データが見つかりません</p>
         <Link href="/home" className="text-sm" style={{ color: '#ED742F' }}>ホームへ戻る</Link>
       </div>

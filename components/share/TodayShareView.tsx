@@ -225,7 +225,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   ].join(', ')
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-12 pb-3 flex-shrink-0">

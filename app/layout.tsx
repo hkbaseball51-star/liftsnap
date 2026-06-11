@@ -51,8 +51,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`h-full ${inter.variable} ${interTight.variable} ${geistMono.variable}`}>
-      <body className="h-full bg-[#080808] text-white">
+    <html lang="en" suppressHydrationWarning className={`h-full ${inter.variable} ${interTight.variable} ${geistMono.variable}`}>
+      <body className="h-full" style={{ background: 'var(--app-bg)', color: 'var(--text-primary)' }}>
+        {/* Runs before React hydrates to avoid flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('repra_theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})();` }} />
         {children}
       </body>
     </html>

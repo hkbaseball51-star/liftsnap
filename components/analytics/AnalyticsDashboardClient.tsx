@@ -22,7 +22,7 @@ function AnalyticsSkeleton() {
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       {/* Header area */}
       <div style={{ padding: '48px 16px 20px' }}>
         <div style={{ ...shimmer, height: 16, width: 120, borderRadius: 6, marginBottom: 8 }} />
