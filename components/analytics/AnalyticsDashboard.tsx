@@ -592,8 +592,8 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       href={`/analytics/chart?metric=max1rm&range=${periodToRange(period)}&exercise=${encodeURIComponent(selectedExercise)}`}
                       aria-label="Open full screen chart"
                       className="p-1.5 rounded-lg active:opacity-60"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
+                      style={{ background: 'var(--chart-btn-bg)', border: '1px solid var(--chart-btn-border)' }}>
+                      <Maximize2 size={11} style={{ color: 'var(--chart-btn-icon)' }} />
                     </Link>
                   </div>
                 </div>
@@ -739,7 +739,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     href={`/analytics/chart?metric=daily-volume&range=${periodToRange(period)}&bodypart=${encodeURIComponent(volBodyPart.toLowerCase())}`}
                     aria-label="Open full screen chart"
                     className="p-1.5 rounded-lg active:opacity-60"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    style={{ background: 'var(--chart-btn-bg)', border: '1px solid var(--chart-btn-border)' }}>
                     <Maximize2 size={11} style={{ color: 'rgba(255,255,255,0.32)' }} />
                   </Link>
                 </div>

@@ -40,6 +40,9 @@
   --overlay-bg: rgba(0,0,0,0.75);
   --drag-handle: rgba(255,255,255,0.15);
   --chart-edge-fade: linear-gradient(to right, rgba(10,10,10,0.9), transparent);
+  --chart-btn-bg: rgba(255,255,255,0.05);
+  --chart-btn-border: rgba(255,255,255,0.08);
+  --chart-btn-icon: rgba(255,255,255,0.32);
 }
 
 [data-theme="light"] {
@@ -77,6 +80,9 @@
   --overlay-bg: rgba(0,0,0,0.35);
   --drag-handle: rgba(0,0,0,0.18);
   --chart-edge-fade: linear-gradient(to right, rgba(248,247,243,0.85), transparent);
+  --chart-btn-bg: rgba(0,0,0,0.05);
+  --chart-btn-border: rgba(0,0,0,0.10);
+  --chart-btn-icon: #6B7280;
 }
 
 @theme inline {
