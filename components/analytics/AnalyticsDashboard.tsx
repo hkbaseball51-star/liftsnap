@@ -535,16 +535,21 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
           ) : filteredExercises.length === 0 ? (
             <NoGroupData />
           ) : selectedExercise && selectedExerciseLogCount < EXERCISE_GRAPH_REQUIRED ? (
-            <div className="rounded-2xl p-8 text-center" style={CARD}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.8 }}>
+            <div className="rounded-2xl p-6 text-center" style={CARD}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textAlign: 'center', lineHeight: 1.7, marginBottom: 6 }}>
                 {locale === 'ja'
-                  ? selectedExerciseLogCount === 0
-                    ? `同じ種目を${EXERCISE_GRAPH_REQUIRED}回以上記録すると、MAX 1RMグラフが使えます`
-                    : `あと${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount}回の記録で、MAX 1RMグラフが使えます`
-                  : `Log this exercise ${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount} more time${EXERCISE_GRAPH_REQUIRED - selectedExerciseLogCount !== 1 ? 's' : ''} to unlock the 1RM graph`}
+                  ? `同じ種目を${EXERCISE_GRAPH_REQUIRED}回記録すると、このグラフが表示されます。`
+                  : `Record the same exercise ${EXERCISE_GRAPH_REQUIRED} times to unlock this graph.`}
               </p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#444', marginTop: 8 }}>
-                {selectedExerciseLogCount} / {EXERCISE_GRAPH_REQUIRED}
+              <p style={{ fontSize: 11.5, color: '#555', textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
+                {locale === 'ja'
+                  ? '記録するほど、成長の変化が見えるようになります。'
+                  : 'The more you log, the easier it becomes to see your progress.'}
+              </p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em' }}>
+                {locale === 'ja'
+                  ? `この種目の記録回数：${selectedExerciseLogCount} / ${EXERCISE_GRAPH_REQUIRED}`
+                  : `Exercise logs: ${selectedExerciseLogCount} / ${EXERCISE_GRAPH_REQUIRED}`}
               </p>
             </div>
           ) : (
@@ -674,16 +679,21 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       {tab === 'DAILY VOLUME' && (
         <div>
           {activeTotalSessions < VOLUME_CHART_SESSION_REQUIRED ? (
-            <div className="rounded-2xl p-8 text-center" style={CARD}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#555', textAlign: 'center', lineHeight: 1.8 }}>
+            <div className="rounded-2xl p-6 text-center" style={CARD}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textAlign: 'center', lineHeight: 1.7, marginBottom: 6 }}>
                 {locale === 'ja'
-                  ? activeTotalSessions === 0
-                    ? `ワークアウトを${VOLUME_CHART_SESSION_REQUIRED}日記録すると、総重量グラフが使えます`
-                    : `あと${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions}日の記録で、総重量グラフが使えます`
-                  : `Complete ${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions} more workout day${VOLUME_CHART_SESSION_REQUIRED - activeTotalSessions !== 1 ? 's' : ''} to unlock the volume graph`}
+                  ? `ワークアウトを${VOLUME_CHART_SESSION_REQUIRED}回記録すると、このグラフが表示されます。`
+                  : `Complete ${VOLUME_CHART_SESSION_REQUIRED} workouts to unlock this graph.`}
               </p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#444', marginTop: 8 }}>
-                {activeTotalSessions} / {VOLUME_CHART_SESSION_REQUIRED}
+              <p style={{ fontSize: 11.5, color: '#555', textAlign: 'center', lineHeight: 1.5, marginBottom: 14 }}>
+                {locale === 'ja'
+                  ? '記録するほど、成長の変化が見えるようになります。'
+                  : 'The more you log, the easier it becomes to see your progress.'}
+              </p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em' }}>
+                {locale === 'ja'
+                  ? `記録回数：${activeTotalSessions} / ${VOLUME_CHART_SESSION_REQUIRED}`
+                  : `Workouts: ${activeTotalSessions} / ${VOLUME_CHART_SESSION_REQUIRED}`}
               </p>
             </div>
           ) : (

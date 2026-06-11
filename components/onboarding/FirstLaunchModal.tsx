@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 
@@ -13,7 +12,6 @@ const ACCENT  = '#ED742F'
 const BG_CARD = 'rgba(255,255,255,0.04)'
 const BORDER  = '1px solid rgba(255,255,255,0.10)'
 
-// Icon SVGs — inline to avoid extra dependencies
 function IconDumbbell() {
   return (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -74,21 +72,9 @@ export default function FirstLaunchModal() {
   if (!mounted || !show) return null
 
   const pages = [
-    {
-      titleKey: 'onboarding.page1Title',
-      subKey:   'onboarding.page1Sub',
-      descKey:  'onboarding.page1Desc',
-    },
-    {
-      titleKey: 'onboarding.page2Title',
-      subKey:   'onboarding.page2Sub',
-      descKey:  'onboarding.page2Desc',
-    },
-    {
-      titleKey: 'onboarding.page3Title',
-      subKey:   'onboarding.page3Sub',
-      descKey:  'onboarding.page3Desc',
-    },
+    { titleKey: 'onboarding.page1Title', subKey: 'onboarding.page1Sub', descKey: 'onboarding.page1Desc' },
+    { titleKey: 'onboarding.page2Title', subKey: 'onboarding.page2Sub', descKey: 'onboarding.page2Desc' },
+    { titleKey: 'onboarding.page3Title', subKey: 'onboarding.page3Sub', descKey: 'onboarding.page3Desc' },
   ]
 
   const Icon = ICONS[page]
@@ -104,7 +90,7 @@ export default function FirstLaunchModal() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px 24px env(safe-area-inset-bottom, 24px)',
+        padding: '24px 16px env(safe-area-inset-bottom, 24px)',
       }}
     >
       {/* Logo */}
@@ -115,7 +101,7 @@ export default function FirstLaunchModal() {
       {/* Card */}
       <div style={{
         width: '100%',
-        maxWidth: 360,
+        maxWidth: 440,
         background: BG_CARD,
         border: BORDER,
         borderRadius: 24,
@@ -138,8 +124,8 @@ export default function FirstLaunchModal() {
           {t(locale, pages[page].subKey)}
         </p>
 
-        {/* Title */}
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 12 }}>
+        {/* Title — whiteSpace pre-line renders \n in JA page1Title naturally */}
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 12, whiteSpace: 'pre-line' }}>
           {t(locale, pages[page].titleKey)}
         </h2>
 
@@ -173,18 +159,26 @@ export default function FirstLaunchModal() {
                 )}
               </div>
               <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.62)', lineHeight: 1.6 }}>
-                {t(locale, 'onboarding.agreeLabel')}{' '}
-                <Link href="/terms"
+                {t(locale, 'onboarding.agreeLabel')}
+                <a
+                  href="https://repraworkout.com/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{ color: ACCENT, fontWeight: 600 }}
-                  onClick={e => e.stopPropagation()}>
+                  onClick={e => e.stopPropagation()}
+                >
                   {t(locale, 'onboarding.termsLink')}
-                </Link>
-                {' '}{t(locale, 'onboarding.and')}{' '}
-                <Link href="/privacy"
+                </a>
+                {t(locale, 'onboarding.and')}
+                <a
+                  href="https://repraworkout.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{ color: ACCENT, fontWeight: 600 }}
-                  onClick={e => e.stopPropagation()}>
+                  onClick={e => e.stopPropagation()}
+                >
                   {t(locale, 'onboarding.privacyLink')}
-                </Link>
+                </a>
                 {t(locale, 'onboarding.agreeSuffix')}
               </span>
             </label>
