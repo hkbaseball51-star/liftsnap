@@ -184,6 +184,7 @@ export default function ShareLandingView({
       border: '1px solid rgba(0,0,0,0.09)',
       borderRadius: 14,
       boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+      filter: 'brightness(1.12) saturate(0.96)',
     } : {}),
   }
 
@@ -296,7 +297,7 @@ export default function ShareLandingView({
               </p>
               {/* Preview — unit-aware */}
               <div style={{ position: 'relative', height: 188, overflow: 'hidden', borderRadius: 12, marginBottom: 11, background: '#121212', ...(isLight ? { border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' } : {}) }}>
-                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%) scale(0.62)', transformOrigin: 'top center', width: 420, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%) scale(0.62)', transformOrigin: 'top center', width: 420, pointerEvents: 'none', ...(isLight ? { filter: 'brightness(1.12) saturate(0.96)' } : {}) }}>
                   <WorkoutStoryCardContent
                     data={displayPreviewData}
                     cardStyle="glass"

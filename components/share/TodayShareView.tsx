@@ -10,6 +10,7 @@ import WorkoutStoryCardContent, { ExerciseStoryCard, tname, PRESETS } from './Wo
 import type { TodayData, CardStyle, DesignPreset, ShadowMode } from './WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
+import { useTheme } from '@/lib/useTheme'
 
 export type { TodayData }
 
@@ -40,6 +41,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const router   = useRouter()
   const { unit } = useWeightUnit()
   const { locale } = useLocale()
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
   const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
 
   // ── Layout measurement refs (not capture targets) ──
@@ -251,7 +254,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         /* Combined: 9:16 canvas with inner card — capture target is previewCardRef (no transform) */
         <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
-          <div style={{ width: 'min(94vw, 420px)' }}>
+          <div style={{ width: 'min(94vw, 420px)', ...(isLight ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 30, boxShadow: '0 12px 32px rgba(0,0,0,0.10)', padding: 12 } : {}) }}>
             <div
               ref={captureRef}
               style={{
@@ -327,6 +330,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {data.exercises.map((ex, i) => (
               <div key={`preview-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={isLight ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 28, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: 12 } : {}}>
                 <div style={{ position: 'relative' }}>
                   {/* Transparent/Glass card: checker is a sibling of the capture target — NOT inside previewExRefs */}
                   {(isTransparent || cardStyle === 'glass') && (
@@ -359,6 +363,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       exerciseNameLang={exerciseNameLang}
                     />
                   </div>
+                </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
