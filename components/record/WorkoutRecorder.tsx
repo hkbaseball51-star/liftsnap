@@ -23,7 +23,6 @@ import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, fromDisplayWeight, formatVolumeWithUnit, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
 import { getDisplayName } from '@/lib/exerciseNames'
-import RecordTutorialCard from './RecordTutorialCard'
 
 /* ─── Types ───────────────────────────────────────────── */
 
@@ -924,9 +923,6 @@ export default function WorkoutRecorder({
       {/* ── Exercise list ── */}
       <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-3"
         style={{ paddingBottom: 'calc(13rem + env(safe-area-inset-bottom))' }}>
-
-        {/* First-launch tutorial card — dismisses itself to localStorage */}
-        <RecordTutorialCard />
 
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">

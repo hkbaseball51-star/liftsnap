@@ -371,13 +371,6 @@ const translations = {
       noWorkoutLogged: 'No workout logged',
       logWorkoutArrow: 'Log Workout →',
       bestSet: 'Best set',
-      tutorialTitle: "Start by recording today's workout.",
-      tutorialDesc: 'Choose an exercise, enter weight, reps, and sets, then your calendar and graphs will update automatically.',
-      tutorialStep1: 'Choose an exercise',
-      tutorialStep2: 'Enter weight, reps, and sets',
-      tutorialStep3: 'Save to update your progress',
-      tutorialStart: 'Start recording',
-      tutorialDismiss: 'Dismiss',
     },
     onboarding: {
       units: {
@@ -940,13 +933,6 @@ const translations = {
       noWorkoutLogged: 'ワークアウト未記録',
       logWorkoutArrow: '記録する →',
       bestSet: 'ベストセット',
-      tutorialTitle: 'まずは今日のトレーニングを記録しましょう。',
-      tutorialDesc: '種目を選んで、重量・回数・セットを入力すると、カレンダーとグラフに記録が反映されます。',
-      tutorialStep1: '種目を選ぶ',
-      tutorialStep2: '重量・回数・セットを入力',
-      tutorialStep3: '保存すると成長データに反映',
-      tutorialStart: '記録をはじめる',
-      tutorialDismiss: '閉じる',
     },
     onboarding: {
       units: {
