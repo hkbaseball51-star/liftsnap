@@ -108,6 +108,36 @@ function MiniGlassCard({
   )
 }
 
+// ── Mini preview frame wrapper ────────────────────────────────────────
+// In Light theme: warm-beige outer frame + white smoke overlay (non-capture element).
+// In Dark theme: no extra frame — the MiniGlassCard dark glass is the only style.
+function MiniPreviewWrap({ isLight, children }: { isLight: boolean; children: React.ReactNode }) {
+  return (
+    <div style={{
+      width: 96, flexShrink: 0, position: 'relative',
+      ...(isLight ? {
+        padding: 3,
+        background: 'rgba(255,247,240,0.80)',
+        border: '1px solid rgba(249,115,22,0.14)',
+        borderRadius: 14,
+        boxShadow: '0 10px 28px rgba(15,23,42,0.08)',
+      } : {}),
+    }}>
+      {children}
+      {/* Smoke overlay — Light only, not inside any capture target */}
+      {isLight && (
+        <div style={{
+          position: 'absolute',
+          top: 3, right: 3, bottom: 3, left: 3,
+          background: 'rgba(255,255,255,0.26)',
+          borderRadius: 11,
+          pointerEvents: 'none',
+        }} />
+      )}
+    </div>
+  )
+}
+
 // ── Props ─────────────────────────────────────────────────────────────
 type Props = {
   previewData: TodayData
@@ -175,18 +205,6 @@ export default function ShareLandingView({
     overflow: 'hidden' as const,
     opacity: enabled ? 1 : 0.55,
   })
-
-  const miniWrap: React.CSSProperties = {
-    width: 96, flexShrink: 0,
-    ...(isLight ? {
-      padding: 3,
-      background: 'rgba(0,0,0,0.04)',
-      border: '1px solid rgba(0,0,0,0.09)',
-      borderRadius: 14,
-      boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
-      filter: 'brightness(1.12) saturate(0.96)',
-    } : {}),
-  }
 
   const iconBox = (accentHex: string, bgAlpha = 0.14) => ({
     flexShrink: 0, width: 40, height: 40, borderRadius: 12,
@@ -296,7 +314,16 @@ export default function ShareLandingView({
                 {ja ? 'トレーニングをInstagramストーリー用カードに変換' : "Today's training as an Instagram story card."}
               </p>
               {/* Preview — unit-aware */}
-              <div style={{ position: 'relative', height: 188, overflow: 'hidden', borderRadius: 12, marginBottom: 11, background: '#121212', ...(isLight ? { border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' } : {}) }}>
+              <div style={{
+                position: 'relative', height: 188, overflow: 'hidden', borderRadius: 16, marginBottom: 11,
+                ...(isLight ? {
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(255,243,232,0.80) 100%)',
+                  border: '1px solid rgba(249,115,22,0.14)',
+                  boxShadow: '0 18px 45px rgba(249,115,22,0.10)',
+                } : {
+                  background: '#121212',
+                }),
+              }}>
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%) scale(0.62)', transformOrigin: 'top center', width: 420, pointerEvents: 'none', ...(isLight ? { filter: 'brightness(1.12) saturate(0.96)' } : {}) }}>
                   <WorkoutStoryCardContent
                     data={displayPreviewData}
@@ -307,9 +334,21 @@ export default function ShareLandingView({
                     isPast={false}
                   />
                 </div>
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, background: 'linear-gradient(to top, #121212, transparent)', pointerEvents: 'none' }} />
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 70,
+                  background: isLight
+                    ? 'linear-gradient(to top, rgba(255,240,225,0.88), transparent)'
+                    : 'linear-gradient(to top, #121212, transparent)',
+                  pointerEvents: 'none',
+                }} />
                 {displayIsSample && (
-                  <div style={{ position: 'absolute', top: 7, right: 7, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 5, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.34)', pointerEvents: 'none' }}>SAMPLE</div>
+                  <div style={{
+                    position: 'absolute', top: 7, right: 7, fontSize: 8, fontWeight: 700,
+                    letterSpacing: '0.08em', padding: '2px 6px', borderRadius: 5,
+                    background: isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)',
+                    color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.34)',
+                    pointerEvents: 'none',
+                  }}>SAMPLE</div>
                 )}
               </div>
               {/* Stats chips — unit-aware volume (only when today has a real workout) */}
@@ -380,11 +419,11 @@ export default function ShareLandingView({
                       </div>
                     </div>
                     {/* Mini preview */}
-                    <div style={miniWrap}>
+                    <MiniPreviewWrap isLight={isLight}>
                       <MiniGlassCard accentHex="#ED742F" label="MAX 1RM PROGRESS" metric={rm1ExerciseName} value={sampleRM} sub={sampleRMSub}>
                         <LineChart pts={RM_PTS} color="#ED742F" areaColor="rgba(237,116,47,0.12)" />
                       </MiniGlassCard>
-                    </div>
+                    </MiniPreviewWrap>
                   </div>
                 </div>
               </Link>
@@ -417,11 +456,11 @@ export default function ShareLandingView({
                     </div>
                   </div>
                   {/* Mini preview */}
-                  <div style={{ width: 96, flexShrink: 0 }}>
+                  <MiniPreviewWrap isLight={isLight}>
                     <MiniGlassCard accentHex="#ED742F" label="MAX 1RM PROGRESS" metric="BENCH PRESS" value={sampleRM} sub={sampleRMSub}>
                       <LineChart pts={RM_PTS} color="#ED742F" areaColor="rgba(237,116,47,0.12)" />
                     </MiniGlassCard>
-                  </div>
+                  </MiniPreviewWrap>
                 </div>
               </div>
             )}
@@ -454,11 +493,11 @@ export default function ShareLandingView({
                       </div>
                     </div>
                     {/* Mini preview — unit-aware */}
-                    <div style={miniWrap}>
+                    <MiniPreviewWrap isLight={isLight}>
                       <MiniGlassCard accentHex="#22c55e" label="DAILY VOLUME" metric="ALL" value={sampleVol} sub="total · 94 sessions">
                         <BarChart heights={VOL_H} color="#22c55e" />
                       </MiniGlassCard>
-                    </div>
+                    </MiniPreviewWrap>
                   </div>
                 </div>
               </Link>
@@ -493,11 +532,11 @@ export default function ShareLandingView({
                     </div>
                   </div>
                   {/* Mini preview */}
-                  <div style={{ width: 96, flexShrink: 0 }}>
+                  <MiniPreviewWrap isLight={isLight}>
                     <MiniGlassCard accentHex="#22c55e" label="DAILY VOLUME" metric="ALL" value={sampleVol} sub="total · 94 sessions">
                       <BarChart heights={VOL_H} color="#22c55e" />
                     </MiniGlassCard>
-                  </div>
+                  </MiniPreviewWrap>
                 </div>
               </div>
             )}
@@ -530,11 +569,11 @@ export default function ShareLandingView({
                       </div>
                     </div>
                     {/* Mini preview — unit-aware */}
-                    <div style={miniWrap}>
+                    <MiniPreviewWrap isLight={isLight}>
                       <MiniGlassCard accentHex="#60a5fa" label="BODY WEIGHT" metric="PROGRESS" value={sampleBW} sub={sampleBWSub}>
                         <LineChart pts={BW_PTS} color="#60a5fa" areaColor="rgba(96,165,250,0.12)" />
                       </MiniGlassCard>
-                    </div>
+                    </MiniPreviewWrap>
                   </div>
                 </div>
               </Link>
@@ -569,11 +608,11 @@ export default function ShareLandingView({
                     </div>
                   </div>
                   {/* Mini preview */}
-                  <div style={{ width: 96, flexShrink: 0 }}>
+                  <MiniPreviewWrap isLight={isLight}>
                     <MiniGlassCard accentHex="#60a5fa" label="BODY WEIGHT" metric="PROGRESS" value={sampleBW} sub={sampleBWSub}>
                       <LineChart pts={BW_PTS} color="#60a5fa" areaColor="rgba(96,165,250,0.12)" />
                     </MiniGlassCard>
-                  </div>
+                  </MiniPreviewWrap>
                 </div>
               </div>
             )}

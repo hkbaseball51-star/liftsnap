@@ -277,12 +277,20 @@ export const TIER_PARAMS: Record<Tier, {
   nameSize: number; infoSize: number; setSize: number;
   exGap: number; lineGap: number; sectionGap: number; volumeSize: number;
 }> = {
-  1: { nameSize: 16, infoSize: 12, setSize: 18, exGap: 10, lineGap: 4, sectionGap: 11, volumeSize: 42 },
-  2: { nameSize: 15, infoSize: 12, setSize: 17, exGap: 8,  lineGap: 3, sectionGap: 9,  volumeSize: 38 },
-  3: { nameSize: 15, infoSize: 11, setSize: 16, exGap: 6,  lineGap: 3, sectionGap: 8,  volumeSize: 34 },
-  4: { nameSize: 14, infoSize: 10, setSize: 14, exGap: 5,  lineGap: 2, sectionGap: 7,  volumeSize: 32 },
-  5: { nameSize: 13, infoSize: 10, setSize: 12, exGap: 4,  lineGap: 2, sectionGap: 6,  volumeSize: 30 },
+  // setSize reduced (was 18/17/16/14/12) to prevent cramped rows.
+  // lineGap +1 for Tiers 1-3 so info→first-set gap has room for text shadow clearance.
+  1: { nameSize: 16, infoSize: 12, setSize: 15, exGap: 10, lineGap: 5, sectionGap: 11, volumeSize: 42 },
+  2: { nameSize: 15, infoSize: 12, setSize: 14, exGap: 8,  lineGap: 4, sectionGap: 9,  volumeSize: 38 },
+  3: { nameSize: 15, infoSize: 11, setSize: 13, exGap: 6,  lineGap: 4, sectionGap: 8,  volumeSize: 34 },
+  4: { nameSize: 14, infoSize: 10, setSize: 12, exGap: 5,  lineGap: 3, sectionGap: 7,  volumeSize: 32 },
+  5: { nameSize: 13, infoSize: 10, setSize: 11, exGap: 4,  lineGap: 3, sectionGap: 6,  volumeSize: 30 },
 }
+
+// ── Story display limits ──────────────────────────────────────────────
+// Prevents unbounded card height and ensures the captured image is readable.
+// "more" indicators are shown when content exceeds these limits.
+const MAX_EXERCISES_IN_STORY = 5
+const MAX_SETS_PER_EXERCISE  = 4
 
 // ── Props ─────────────────────────────────────────────────────────────
 type Props = {
@@ -323,7 +331,11 @@ export default function WorkoutStoryCardContent({
   const volStr        = formatVolumeWithUnit(data.volume, unit)
   const g1rm          = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
-  const totalRows = data.exercises.reduce((sum, ex) => sum + 2 + ex.setList.length, 0)
+  // Cap exercises and sets for stable card height; use capped counts for tier selection
+  const visibleExercises = data.exercises.slice(0, MAX_EXERCISES_IN_STORY)
+  const hiddenExCount    = data.exercises.length - visibleExercises.length
+  const totalRows = visibleExercises.reduce((sum, ex) =>
+    sum + 2 + Math.min(ex.setList.length, MAX_SETS_PER_EXERCISE), 0)
   const tier = getTier(totalRows)
   const tp   = TIER_PARAMS[tier]
 
@@ -433,39 +445,70 @@ export default function WorkoutStoryCardContent({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: tp.exGap }}>
-          {data.exercises.map((ex) => (
-            <div key={ex.name} style={{ flexShrink: 0 }}>
-              <p style={{
-                fontSize: tp.nameSize, fontWeight: 800, color: textPrimary,
-                margin: 0, lineHeight: 1.2,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {dn(ex.name)}
-              </p>
-              <p style={{
-                fontSize: tp.infoSize, color: subTextColor,
-                margin: 0, marginTop: tp.lineGap, lineHeight: 1.2,
-              }}>
-                {ex.setCount}{locale === 'ja' ? 'セット' : ' sets'}{ex.best1RM > 0
-                  ? <>{' · est. 1RM '}<span style={{ color: acHex, fontWeight: 700 }}>{fmtKg(toDisplayWeight(ex.best1RM, unit))}{unitLabel}</span></>
-                  : null}
-              </p>
-              {ex.setList.map((s, i) => {
-                const str = s.weight > 0
-                  ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel} × ${s.reps}`
-                  : s.reps > 0 ? `BW × ${s.reps}` : null
-                if (!str) return null
-                return (
-                  <p key={i} style={{
-                    fontSize: tp.setSize, color: ptxt(0.88),
-                    margin: 0, marginTop: tp.lineGap, lineHeight: 1.2,
+          {visibleExercises.map((ex) => {
+            // Filter out empty entries, then cap for display
+            const validSets   = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
+            const visibleSets = validSets.slice(0, MAX_SETS_PER_EXERCISE)
+            const hiddenSetCount = validSets.length - visibleSets.length
+            // Use <div display:block> instead of <p> — avoids UA-stylesheet margin issues
+            // in html-to-image's SVG foreignObject rendering context (p gets margin:1em 0).
+            return (
+              <div key={ex.name} style={{ flexShrink: 0 }}>
+                <div style={{
+                  display: 'block',
+                  fontSize: tp.nameSize, fontWeight: 800, color: textPrimary,
+                  lineHeight: 1.2,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {dn(ex.name)}
+                </div>
+                <div style={{
+                  display: 'block',
+                  fontSize: tp.infoSize, color: subTextColor,
+                  marginTop: tp.lineGap, lineHeight: 1.25,
+                }}>
+                  {ex.setCount}{locale === 'ja' ? 'セット' : ' sets'}{ex.best1RM > 0
+                    ? <>{' · est. 1RM '}<span style={{ color: acHex, fontWeight: 700 }}>{fmtKg(toDisplayWeight(ex.best1RM, unit))}{unitLabel}</span></>
+                    : null}
+                </div>
+                {visibleSets.map((s, i) => {
+                  const str = s.weight > 0
+                    ? `${fmtKg(toDisplayWeight(s.weight, unit))}${unitLabel} × ${s.reps}`
+                    : `BW × ${s.reps}`
+                  return (
+                    <div key={i} style={{
+                      display: 'block',
+                      fontSize: tp.setSize, color: ptxt(0.88),
+                      // Extra gap before the first set row so the info row's text shadow
+                      // does not visually bleed into the set text (minimum 7px).
+                      marginTop: i === 0 ? Math.max(tp.lineGap + 3, 7) : tp.lineGap,
+                      lineHeight: 1.25,
+                    }}>
+                      {str}
+                    </div>
+                  )
+                })}
+                {hiddenSetCount > 0 && (
+                  <div style={{
+                    display: 'block',
+                    fontSize: tp.infoSize - 1, color: ptxt(0.40),
+                    marginTop: tp.lineGap, lineHeight: 1.2,
                   }}>
-                    {str}
-                  </p>
-                )
-              })}
+                    +{hiddenSetCount} {locale === 'ja' ? 'セット' : `more set${hiddenSetCount !== 1 ? 's' : ''}`}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          {hiddenExCount > 0 && (
+            <div style={{
+              display: 'block',
+              fontSize: tp.infoSize, color: ptxt(0.40),
+              lineHeight: 1.2,
+            }}>
+              +{hiddenExCount} {locale === 'ja' ? '種目' : `more exercise${hiddenExCount !== 1 ? 's' : ''}`}
             </div>
-          ))}
+          )}
         </div>
       </div>
 
