@@ -929,20 +929,20 @@ export default function WorkoutRecorder({
             {!isToday && !isEditing ? (
               <>
                 <div className="text-4xl mb-4">📅</div>
-                <p className="text-base font-black text-white mb-2 tracking-wide">
+                <p className="text-base font-black mb-2 tracking-wide" style={{ color: 'var(--text-primary)' }}>
                   {locale === 'ja' ? 'この日のワークアウト記録はありません' : 'No workout logged for this day'}
                 </p>
-                <p className="text-xs font-bold" style={{ color: '#777' }}>
+                <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
                   {locale === 'ja' ? '記録を追加して、努力を残しましょう' : 'Add a workout to log this day'}
                 </p>
               </>
             ) : (
               <>
                 <div className="text-5xl mb-4">{isEditing ? '✏️' : '⚡'}</div>
-                <p className="text-base font-black text-white mb-2 tracking-wide">
+                <p className="text-base font-black mb-2 tracking-wide" style={{ color: 'var(--text-primary)' }}>
                   {isEditing ? t(locale, 'record.editSession') : t(locale, 'record.buildEffort')}
                 </p>
-                <p className="text-xs font-bold" style={{ color: '#777' }}>{t(locale, 'record.addExercise')}</p>
+                <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>{t(locale, 'record.addExercise')}</p>
               </>
             )}
             {prevSession ? (
@@ -953,7 +953,7 @@ export default function WorkoutRecorder({
                 {locale === 'ja' ? '前回メニューをコピー' : 'Copy previous workout'}
               </button>
             ) : (
-              <p className="mt-4 text-[10px] font-bold" style={{ color: '#444' }}>
+              <p className="mt-4 text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
                 {locale === 'ja' ? 'コピーできる前回メニューがありません' : 'No previous workout to copy'}
               </p>
             )}

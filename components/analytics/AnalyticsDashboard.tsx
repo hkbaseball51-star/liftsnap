@@ -73,9 +73,9 @@ const VOL_BODY_PART_JA: Record<VolBodyPart, string> = {
 
 const CARD = {
   background: 'linear-gradient(135deg, rgba(237,116,47,0.025), rgba(255,255,255,0.01) 50%, rgba(237,116,47,0.015))',
-  border: '1px solid rgba(255,255,255,0.09)',
+  border: '1px solid var(--card-border-primary)',
   borderRadius: 18,
-} as const
+}
 
 function periodToRange(p: Period): string {
   return ({ '30D':'30d','90D':'90d','6M':'6m','1Y':'1y','All':'all' } as Record<Period,string>)[p]
@@ -553,19 +553,19 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <div>
                   <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>BEST 1RM</p>
                   {rmLoading ? (
-                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
+                    <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : bestRM !== null ? (
                     <div className="flex items-baseline gap-1">
-                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{toDisplayWeight(bestRM, unit)}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
+                      <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{toDisplayWeight(bestRM, unit)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }}>{unitLabel}</span>
                     </div>
                   ) : (
-                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
+                    <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>—</p>
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録日数' : 'SESSIONS'}</p>
-                  <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>{ja ? '記録日数' : 'SESSIONS'}</p>
+                  <p style={{ fontSize: 36, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {rmLoading ? '...' : rmData.length > 0 ? rmData.length : '—'}
                   </p>
                 </div>
@@ -632,17 +632,17 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <>
                   <div className="rounded-2xl overflow-hidden" style={CARD}>
                     <div className="px-4 pt-4 pb-2">
-                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録履歴' : 'SESSION HISTORY'}</p>
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>{ja ? '記録履歴' : 'SESSION HISTORY'}</p>
                     </div>
                     {[...rmDataDisplay].reverse().slice(0, 6).map((p, i) => {
                       const origEst1rm = [...rmData].reverse()[i]?.est1rm
                       return (
                         <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                          style={{ borderTop: '1px solid rgba(255,255,255,0.17)' }}>
-                          <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.60)' }}>{p.label}</span>
+                          style={{ borderTop: '1px solid var(--card-divider)' }}>
+                          <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>{p.label}</span>
                           <div className="flex items-baseline gap-1">
-                            <span style={{ fontSize: 16, fontWeight: 700, color: bestRM !== null && origEst1rm === bestRM ? '#ED742F' : '#fff', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.47)' }}>{unitLabel}</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: bestRM !== null && origEst1rm === bestRM ? '#ED742F' : 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unitLabel}</span>
                           </div>
                         </div>
                       )
@@ -653,9 +653,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
                     style={{
                       padding: '12px 16px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.13)',
-                      color: 'rgba(255,255,255,0.60)',
+                      background: 'var(--surface-chip)',
+                      border: '1px solid var(--card-border-primary)',
+                      color: 'var(--text-secondary)',
                       fontSize: 13,
                       fontWeight: 500,
                     }}>
@@ -696,9 +696,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       className="shrink-0 px-4 rounded-full text-[13px] font-bold tracking-wide transition-all"
                       style={{
                         minHeight: 44,
-                        background: volBodyPart === bp ? 'rgba(237, 116, 47,0.14)' : '#171717',
-                        color: volBodyPart === bp ? '#ED742F' : '#555',
-                        border: volBodyPart === bp ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid #222',
+                        background: volBodyPart === bp ? 'rgba(237, 116, 47,0.14)' : 'var(--surface-chip)',
+                        color: volBodyPart === bp ? '#ED742F' : 'var(--text-inactive)',
+                        border: volBodyPart === bp ? '1px solid rgba(237, 116, 47,0.35)' : '1px solid var(--border-subtle)',
                       }}
                       onClick={() => setVolBodyPart(bp)}>
                       {locale === 'ja' ? VOL_BODY_PART_JA[bp] : bp}
@@ -712,20 +712,20 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <div>
                   <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>{ja ? '合計' : 'TOTAL VOLUME'}</p>
                   {volLoading ? (
-                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>...</p>
+                    <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>...</p>
                   ) : totalVol > 0 ? (
                     <div className="flex items-baseline gap-1">
-                      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                      <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                         {fmtVolT(Math.round(toDisplayWeight(totalVol, unit)))}
                       </span>
                     </div>
                   ) : (
-                    <p style={{ fontSize: 28, fontWeight: 900, color: '#333', fontFamily: 'var(--font-mono)' }}>—</p>
+                    <p style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>—</p>
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録日数' : 'SESSIONS'}</p>
-                  <p style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                  <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>{ja ? '記録日数' : 'SESSIONS'}</p>
+                  <p style={{ fontSize: 36, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {volLoading ? '...' : volData.length > 0 ? volData.length : '—'}
                   </p>
                 </div>
@@ -776,14 +776,14 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                 <>
                   <div className="rounded-2xl overflow-hidden" style={CARD}>
                     <div className="px-4 pt-4 pb-2">
-                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '記録履歴' : 'SESSION HISTORY'}</p>
+                      <p className="text-[10px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>{ja ? '記録履歴' : 'SESSION HISTORY'}</p>
                     </div>
                     {[...volDataDisplay].reverse().slice(0, 8).map(p => (
                       <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.17)' }}>
-                        <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.60)' }}>{p.label}</span>
+                        style={{ borderTop: '1px solid var(--card-divider)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>{p.label}</span>
                         <div className="flex items-baseline gap-1">
-                          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-mono)' }}>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                             {fmtVolT(p.volume)}
                           </span>
                         </div>
@@ -795,9 +795,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
                     style={{
                       padding: '12px 16px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.13)',
-                      color: 'rgba(255,255,255,0.60)',
+                      background: 'var(--surface-chip)',
+                      border: '1px solid var(--card-border-primary)',
+                      color: 'var(--text-secondary)',
                       fontSize: 13,
                       fontWeight: 500,
                     }}>
@@ -851,10 +851,10 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   placeholder={latestWeight ? String(toDisplayWeight(latestWeight, unit)) : (unit === 'lbs' ? '154.0' : '70.0')}
                   value={bwInput}
                   onChange={e => setBwInput(e.target.value)}
-                  className="w-20 bg-transparent text-white text-xl font-black outline-none"
-                  style={{ fontFamily: 'var(--font-mono)' }}
+                  className="w-20 bg-transparent text-xl font-black outline-none"
+                  style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
                 />
-                <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
+                <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{unitLabel}</span>
               </div>
               {bwInput && !bwInputValid && (
                 <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>{t(locale, unit === 'lbs' ? 'analytics.bwInputErrorLbs' : 'analytics.bwInputError')}</p>
@@ -879,20 +879,20 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               <div>
                 <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: '#ED742F' }}>{ja ? '最新' : 'LATEST'}</p>
                 <div className="flex items-baseline gap-1">
-                  <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight !== null ? toDisplayWeight(latestWeight, unit) : ''}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
+                  <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{latestWeight !== null ? toDisplayWeight(latestWeight, unit) : ''}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, marginLeft: 3, color: 'var(--text-muted)' }}>{unitLabel}</span>
                 </div>
               </div>
               {bwDataDisplay.length >= 2 && (() => {
                 const diff = Math.round((bwDataDisplay[bwDataDisplay.length - 1].weight - bwDataDisplay[0].weight) * 10) / 10
                 return (
                   <div className="text-right">
-                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{ja ? '変化' : 'CHANGE'}</p>
+                    <p className="text-[10px] font-black tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>{ja ? '変化' : 'CHANGE'}</p>
                     <div className="flex items-baseline gap-1 justify-end">
                       <span style={{ fontSize: 28, fontWeight: 900, color: diff <= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', lineHeight: 1 }}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(1)}
                       </span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.52)' }}>{unitLabel}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }}>{unitLabel}</span>
                     </div>
                   </div>
                 )
@@ -958,9 +958,9 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
               style={{
                 padding: '12px 16px',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.13)',
-                color: 'rgba(255,255,255,0.60)',
+                background: 'var(--surface-chip)',
+                border: '1px solid var(--card-border-primary)',
+                color: 'var(--text-secondary)',
                 fontSize: 13,
                 fontWeight: 500,
               }}>
@@ -997,16 +997,16 @@ function GraphLockCard({
 
   const inner = current === 0 ? (
     <>
-      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 8 }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 8 }}>
         {ja ? zeroTitleJa : zeroTitleEn}
       </p>
-      <p style={{ fontSize: 12, color: '#555', lineHeight: 1.55 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
         {ja ? zeroDescJa : zeroDescEn}
       </p>
     </>
   ) : (
     <>
-      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 12 }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 12 }}>
         {ja
           ? `あと${remaining}回記録すると、${partialJa}`
           : `After ${remaining} more log${remaining !== 1 ? 's' : ''}, ${partialEn}`}

@@ -166,11 +166,11 @@ export default function ShareLandingView({
   const rm1ExerciseName     = bestUnlockedExercise ? tname(bestUnlockedExercise.name).toUpperCase() : 'BENCH PRESS'
 
   const cardBase = (enabled: boolean, accentHex: string) => ({
-    background: enabled ? '#191919' : '#141414',
-    border: `1px solid ${enabled ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.05)'}`,
+    background: 'var(--card-bg-primary)',
+    border: `1px solid var(--card-border-primary)`,
     borderRadius: 18,
     overflow: 'hidden' as const,
-    opacity: enabled ? 1 : 0.45,
+    opacity: enabled ? 1 : 0.55,
   })
 
   const iconBox = (accentHex: string, bgAlpha = 0.14) => ({
@@ -256,7 +256,7 @@ export default function ShareLandingView({
           }}
         >
           <div style={{
-            background: '#1A1A1A',
+            background: 'var(--card-bg-primary)',
             border: '1px solid rgba(237,116,47,0.28)',
             borderRadius: 20,
             overflow: 'hidden',
@@ -274,10 +274,10 @@ export default function ShareLandingView({
                 </span>
                 <ChevronRight size={14} color="rgba(237,116,47,0.55)" />
               </div>
-              <p style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 3 }}>
+              <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: 3 }}>
                 {ja ? '今日のワークアウトStory' : "Today's Workout Story"}
               </p>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.42)', marginBottom: 11, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 11, lineHeight: 1.5 }}>
                 {ja ? 'トレーニングをInstagramストーリー用カードに変換' : "Today's training as an Instagram story card."}
               </p>
               {/* Preview — unit-aware */}
@@ -301,19 +301,19 @@ export default function ShareLandingView({
               {hasTodayWorkout && displayTodayData && (
                 <div style={{ display: 'flex', gap: 5, marginBottom: 11, flexWrap: 'wrap' }}>
                   {[fmtVol(displayTodayData.volume), `${displayTodayData.setsCount} sets`, `${displayTodayData.exercises.length} exercises`].map(chip => (
-                    <span key={chip} style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.44)', padding: '3px 8px', borderRadius: 9, background: 'rgba(255,255,255,0.05)' }}>{chip}</span>
+                    <span key={chip} style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-muted)', padding: '3px 8px', borderRadius: 9, background: 'var(--surface-chip)' }}>{chip}</span>
                   ))}
                 </div>
               )}
               {/* CTA */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                background: hasTodayWorkout ? '#ED742F' : '#2a2a2a',
+                background: hasTodayWorkout ? '#ED742F' : 'var(--surface-chip)',
                 borderRadius: 13, padding: '11px 0',
                 boxShadow: hasTodayWorkout ? '0 4px 16px rgba(237,116,47,0.28)' : 'none',
-                border: hasTodayWorkout ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                border: hasTodayWorkout ? 'none' : '1px solid var(--card-border-primary)',
               }}>
-                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: hasTodayWorkout ? '#fff' : 'rgba(255,255,255,0.60)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: hasTodayWorkout ? '#fff' : 'var(--text-secondary)' }}>
                   {hasTodayWorkout
                     ? (ja ? '今日のワークアウトをシェア' : "Share today's workout")
                     : (ja ? '今日のワークアウトを記録' : "Log today's workout")}
@@ -327,10 +327,10 @@ export default function ShareLandingView({
         {/* ── B. Graph Stories ────────────────────────────── */}
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.36)' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-label)' }}>
               {ja ? '成長グラフ' : 'GRAPH STORIES'}
             </p>
-            <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.26)' }}>
+            <p style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
               {ja ? '成長グラフをシェア' : 'Share your progress charts'}
             </p>
           </div>
@@ -349,13 +349,13 @@ export default function ShareLandingView({
                             <TrendingUp size={19} color="#ED742F" />
                           </div>
                           <div>
-                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{ja ? 'ベスト1RM' : 'Best 1RM'}</p>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>
+                            <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{ja ? 'ベスト1RM' : 'Best 1RM'}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                               {ja ? '最大1RMの成長グラフ' : 'Max strength progress'}
                             </p>
                           </div>
                         </div>
-                        <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.45 }}>
+                        <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                           {ja ? '種目別のベスト1RMの推移をグラフ化してシェア' : 'Share your max strength progress by exercise'}
                         </p>
                       </div>
@@ -380,25 +380,25 @@ export default function ShareLandingView({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
                         <div style={iconBox('#888', 0.06)}>
-                          <TrendingUp size={19} color="rgba(255,255,255,0.30)" />
+                          <TrendingUp size={19} color="var(--text-muted)" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{ja ? 'ベスト1RM' : 'Best 1RM'}</p>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', lineHeight: 1.2 }}>{ja ? 'ベスト1RM' : 'Best 1RM'}</p>
+                          <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                             {ja ? '最大1RMの成長グラフ' : 'Max strength progress'}
                           </p>
                         </div>
                       </div>
-                      <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.30)', lineHeight: 1.45 }}>
+                      <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
                         {ja ? '5回以上記録した種目のグラフが解放されます' : 'Graphs unlock for exercises logged 5 or more times.'}
                       </p>
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.45, marginTop: 3 }}>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45, marginTop: 3 }}>
                         {ja ? '同じ種目を5回記録すると、1RM成長グラフをシェアできます' : 'Log the same exercise 5 times to share its 1RM progress graph.'}
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)' }}>{maxExerciseLogCount} / {EXERCISE_GRAPH_REQUIRED}</span>
-                      <Lock size={14} color="rgba(255,255,255,0.20)" />
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{maxExerciseLogCount} / {EXERCISE_GRAPH_REQUIRED}</span>
+                      <Lock size={14} color="var(--text-muted)" />
                     </div>
                   </div>
                   {/* Mini preview */}
@@ -423,13 +423,13 @@ export default function ShareLandingView({
                             <BarChart2 size={19} color="#22c55e" />
                           </div>
                           <div>
-                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{ja ? '総重量' : 'Daily Volume'}</p>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>
+                            <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{ja ? '総重量' : 'Daily Volume'}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                               {ja ? '部位別・PPL別の総重量グラフ' : 'Body part / PPL volume chart'}
                             </p>
                           </div>
                         </div>
-                        <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.45 }}>
+                        <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                           {ja ? '部位別またはPPL別のトレーニング量の推移をシェア' : 'Share volume trends by body part or PPL'}
                         </p>
                       </div>
@@ -454,27 +454,27 @@ export default function ShareLandingView({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
                         <div style={iconBox('#888', 0.06)}>
-                          <BarChart2 size={19} color="rgba(255,255,255,0.30)" />
+                          <BarChart2 size={19} color="var(--text-muted)" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{ja ? '総重量' : 'Daily Volume'}</p>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', lineHeight: 1.2 }}>{ja ? '総重量' : 'Daily Volume'}</p>
+                          <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                             {ja ? '部位別・PPL別の総重量グラフ' : 'Body part / PPL volume chart'}
                           </p>
                         </div>
                       </div>
-                      <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.30)', lineHeight: 1.45 }}>
+                      <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
                         {ja ? 'ワークアウトを5日記録すると、総重量グラフが解放されます' : 'Log workouts on 5 days to unlock the Daily Volume graph.'}
                       </p>
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.45, marginTop: 3 }}>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45, marginTop: 3 }}>
                         {ja
                           ? `あと${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)}日の記録で、総重量グラフをシェアできます`
                           : `Log ${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions)} more workout day${Math.max(0, VOLUME_CHART_SESSION_REQUIRED - totalSessions) !== 1 ? 's' : ''} to unlock.`}
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)' }}>{totalSessions} / {VOLUME_CHART_SESSION_REQUIRED}</span>
-                      <Lock size={14} color="rgba(255,255,255,0.20)" />
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{totalSessions} / {VOLUME_CHART_SESSION_REQUIRED}</span>
+                      <Lock size={14} color="var(--text-muted)" />
                     </div>
                   </div>
                   {/* Mini preview */}
@@ -499,13 +499,13 @@ export default function ShareLandingView({
                             <Activity size={19} color="#60a5fa" />
                           </div>
                           <div>
-                            <p style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{ja ? '体重' : 'Body Weight'}</p>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>
+                            <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{ja ? '体重' : 'Body Weight'}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                               {ja ? '体重変化のグラフ' : 'Weight progress chart'}
                             </p>
                           </div>
                         </div>
-                        <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.45 }}>
+                        <p style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                           {ja ? '体重の変化をグラフ化してインスタにシェア' : 'Share your body weight change over time'}
                         </p>
                       </div>
@@ -530,27 +530,27 @@ export default function ShareLandingView({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
                         <div style={iconBox('#888', 0.06)}>
-                          <Activity size={19} color="rgba(255,255,255,0.30)" />
+                          <Activity size={19} color="var(--text-muted)" />
                         </div>
                         <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{ja ? '体重' : 'Body Weight'}</p>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 1 }}>
+                          <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', lineHeight: 1.2 }}>{ja ? '体重' : 'Body Weight'}</p>
+                          <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                             {ja ? '体重変化のグラフ' : 'Weight progress chart'}
                           </p>
                         </div>
                       </div>
-                      <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.30)', lineHeight: 1.45 }}>
+                      <p style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
                         {ja ? '体重を5回以上記録すると、体重グラフが解放されます' : 'Log your body weight 5 times to unlock the Body Weight graph.'}
                       </p>
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', lineHeight: 1.45, marginTop: 3 }}>
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45, marginTop: 3 }}>
                         {ja
                           ? `あと${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)}回の体重記録で、体重グラフをシェアできます`
                           : `Log ${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length)} more weight entr${Math.max(0, BW_CHART_REQUIRED - ctxBwHistory.length) !== 1 ? 'ies' : 'y'} to unlock.`}
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)' }}>{ctxBwHistory.length} / {BW_CHART_REQUIRED}</span>
-                      <Lock size={14} color="rgba(255,255,255,0.20)" />
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ctxBwHistory.length} / {BW_CHART_REQUIRED}</span>
+                      <Lock size={14} color="var(--text-muted)" />
                     </div>
                   </div>
                   {/* Mini preview */}
@@ -568,11 +568,11 @@ export default function ShareLandingView({
 
         {/* ── C. REPRA Pro info ───────────────────────────── */}
         <div style={{
-          background: 'linear-gradient(135deg, #181818 0%, #131313 100%)',
-          border: '1px solid rgba(237,116,47,0.15)',
+          background: 'var(--card-bg-primary)',
+          border: '1px solid rgba(237,116,47,0.18)',
           borderRadius: 16,
           padding: '13px 14px',
-          opacity: 0.82,
+          opacity: 0.90,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,116,47,0.10)', border: '1px solid rgba(237,116,47,0.18)' }}>
@@ -580,12 +580,12 @@ export default function ShareLandingView({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.58)' }}>REPRA Pro</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>REPRA Pro</p>
                 <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.10em', padding: '2px 5px', borderRadius: 4, background: 'rgba(237,116,47,0.10)', color: 'rgba(237,116,47,0.60)', border: '1px solid rgba(237,116,47,0.15)' }}>
                   {ja ? '準備中' : 'COMING SOON'}
                 </span>
               </div>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {ja
                   ? 'プレミアムテンプレート、透かし削除、長期グラフ共有などを準備中です。'
                   : 'Premium templates, watermark removal, and long-term graph sharing are planned.'}

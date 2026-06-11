@@ -61,11 +61,11 @@ function computeLastTrained(
 }
 
 function daysColor(days: number | null): string {
-  if (days === null) return '#3a3a3a'
+  if (days === null) return 'var(--text-disabled)'
   if (days === 0)    return '#22c55e'
   if (days <= 3)     return '#ED742F'
-  if (days <= 7)     return 'rgba(255,255,255,0.55)'
-  return '#484848'
+  if (days <= 7)     return 'var(--text-secondary)'
+  return 'var(--text-muted)'
 }
 
 type Props = {
@@ -86,7 +86,7 @@ export default function HomeLastTrainedCard({ sessions, todayStr, locale }: Prop
     <div>
       <p style={{
         fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
-        color: 'rgba(255,255,255,0.54)', marginBottom: 10,
+        color: 'var(--text-muted)', marginBottom: 10,
       }}>
         {ja ? '前回トレーニング' : 'LAST TRAINED'}
       </p>
@@ -100,10 +100,10 @@ export default function HomeLastTrainedCard({ sessions, todayStr, locale }: Prop
             <div
               key={key}
               className="rounded-xl px-3 py-2.5"
-              style={{ background: '#181818', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
               <p style={{
                 fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-                color: 'rgba(255,255,255,0.40)', marginBottom: 5,
+                color: 'var(--text-muted)', marginBottom: 5,
               }}>
                 {ja ? labelJa : labelEn}
               </p>

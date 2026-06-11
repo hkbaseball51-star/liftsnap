@@ -180,7 +180,7 @@ export default function SettingsPage() {
       <div className="mx-4 mb-4">
         <SectionLabel text={t(locale, 'settings.sectionPro')} />
         <div className="rounded-2xl p-4"
-          style={{ background: '#1A1A1A', border: '1px solid rgba(237,116,47,0.20)' }}>
+          style={{ background: 'var(--card-bg-primary)', border: '1px solid rgba(237,116,47,0.20)' }}>
           <div className="flex items-start gap-3 mb-3">
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
               style={{ background: 'rgba(237,116,47,0.12)', border: '1px solid rgba(237,116,47,0.25)' }}>
