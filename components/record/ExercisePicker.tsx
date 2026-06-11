@@ -206,12 +206,12 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
   const renderRow = (e: Exercise, keyPrefix = '') => (
     <div key={keyPrefix + e.id}
       className="flex items-center py-3.5"
-      style={{ borderBottom: '1px solid #111' }}>
+      style={{ borderBottom: '1px solid var(--card-divider)' }}>
       <button
         className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity pr-2"
         onClick={() => onSelect(e)}>
-        <p className="text-sm font-black text-white line-clamp-2" style={{ lineHeight: 1.35 }}>{getDisplayName(e.name, locale)}</p>
-        <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#555' }}>
+        <p className="text-sm font-black line-clamp-2" style={{ lineHeight: 1.35, color: 'var(--text-primary)' }}>{getDisplayName(e.name, locale)}</p>
+        <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: 'var(--text-muted)' }}>
           {e.muscle_group}
           {e.is_custom ? ' · CUSTOM' : ''}
           {usageCounts[e.name] ? ` · ${usageCounts[e.name]}×` : ''}
@@ -222,13 +222,13 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
           <button
             className="w-8 h-8 flex items-center justify-center active:opacity-60"
             onClick={() => setConfirmDeleteId(e.id)}>
-            <Trash2 size={14} style={{ color: '#333' }} />
+            <Trash2 size={14} style={{ color: 'var(--text-muted)' }} />
           </button>
         ) : (
           <button
             className="w-8 h-8 flex items-center justify-center active:opacity-60"
             onClick={() => setConfirmHideId(e.id)}>
-            <EyeOff size={14} style={{ color: '#333' }} />
+            <EyeOff size={14} style={{ color: 'var(--text-muted)' }} />
           </button>
         )}
         <button
@@ -242,28 +242,29 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
   )
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'var(--app-bg)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
-        <button onClick={onClose}><X size={22} style={{ color: '#555' }} /></button>
-        <span className="text-base font-black text-white tracking-widest">{t(locale, 'record.selectExercise')}</span>
+        <button onClick={onClose}><X size={22} style={{ color: 'var(--text-muted)' }} /></button>
+        <span className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>{t(locale, 'record.selectExercise')}</span>
       </div>
 
       {/* Search */}
       <div className="px-4 mb-3">
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-          style={{ background: '#171717', border: '1px solid #1e1e1e' }}>
-          <Search size={16} style={{ color: '#444' }} />
+          style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}>
+          <Search size={16} style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             placeholder={t(locale, 'record.searchExercises')}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-white outline-none"
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--text-primary)' }}
           />
           {query && (
             <button onClick={() => setQuery('')}>
-              <X size={14} style={{ color: '#444' }} />
+              <X size={14} style={{ color: 'var(--text-muted)' }} />
             </button>
           )}
         </div>
@@ -276,9 +277,9 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
             className="shrink-0 px-4 rounded-full text-sm font-bold flex items-center active:opacity-70 transition-opacity"
             style={{
               minHeight: 44,
-              background: activeGroup === g ? '#ED742F' : '#1c1c1c',
-              color: activeGroup === g ? '#fff' : 'rgba(255,255,255,0.62)',
-              border: activeGroup === g ? 'none' : '1px solid rgba(255,255,255,0.10)',
+              background: activeGroup === g ? '#ED742F' : 'var(--surface-chip)',
+              color: activeGroup === g ? '#fff' : 'var(--text-inactive)',
+              border: activeGroup === g ? 'none' : '1px solid var(--border-subtle)',
               boxShadow: activeGroup === g ? '0 2px 8px rgba(237,116,47,0.22)' : 'none',
             }}
             onClick={() => handleGroupChange(g)}>
@@ -290,7 +291,7 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
       {/* Supplement text (ja only) + Hidden button */}
       <div className="px-4 pb-3 flex items-center justify-between" style={{ minHeight: 28 }}>
         {locale === 'ja' ? (
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.68)', flex: 1, marginRight: 8 }}>
+          <p style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1, marginRight: 8 }}>
             {activeGroup === 'ALL'
               ? t(locale, 'record.filterByBodyPart')
               : t(locale, `record.categoryDescription.${activeGroup.toLowerCase()}`)}
@@ -310,13 +311,13 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
       <div className="flex-1 overflow-y-auto px-4">
         {loading ? (
           <div className="py-12 text-center">
-            <p className="text-sm font-bold" style={{ color: '#444' }}>Loading...</p>
+            <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>Loading...</p>
           </div>
         ) : (
           <>
             {filtered.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-sm font-bold" style={{ color: '#444' }}>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
                   {t(locale, 'record.noExercisesFound')}
                 </p>
               </div>
@@ -330,7 +331,7 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
                 className="w-full py-4 flex items-center gap-3 active:opacity-70"
                 onClick={() => setShowCreate(true)}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: '#171717', border: '1px solid #1e1e1e' }}>
+                  style={{ background: 'var(--surface-chip)', border: '1px solid var(--border-subtle)' }}>
                   <Plus size={14} style={{ color: '#ED742F' }} />
                 </div>
                 <span className="text-sm font-black tracking-wide" style={{ color: '#ED742F' }}>
@@ -339,14 +340,14 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
               </button>
             ) : (
               <div className="py-4 space-y-3">
-                <p className="text-[10px] font-black tracking-widest" style={{ color: '#444' }}>CUSTOM EXERCISE</p>
+                <p className="text-[10px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>CUSTOM EXERCISE</p>
                 <input
                   type="text"
                   placeholder="Exercise name"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  className="w-full px-3 py-3 rounded-xl text-sm text-white outline-none"
-                  style={{ background: '#171717', border: '1px solid #1e1e1e' }}
+                  className="w-full px-3 py-3 rounded-xl text-sm outline-none"
+                  style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-primary)' }}
                   autoFocus
                 />
                 <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
@@ -355,9 +356,9 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
                       className="shrink-0 px-4 rounded-full text-sm font-bold flex items-center active:opacity-70 transition-opacity"
                       style={{
                         minHeight: 44,
-                        background: newGroup === g ? '#ED742F' : '#1c1c1c',
-                        color: newGroup === g ? '#fff' : 'rgba(255,255,255,0.62)',
-                        border: newGroup === g ? 'none' : '1px solid rgba(255,255,255,0.10)',
+                        background: newGroup === g ? '#ED742F' : 'var(--surface-chip)',
+                        color: newGroup === g ? '#fff' : 'var(--text-inactive)',
+                        border: newGroup === g ? 'none' : '1px solid var(--border-subtle)',
                         boxShadow: newGroup === g ? '0 2px 8px rgba(237,116,47,0.22)' : 'none',
                       }}
                       onClick={() => setNewGroup(g)}>
@@ -367,12 +368,12 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
                 </div>
                 <div className="flex gap-2">
                   <button className="flex-1 py-3 rounded-xl text-sm font-black"
-                    style={{ background: '#171717', color: '#555', border: '1px solid #1e1e1e' }}
+                    style={{ background: 'var(--surface-chip)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
                     onClick={() => setShowCreate(false)}>
                     CANCEL
                   </button>
-                  <button className="flex-1 py-3 rounded-xl text-sm font-black text-white"
-                    style={{ background: creating || !newName.trim() ? '#222' : '#ED742F' }}
+                  <button className="flex-1 py-3 rounded-xl text-sm font-black"
+                    style={{ background: creating || !newName.trim() ? 'var(--surface-chip)' : '#ED742F', color: creating || !newName.trim() ? 'var(--text-muted)' : '#fff' }}
                     disabled={creating || !newName.trim()}
                     onClick={handleCreate}>
                     {creating ? 'SAVING...' : 'ADD'}
@@ -388,24 +389,24 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
 
       {/* Hidden exercises modal */}
       {showHiddenModal && (
-        <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#0a0a0a' }}>
+        <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'var(--app-bg)' }}>
           <div className="flex items-center gap-3 px-4 pt-14 pb-3">
             <button onClick={() => setShowHiddenModal(false)}>
-              <X size={22} style={{ color: '#555' }} />
+              <X size={22} style={{ color: 'var(--text-muted)' }} />
             </button>
-            <span className="text-base font-black text-white tracking-widest">
+            <span className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>
               {t(locale, 'record.hiddenTitle').toUpperCase()}
             </span>
           </div>
           <div className="px-4 pb-4">
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.56)' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
               {t(locale, 'record.hiddenDesc')}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto px-4">
             {hiddenExercises.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-sm font-bold" style={{ color: '#444' }}>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
                   {t(locale, 'record.hiddenEmpty')}
                 </p>
               </div>
@@ -413,10 +414,10 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
               hiddenExercises.map(e => (
                 <div key={'hidden-' + e.id}
                   className="flex items-center py-3.5"
-                  style={{ borderBottom: '1px solid #111' }}>
+                  style={{ borderBottom: '1px solid var(--card-divider)' }}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black truncate text-white">{getDisplayName(e.name, locale)}</p>
-                    <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: '#555' }}>
+                    <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>{getDisplayName(e.name, locale)}</p>
+                    <p className="text-[10px] font-bold mt-0.5 tracking-wider" style={{ color: 'var(--text-muted)' }}>
                       {e.muscle_group}
                     </p>
                   </div>
@@ -447,24 +448,24 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
           onClick={() => setConfirmHideId(null)}>
           <div
             className="w-full p-5 rounded-t-3xl"
-            style={{ background: '#171717' }}
+            style={{ background: 'var(--card-bg-primary)' }}
             onClick={e => e.stopPropagation()}>
-            <p className="text-base font-black text-white text-center mb-1">
+            <p className="text-base font-black text-center mb-1" style={{ color: 'var(--text-primary)' }}>
               {t(locale, 'record.hideConfirmTitle')}
             </p>
-            <p className="text-sm text-center mb-6" style={{ color: '#555' }}>
+            <p className="text-sm text-center mb-6" style={{ color: 'var(--text-muted)' }}>
               {t(locale, 'record.hideConfirmBody')}
             </p>
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: '#222222', color: '#666' }}
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
                 onClick={() => setConfirmHideId(null)}>
                 {t(locale, 'record.hideConfirmCancel')}
               </button>
               <button
-                className="flex-1 py-4 rounded-2xl text-sm font-black text-white"
-                style={{ background: '#333' }}
+                className="flex-1 py-4 rounded-2xl text-sm font-black"
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
                 onClick={() => {
                   hideExercise(confirmHideId)
                   setConfirmHideId(null)
@@ -484,22 +485,22 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
           onClick={() => setConfirmDeleteId(null)}>
           <div
             className="w-full p-5 rounded-t-3xl"
-            style={{ background: '#171717' }}
+            style={{ background: 'var(--card-bg-primary)' }}
             onClick={e => e.stopPropagation()}>
-            <p className="text-base font-black text-white text-center mb-1">Delete Exercise?</p>
-            <p className="text-sm text-center mb-6" style={{ color: '#555' }}>
+            <p className="text-base font-black text-center mb-1" style={{ color: 'var(--text-primary)' }}>Delete Exercise?</p>
+            <p className="text-sm text-center mb-6" style={{ color: 'var(--text-muted)' }}>
               Removed from your list. Past workout data is kept.
             </p>
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black"
-                style={{ background: '#222222', color: '#666' }}
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
                 onClick={() => setConfirmDeleteId(null)}>
                 CANCEL
               </button>
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black text-white"
-                style={{ background: deleting ? '#333' : '#dc2626' }}
+                style={{ background: deleting ? 'var(--surface-chip)' : '#dc2626' }}
                 disabled={deleting}
                 onClick={() => handleDelete(confirmDeleteId)}>
                 {deleting ? 'DELETING...' : 'DELETE'}
@@ -513,8 +514,8 @@ export default function ExercisePicker({ onSelect, onClose, initialGroup, onGrou
       {toast && (
         <div
           className="fixed left-4 right-4 z-[80] px-4 py-3 rounded-2xl text-center"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)', background: '#222222', border: '1px solid #2a2a2a' }}>
-          <p className="text-sm font-bold text-white">{toast}</p>
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 24px)', background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
+          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{toast}</p>
         </div>
       )}
     </div>

@@ -171,7 +171,7 @@ const ASSIST_LABELS: Record<AssistStatus, { ja: string; en: string }> = {
 }
 
 const ASSIST_COLORS: Record<AssistStatus, { color: string; border: string; bg: string }> = {
-  none:     { color: 'rgba(255,255,255,0.22)', border: 'rgba(255,255,255,0.07)',    bg: 'transparent' },
+  none:     { color: 'var(--text-disabled)',   border: 'var(--card-divider)',       bg: 'transparent' },
   assisted: { color: 'rgba(237,116,47,0.80)',  border: 'rgba(237,116,47,0.25)',     bg: 'rgba(237,116,47,0.07)' },
   failed:   { color: 'rgba(255,120,120,0.75)', border: 'rgba(255,100,100,0.22)',    bg: 'rgba(255,100,100,0.06)' },
   warmup:   { color: 'rgba(120,160,255,0.80)', border: 'rgba(100,140,255,0.25)',    bg: 'rgba(100,140,255,0.07)' },
@@ -191,22 +191,22 @@ const ExerciseCard = memo(function ExerciseCard({
   return (
     <div className="rounded-2xl overflow-hidden"
       style={{
-        background: '#131313',
-        border: isNewPR ? '1px solid rgba(237, 116, 47,0.40)' : '1px solid rgba(255,255,255,0.13)',
+        background: 'var(--card-bg-primary)',
+        border: isNewPR ? '1px solid rgba(237, 116, 47,0.40)' : '1px solid var(--card-border-primary)',
         boxShadow: isNewPR ? '0 0 18px rgba(237, 116, 47,0.10)' : 'none',
       }}>
 
       {/* Exercise header */}
       <div className="flex items-center gap-2.5 px-3 py-2">
         <div className="w-0.5 self-stretch rounded-full flex-shrink-0"
-          style={{ background: isNewPR ? '#ED742F' : '#3a3a3a' }} />
+          style={{ background: isNewPR ? '#ED742F' : 'var(--text-disabled)' }} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-black text-white leading-tight truncate">{getDisplayName(ex.name, locale)}</p>
+            <p className="text-sm font-black leading-tight truncate" style={{ color: 'var(--text-primary)' }}>{getDisplayName(ex.name, locale)}</p>
             <button
               className="flex-shrink-0 p-0.5 active:opacity-60 transition-opacity"
               onClick={() => onRenameExercise(ex.id)}>
-              <Pencil size={10} style={{ color: '#444' }} />
+              <Pencil size={10} style={{ color: 'var(--text-muted)' }} />
             </button>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -214,12 +214,12 @@ const ExerciseCard = memo(function ExerciseCard({
               {ex.muscle_group}
             </span>
             {ex.allTimePR !== null ? (
-              <span className="text-[10px] font-bold" style={{ color: '#888' }}>
+              <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
                 · PR {toDisplayWeight(ex.allTimePR, weightUnit)}{weightUnitLabel(weightUnit)}
               </span>
             ) : (
               <span className="px-1.5 py-px rounded-full text-[8px] font-black tracking-widest"
-                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-muted)', border: '1px solid var(--card-border-primary)' }}>
                 FIRST LOG
               </span>
             )}
@@ -240,17 +240,17 @@ const ExerciseCard = memo(function ExerciseCard({
           </span>
         </button>
         <button onClick={() => onRemoveExercise(ex.id)} className="p-2 flex-shrink-0">
-          <X size={14} style={{ color: '#555' }} />
+          <X size={14} style={{ color: 'var(--text-muted)' }} />
         </button>
       </div>
 
       {/* Column labels */}
       <div className="grid grid-cols-12 gap-1.5 px-3 pt-1 pb-0.5"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-        <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>#</span>
-        <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>{weightUnitLabel(weightUnit).toUpperCase()}</span>
-        <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>REPS</span>
-        <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: '#aaa' }}>1RM</span>
+        style={{ borderTop: '1px solid var(--card-divider)' }}>
+        <span className="col-span-2 text-center text-[8px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>#</span>
+        <span className="col-span-4 text-center text-[8px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>{weightUnitLabel(weightUnit).toUpperCase()}</span>
+        <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>REPS</span>
+        <span className="col-span-3 text-center text-[8px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>1RM</span>
       </div>
 
       {/* Set rows */}
@@ -280,10 +280,10 @@ const ExerciseCard = memo(function ExerciseCard({
                 )}
                 <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
                   style={{
-                    background: isBestSet ? 'rgba(237, 116, 47,0.15)' : '#222',
-                    color: isBestSet ? '#ff7a1a' : '#888',
+                    background: isBestSet ? 'rgba(237, 116, 47,0.15)' : 'var(--surface-chip)',
+                    color: isBestSet ? '#ff7a1a' : 'var(--text-muted)',
                     fontFamily: 'var(--font-mono)',
-                    border: isBestSet ? '1px solid rgba(237, 116, 47,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                    border: isBestSet ? '1px solid rgba(237, 116, 47,0.55)' : '1px solid var(--card-divider)',
                     flexShrink: 0,
                   }}>
                   {set.set_number}
@@ -295,9 +295,9 @@ const ExerciseCard = memo(function ExerciseCard({
                 className="col-span-4 active:scale-95 transition-transform"
                 style={{
                   height: 40, borderRadius: 10,
-                  background: '#1e1e1e',
-                  border: '1px solid rgba(255,255,255,0.11)',
-                  color: set.weight_kg !== null ? '#fff' : '#6a6a6a',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: set.weight_kg !== null ? 'var(--text-primary)' : 'var(--text-disabled)',
                   fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
@@ -310,9 +310,9 @@ const ExerciseCard = memo(function ExerciseCard({
                 className="col-span-3 active:scale-95 transition-transform"
                 style={{
                   height: 40, borderRadius: 10,
-                  background: '#1e1e1e',
-                  border: '1px solid rgba(255,255,255,0.11)',
-                  color: set.reps !== null ? '#fff' : '#6a6a6a',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: set.reps !== null ? 'var(--text-primary)' : 'var(--text-disabled)',
                   fontSize: 17, fontWeight: 900, fontFamily: 'var(--font-mono)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
@@ -323,11 +323,11 @@ const ExerciseCard = memo(function ExerciseCard({
               {/* Set 1RM + assist tag — stacked in the same cell */}
               <div className="col-span-3 flex flex-col items-center justify-center gap-0.5">
                 {setEst1rm !== null ? (
-                  <span style={{ color: isBestSet ? '#ED742F' : '#666', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: isBestSet ? '#ED742F' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                     {toDisplayWeight(setEst1rm, weightUnit)}{weightUnitLabel(weightUnit)}
                   </span>
                 ) : (
-                  <span style={{ color: '#444', fontSize: 13, fontWeight: 700 }}>—</span>
+                  <span style={{ color: 'var(--text-disabled)', fontSize: 13, fontWeight: 700 }}>—</span>
                 )}
                 <button
                   onClick={() => onOpenAssistMenu(ex.id, set.id, currentAssist)}
@@ -350,16 +350,16 @@ const ExerciseCard = memo(function ExerciseCard({
       {stats && (
         <div style={{ padding: '5px 14px 9px' }}>
           <p style={{ fontSize: 11, lineHeight: 1 }}>
-            <span style={{ color: '#666', fontWeight: 500 }}>Volume </span>
-            <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Volume </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
               {formatVolumeWithUnit(stats.volume, weightUnit)}
             </span>
-            <span style={{ color: '#555', fontWeight: 500 }}> · Est. 1RM </span>
-            <span style={{ color: isNewPR ? '#ED742F' : 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> · Est. 1RM </span>
+            <span style={{ color: isNewPR ? '#ED742F' : 'var(--text-primary)', fontWeight: 700 }}>
               {toDisplayWeight(stats.est1rm, weightUnit)}{weightUnitLabel(weightUnit)}
             </span>
-            <span style={{ color: '#555', fontWeight: 500 }}> · Best </span>
-            <span style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> · Best </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
               {toDisplayWeight(stats.bestWeight, weightUnit)}×{stats.bestReps}
             </span>
           </p>
@@ -369,23 +369,23 @@ const ExerciseCard = memo(function ExerciseCard({
       {/* + SET */}
       <button
         className="w-full py-1.5 flex items-center justify-center gap-1 text-[10px] font-black tracking-widest"
-        style={{ color: '#ED742F', borderTop: '1px solid rgba(255,255,255,0.40)' }}
+        style={{ color: '#ED742F', borderTop: '1px solid var(--card-border-primary)' }}
         onClick={() => onAddSet(ex.id)}>
         <Plus size={10} strokeWidth={3} />
         SET
       </button>
 
       {/* Note */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.13)', padding: '7px 12px 10px' }}>
+      <div style={{ borderTop: '1px solid var(--card-divider)', padding: '7px 12px 10px' }}>
         {ex.note ? (
           <button
             className="w-full text-left active:opacity-70 transition-opacity"
             onClick={() => onNoteTarget(ex.id)}>
             <div className="flex items-start gap-2"
-              style={{ borderRadius: 10, background: 'rgba(255,255,255,0.09)', padding: '7px 10px' }}>
+              style={{ borderRadius: 10, background: 'var(--input-bg)', padding: '7px 10px' }}>
               <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>📝</span>
               <p style={{
-                fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5,
+                fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5,
                 overflow: 'hidden', display: '-webkit-box',
                 WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
               }}>
@@ -397,7 +397,7 @@ const ExerciseCard = memo(function ExerciseCard({
           <button
             className="active:opacity-70 transition-opacity"
             onClick={() => onNoteTarget(ex.id)}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.47)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
               {t(locale, 'record.addNote')}
             </span>
           </button>

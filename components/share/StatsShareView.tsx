@@ -899,7 +899,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   )
 
   const sectionLabel = (text: string) => (
-    <p style={{ fontSize: 10, fontWeight: 700, color: '#555', letterSpacing: '0.08em', marginBottom: 8 }}>{text}</p>
+    <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 8 }}>{text}</p>
   )
 
   // Volume volume format helper
@@ -909,14 +909,14 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const isBarType = isVol
 
   return (
-    <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav flex flex-col" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
-        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#1a1a1a' }}>
-          <ArrowLeft size={18} style={{ color: '#888' }} />
+        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: 'var(--card-bg-primary)' }}>
+          <ArrowLeft size={18} style={{ color: 'var(--text-muted)' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest text-white">{ja ? 'ストーリーをシェア' : 'Share Story'}</h1>
+        <h1 className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>{ja ? 'ストーリーをシェア' : 'Share Story'}</h1>
       </div>
 
       {/* ① GRAPH LAYOUT ──────────────────────────────────────── */}
@@ -930,19 +930,19 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 key={l.key}
                 onClick={() => setGraphLayout(l.key as GraphLayout)}
                 style={{
-                  background: sel ? acRgba(gp.accentHex, 0.15) : 'rgba(255,255,255,0.04)',
-                  border: `1.5px solid ${sel ? gp.accentHex : 'rgba(255,255,255,0.08)'}`,
+                  background: sel ? acRgba(gp.accentHex, 0.15) : 'var(--surface-chip)',
+                  border: `1.5px solid ${sel ? gp.accentHex : 'var(--border-subtle)'}`,
                   borderRadius: 14, padding: '10px 12px',
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
                   cursor: 'pointer', textAlign: 'left',
                 }}>
                 <LayoutThumb layoutKey={l.key} accentHex={gp.uiSwatch ?? gp.accentHex} selected={sel} isBar={isBarType} />
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: sel ? (gp.uiSwatch ?? gp.accentHex) : '#fff', margin: 0, lineHeight: 1.2 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: sel ? (gp.uiSwatch ?? gp.accentHex) : 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
                     {l.ratio} {ja ? l.labelJa : l.labelEn}
                   </p>
                   {!ja && (
-                    <p style={{ fontSize: 9, color: '#555', margin: '2px 0 0', lineHeight: 1.2 }}>
+                    <p style={{ fontSize: 9, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.2 }}>
                       {l.labelJa}
                     </p>
                   )}
@@ -967,9 +967,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <button key={vt} onClick={() => setVolViewType(vt)}
                     className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                     style={{
-                      background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
-                      color: sel ? uiAc : '#666',
-                      border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                      background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                      color: sel ? uiAc : 'var(--text-inactive)',
+                      border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                     }}>
                     {vt === 'bodypart' ? (ja ? '部位別' : 'Body Part') : 'PPL'}
                   </button>
@@ -991,9 +991,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       onClick={() => router.push(`/share?type=stats&metric=volume&bodypart=${bp.key}`)}
                       style={{
                         padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        background: sel ? acRgba(uiAc, 0.15) : 'rgba(255,255,255,0.04)',
-                        color: sel ? uiAc : '#666',
-                        border: `1.5px solid ${sel ? uiAc : 'rgba(255,255,255,0.08)'}`,
+                        background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                        color: sel ? uiAc : 'var(--text-inactive)',
+                        border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                       }}>
                       {ja ? bp.labelJa : bp.label}
                     </button>
@@ -1016,9 +1016,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       onClick={() => setPplGroup(pg.key)}
                       style={{
                         flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        background: sel ? acRgba(uiAc, 0.15) : 'rgba(255,255,255,0.04)',
-                        color: sel ? uiAc : '#666',
-                        border: `1.5px solid ${sel ? uiAc : 'rgba(255,255,255,0.08)'}`,
+                        background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                        color: sel ? uiAc : 'var(--text-inactive)',
+                        border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                       }}>
                       {ja ? pg.labelJa : pg.label}
                     </button>
@@ -1044,9 +1044,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <button key={value} onClick={() => setCardLang(value)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
-                  color: sel ? uiAc : '#666',
-                  border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                  background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                  color: sel ? uiAc : 'var(--text-inactive)',
+                  border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
                 {label}
               </button>
@@ -1066,9 +1066,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <button key={cs} onClick={() => setCardStyle(cs)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
-                  color: sel ? uiAc : '#666',
-                  border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                  background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                  color: sel ? uiAc : 'var(--text-inactive)',
+                  border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
                 {cs === 'glass' ? (ja ? 'ガラス' : 'Glass') : (ja ? '透過' : 'Transparent')}
               </button>
@@ -1089,8 +1089,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <button key={pk} onClick={() => setGraphPreset(pk)}
                 style={{
                   padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
-                  background: sel ? acRgba(swatch, 0.15) : 'rgba(255,255,255,0.04)',
-                  border: `1.5px solid ${sel ? swatch : 'rgba(255,255,255,0.08)'}`,
+                  background: sel ? acRgba(swatch, 0.15) : 'var(--surface-chip)',
+                  border: `1.5px solid ${sel ? swatch : 'var(--border-subtle)'}`,
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}>
                 <div style={{
@@ -1100,7 +1100,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 }} />
                 <span style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textAlign: 'left',
-                  color: sel ? swatch : '#666', lineHeight: 1.3, display: 'block',
+                  color: sel ? swatch : 'var(--text-inactive)', lineHeight: 1.3, display: 'block',
                 }}>
                   {ja ? PRESET_LABELS_JA[pk] : PRESET_LABELS[pk]}
                 </span>
@@ -1124,9 +1124,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <button key={sl} onClick={() => setShadowLevel(sl)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
-                  color: sel ? uiAc : '#666',
-                  border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                  background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                  color: sel ? uiAc : 'var(--text-inactive)',
+                  border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
                 {label}
               </button>
@@ -1150,9 +1150,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <button key={value} onClick={() => setExerciseNameLang(value)}
                   className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                   style={{
-                    background: sel ? acRgba(uiAc, 0.15) : '#1a1a1a',
-                    color: sel ? uiAc : '#666',
-                    border: `1.5px solid ${sel ? uiAc : '#2a2a2a'}`,
+                    background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                    color: sel ? uiAc : 'var(--text-inactive)',
+                    border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                   }}>
                   {label}
                 </button>
@@ -1167,7 +1167,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       {/* The checker is NOT inside the capture ref — it's outside the card div — so it never */}
       {/* appears in the saved PNG. Transparent mode uses its own transparentBg on the card itself. */}
       <div className="px-4 mb-5" style={!isTransparentCard ? {
-        backgroundColor: '#161616',
+        backgroundColor: 'var(--card-bg-primary)',
         backgroundImage: CHECKER,
         backgroundSize: '20px 20px',
       } : undefined}>
@@ -1606,7 +1606,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
       {/* ⑦ SAVE BUTTON ──────────────────────────────────────── */}
       <div className="px-4 space-y-2 mb-6">
-        {status && <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>}
+        {status && <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>{status}</p>}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
           style={{ background: '#ED742F', boxShadow: '0 4px 20px rgba(237, 116, 47,0.3)' }}
@@ -1621,7 +1621,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 : (graphLayout === 'full' ? (ja ? '総重量グラフStoryを保存' : 'Save Volume Graph Story') : (ja ? '総重量グラフカードを保存' : 'Save Volume Graph Card'))
           }
         </button>
-        <p className="text-center text-xs" style={{ color: '#444' }}>
+        <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
           {ja ? 'モバイルでは共有、PCではPNG保存' : 'Mobile only · Desktop downloads as PNG'}
         </p>
       </div>

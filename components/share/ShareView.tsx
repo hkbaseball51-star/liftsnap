@@ -177,13 +177,13 @@ export default function ShareView({ data }: { data: CardData }) {
   const accentColor = ACCENT_COLOR[accent]
 
   return (
-    <div className="min-h-screen pb-nav flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav flex flex-col" style={{ background: 'var(--app-bg)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-4">
-        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: '#222222' }}>
-          <ArrowLeft size={18} style={{ color: '#888' }} />
+        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: 'var(--card-bg-primary)' }}>
+          <ArrowLeft size={18} style={{ color: 'var(--text-muted)' }} />
         </button>
-        <h1 className="text-base font-black tracking-widest text-white">Share Story</h1>
+        <h1 className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>Share Story</h1>
       </div>
 
       {/* Card preview */}
@@ -246,12 +246,12 @@ export default function ShareView({ data }: { data: CardData }) {
 
       {/* Theme options */}
       <div className="px-4 mb-3">
-        <p className="text-xs font-bold mb-2" style={{ color: '#888' }}>Background</p>
+        <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-muted)' }}>Background</p>
         <div className="flex gap-2">
           {(['dark', 'clear'] as Theme[]).map(t => (
             <button key={t}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: theme === t ? '#ED742F' : '#222222', color: theme === t ? '#fff' : '#888', border: '1px solid #2a2a2a' }}
+              style={{ background: theme === t ? '#ED742F' : 'var(--surface-chip)', color: theme === t ? '#fff' : 'var(--text-inactive)', border: `1px solid ${theme === t ? '#ED742F' : 'var(--border-subtle)'}` }}
               onClick={() => setTheme(t)}>
               {t === 'dark' ? 'Dark' : 'Clear'}
             </button>
@@ -260,15 +260,15 @@ export default function ShareView({ data }: { data: CardData }) {
       </div>
 
       <div className="px-4 mb-5">
-        <p className="text-xs font-bold mb-2" style={{ color: '#888' }}>Color</p>
+        <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-muted)' }}>Color</p>
         <div className="flex gap-2">
           {(['orange', 'purple'] as Accent[]).map(a => (
             <button key={a}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
               style={{
-                background: accent === a ? ACCENT_COLOR[a] : '#222222',
-                color: '#fff',
-                border: `1px solid ${accent === a ? ACCENT_COLOR[a] : '#2a2a2a'}`,
+                background: accent === a ? ACCENT_COLOR[a] : 'var(--surface-chip)',
+                color: accent === a ? '#fff' : 'var(--text-inactive)',
+                border: `1px solid ${accent === a ? ACCENT_COLOR[a] : 'var(--border-subtle)'}`,
               }}
               onClick={() => setAccent(a)}>
               {a === 'orange' ? 'Orange' : 'Purple'}
@@ -280,7 +280,7 @@ export default function ShareView({ data }: { data: CardData }) {
       {/* Share button */}
       <div className="px-4 space-y-2">
         {status && (
-          <p className="text-center text-sm" style={{ color: '#888' }}>{status}</p>
+          <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>{status}</p>
         )}
         <button
           className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
@@ -290,7 +290,7 @@ export default function ShareView({ data }: { data: CardData }) {
           <Share2 size={20} />
           {sharing ? (ja ? '画像を作成中...' : 'Generating...') : (ja ? 'グラフStoryを保存' : 'Share to Instagram Story')}
         </button>
-        <p className="text-center text-xs" style={{ color: '#444' }}>
+        <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
           {ja ? 'モバイルでは共有、PCではPNG保存' : 'Mobile only · Downloads as PNG on desktop'}
         </p>
       </div>

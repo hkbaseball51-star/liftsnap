@@ -73,11 +73,11 @@ export default function StatsShareGuestView({ metric, exercise, bodypart }: Prop
 
   if (!data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#0a0a0a' }}>
-        <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', marginBottom: 10, lineHeight: 1.4 }}>
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: 'var(--app-bg)' }}>
+        <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 10, lineHeight: 1.4 }}>
           データがありません
         </p>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.42)', textAlign: 'center', marginBottom: 28 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 28 }}>
           まず記録してから共有できます
         </p>
         <Link href="/analytics"
