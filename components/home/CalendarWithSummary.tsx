@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import TrainingCalendar, { type CalendarSession } from './TrainingCalendar'
 import SelectedDaySummary from './SelectedDaySummary'
 import { CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
 import { useLocale } from '@/lib/useLocale'
+import { t } from '@/lib/i18n'
 
 const LEGEND_NAME_JA: Record<string, string> = {
   PUS: 'プッシュ', PUL: 'プル', LEG: '脚', FULL: '全身',
@@ -116,6 +118,41 @@ export default function CalendarWithSummary({
         photoPathsByDate={photoPathsByDate}
       />
       <CalendarLegend ja={ja} />
+      {sessions.length === 0 && (
+        <div style={{
+          marginTop: 12,
+          padding: '16px 18px',
+          borderRadius: 14,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.70)', marginBottom: 4 }}>
+              {t(locale, 'emptyState.calendarTitle')}
+            </p>
+            <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+              {t(locale, 'emptyState.calendarDesc')}
+            </p>
+          </div>
+          <Link href="/record"
+            style={{
+              flexShrink: 0,
+              padding: '9px 16px',
+              borderRadius: 12,
+              background: '#ED742F',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}>
+            {t(locale, 'emptyState.calendarCTA')}
+          </Link>
+        </div>
+      )}
       {selectedDate && (
         <div style={{ marginTop: 12 }}>
           <SelectedDaySummary

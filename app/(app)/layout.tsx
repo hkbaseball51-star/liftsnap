@@ -4,6 +4,7 @@ import AutoAuthClient from '@/components/AutoAuthClient'
 import LocaleSync from '@/components/locale/LocaleSync'
 import SplashScreen from '@/components/SplashScreen'
 import DemoModeInit from '@/components/common/DemoModeInit'
+import FirstLaunchModal from '@/components/onboarding/FirstLaunchModal'
 import { AppDataProvider } from '@/contexts/AppDataContext'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -16,6 +17,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <LocaleSync />
       {/* Reads ?demoUserId= param and persists to localStorage (dev-only hidden feature) */}
       <Suspense><DemoModeInit /></Suspense>
+      {/* Shows 3-page onboarding + terms consent on first launch only */}
+      <Suspense><FirstLaunchModal /></Suspense>
       {/* AppDataProvider fetches all workout + body-weight data once and shares
           it across every page. Pages read from context instead of re-fetching. */}
       <AppDataProvider>

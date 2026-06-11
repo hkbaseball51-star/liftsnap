@@ -981,14 +981,19 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
 function EmptyState() {
   const { locale } = useLocale()
   return (
-    <div className="rounded-2xl p-10 text-center" style={{
+    <div className="rounded-2xl p-8 text-center" style={{
       background: 'linear-gradient(135deg, rgba(237, 116, 47,0.05), rgba(255,255,255,0.01) 40%, rgba(237, 116, 47,0.03))',
       border: '1px solid rgba(237, 116, 47,0.38)',
       borderRadius: 18,
     }}>
       <p style={{ fontSize: 32, marginBottom: 12 }}>📊</p>
-      <p className="text-base font-bold text-white mb-2">{t(locale, 'analytics.noDataYet')}</p>
-      <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.logFirstSet')}</p>
+      <p className="text-base font-bold text-white mb-2">{t(locale, 'emptyState.statsTitle')}</p>
+      <p className="text-sm font-bold mb-6" style={{ color: '#555' }}>{t(locale, 'emptyState.statsDesc')}</p>
+      <Link href="/record"
+        className="inline-block px-6 py-3 rounded-2xl text-sm font-black"
+        style={{ background: '#ED742F', color: '#fff' }}>
+        {t(locale, 'emptyState.statsCTA')}
+      </Link>
     </div>
   )
 }

@@ -8,7 +8,7 @@ import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import WorkoutStoryCardContent, { glassCardStyle, tname } from '@/components/share/WorkoutStoryCardContent'
 import type { TodayData } from '@/components/share/WorkoutStoryCardContent'
-import type { Locale } from '@/lib/i18n'
+import { t, type Locale } from '@/lib/i18n'
 import { useAppData } from '@/contexts/AppDataContext'
 import { localGetTodayWorkoutForShare } from '@/lib/localDB'
 import { VOLUME_CHART_SESSION_REQUIRED, BW_CHART_REQUIRED, EXERCISE_GRAPH_REQUIRED } from '@/lib/unlocks'
@@ -178,6 +178,44 @@ export default function ShareLandingView({
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: `rgba(${hexRGB(accentHex)},${bgAlpha})`,
   })
+
+  // Empty state — shown when no workouts have ever been recorded
+  const hasAnyData = totalSessions > 0 || exercises.length > 0 || hasTodayWorkout
+
+  if (!hasAnyData) {
+    return (
+      <div className="min-h-screen pb-nav flex flex-col items-center justify-center px-6" style={{ background: '#080808' }}>
+        <div style={{
+          width: '100%', maxWidth: 340,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 20,
+          padding: '32px 24px',
+          textAlign: 'center',
+        }}>
+          <p style={{ fontSize: 36, marginBottom: 14 }}>📸</p>
+          <p style={{ fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+            {t(locale, 'emptyState.shareTitle')}
+          </p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.44)', lineHeight: 1.6, marginBottom: 24 }}>
+            {t(locale, 'emptyState.shareDesc')}
+          </p>
+          <Link href="/record"
+            style={{
+              display: 'inline-block',
+              padding: '13px 28px',
+              borderRadius: 16,
+              background: '#ED742F',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 800,
+            }}>
+            {t(locale, 'emptyState.shareCTA')}
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
