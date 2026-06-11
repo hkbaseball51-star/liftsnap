@@ -14,9 +14,11 @@ const KEYS = {
 export type LocalSession = {
   id: string
   title: string
-  trained_at: string       // YYYY-MM-DD
+  trained_at: string         // YYYY-MM-DD
   completed_at: string | null
   total_volume_kg: number
+  created_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
 }
 
 export type AssistStatus = 'none' | 'assisted' | 'failed' | 'warmup'
@@ -32,6 +34,8 @@ export type LocalSet = {
   note: string | null
   is_completed: boolean
   assistStatus?: AssistStatus
+  created_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
 }
 
 export type LocalExercise = {
@@ -40,11 +44,15 @@ export type LocalExercise = {
   muscle_group: string
   equipment: string | null
   is_custom: boolean
+  created_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
 }
 
 export type LocalBodyWeight = {
-  date: string   // YYYY-MM-DD
+  date: string               // YYYY-MM-DD
   weight_kg: number
+  created_at?: string        // ISO 8601 — filled by normalize; always present after migration
+  updated_at?: string        // ISO 8601 — filled by normalize; always present after migration
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -59,17 +67,130 @@ function write(key: string, value: unknown) {
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 
+// ── Timestamp helpers ──────────────────────────────────────────────────────
+
+export function nowIso(): string {
+  return new Date().toISOString()
+}
+
+function dateToIso(date: string): string {
+  return `${date}T00:00:00.000Z`
+}
+
+// Normalize functions ensure created_at / updated_at are always present.
+// Used both for migrate-on-read and for the one-time migration write-back.
+
+export function normalizeSession(raw: Record<string, unknown>): LocalSession {
+  const created_at = (raw.created_at as string | undefined)
+    || (raw.completed_at as string | undefined)
+    || (raw.trained_at ? dateToIso(raw.trained_at as string) : nowIso())
+  return {
+    id:               raw.id as string,
+    title:            (raw.title as string) ?? '',
+    trained_at:       raw.trained_at as string,
+    completed_at:     (raw.completed_at as string | null) ?? null,
+    total_volume_kg:  (raw.total_volume_kg as number) ?? 0,
+    created_at,
+    updated_at:       (raw.updated_at as string | undefined) || created_at,
+  }
+}
+
+export function normalizeSet(
+  raw: Record<string, unknown>,
+  fallbackCreatedAt: string,
+): LocalSet {
+  const created_at = (raw.created_at as string | undefined) || fallbackCreatedAt
+  return {
+    id:            raw.id as string,
+    session_id:    raw.session_id as string,
+    exercise_name: raw.exercise_name as string,
+    muscle_group:  (raw.muscle_group as string) ?? '',
+    set_number:    (raw.set_number as number) ?? 0,
+    weight_kg:     (raw.weight_kg as number | null) ?? null,
+    reps:          (raw.reps as number | null) ?? null,
+    note:          (raw.note as string | null) ?? null,
+    is_completed:  (raw.is_completed as boolean) ?? false,
+    assistStatus:  raw.assistStatus as AssistStatus | undefined,
+    created_at,
+    updated_at:    (raw.updated_at as string | undefined) || created_at,
+  }
+}
+
+export function normalizeExercise(raw: Record<string, unknown>): LocalExercise {
+  const created_at = (raw.created_at as string | undefined) || nowIso()
+  return {
+    id:           raw.id as string,
+    name:         (raw.name as string) ?? '',
+    muscle_group: (raw.muscle_group as string) ?? '',
+    equipment:    (raw.equipment as string | null) ?? null,
+    is_custom:    (raw.is_custom as boolean) ?? false,
+    created_at,
+    updated_at:   (raw.updated_at as string | undefined) || created_at,
+  }
+}
+
+export function normalizeBodyWeight(raw: Record<string, unknown>): LocalBodyWeight {
+  const created_at = (raw.created_at as string | undefined)
+    || (raw.date ? dateToIso(raw.date as string) : nowIso())
+  return {
+    date:      raw.date as string,
+    weight_kg: (raw.weight_kg as number) ?? 0,
+    created_at,
+    updated_at: (raw.updated_at as string | undefined) || created_at,
+  }
+}
+
+// ── One-time migration: stamp existing data with created_at / updated_at ──
+
+const MIGRATION_V2_KEY = 'repra_db_v2'
+
+export function runLocalDBMigration(): void {
+  if (typeof window === 'undefined') return
+  if (localStorage.getItem(MIGRATION_V2_KEY)) return
+
+  try {
+    // Normalize sessions
+    const rawSessions = read<Record<string, unknown>[]>(KEYS.sessions, [])
+    const sessions = rawSessions.map(normalizeSession)
+    write(KEYS.sessions, sessions)
+
+    // Use each session's created_at as fallback for its sets
+    const sessionCreatedAt = new Map(sessions.map(s => [s.id, s.created_at!]))
+
+    // Normalize sets
+    const rawSets = read<Record<string, unknown>[]>(KEYS.sets, [])
+    write(KEYS.sets, rawSets.map(s =>
+      normalizeSet(s, sessionCreatedAt.get(s.session_id as string) ?? nowIso()),
+    ))
+
+    // Normalize custom exercises
+    const rawExercises = read<Record<string, unknown>[]>(KEYS.customExercises, [])
+    write(KEYS.customExercises, rawExercises.map(normalizeExercise))
+
+    // Normalize body weights
+    const rawBodyWeights = read<Record<string, unknown>[]>(KEYS.bodyWeights, [])
+    write(KEYS.bodyWeights, rawBodyWeights.map(normalizeBodyWeight))
+
+    localStorage.setItem(MIGRATION_V2_KEY, 'true')
+  } catch {
+    // Non-fatal: normalize-on-read still ensures consistent in-memory data
+  }
+}
+
 // ── Sessions ──────────────────────────────────────────────────
 
-function getSessions(): LocalSession[] { return read(KEYS.sessions, []) }
+function getSessions(): LocalSession[] {
+  return read<Record<string, unknown>[]>(KEYS.sessions, []).map(normalizeSession)
+}
 function setSessions(s: LocalSession[]) { write(KEYS.sessions, s) }
 
 export function localCreateSession(date: string, title: string): string {
-  const id = uid()
+  const id  = uid()
+  const now = nowIso()
   const all = getSessions()
   // Remove any incomplete (draft) session for this date first
   const filtered = all.filter(s => !(s.trained_at === date && s.completed_at === null))
-  filtered.push({ id, title, trained_at: date, completed_at: null, total_volume_kg: 0 })
+  filtered.push({ id, title, trained_at: date, completed_at: null, total_volume_kg: 0, created_at: now, updated_at: now })
   setSessions(filtered)
   return id
 }
@@ -79,6 +200,8 @@ export function localSaveFullSession(
   title: string,
   sets: { exercise_name: string; muscle_group: string; set_number: number; weight_kg: number | null; reps: number | null; note?: string | null; assistStatus?: AssistStatus }[],
 ): void {
+  const now = nowIso()
+
   // Replace sets for this session
   const otherSets = getSets().filter(s => s.session_id !== sessionId)
   const newSets: LocalSet[] = sets.map(s => ({
@@ -92,13 +215,15 @@ export function localSaveFullSession(
     note: s.note ?? null,
     is_completed: true,
     assistStatus: s.assistStatus,
+    created_at: now,
+    updated_at: now,
   }))
   setSets([...otherSets, ...newSets])
 
   const totalVolume = sets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0)
   setSessions(getSessions().map(s =>
     s.id === sessionId
-      ? { ...s, title, total_volume_kg: totalVolume, completed_at: new Date().toISOString() }
+      ? { ...s, title, total_volume_kg: totalVolume, completed_at: now, updated_at: now }
       : s,
   ))
 }
@@ -253,18 +378,31 @@ export function localGetTodayWorkoutForShare(date: string): {
 
 // ── Sets ──────────────────────────────────────────────────────
 
-function getSets(): LocalSet[] { return read(KEYS.sets, []) }
+function getSets(): LocalSet[] {
+  return read<Record<string, unknown>[]>(KEYS.sets, []).map(s => normalizeSet(s, nowIso()))
+}
 function setSets(s: LocalSet[]) { write(KEYS.sets, s) }
 
 // ── Exercises ─────────────────────────────────────────────────
 
-function getCustomExercises(): LocalExercise[] { return read(KEYS.customExercises, []) }
+function getCustomExercises(): LocalExercise[] {
+  return read<Record<string, unknown>[]>(KEYS.customExercises, []).map(normalizeExercise)
+}
 function setCustomExercises(e: LocalExercise[]) { write(KEYS.customExercises, e) }
 
 export function localGetCustomExercises(): LocalExercise[] { return getCustomExercises() }
 
 export function localCreateCustomExercise(name: string, muscleGroup: string, equipment?: string): LocalExercise {
-  const ex: LocalExercise = { id: 'custom_' + uid(), name, muscle_group: muscleGroup, equipment: equipment ?? null, is_custom: true }
+  const now = nowIso()
+  const ex: LocalExercise = {
+    id: 'custom_' + uid(),
+    name,
+    muscle_group: muscleGroup,
+    equipment: equipment ?? null,
+    is_custom: true,
+    created_at: now,
+    updated_at: now,
+  }
   setCustomExercises([...getCustomExercises(), ex])
   return ex
 }
@@ -281,14 +419,21 @@ export function localGetExerciseUsageCounts(): Record<string, number> {
 
 // ── Body Weight ───────────────────────────────────────────────
 
-function getBodyWeights(): LocalBodyWeight[] { return read(KEYS.bodyWeights, []) }
+function getBodyWeights(): LocalBodyWeight[] {
+  return read<Record<string, unknown>[]>(KEYS.bodyWeights, []).map(normalizeBodyWeight)
+}
 function setBodyWeights(w: LocalBodyWeight[]) { write(KEYS.bodyWeights, w) }
 
 export function localUpsertBodyWeight(weightKg: number, date: string): void {
   const all = getBodyWeights()
   const idx = all.findIndex(w => w.date === date)
-  if (idx >= 0) all[idx] = { date, weight_kg: weightKg }
-  else all.push({ date, weight_kg: weightKg })
+  const now = nowIso()
+  if (idx >= 0) {
+    // Preserve original created_at; update only weight and updated_at
+    all[idx] = { ...all[idx], weight_kg: weightKg, updated_at: now }
+  } else {
+    all.push({ date, weight_kg: weightKg, created_at: now, updated_at: now })
+  }
   setBodyWeights(all)
 }
 

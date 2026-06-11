@@ -1,3 +1,11 @@
+import {
+  normalizeSession,
+  normalizeSet,
+  normalizeExercise,
+  normalizeBodyWeight,
+  nowIso,
+} from '@/lib/localDB'
+
 const BACKUP_KEYS = [
   'repra_sessions',
   'repra_sets',
@@ -9,6 +17,17 @@ const BACKUP_KEYS = [
   'repra_terms_accepted',
   'repra_terms_accepted_at',
 ] as const
+
+// The 4 data collections that require timestamp normalization on import
+const DATA_KEYS = {
+  sessions:        'repra_sessions',
+  sets:            'repra_sets',
+  customExercises: 'repra_custom_exercises',
+  bodyWeights:     'repra_body_weights',
+} as const
+
+// Must match the gate key in lib/localDB.ts
+const MIGRATION_V2_KEY = 'repra_db_v2'
 
 const EXCLUDED_PATTERNS = [
   'access_token',
@@ -64,6 +83,56 @@ export function exportBackup(): void {
   URL.revokeObjectURL(url)
 }
 
+// Normalize and write one of the 4 data collections.
+// Returns true on success; false if the value was malformed (caller falls back to raw write).
+function writeNormalizedCollection(
+  key: string,
+  value: string,
+  sessionCreatedAt: Map<string, string>,
+): boolean {
+  try {
+    const raw = JSON.parse(value) as Record<string, unknown>[]
+    if (!Array.isArray(raw)) return false
+
+    let normalized: unknown[]
+
+    if (key === DATA_KEYS.sessions) {
+      normalized = raw.map(normalizeSession)
+    } else if (key === DATA_KEYS.sets) {
+      normalized = raw.map(s =>
+        normalizeSet(s, sessionCreatedAt.get(s.session_id as string) ?? nowIso()),
+      )
+    } else if (key === DATA_KEYS.customExercises) {
+      normalized = raw.map(normalizeExercise)
+    } else if (key === DATA_KEYS.bodyWeights) {
+      normalized = raw.map(normalizeBodyWeight)
+    } else {
+      return false
+    }
+
+    localStorage.setItem(key, JSON.stringify(normalized))
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Build a session-id → created_at map from the backup's sessions value.
+// Used so set normalization can inherit the session's created_at.
+function buildSessionCreatedAtMap(sessionsValue: string | null | undefined): Map<string, string> {
+  const map = new Map<string, string>()
+  if (!sessionsValue) return map
+  try {
+    const raw = JSON.parse(sessionsValue) as Record<string, unknown>[]
+    if (!Array.isArray(raw)) return map
+    for (const s of raw) {
+      const norm = normalizeSession(s)
+      if (norm.id && norm.created_at) map.set(norm.id, norm.created_at)
+    }
+  } catch { /* ignore */ }
+  return map
+}
+
 export async function importBackup(file: File): Promise<void> {
   const text = await file.text()
   let payload: unknown
@@ -84,12 +153,33 @@ export async function importBackup(file: File): Promise<void> {
   }
 
   const { data } = payload as BackupPayload
+
+  // Pre-build session created_at map so sets can inherit the right fallback
+  const sessionCreatedAt = buildSessionCreatedAtMap(data[DATA_KEYS.sessions])
+
+  const dataKeySet = new Set<string>(Object.values(DATA_KEYS))
+
   for (const [key, value] of Object.entries(data)) {
     if (isExcluded(key)) continue
+
     if (value === null || value === undefined) {
       localStorage.removeItem(key)
-    } else {
-      localStorage.setItem(key, String(value))
+      continue
     }
+
+    // For the 4 data collections: normalize timestamps before writing.
+    // Falls back to raw write if normalization fails (malformed JSON etc.).
+    if (dataKeySet.has(key)) {
+      const ok = writeNormalizedCollection(key, String(value), sessionCreatedAt)
+      if (ok) continue
+    }
+
+    localStorage.setItem(key, String(value))
   }
+
+  // Safety net: clear the migration gate key so runLocalDBMigration() will
+  // re-run on next app startup. This catches any edge case where the
+  // normalization above was skipped (e.g. malformed collection) and ensures
+  // the startup migration sees the restored data fresh.
+  localStorage.removeItem(MIGRATION_V2_KEY)
 }

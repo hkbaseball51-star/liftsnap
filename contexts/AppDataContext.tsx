@@ -20,6 +20,7 @@ import {
   localGetBodyWeightHistory,
   localGetTotalSessions,
   localUpsertBodyWeight,
+  runLocalDBMigration,
 } from '@/lib/localDB'
 import {
   getDemoCalendarData,
@@ -273,6 +274,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // If demo mode is detected later, loadDemo() overwrites this data.
 
   useEffect(() => {
+    runLocalDBMigration()
     loadLocal()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // mount only
