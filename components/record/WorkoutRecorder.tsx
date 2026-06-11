@@ -1432,7 +1432,7 @@ export default function WorkoutRecorder({
                 <button
                   key={f.type}
                   className="py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
-                  style={{ background: '#1e1e1e', color: '#ED742F', border: '1px solid rgba(237,116,47,0.22)' }}
+                  style={{ background: 'var(--surface-chip)', color: '#ED742F', border: '1px solid rgba(237,116,47,0.22)' }}
                   onClick={() => void handleFilterSelect(f.type)}>
                   {f.labelJa}
                 </button>

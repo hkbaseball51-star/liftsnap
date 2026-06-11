@@ -43,6 +43,11 @@
   --chart-btn-bg: rgba(255,255,255,0.05);
   --chart-btn-border: rgba(255,255,255,0.08);
   --chart-btn-icon: rgba(255,255,255,0.32);
+  /* Skeleton / loading state */
+  --skeleton-bg: rgba(255,255,255,0.08);
+  --skeleton-highlight: rgba(255,255,255,0.14);
+  --skeleton-card-bg: rgba(255,255,255,0.04);
+  --skeleton-border: rgba(255,255,255,0.07);
 }
 
 [data-theme="light"] {
@@ -83,6 +88,11 @@
   --chart-btn-bg: rgba(0,0,0,0.05);
   --chart-btn-border: rgba(0,0,0,0.10);
   --chart-btn-icon: #6B7280;
+  /* Skeleton / loading state */
+  --skeleton-bg: rgba(0,0,0,0.06);
+  --skeleton-highlight: rgba(255,255,255,0.75);
+  --skeleton-card-bg: rgba(255,255,255,0.90);
+  --skeleton-border: rgba(0,0,0,0.08);
 }
 
 @theme inline {
@@ -164,4 +174,9 @@ input[type=number] { -moz-appearance: textfield; }
 /* Generic spinner */
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

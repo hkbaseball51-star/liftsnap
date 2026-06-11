@@ -1,12 +1,12 @@
 export default function ShareLoading() {
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#080808' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="px-4 pt-12 pb-8">
-        <div className="h-2.5 w-10 rounded-full mb-3" style={{ background: '#1a1a1a' }} />
-        <div className="h-7 w-44 rounded-full mb-2" style={{ background: '#1a1a1a' }} />
-        <div className="h-4 w-52 rounded-full" style={{ background: '#161616' }} />
+        <div className="h-2.5 w-10 rounded-full mb-3" style={{ background: 'var(--skeleton-bg)' }} />
+        <div className="h-7 w-44 rounded-full mb-2" style={{ background: 'var(--skeleton-bg)' }} />
+        <div className="h-4 w-52 rounded-full" style={{ background: 'var(--skeleton-bg)' }} />
       </div>
 
       {/* Entry cards */}
@@ -15,7 +15,7 @@ export default function ShareLoading() {
           <div
             key={i}
             className="h-16 rounded-2xl"
-            style={{ background: '#141414', border: '1px solid #1a1a1a' }}
+            style={{ background: 'var(--skeleton-card-bg)', border: '1px solid var(--skeleton-border)' }}
           />
         ))}
       </div>

@@ -16,7 +16,7 @@ type Props = {
 // Matches the approximate visual structure so there is no blank flash.
 function AnalyticsSkeleton() {
   const shimmer = {
-    background: 'linear-gradient(90deg, #131313 25%, #1e1e1e 50%, #131313 75%)',
+    background: 'linear-gradient(90deg, var(--skeleton-bg) 25%, var(--skeleton-highlight) 50%, var(--skeleton-bg) 75%)',
     backgroundSize: '200% 100%',
     animation: 'shimmer 1.4s ease-in-out infinite',
   } as React.CSSProperties
@@ -34,13 +34,13 @@ function AnalyticsSkeleton() {
         {['MAX 1RM', 'DAILY VOLUME', 'BODY WEIGHT'].map((label, i) => (
           <div key={label} style={{
             flex: 1, height: 36, borderRadius: 10,
-            background: i === 0 ? 'rgba(237,116,47,0.12)' : '#131313',
-            border: `1px solid ${i === 0 ? 'rgba(237,116,47,0.22)' : 'rgba(255,255,255,0.07)'}`,
+            background: i === 0 ? 'rgba(237,116,47,0.12)' : 'var(--skeleton-bg)',
+            border: `1px solid ${i === 0 ? 'rgba(237,116,47,0.22)' : 'var(--skeleton-border)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
               height: 9, width: i === 0 ? 56 : 72, borderRadius: 4,
-              background: i === 0 ? 'rgba(237,116,47,0.35)' : 'rgba(255,255,255,0.10)',
+              background: i === 0 ? 'rgba(237,116,47,0.35)' : 'var(--skeleton-highlight)',
             }} />
           </div>
         ))}
@@ -51,8 +51,8 @@ function AnalyticsSkeleton() {
         {[60, 32, 40, 56, 48, 36, 30].map((w, i) => (
           <div key={i} style={{
             flexShrink: 0, height: 28, width: w, borderRadius: 20,
-            background: i === 0 ? 'rgba(237,116,47,0.14)' : '#131313',
-            border: '1px solid rgba(255,255,255,0.07)',
+            background: i === 0 ? 'rgba(237,116,47,0.14)' : 'var(--skeleton-bg)',
+            border: '1px solid var(--skeleton-border)',
           }} />
         ))}
       </div>
@@ -65,7 +65,7 @@ function AnalyticsSkeleton() {
         {[40, 40, 36, 32, 36].map((w, i) => (
           <div key={i} style={{
             height: 30, width: w, borderRadius: 8,
-            background: '#131313', border: '1px solid rgba(255,255,255,0.07)',
+            background: 'var(--skeleton-bg)', border: '1px solid var(--skeleton-border)',
           }} />
         ))}
       </div>
@@ -80,12 +80,6 @@ function AnalyticsSkeleton() {
         ))}
       </div>
 
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
     </div>
   )
 }

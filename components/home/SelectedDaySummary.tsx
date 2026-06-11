@@ -66,8 +66,9 @@ export default function SelectedDaySummary({
   const isToday = selectedDate === todayStr
 
   const cardBase = {
-    background: '#222222',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'var(--card-bg-primary)',
+    border: '1px solid var(--card-border-primary)',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
     borderRadius: 20,
     padding: '16px 18px',
     textAlign: 'left' as const,
@@ -87,14 +88,14 @@ export default function SelectedDaySummary({
             className="active:opacity-70 transition-opacity"
             style={cardBase}
             onClick={() => router.push(`/record?date=${selectedDate}&from=calendar`)}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.54)', marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 10 }}>
               {dateLabel}
             </p>
-            <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.65)', marginBottom: bodyWeight !== null ? 6 : 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: bodyWeight !== null ? 6 : 14 }}>
               {t(locale, 'home.noWorkoutLogged')}
             </p>
             {bodyWeight !== null && (
-              <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.56)', marginBottom: 14 }}>
+              <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 14 }}>
                 BW {toDisplayWeight(bodyWeight, unit)}{weightUnitLabel(unit)}
               </p>
             )}
@@ -113,7 +114,7 @@ export default function SelectedDaySummary({
               onClick={() => router.push(`/record?date=${selectedDate}&from=calendar`)}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.36)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
                     {dateLabel}
                   </span>
                   {badgeLabel && (
@@ -133,30 +134,30 @@ export default function SelectedDaySummary({
               </div>
 
               {/* Row 2: stats summary */}
-              <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.62)', marginBottom: 10 }}>
+              <p style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-secondary)', marginBottom: 10 }}>
                 {locale === 'ja' ? `${summary.totalSets}セット` : `${summary.totalSets} sets`}
                 {' · '}
                 {formatVolume(summary.totalVolume, unit)}
                 {summary.best1rm > 0 && ` · 1RM ${toDisplayWeight(summary.best1rm, unit)}${weightUnitLabel(unit)}`}
                 {bodyWeight !== null && (
-                  <span style={{ color: 'rgba(255,255,255,0.54)' }}>{` · BW ${toDisplayWeight(bodyWeight, unit)}${weightUnitLabel(unit)}`}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{` · BW ${toDisplayWeight(bodyWeight, unit)}${weightUnitLabel(unit)}`}</span>
                 )}
               </p>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.055)', marginBottom: 10 }} />
+              <div style={{ height: 1, background: 'var(--card-divider)', marginBottom: 10 }} />
 
               {/* Row 3: main exercise + best set */}
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3, lineHeight: 1.3 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3, lineHeight: 1.3 }}>
                 {getDisplayName(summary.mainExercise, locale)}
               </p>
               {summary.mainExerciseBestWeight > 0 && summary.mainExerciseBestReps > 0 && (
-                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.56)' }}>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>
                   {t(locale, 'home.bestSet')}&nbsp; {toDisplayWeight(summary.mainExerciseBestWeight, unit)}{weightUnitLabel(unit)} × {summary.mainExerciseBestReps}
                 </p>
               )}
               {summary.mainExerciseNote && (
-                <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.58)', marginTop: 5, lineHeight: 1.45 }}>
+                <p style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.45 }}>
                   <span style={{ fontWeight: 600 }}>{locale === 'ja' ? 'メモ：' : 'Note: '}</span>
                   {summary.mainExerciseNote}
                 </p>
@@ -166,14 +167,14 @@ export default function SelectedDaySummary({
               {summary.extraCount > 0 && (
                 <div style={{ marginTop: 7, display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}>
                   {summary.secondExercise && (
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.36)' }}>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)' }}>
                       {getDisplayName(summary.secondExercise, locale)}
                     </span>
                   )}
                   {(() => {
                     const hidden = summary.extraCount - (summary.secondExercise ? 1 : 0)
                     return hidden > 0 ? (
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.65)' }}>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-secondary)' }}>
                         {locale === 'ja' ? `他${hidden}種目` : `+${hidden} exercise${hidden > 1 ? 's' : ''}`}
                       </span>
                     ) : null
@@ -183,11 +184,11 @@ export default function SelectedDaySummary({
             </button>
 
             {/* Share Story CTA */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 0 0' }} />
+            <div style={{ height: 1, background: 'var(--card-divider)', margin: '10px 0 0' }} />
             <button
               className="w-full flex items-center justify-between pt-3 active:opacity-70 transition-opacity"
               onClick={() => router.push(`/share?type=today&date=${selectedDate}`)}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.58)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>
                 {locale === 'ja' ? 'この日のワークアウトをシェア' : 'Share this workout'}
               </span>
               <Share2 size={13} style={{ color: '#ED742F' }} />

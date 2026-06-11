@@ -331,27 +331,27 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
     const sinceFirst = idx > 0 ? current - rmDataDisplay[0].est1rm : null
     const fromPrev   = idx > 0 ? current - rmDataDisplay[idx - 1].est1rm : null
     return (
-      <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
+      <div style={{ background: 'var(--card-bg-primary)', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
         <div style={{ marginBottom: sinceFirst !== null ? 4 : 0 }}>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '推定1RM  ' : 'EST. 1RM  '}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '推定1RM  ' : 'EST. 1RM  '}</span>
           <span style={{ color: '#ED742F', fontSize: 14, fontWeight: 900 }}>{current}</span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 4 }}>
             {sinceFirst >= 0 ? '+' : ''}{sinceFirst} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
+            <span style={{ color: 'var(--text-chevron)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
         {fromPrev !== null && fromPrev !== 0 && (
           <p style={{ color: fromPrev > 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 1 }}>
             {fromPrev > 0 ? '+' : ''}{fromPrev} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
+            <span style={{ color: 'var(--text-chevron)', marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
           </p>
         )}
         {fromPrev === 0 && (
-          <p style={{ color: 'rgba(255,255,255,0.16)', fontSize: 10, marginTop: 1 }}>
+          <p style={{ color: 'var(--text-disabled)', fontSize: 10, marginTop: 1 }}>
             ±0 {unitLabel}<span style={{ marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
           </p>
         )}
@@ -369,17 +369,17 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       ? Math.round((current - bwDataDisplay[0].weight) * 10) / 10
       : null
     return (
-      <div style={{ background: '#0d0d0d', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
+      <div style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
         <div style={{ marginBottom: sinceFirst !== null ? 4 : 0 }}>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '体重  ' : 'BODY WEIGHT  '}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '体重  ' : 'BODY WEIGHT  '}</span>
           <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 900 }}>{current}</span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 10, marginTop: 4 }}>
             {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
+            <span style={{ color: 'var(--text-chevron)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
       </div>
@@ -414,15 +414,15 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
     if (!active || !payload?.length) return null
     const vol = payload[0].value as number
     return (
-      <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
+      <div style={{ background: 'var(--card-bg-primary)', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 148, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 7 }}>{ja ? fmtDateJa(label) : formatTooltipDate(label)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '総重量  ' : 'VOLUME  '}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em' }}>{ja ? '総重量  ' : 'VOLUME  '}</span>
           <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 14, fontWeight: 900 }}>
             {fmtVolT(vol)}
           </span>
           {vol >= 1000 && (
-            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}> ({vol.toLocaleString()}{unitLabel})</span>
+            <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}> ({vol.toLocaleString()}{unitLabel})</span>
           )}
         </div>
       </div>

@@ -204,20 +204,22 @@ export default function NumberInputSheet({
               ))}
             </div>
           ) : (
-            // Reps: single row
+            // Reps: single row — larger tap targets for comfortable thumb access
             <div
-              className="grid gap-2"
-              style={{ gridTemplateColumns: `repeat(${quickSteps.length}, 1fr)` }}>
+              className="grid"
+              style={{ gridTemplateColumns: `repeat(${quickSteps.length}, 1fr)`, gap: 12 }}>
               {quickSteps.map(s => (
                 <button
                   key={s}
-                  className="py-3 rounded-2xl font-black"
+                  className="font-black"
                   style={{
-                    fontSize: 14,
+                    fontSize: 24,
+                    fontWeight: 800,
+                    borderRadius: 20,
                     background: 'var(--surface-chip)',
                     color: s > 0 ? '#ED742F' : 'var(--text-secondary)',
                     border: '1px solid var(--border-subtle)',
-                    minHeight: 44,
+                    minHeight: 68,
                   }}
                   onClick={() => adjust(s)}>
                   {s > 0 ? `+${s}` : s}

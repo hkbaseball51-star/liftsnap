@@ -298,23 +298,23 @@ export default function FullScreenChart({
     const sinceFirst = idx > 0 ? pt.est1rm - rmDisplay[0].est1rm : null
     const fromPrev   = idx > 0 ? pt.est1rm - rmDisplay[idx-1].est1rm : null
     return (
-      <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
+      <div style={{ background: 'var(--card-bg-primary)', border: '1px solid rgba(237,116,47,0.35)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{ja ? '推定1RM  ' : 'EST. 1RM  '}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}>{ja ? '推定1RM  ' : 'EST. 1RM  '}</span>
           <span style={{ color: '#ED742F', fontSize: 14, fontWeight: 900 }}>{pt.est1rm}</span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst >= 0 ? '#ED742F' : '#888', fontSize: 10, marginTop: 3 }}>
             {sinceFirst >= 0 ? '+' : ''}{sinceFirst} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
+            <span style={{ color: 'var(--text-chevron)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
         {fromPrev !== null && (
-          <p style={{ color: fromPrev > 0 ? '#ED742F' : fromPrev < 0 ? '#888' : 'rgba(255,255,255,0.16)', fontSize: 10, marginTop: 2 }}>
+          <p style={{ color: fromPrev > 0 ? '#ED742F' : fromPrev < 0 ? '#888' : 'var(--text-disabled)', fontSize: 10, marginTop: 2 }}>
             {fromPrev !== 0 ? (fromPrev > 0 ? '+' : '') + fromPrev : '±0'} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
+            <span style={{ color: 'var(--text-chevron)', marginLeft: 4 }}>{ja ? '前回から' : 'from prev'}</span>
           </p>
         )}
       </div>
@@ -328,17 +328,17 @@ export default function FullScreenChart({
     const idx = bwDisplay.findIndex(d => d.date === pt.date)
     const sinceFirst = idx > 0 ? Math.round((pt.weight - bwDisplay[0].weight) * 10) / 10 : null
     return (
-      <div style={{ background: '#0d0d0d', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
+      <div style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{ja ? '体重  ' : 'BODY WEIGHT  '}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}>{ja ? '体重  ' : 'BODY WEIGHT  '}</span>
           <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 900 }}>{pt.weight}</span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}> {unitLabel}</span>
         </div>
         {sinceFirst !== null && (
           <p style={{ color: sinceFirst <= 0 ? '#4ade80' : '#ef4444', fontSize: 10, marginTop: 3 }}>
             {sinceFirst > 0 ? '+' : ''}{sinceFirst.toFixed(1)} {unitLabel}
-            <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
+            <span style={{ color: 'var(--text-chevron)', marginLeft: 4 }}>{ja ? '初回から' : 'since first'}</span>
           </p>
         )}
       </div>
@@ -351,14 +351,14 @@ export default function FullScreenChart({
     const pt  = payload[0].payload as VolPoint
     const vol = pt.volume
     return (
-      <div style={{ background: '#0d0d0d', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140 }}>
-        <p style={{ color: '#484848', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
+      <div style={{ background: 'var(--card-bg-primary)', border: '1px solid rgba(237,116,47,0.28)', borderRadius: 10, padding: '9px 13px', pointerEvents: 'none', minWidth: 140, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{ja ? fmtDateJa(pt.date) : formatTooltipDate(pt.date)}</p>
         <div>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{ja ? '総重量  ' : 'VOLUME  '}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}>{ja ? '総重量  ' : 'VOLUME  '}</span>
           <span style={{ color: 'rgba(237,116,47,0.9)', fontSize: 14, fontWeight: 900 }}>
             {vol >= 1000 ? `${(vol/1000).toFixed(1)}k` : vol.toLocaleString()}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}> {unitLabel}</span>
+          <span style={{ color: 'var(--text-chevron)', fontSize: 9 }}> {unitLabel}</span>
         </div>
       </div>
     )

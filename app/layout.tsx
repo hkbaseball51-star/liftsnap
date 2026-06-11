@@ -52,9 +52,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`h-full ${inter.variable} ${interTight.variable} ${geistMono.variable}`}>
+      <head>
+        {/* Blocking script: runs before CSS is applied, eliminates theme flash.
+            Placed in <head> so it executes before any content renders. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('repra_theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.style.colorScheme='dark';}})();` }} />
+      </head>
       <body className="h-full" style={{ background: 'var(--app-bg)', color: 'var(--text-primary)' }}>
-        {/* Runs before React hydrates to avoid flash of wrong theme */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('repra_theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})();` }} />
         {children}
       </body>
     </html>

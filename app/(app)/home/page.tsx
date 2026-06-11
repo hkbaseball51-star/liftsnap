@@ -18,7 +18,7 @@ import type React from 'react'
 // users never reach this state). Mirrors the actual page layout to avoid jarring jumps.
 function HomeSkeleton() {
   const shimmer: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #111 25%, #1c1c1c 50%, #111 75%)',
+    background: 'linear-gradient(90deg, var(--skeleton-bg) 25%, var(--skeleton-highlight) 50%, var(--skeleton-bg) 75%)',
     backgroundSize: '200% 100%',
     animation: 'shimmer 1.4s ease-in-out infinite',
   }
@@ -30,7 +30,7 @@ function HomeSkeleton() {
           <div style={{ ...shimmer, width: 190, height: 24, borderRadius: 7, marginBottom: 8 }} />
           <div style={{ ...shimmer, width: 230, height: 14, borderRadius: 6 }} />
         </div>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', flexShrink: 0, marginTop: 4 }} />
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--skeleton-bg)', flexShrink: 0, marginTop: 4 }} />
       </div>
       {/* CTA card */}
       <div style={{ padding: '0 16px 20px' }}>
@@ -51,12 +51,6 @@ function HomeSkeleton() {
       <div style={{ padding: '0 16px' }}>
         <div style={{ ...shimmer, height: 66, borderRadius: 12 }} />
       </div>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
     </div>
   )
 }
