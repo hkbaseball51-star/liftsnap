@@ -29,17 +29,17 @@ export default function RestTimerSheet({ defaultSeconds = 120, onStart, onClose 
       <div
         className="w-full rounded-t-3xl p-6"
         style={{
-          background: '#171717',
-          border: '1px solid #1e1e1e',
+          background: 'var(--card-bg-primary)',
+          border: '1px solid var(--card-border-primary)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
         }}
         onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between mb-5">
-          <span className="text-[10px] font-black tracking-widest" style={{ color: '#555' }}>
+          <span className="text-[10px] font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>
             {t(locale, 'record.restTimer')}
           </span>
-          <button onClick={onClose}><X size={20} style={{ color: '#555' }} /></button>
+          <button onClick={onClose}><X size={20} style={{ color: 'var(--text-muted)' }} /></button>
         </div>
 
         <div className="flex gap-2 mb-6">
@@ -47,9 +47,9 @@ export default function RestTimerSheet({ defaultSeconds = 120, onStart, onClose 
             <button key={s}
               className="flex-1 py-3 rounded-xl text-xs font-black tracking-wider"
               style={{
-                background: selected === s ? '#ED742F' : '#222222',
-                color: selected === s ? '#fff' : '#555',
-                border: selected === s ? 'none' : '1px solid #1e1e1e',
+                background: selected === s ? '#ED742F' : 'var(--surface-chip)',
+                color: selected === s ? '#fff' : 'var(--text-secondary)',
+                border: selected === s ? 'none' : '1px solid var(--border-subtle)',
               }}
               onClick={() => setSelected(s)}>
               {fmt(s)}

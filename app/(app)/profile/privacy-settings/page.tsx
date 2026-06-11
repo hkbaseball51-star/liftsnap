@@ -7,21 +7,21 @@ import { t } from '@/lib/i18n'
 
 /* ── shared tokens ─────────────────────────────────── */
 const T = {
-  main:      '#f5f5f5',
-  secondary: 'rgba(255,255,255,0.58)',
-  muted:     'rgba(255,255,255,0.42)',
-  dim:       'rgba(255,255,255,0.34)',
-  label:     'rgba(255,255,255,0.52)',
-  card:      { background: '#1D1D1D', border: '1px solid rgba(255,255,255,0.17)', borderRadius: 20, overflow: 'hidden' } as const,
-  divider:   '1px solid rgba(255,255,255,0.07)',
+  main:      'var(--text-primary)',
+  secondary: 'var(--text-secondary)',
+  muted:     'var(--text-muted)',
+  dim:       'var(--text-muted)',
+  label:     'var(--text-label)',
+  card:      { background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderRadius: 20, overflow: 'hidden' } as const,
+  divider:   '1px solid var(--card-divider)',
   soon: {
-    background: 'rgba(255,255,255,0.12)',
-    color: 'rgba(255,255,255,0.58)',
-    border:     '1px solid rgba(255,255,255,0.17)',
+    background: 'var(--surface-chip)',
+    color: 'var(--text-secondary)',
+    border:     '1px solid var(--card-border-primary)',
   },
   toggle: {
-    track: { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.17)' } as const,
-    knob:  { background: 'rgba(255,255,255,0.22)' } as const,
+    track: { background: 'var(--surface-chip)', border: '1px solid var(--card-border-primary)' } as const,
+    knob:  { background: 'var(--drag-handle)' } as const,
   },
 }
 
@@ -46,12 +46,12 @@ export default function PrivacySettingsPage() {
   const { locale } = useLocale()
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: '#0a0a0a' }}>
+    <div className="min-h-screen pb-nav" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-6">
         <Link href="/profile/settings" className="p-1 -ml-1 active:opacity-70">
-          <ChevronLeft size={22} style={{ color: 'rgba(255,255,255,0.72)' }} />
+          <ChevronLeft size={22} style={{ color: 'var(--text-chevron)' }} />
         </Link>
         <h1 className="text-base font-black tracking-widest" style={{ color: T.main }}>PRIVACY</h1>
       </div>
@@ -78,12 +78,12 @@ export default function PrivacySettingsPage() {
           {/* Followers Only — coming soon */}
           <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: T.divider }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <Users size={14} style={{ color: 'rgba(255,255,255,0.68)' }} />
+              style={{ background: 'var(--surface-chip)', border: '1px solid var(--card-border-primary)' }}>
+              <Users size={14} style={{ color: 'var(--text-secondary)' }} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.52)' }}>{t(locale, 'privacy.followersOption')}</p>
+                <p className="text-sm font-black" style={{ color: 'var(--text-inactive)' }}>{t(locale, 'privacy.followersOption')}</p>
                 <SoonBadge />
               </div>
               <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>
@@ -95,12 +95,12 @@ export default function PrivacySettingsPage() {
           {/* Public — coming soon */}
           <div className="flex items-center gap-3 px-4 py-4">
             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: '#222222', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <Globe size={14} style={{ color: 'rgba(255,255,255,0.68)' }} />
+              style={{ background: 'var(--surface-chip)', border: '1px solid var(--card-border-primary)' }}>
+              <Globe size={14} style={{ color: 'var(--text-secondary)' }} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-black" style={{ color: 'rgba(255,255,255,0.52)' }}>{t(locale, 'privacy.publicOption')}</p>
+                <p className="text-sm font-black" style={{ color: 'var(--text-inactive)' }}>{t(locale, 'privacy.publicOption')}</p>
                 <SoonBadge />
               </div>
               <p className="text-[10px] mt-0.5" style={{ color: T.dim }}>

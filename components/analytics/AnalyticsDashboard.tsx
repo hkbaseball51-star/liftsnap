@@ -1038,11 +1038,11 @@ function NoGroupData() {
   const { locale } = useLocale()
   return (
     <div className="rounded-2xl p-8 text-center" style={{
-      background: '#171717',
+      background: 'var(--card-bg-primary)',
       border: '1px solid rgba(237, 116, 47,0.38)',
       borderRadius: 18,
     }}>
-      <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noGroupData')}</p>
+      <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>{t(locale, 'analytics.noGroupData')}</p>
     </div>
   )
 }
@@ -1050,7 +1050,7 @@ function NoGroupData() {
 function LoadingChart() {
   return (
     <div className="h-[380px] flex items-center justify-center">
-      <p className="text-xs font-black tracking-widest" style={{ color: '#444' }}>LOADING...</p>
+      <p className="text-xs font-black tracking-widest" style={{ color: 'var(--text-muted)' }}>LOADING...</p>
     </div>
   )
 }
@@ -1059,8 +1059,8 @@ function ChartEmpty() {
   const { locale } = useLocale()
   return (
     <div className="h-[380px] flex items-center justify-center flex-col gap-2">
-      <p className="text-sm font-bold" style={{ color: '#555' }}>{t(locale, 'analytics.noDataYet')}</p>
-      <p className="text-xs font-bold" style={{ color: '#333' }}>{t(locale, 'analytics.chartNoData')}</p>
+      <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>{t(locale, 'analytics.noDataYet')}</p>
+      <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t(locale, 'analytics.chartNoData')}</p>
     </div>
   )
 }

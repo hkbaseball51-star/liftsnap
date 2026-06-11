@@ -102,7 +102,7 @@ export default function HomeGreeting({ displayName }: Props) {
         fontSize: 11,
         fontWeight: 500,
         letterSpacing: '0.1em',
-        color: 'rgba(255,255,255,0.47)',
+        color: 'var(--text-muted)',
         marginBottom: 8,
       }}>
         {greeting}
@@ -112,7 +112,7 @@ export default function HomeGreeting({ displayName }: Props) {
       <p style={{
         fontSize: 30,
         fontWeight: 600,
-        color: '#fff',
+        color: 'var(--text-primary)',
         letterSpacing: '-0.02em',
         lineHeight: 1.15,
       }}>

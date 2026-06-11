@@ -838,7 +838,7 @@ export default function WorkoutRecorder({
                 </div>
                 <button
                   className="text-[10px] font-black tracking-wider px-2 py-0.5 rounded-full"
-                  style={{ color: '#555', background: 'rgba(255,255,255,0.40)', border: '1px solid rgba(255,255,255,0.40)' }}
+                  style={{ color: 'var(--text-muted)', background: 'var(--surface-chip)', border: '1px solid var(--border-subtle)' }}
                   onClick={() => setRestRemaining(null)}>
                   {t(locale, 'record.restSkip')}
                 </button>
@@ -861,8 +861,8 @@ export default function WorkoutRecorder({
         {copyNotFound && (
           <div
             className="-mx-4 px-4 flex items-center py-1.5 mb-1"
-            style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="text-[11px] font-black tracking-wider" style={{ color: '#888' }}>
+            style={{ background: 'var(--card-divider)', borderBottom: '1px solid var(--card-border-primary)' }}>
+            <span className="text-[11px] font-black tracking-wider" style={{ color: 'var(--text-muted)' }}>
               {locale === 'ja' ? 'この部位の前回メニューがありません' : 'No previous workout found for this type'}
             </span>
           </div>
@@ -1260,19 +1260,19 @@ export default function WorkoutRecorder({
             className="w-full flex flex-col rounded-t-3xl"
             style={{
               maxWidth: 480,
-              background: '#0f0f0f',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'var(--card-bg-primary)',
+              border: '1px solid var(--card-border-primary)',
               borderBottom: 'none',
               maxHeight: '82vh',
             }}
             onClick={e => e.stopPropagation()}>
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full" style={{ background: '#2a2a2a' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--drag-handle)' }} />
             </div>
             {/* Title */}
-            <div className="px-5 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <p className="text-sm font-black text-white tracking-wide">
+            <div className="px-5 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--card-divider)' }}>
+              <p className="text-sm font-black tracking-wide" style={{ color: 'var(--text-primary)' }}>
                 {getDisplayName(historyExerciseName, locale)}{locale === 'ja' ? ' の履歴' : ' History'}
               </p>
             </div>
@@ -1282,7 +1282,7 @@ export default function WorkoutRecorder({
                 {/* Summary row */}
                 <div
                   className="grid grid-cols-4 px-5 py-3 flex-shrink-0"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ borderBottom: '1px solid var(--card-divider)' }}>
                   {[
                     {
                       label: locale === 'ja' ? '前回' : 'PREVIOUS',
@@ -1290,7 +1290,7 @@ export default function WorkoutRecorder({
                         const s = historyData.entries[0].sets.reduce((b, s) => s.weight_kg > b.weight_kg ? s : b, historyData.entries[0].sets[0])
                         return `${toDisplayWeight(s.weight_kg, weightUnit)}×${s.reps}`
                       })(),
-                      color: 'rgba(255,255,255,0.85)',
+                      color: 'var(--text-primary)',
                     },
                     {
                       label: locale === 'ja' ? 'ベスト' : 'BEST',
@@ -1309,11 +1309,11 @@ export default function WorkoutRecorder({
                     {
                       label: locale === 'ja' ? '記録回数' : 'SESSIONS',
                       value: String(historyData.totalSessions),
-                      color: 'rgba(255,255,255,0.85)',
+                      color: 'var(--text-primary)',
                     },
                   ].map(({ label, value, color }) => (
                     <div key={label} className="flex flex-col items-center gap-0.5">
-                      <p style={{ fontSize: 8, color: '#555', fontWeight: 700, letterSpacing: '0.07em' }}>{label}</p>
+                      <p style={{ fontSize: 8, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.07em' }}>{label}</p>
                       <p style={{ fontSize: 12, color, fontWeight: 900, fontFamily: 'var(--font-mono)' }}>{value}</p>
                     </div>
                   ))}
@@ -1338,11 +1338,11 @@ export default function WorkoutRecorder({
                         const setEst = s.reps === 1 ? s.weight_kg : Math.round(s.weight_kg * (1 + s.reps / 30))
                         return (
                           <div key={j} className="flex items-center gap-2 py-0.5">
-                            <span style={{ fontSize: 9, color: '#444', fontWeight: 700, minWidth: 14, textAlign: 'right' }}>{j + 1}</span>
-                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.78)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                            <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 700, minWidth: 14, textAlign: 'right' }}>{j + 1}</span>
+                            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                               {toDisplayWeight(s.weight_kg, weightUnit)}{weightUnitLabel(weightUnit)} × {s.reps}
                             </span>
-                            <span style={{ fontSize: 10, color: '#444', fontFamily: 'var(--font-mono)' }}>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                               {toDisplayWeight(setEst, weightUnit)}{weightUnitLabel(weightUnit)}
                             </span>
                             {s.assistStatus && s.assistStatus !== 'none' && (
@@ -1364,7 +1364,7 @@ export default function WorkoutRecorder({
                     </div>
                   ))}
                   {historyData.totalSessions > historyData.entries.length && (
-                    <p className="mt-3 text-center" style={{ fontSize: 10, color: '#444' }}>
+                    <p className="mt-3 text-center" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                       {locale === 'ja'
                         ? `他 ${historyData.totalSessions - historyData.entries.length} 件の記録`
                         : `+${historyData.totalSessions - historyData.entries.length} more sessions`}
@@ -1374,7 +1374,7 @@ export default function WorkoutRecorder({
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center py-14">
-                <p style={{ fontSize: 13, color: '#555', fontWeight: 700 }}>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 700 }}>
                   {locale === 'ja' ? 'まだ履歴がありません' : 'No history yet'}
                 </p>
               </div>
@@ -1383,10 +1383,10 @@ export default function WorkoutRecorder({
             {/* Close */}
             <div
               className="px-5 py-3 flex-shrink-0"
-              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))', borderTop: '1px solid var(--card-divider)' }}>
               <button
                 className="w-full py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
-                style={{ background: 'rgba(255,255,255,0.05)', color: '#888', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--card-border-primary)' }}
                 onClick={() => setHistoryExerciseName(null)}>
                 {locale === 'ja' ? '閉じる' : 'Close'}
               </button>
@@ -1400,18 +1400,18 @@ export default function WorkoutRecorder({
       {mounted && showCopyTypeSheet && createPortal(
         <div
           className="fixed inset-0 z-[60] flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.72)' }}
+          style={{ background: 'var(--overlay-bg)' }}
           onClick={() => setShowCopyTypeSheet(false)}>
           <div
             className="w-full rounded-t-3xl p-5"
-            style={{ maxWidth: 480, background: '#131313', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+            style={{ maxWidth: 480, background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)', borderBottom: 'none', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
             onClick={e => e.stopPropagation()}>
             {/* Handle */}
             <div className="flex justify-center mb-4">
-              <div className="w-10 h-1 rounded-full" style={{ background: '#333' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--drag-handle)' }} />
             </div>
             {/* Title */}
-            <p className="text-sm font-black text-white text-center mb-4 tracking-wide">
+            <p className="text-sm font-black text-center mb-4 tracking-wide" style={{ color: 'var(--text-primary)' }}>
               {locale === 'ja' ? 'コピーする部位を選択' : 'Select workout type'}
             </p>
             {/* Muscle group grid — 3 columns */}
@@ -1420,7 +1420,7 @@ export default function WorkoutRecorder({
                 <button
                   key={f.type}
                   className="py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
-                  style={{ background: '#1e1e1e', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.10)' }}
+                  style={{ background: 'var(--surface-chip)', color: 'var(--text-primary)', border: '1px solid var(--card-border-primary)' }}
                   onClick={() => void handleFilterSelect(f.type)}>
                   {locale === 'ja' ? f.labelJa : f.labelEn}
                 </button>
@@ -1448,7 +1448,7 @@ export default function WorkoutRecorder({
             {/* Cancel */}
             <button
               className="w-full py-3 rounded-xl text-sm font-black active:opacity-70 transition-opacity"
-              style={{ background: 'rgba(255,255,255,0.05)', color: '#888', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--card-border-primary)' }}
               onClick={() => setShowCopyTypeSheet(false)}>
               {locale === 'ja' ? 'キャンセル' : 'Cancel'}
             </button>
@@ -1459,9 +1459,9 @@ export default function WorkoutRecorder({
 
       {mounted && showCopyConfirm && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
-          style={{ background: 'rgba(0,0,0,0.72)' }}>
-          <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
-            <p className="text-base font-black text-white text-center mb-5 tracking-wide">
+          style={{ background: 'var(--overlay-bg)' }}>
+          <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
+            <p className="text-base font-black text-center mb-5 tracking-wide" style={{ color: 'var(--text-primary)' }}>
               {locale === 'ja'
                 ? '現在の入力内容を選択した前回メニューで上書きしますか？'
                 : 'Replace current workout with the selected previous workout?'}
@@ -1469,7 +1469,7 @@ export default function WorkoutRecorder({
             <div className="flex gap-3">
               <button
                 className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
-                style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.19)' }}
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--card-border-primary)' }}
                 onClick={() => setShowCopyConfirm(false)}>
                 {locale === 'ja' ? 'キャンセル' : 'Cancel'}
               </button>
@@ -1487,15 +1487,15 @@ export default function WorkoutRecorder({
 
       {mounted && showCancelConfirm && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
-          style={{ background: 'rgba(0,0,0,0.72)' }}>
-          <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: '#131313', border: '1px solid rgba(255,255,255,0.21)' }}>
-            <p className="text-xl font-black text-white text-center mb-1 tracking-wide">{t(locale, 'record.cancelTitle')}</p>
-            <p className="text-xs text-center mb-6 font-bold" style={{ color: '#aaa' }}>
+          style={{ background: 'var(--overlay-bg)' }}>
+          <div className="w-full rounded-3xl p-6" style={{ maxWidth: 420, background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
+            <p className="text-xl font-black text-center mb-1 tracking-wide" style={{ color: 'var(--text-primary)' }}>{t(locale, 'record.cancelTitle')}</p>
+            <p className="text-xs text-center mb-6 font-bold" style={{ color: 'var(--text-secondary)' }}>
               {isEditing ? t(locale, 'record.cancelSubEditing') : t(locale, 'record.cancelSub')}
             </p>
             <div className="flex gap-3">
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
-                style={{ background: '#1e1e1e', color: '#aaa', border: '1px solid rgba(255,255,255,0.19)' }}
+                style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--card-border-primary)' }}
                 onClick={() => setShowCancelConfirm(false)}>{t(locale, 'record.keepGoing')}</button>
               <button className="flex-1 py-4 rounded-2xl text-sm font-black tracking-widest"
                 style={{ background: '#ef4444', color: '#fff' }}

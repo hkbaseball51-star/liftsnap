@@ -26,18 +26,18 @@ export default function NoteInputSheet({ value, onSave, onClose }: Props) {
       <div
         className="w-full rounded-t-3xl flex flex-col"
         style={{
-          background: '#171717',
-          border: '1px solid #1e1e1e',
+          background: 'var(--card-bg-primary)',
+          border: '1px solid var(--card-border-primary)',
           maxHeight: 'calc(100dvh - 4rem)',
         }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
-          <span className="text-sm font-black text-white tracking-widest">
+          <span className="text-sm font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>
             {t(locale, 'record.note').toUpperCase()}
           </span>
-          <button onClick={onClose}><X size={20} style={{ color: '#555' }} /></button>
+          <button onClick={onClose}><X size={20} style={{ color: 'var(--text-muted)' }} /></button>
         </div>
 
         {/* Textarea */}
@@ -52,12 +52,12 @@ export default function NoteInputSheet({ value, onSave, onClose }: Props) {
               minHeight: 120,
               fontSize: 14,
               lineHeight: 1.65,
-              color: '#fff',
+              color: 'var(--text-primary)',
               caretColor: '#ED742F',
             }}
           />
           <div className="flex justify-end mt-1">
-            <span style={{ fontSize: 11, color: tooLong ? '#ef4444' : '#444' }}>
+            <span style={{ fontSize: 11, color: tooLong ? '#ef4444' : 'var(--text-muted)' }}>
               {text.length}/{MAX_NOTE}
             </span>
           </div>
@@ -75,7 +75,7 @@ export default function NoteInputSheet({ value, onSave, onClose }: Props) {
           <div className="flex gap-3">
             <button
               className="flex-1 py-3.5 rounded-2xl text-sm font-black"
-              style={{ background: '#222222', color: '#666', border: '1px solid #222' }}
+              style={{ background: 'var(--surface-chip)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
               onClick={onClose}>
               {t(locale, 'record.noteCancel')}
             </button>

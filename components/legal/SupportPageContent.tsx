@@ -5,13 +5,13 @@ import { SUPPORT_EMAIL } from '@/constants/legal'
 import LegalPageLayout, { LegalSection, LegalContact } from '@/components/legal/LegalPageLayout'
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.60)' }}>
+  <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
     {children}
   </p>
 )
 
 const Highlight = ({ children }: { children: React.ReactNode }) => (
-  <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{children}</strong>
+  <strong style={{ color: 'var(--text-primary)' }}>{children}</strong>
 )
 
 export default function SupportPageContent() {
