@@ -6,7 +6,7 @@ import { Download, ArrowLeft } from 'lucide-react'
 import { getShareCount, incrementShareCount } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useLocale } from '@/lib/useLocale'
-import WorkoutStoryCardContent, { ExerciseStoryCard, tname, PRESETS } from './WorkoutStoryCardContent'
+import WorkoutStoryCardContent, { ExerciseStoryCard, WorkoutSummaryStoryCard, tname, PRESETS } from './WorkoutStoryCardContent'
 import type { TodayData, CardStyle, DesignPreset, ShadowMode } from './WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
@@ -55,6 +55,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   //   - Has NO transform applied (transform is on parent contentRef), so html-to-image
   //     captures at natural (full) resolution even when preview is scaled down.
   const previewCardRef = useRef<HTMLDivElement>(null)
+  // summaryCardRef: capture target for the Workout Summary Story card.
+  const summaryCardRef = useRef<HTMLDivElement>(null)
   // previewExRefs: one per ExerciseStoryCard in the per-exercise preview list.
   //   - Each ref wraps ONLY the ExerciseStoryCard div, NOT the checker overlay.
   const previewExRefs  = useRef<(HTMLDivElement | null)[]>([])
@@ -71,24 +73,13 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [naturalWidth,  setNaturalWidth]   = useState(0)
   const [naturalHeight, setNaturalHeight]  = useState(0)
 
-  // Measure natural card dimensions, compute scale-down ratio if card overflows 9:16.
-  // Runs before paint (useLayoutEffect) so there's no visible flash.
+  // Measure natural card dimensions for checker background sizing.
   useLayoutEffect(() => {
-    const canvas  = captureRef.current
     const content = contentRef.current
-    if (!canvas || !content) return
-
-    content.style.transform = 'none'
-    content.style.width     = 'max-content'
-
-    const availH   = canvas.clientHeight
-    const contentH = content.scrollHeight
-    const contentW = content.offsetWidth
-
-    const next = contentH > availH ? Math.max(0.5, availH / contentH) : 1
-    setContentScale(next)
-    setNaturalWidth(contentW)
-    setNaturalHeight(contentH)
+    if (!content) return
+    setContentScale(1)
+    setNaturalWidth(content.offsetWidth)
+    setNaturalHeight(content.scrollHeight)
   }, [data])
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
@@ -213,6 +204,35 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     } finally { setSaving(false) }
   }
 
+  // Save the summary-only card
+  const handleSaveSummary = async () => {
+    const cardEl = summaryCardRef.current
+    if (!cardEl) return
+    setSaving(true)
+    setStatus(locale === 'ja' ? '画像を作成中...' : 'Creating image...')
+    try {
+      const blob = await captureElement(cardEl, { clearBackground: cardStyle === 'transparent' })
+      const filename = `repra-${data.date}-summary.png`
+      const result = await shareOrDownloadImage({ blob, filename })
+      incrementShareCount(); setShareCount(getShareCount())
+      if (result === 'downloaded') {
+        setStatus(locale === 'ja' ? 'ダウンロードを開始しました' : 'Download started')
+        setTimeout(() => setStatus(''), 2000)
+      } else {
+        setStatus('')
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        setStatus('')
+      } else {
+        setStatus(locale === 'ja'
+          ? '画像を作成できませんでした。もう一度お試しください。'
+          : 'Could not create image. Please try again.')
+        setTimeout(() => setStatus(''), 3000)
+      }
+    } finally { setSaving(false) }
+  }
+
   const handleSave = saveFormat === 'combined' ? handleSaveCombined : handleSavePerExercise
 
   // ── Derived ──────────────────────────────────────────────────────────
@@ -252,7 +272,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       {/* ── Preview area ─────────────────────────────────────────────── */}
       {saveFormat === 'combined' ? (
 
-        /* Combined: 9:16 canvas with inner card — capture target is previewCardRef (no transform) */
+        /* Combined: variable-height card — capture target is previewCardRef */
         <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
           <div style={{
             width: 'min(94vw, 420px)',
@@ -266,19 +286,15 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               ref={captureRef}
               style={{
                 position: 'relative',
-                aspectRatio: '9/16',
-                overflow: 'hidden',
                 borderRadius: 24,
                 background: 'transparent',
               }}
             >
-              {/* Transparent/Glass card: show checker sized to card footprint */}
-              {(isTransparent || cardStyle === 'glass') && naturalWidth > 0 && naturalHeight > 0 && (
+              {/* Transparent/Glass card: checker fills card background via inset:0 */}
+              {(isTransparent || cardStyle === 'glass') && (
                 <div
                   style={{
-                    position: 'absolute', top: 0, left: 0,
-                    width: `${naturalWidth}px`,
-                    height: `${Math.round(naturalHeight * contentScale)}px`,
+                    position: 'absolute', inset: 0,
                     backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
                     backgroundImage: checkerBg,
                     backgroundSize: '20px 20px',
@@ -290,25 +306,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 />
               )}
 
-              {/* contentRef: scale wrapper for layout measurement */}
-              <div style={{ position: 'absolute', top: 0, left: 0, maxWidth: '100%', zIndex: 2 }}>
+              {/* contentRef: pass-through wrapper — card grows vertically to fit all content */}
+              <div style={{ position: 'relative', zIndex: 2 }}>
                 <div
                   ref={contentRef}
-                  style={contentScale < 1 ? {
-                    transform: `scale(${contentScale})`,
-                    transformOrigin: 'top left',
-                    width: naturalWidth > 0
-                      ? `${Math.round(naturalWidth / contentScale)}px`
-                      : 'max-content',
-                  } : {
-                    width: naturalWidth > 0 ? `${naturalWidth}px` : 'max-content',
-                  }}
+                  style={{ width: naturalWidth > 0 ? `${naturalWidth}px` : '100%' }}
                 >
                   {/*
                     previewCardRef: the ACTUAL capture target.
-                    This div has NO transform — its parent (contentRef) has the scale transform,
-                    but getComputedStyle() on THIS element returns no transform.
-                    html-to-image therefore captures it at full natural resolution.
                     overflow:hidden + borderRadius clip the capture region to the card shape
                     so WebKit correctly produces transparent corners in the PNG.
                   */}
@@ -335,6 +340,59 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         /* Per-exercise: scrollable list of visible cards — previewExRefs[i] are capture targets */
         <div className="flex-shrink-0 overflow-y-auto" style={{ maxHeight: '55vh', padding: '0 16px 12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* ── Summary card (top) ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{
+                background: isLight ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
+                border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 28,
+                boxShadow: isLight ? '0 8px 24px rgba(0,0,0,0.10)' : '0 4px 16px rgba(0,0,0,0.20)',
+                padding: 12,
+              }}>
+                <div style={{ position: 'relative' }}>
+                  {(isTransparent || cardStyle === 'glass') && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
+                      backgroundImage: checkerBg,
+                      backgroundSize: '20px 20px',
+                      backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
+                      borderRadius: 24,
+                      pointerEvents: 'none',
+                    }} />
+                  )}
+                  <div ref={summaryCardRef} style={{ position: 'relative', zIndex: 1, borderRadius: 24, overflow: 'hidden' }}>
+                    <WorkoutSummaryStoryCard
+                      data={data}
+                      cardStyle={cardStyle}
+                      preset={preset}
+                      unit={unit}
+                      locale={locale}
+                      isPast={isPast}
+                      shadowMode={shadowMode}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={handleSaveSummary}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 rounded-xl text-xs font-bold active:opacity-70 transition-opacity"
+                  style={{
+                    padding: '8px 14px',
+                    background: 'var(--surface-chip)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <Download size={13} />
+                  {ja ? 'サマリーカードを保存' : 'Save Summary Card'}
+                </button>
+              </div>
+            </div>
+
             {data.exercises.map((ex, i) => (
               <div key={`preview-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{

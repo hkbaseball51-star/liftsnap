@@ -109,12 +109,12 @@ function MiniGlassCard({
 }
 
 // ── Mini preview frame wrapper ────────────────────────────────────────
-// In Light theme: warm-beige outer frame + white smoke overlay (non-capture element).
+// In Light theme: warm-beige outer frame only — no overlay on top of the preview.
 // In Dark theme: no extra frame — the MiniGlassCard dark glass is the only style.
 function MiniPreviewWrap({ isLight, children }: { isLight: boolean; children: React.ReactNode }) {
   return (
     <div style={{
-      width: 96, flexShrink: 0, position: 'relative',
+      width: 96, flexShrink: 0,
       ...(isLight ? {
         padding: 3,
         background: 'rgba(255,247,240,0.80)',
@@ -124,16 +124,6 @@ function MiniPreviewWrap({ isLight, children }: { isLight: boolean; children: Re
       } : {}),
     }}>
       {children}
-      {/* Smoke overlay — Light only, not inside any capture target */}
-      {isLight && (
-        <div style={{
-          position: 'absolute',
-          top: 3, right: 3, bottom: 3, left: 3,
-          background: 'rgba(255,255,255,0.26)',
-          borderRadius: 11,
-          pointerEvents: 'none',
-        }} />
-      )}
     </div>
   )
 }

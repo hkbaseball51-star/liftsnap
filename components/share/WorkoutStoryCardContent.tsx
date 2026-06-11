@@ -286,11 +286,6 @@ export const TIER_PARAMS: Record<Tier, {
   5: { nameSize: 13, infoSize: 10, setSize: 11, exGap: 4,  lineGap: 3, sectionGap: 6,  volumeSize: 30 },
 }
 
-// ── Story display limits ──────────────────────────────────────────────
-// Prevents unbounded card height and ensures the captured image is readable.
-// "more" indicators are shown when content exceeds these limits.
-const MAX_EXERCISES_IN_STORY = 5
-const MAX_SETS_PER_EXERCISE  = 4
 
 // ── Props ─────────────────────────────────────────────────────────────
 type Props = {
@@ -331,11 +326,9 @@ export default function WorkoutStoryCardContent({
   const volStr        = formatVolumeWithUnit(data.volume, unit)
   const g1rm          = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
 
-  // Cap exercises and sets for stable card height; use capped counts for tier selection
-  const visibleExercises = data.exercises.slice(0, MAX_EXERCISES_IN_STORY)
-  const hiddenExCount    = data.exercises.length - visibleExercises.length
-  const totalRows = visibleExercises.reduce((sum, ex) =>
-    sum + 2 + Math.min(ex.setList.length, MAX_SETS_PER_EXERCISE), 0)
+  // Tier selection based on actual total rows (name row + info row + all valid sets)
+  const totalRows = data.exercises.reduce((sum, ex) =>
+    sum + 2 + ex.setList.filter(s => s.weight > 0 || s.reps > 0).length, 0)
   const tier = getTier(totalRows)
   const tp   = TIER_PARAMS[tier]
 
@@ -445,11 +438,9 @@ export default function WorkoutStoryCardContent({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: tp.exGap }}>
-          {visibleExercises.map((ex) => {
-            // Filter out empty entries, then cap for display
-            const validSets   = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
-            const visibleSets = validSets.slice(0, MAX_SETS_PER_EXERCISE)
-            const hiddenSetCount = validSets.length - visibleSets.length
+          {data.exercises.map((ex) => {
+            // Show all valid sets — no cap
+            const visibleSets = ex.setList.filter(s => s.weight > 0 || s.reps > 0)
             // Use <div display:block> instead of <p> — avoids UA-stylesheet margin issues
             // in html-to-image's SVG foreignObject rendering context (p gets margin:1em 0).
             return (
@@ -488,27 +479,9 @@ export default function WorkoutStoryCardContent({
                     </div>
                   )
                 })}
-                {hiddenSetCount > 0 && (
-                  <div style={{
-                    display: 'block',
-                    fontSize: tp.infoSize - 1, color: ptxt(0.40),
-                    marginTop: tp.lineGap, lineHeight: 1.2,
-                  }}>
-                    +{hiddenSetCount} {locale === 'ja' ? 'セット' : `more set${hiddenSetCount !== 1 ? 's' : ''}`}
-                  </div>
-                )}
               </div>
             )
           })}
-          {hiddenExCount > 0 && (
-            <div style={{
-              display: 'block',
-              fontSize: tp.infoSize, color: ptxt(0.40),
-              lineHeight: 1.2,
-            }}>
-              +{hiddenExCount} {locale === 'ja' ? '種目' : `more exercise${hiddenExCount !== 1 ? 's' : ''}`}
-            </div>
-          )}
         </div>
       </div>
 
@@ -660,6 +633,133 @@ export function ExerciseStoryCard({
         fontSize: 8,
         color: isTransparent ? 'rgba(255,255,255,0.45)' : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
+      }}>
+        Made with{' '}
+        <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
+      </p>
+
+    </div>
+  )
+}
+
+// ── Summary-only Story card ───────────────────────────────────────────
+// Shows workout summary (REPRA, date, title, volume, sets, best 1RM).
+// Deliberately does NOT show the exercises / set-detail section.
+export function WorkoutSummaryStoryCard({
+  data, cardStyle, preset, unit, locale, isPast = false,
+  shadowMode = 'none',
+}: {
+  data: TodayData
+  cardStyle: CardStyle
+  preset: DesignPreset
+  unit: WeightUnit
+  locale: Locale
+  isPast?: boolean
+  shadowMode?: ShadowMode
+}) {
+  const p              = PRESETS[preset]
+  const isTransparent  = cardStyle === 'transparent'
+  const isDarkBg       = isTransparent || (p.isDark !== false)
+  const acHex          = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
+  const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
+  const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
+  const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
+  const textPrimary    = isDarkBg ? '#fff' : '#111827'
+  const rgb            = isDarkBg ? '255,255,255' : '17,24,39'
+  const ptxt           = (a: number) => `rgba(${rgb},${a})`
+  const unitLabel      = weightUnitLabel(unit)
+  const volStr         = formatVolumeWithUnit(data.volume, unit)
+  const g1rm           = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
+  const ts             = SHADOW[shadowMode]
+  const dividerColor   = acRgba(acHex, isTransparent ? 0.35 : 0.25)
+  const accentFooter   = acRgba(acHex, isTransparent ? 0.65 : 0.50)
+
+  return (
+    <div style={{
+      padding: '28px 30px 24px',
+      display: 'flex', flexDirection: 'column',
+      boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden',
+      isolation: 'isolate',
+      borderRadius: '24px',
+      textShadow: ts,
+      ...(isTransparent ? { background: 'transparent' } : {
+        ...workoutGlassStyle(p.accentHex, p.isDark !== false),
+        border: `1px solid ${p.border}`,
+        boxShadow: p.isDark !== false
+          ? `0 8px 28px rgba(0,0,0,0.60), 0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.13)`
+          : `0 4px 18px rgba(0,0,0,0.26), 0 1px 5px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.50)`,
+      }),
+    }}>
+
+      {/* REPRA badge */}
+      <div>
+        <span style={{
+          display: 'inline-block',
+          fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
+          padding: '4px 11px', borderRadius: 5,
+          background: badgeBgColor, color: badgeTextColor,
+          border: `1px solid ${p.badgeBorder}`,
+        }}>REPRA</span>
+      </div>
+
+      {/* TODAY'S WORKOUT · date · session title */}
+      <div style={{ marginTop: 16 }}>
+        <p style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+          color: ptxt(0.42), margin: 0, lineHeight: 1,
+        }}>
+          {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
+        </p>
+        <p style={{ fontSize: 11, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
+          {fmtDate(data.date)}
+        </p>
+        <p style={{
+          fontSize: 20, fontWeight: 900, color: textPrimary,
+          lineHeight: 1.15, margin: '6px 0 0', letterSpacing: '-0.01em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          textTransform: 'uppercase',
+        }}>
+          {data.title}
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, width: '60%', background: dividerColor, margin: '16px 0' }} />
+
+      {/* TOTAL VOLUME */}
+      <div>
+        <p style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+          color: ptxt(0.42), margin: '0 0 8px', lineHeight: 1,
+        }}>
+          TOTAL VOLUME
+        </p>
+        <p style={{
+          fontSize: 52, fontWeight: 900, color: acHex,
+          lineHeight: 1, margin: 0, letterSpacing: '-0.03em',
+        }}>
+          {volStr}
+        </p>
+        <p style={{ fontSize: 12, color: subTextColor, margin: '12px 0 0', lineHeight: 1 }}>
+          {data.setsCount}&thinsp;{locale === 'ja' ? 'セット' : 'SETS'}
+          {g1rm > 0 && (
+            <>
+              {' · BEST 1RM '}
+              <span style={{ color: acHex, fontWeight: 700 }}>
+                {toDisplayWeight(Math.round(g1rm), unit)}{unitLabel}
+              </span>
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* Made with REPRA */}
+      <p style={{
+        fontSize: 8,
+        color: isTransparent ? 'rgba(255,255,255,0.45)' : ptxt(0.22),
+        textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 28,
       }}>
         Made with{' '}
         <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
