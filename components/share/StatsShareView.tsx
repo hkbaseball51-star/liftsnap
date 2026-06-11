@@ -11,6 +11,7 @@ import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardCont
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
 import { useCardLang } from '@/lib/useCardLang'
+import { useTheme } from '@/lib/useTheme'
 
 type RMPoint  = { date: string; label: string; est1rm: number }
 type VolPoint = { date: string; label: string; volume: number }
@@ -398,11 +399,12 @@ function ChartSVG({ pts, ac, accent, chartType }: {
 }
 
 /* ── Layout thumbnail (pure SVG) ─────────────────────────── */
-function LayoutThumb({ layoutKey, accentHex, selected, isBar = false }: {
+function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = true }: {
   layoutKey: string
   accentHex: string
   selected: boolean
   isBar?: boolean
+  isDark?: boolean
 }) {
   const rects: Record<string, { x: number; y: number; w: number; h: number }> = {
     full:   { x: 14, y: 4,  w: 12, h: 32 },
@@ -411,7 +413,9 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false }: {
     wide:   { x: 3,  y: 10, w: 34, h: 20 },
   }
   const r = rects[layoutKey] ?? rects.full
-  const stroke = selected ? accentHex : 'rgba(255,255,255,0.35)'
+  const stroke       = selected ? accentHex : isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.28)'
+  const rectFill     = selected ? `${accentHex}18` : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
+  const rectStroke   = selected ? accentHex : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)'
 
   // Bar chart thumb
   if (isBar) {
@@ -424,8 +428,8 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false }: {
       <svg viewBox="0 0 40 40" width={40} height={40} style={{ display: 'block' }}>
         <rect
           x={r.x} y={r.y} width={r.w} height={r.h} rx={2}
-          fill={selected ? `${accentHex}18` : 'rgba(255,255,255,0.06)'}
-          stroke={selected ? accentHex : 'rgba(255,255,255,0.2)'}
+          fill={rectFill}
+          stroke={rectStroke}
           strokeWidth={1.2}
         />
         {heights.map((h, i) => {
@@ -450,8 +454,8 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false }: {
     <svg viewBox="0 0 40 40" width={40} height={40} style={{ display: 'block' }}>
       <rect
         x={r.x} y={r.y} width={r.w} height={r.h} rx={2}
-        fill={selected ? `${accentHex}18` : 'rgba(255,255,255,0.06)'}
-        stroke={selected ? accentHex : 'rgba(255,255,255,0.2)'}
+        fill={rectFill}
+        stroke={rectStroke}
         strokeWidth={1.2}
       />
       <polyline
@@ -627,6 +631,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const unitLabel  = weightUnitLabel(unit)
   const { locale } = useLocale()
   const ja         = locale === 'ja'
+  const { theme: appTheme } = useTheme()
+  const isLight = appTheme === 'light'
   const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
   const [cardLang, setCardLang] = useCardLang(locale)
   const cl = (en: string, ja2: string) => cardLang === 'ja' ? ja2 : en
@@ -913,7 +919,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-3">
-        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: 'var(--card-bg-primary)' }}>
+        <button onClick={() => router.back()} className="p-2 rounded-xl" style={{ background: 'var(--card-bg-primary)', border: '1px solid var(--card-border-primary)' }}>
           <ArrowLeft size={18} style={{ color: 'var(--text-muted)' }} />
         </button>
         <h1 className="text-base font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>{ja ? 'ストーリーをシェア' : 'Share Story'}</h1>
@@ -936,7 +942,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
                   cursor: 'pointer', textAlign: 'left',
                 }}>
-                <LayoutThumb layoutKey={l.key} accentHex={gp.uiSwatch ?? gp.accentHex} selected={sel} isBar={isBarType} />
+                <LayoutThumb layoutKey={l.key} accentHex={gp.uiSwatch ?? gp.accentHex} selected={sel} isBar={isBarType} isDark={!isLight} />
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: sel ? (gp.uiSwatch ?? gp.accentHex) : 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
                     {l.ratio} {ja ? l.labelJa : l.labelEn}
