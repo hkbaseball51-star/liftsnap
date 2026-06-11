@@ -561,15 +561,15 @@ export default function FullScreenChart({
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
             <LineChart width={w} height={chartH} data={rmDisplay}
               margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={ja ? jaAxisFmt(rmXAxis.formatter) : rmXAxis.formatter}
-                tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false}
+                tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false}
                 width={38} domain={[rmAxis.yMin, rmAxis.yMax]} ticks={rmTicks} />
-              <Tooltip content={rmTooltip} cursor={{ stroke: 'rgba(255,255,255,0.07)' }} />
+              <Tooltip content={rmTooltip} cursor={{ stroke: 'var(--chart-cursor)' }} />
               <Line type="linear" dataKey="est1rm" stroke="#ED742F" strokeWidth={1.5}
                 dot={rmDot as any}
-                activeDot={{ r: 5, fill: '#ED742F', stroke: 'rgba(255,255,255,0.75)', strokeWidth: 1.5 }}
+                activeDot={{ r: 5, fill: '#ED742F', stroke: 'var(--chart-dot-stroke)', strokeWidth: 1.5 }}
                 isAnimationActive={false} />
             </LineChart>
           </div>
@@ -589,13 +589,13 @@ export default function FullScreenChart({
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
             <BarChart width={w} height={chartH} data={volDisplay}
               margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={ja ? jaAxisFmt(volXAxis.formatter) : volXAxis.formatter}
-                tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false}
+                tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false}
                 width={44} domain={[0, volAxis.yMax]} ticks={volTicks}
                 tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)} />
-              <Tooltip content={volTooltip} cursor={{ stroke: 'rgba(255,255,255,0.05)', fill: 'rgba(255,255,255,0.02)' }} />
+              <Tooltip content={volTooltip} cursor={{ stroke: 'var(--chart-cursor)', fill: 'var(--chart-cursor-fill)' }} />
               <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2,2,0,0]} maxBarSize={14} isAnimationActive={false} />
             </BarChart>
           </div>
@@ -614,16 +614,16 @@ export default function FullScreenChart({
           style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
           <LineChart width={w} height={chartH} data={bwDisplay}
             margin={{ top: 12, right: 20, bottom: 5, left: 4 }} onClick={handleClick}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={ja ? jaAxisFmt(bwXAxis.formatter) : bwXAxis.formatter}
-              tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fill: '#3a3a3a', fontSize: 9 }} tickLine={false} axisLine={false}
+              tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false}
               width={38} domain={[bwAxis.yMin, bwAxis.yMax]} ticks={bwTicks} />
-            <Tooltip content={bwTooltip} cursor={{ stroke: 'rgba(255,255,255,0.07)' }} />
-            <ReferenceLine y={bwDisplay[0]?.weight} stroke="rgba(255,255,255,0.07)" strokeDasharray="4 4" />
+            <Tooltip content={bwTooltip} cursor={{ stroke: 'var(--chart-cursor)' }} />
+            <ReferenceLine y={bwDisplay[0]?.weight} stroke="var(--chart-ref-line)" strokeDasharray="4 4" />
             <Line type="linear" dataKey="weight" stroke="#94A3B8" strokeWidth={1.5}
               dot={bwDot as any}
-              activeDot={{ r: 5, fill: '#94A3B8', stroke: 'rgba(255,255,255,0.7)', strokeWidth: 1.5 }}
+              activeDot={{ r: 5, fill: '#94A3B8', stroke: 'var(--chart-dot-stroke)', strokeWidth: 1.5 }}
               isAnimationActive={false} />
           </LineChart>
         </div>

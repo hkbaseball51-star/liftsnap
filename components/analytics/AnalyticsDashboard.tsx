@@ -611,15 +611,15 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       className="overflow-x-auto overscroll-x-contain no-scrollbar"
                       style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                       <LineChart width={rmChartW} height={380} data={rmDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                         <XAxis dataKey="date" ticks={rmXAxis.ticks} tickFormatter={ja ? jaAxisFmt(rmXAxis.formatter) : rmXAxis.formatter}
-                          tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false}
+                          tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false}
                           width={40} domain={[rmAxis.yMin, rmAxis.yMax]} ticks={rmTicks} />
-                        <Tooltip content={rmTooltip} cursor={{ stroke: 'rgba(255,255,255,0.07)' }} />
+                        <Tooltip content={rmTooltip} cursor={{ stroke: 'var(--chart-cursor)' }} />
                         <Line type="linear" dataKey="est1rm" stroke="#ED742F" strokeWidth={2}
                           dot={rmDot as any}
-                          activeDot={{ r: 5, fill: '#ED742F', stroke: 'rgba(255,255,255,0.75)', strokeWidth: 1.5 }}
+                          activeDot={{ r: 5, fill: '#ED742F', stroke: 'var(--chart-dot-stroke)', strokeWidth: 1.5 }}
                           isAnimationActive={true} animationDuration={400} />
                       </LineChart>
                     </div>
@@ -757,13 +757,13 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       className="overflow-x-auto overscroll-x-contain no-scrollbar"
                       style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                       <BarChart width={volChartW} height={380} data={volDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                         <XAxis dataKey="date" ticks={volXAxis.ticks} tickFormatter={ja ? jaAxisFmt(volXAxis.formatter) : volXAxis.formatter}
-                          tick={{ fill: '#4a4a4a', fontSize: 9 }} tickLine={false} axisLine={false} />
-                        <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={44}
+                          tick={{ fill: 'var(--chart-axis)', fontSize: 9 }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false} width={44}
                           domain={[0, volAxis.yMax]} ticks={volTicks}
                           tickFormatter={v => fmtVolT(v)} />
-                        <Tooltip content={volTooltip} cursor={{ stroke: 'rgba(255,255,255,0.05)', fill: 'rgba(255,255,255,0.02)' }} />
+                        <Tooltip content={volTooltip} cursor={{ stroke: 'var(--chart-cursor)', fill: 'var(--chart-cursor-fill)' }} />
                         <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2, 2, 0, 0]} maxBarSize={16} />
                       </BarChart>
                     </div>
@@ -936,16 +936,16 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                   className="overflow-x-auto overscroll-x-contain no-scrollbar"
                   style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                   <LineChart width={bwChartW} height={380} data={bwDataDisplay} margin={{ top: 10, right: 20, bottom: 5, left: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.055)" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                     <XAxis dataKey="date" ticks={bwXAxis.ticks} tickFormatter={ja ? jaAxisFmt(bwXAxis.formatter) : bwXAxis.formatter}
-                      tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fill: '#4a4a4a', fontSize: 10 }} tickLine={false} axisLine={false} width={40}
+                      tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false} width={40}
                       domain={[bwAxis.yMin, bwAxis.yMax]} ticks={bwTicks} />
-                    <Tooltip content={bwTooltip} cursor={{ stroke: 'rgba(255,255,255,0.07)' }} />
-                    <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
+                    <Tooltip content={bwTooltip} cursor={{ stroke: 'var(--chart-cursor)' }} />
+                    <ReferenceLine y={bwDataDisplay[0]?.weight} stroke="var(--chart-ref-line)" strokeDasharray="4 4" />
                     <Line type="linear" dataKey="weight" stroke="#94A3B8" strokeWidth={2}
                       dot={bwDot as any}
-                      activeDot={{ r: 5, fill: '#94A3B8', stroke: 'rgba(255,255,255,0.7)', strokeWidth: 1.5 }}
+                      activeDot={{ r: 5, fill: '#94A3B8', stroke: 'var(--chart-dot-stroke)', strokeWidth: 1.5 }}
                       isAnimationActive={true} animationDuration={400} />
                   </LineChart>
                 </div>

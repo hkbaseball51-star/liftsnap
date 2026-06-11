@@ -254,7 +254,14 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         /* Combined: 9:16 canvas with inner card — capture target is previewCardRef (no transform) */
         <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
-          <div style={{ width: 'min(94vw, 420px)', ...(isLight ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 30, boxShadow: '0 12px 32px rgba(0,0,0,0.10)', padding: 12 } : {}) }}>
+          <div style={{
+            width: 'min(94vw, 420px)',
+            background: isLight ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
+            border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 30,
+            boxShadow: isLight ? '0 18px 50px rgba(15,23,42,0.10)' : '0 4px 20px rgba(0,0,0,0.30)',
+            padding: 12,
+          }}>
             <div
               ref={captureRef}
               style={{
@@ -330,7 +337,13 @@ export default function TodayShareView({ data }: { data: TodayData }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {data.exercises.map((ex, i) => (
               <div key={`preview-${i}`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={isLight ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 28, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: 12 } : {}}>
+                <div style={{
+                  background: isLight ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
+                  border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 28,
+                  boxShadow: isLight ? '0 8px 24px rgba(0,0,0,0.10)' : '0 4px 16px rgba(0,0,0,0.20)',
+                  padding: 12,
+                }}>
                 <div style={{ position: 'relative' }}>
                   {/* Transparent/Glass card: checker is a sibling of the capture target — NOT inside previewExRefs */}
                   {(isTransparent || cardStyle === 'glass') && (
@@ -395,7 +408,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
       >
         {/* Card Style */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             {ja ? 'カードスタイル' : 'Card Style'}
           </p>
           <div className="flex gap-2">
@@ -419,7 +432,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Design Preset */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             {ja ? 'デザインプリセット' : 'Design Preset'}
           </p>
           <div className="grid grid-cols-2 gap-1.5">
@@ -449,7 +462,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Text Shadow */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             {ja ? 'テキストシャドウ' : 'Text Shadow'}
           </p>
           <div className="flex gap-2">
@@ -470,7 +483,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Save Format */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             {ja ? '保存形式' : 'Save Format'}
           </p>
           <div className="flex gap-2">
@@ -494,7 +507,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
         {/* Exercise Name Language */}
         <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             {ja ? '種目名の表示' : 'Exercise names'}
           </p>
           <div className="flex gap-2">

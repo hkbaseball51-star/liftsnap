@@ -20,6 +20,7 @@ import { formatVolume } from '@/lib/utils'
 import { parseFlexibleNumber } from '@/lib/number'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
+import { useTheme } from '@/lib/useTheme'
 import { toDisplayWeight, fromDisplayWeight, formatVolumeWithUnit, weightUnitLabel } from '@/lib/units'
 import { t, type Locale } from '@/lib/i18n'
 import { getDisplayName } from '@/lib/exerciseNames'
@@ -419,6 +420,8 @@ export default function WorkoutRecorder({
   const router = useRouter()
   const { locale } = useLocale()
   const { unit: weightUnit } = useWeightUnit()
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
   const { isDemo, demoUserId, mounted: demoMounted } = useDemoMode()
   const { refreshData } = useAppData()
   const isEditing = !!existingSessionId && (existingExercises?.length ?? 0) > 0
@@ -1036,7 +1039,11 @@ export default function WorkoutRecorder({
           <div className="flex justify-center mb-2">
             <button
               className="text-xs font-bold px-3 py-1 rounded-full active:opacity-70 transition-opacity"
-              style={{ color: '#ED742F', background: 'rgba(237,116,47,0.08)', border: '1px solid rgba(237,116,47,0.18)' }}
+              style={{
+                color: '#ED742F',
+                background: isLight ? 'rgba(249,115,22,0.10)' : 'rgba(237,116,47,0.08)',
+                border: isLight ? '1px solid rgba(249,115,22,0.35)' : '1px solid rgba(237,116,47,0.18)',
+              }}
               onClick={handleCopyPrev}>
               {locale === 'ja' ? '前回メニューをコピー' : 'Copy previous workout'}
             </button>
@@ -1045,7 +1052,12 @@ export default function WorkoutRecorder({
         <div className="flex gap-2.5">
           <button
             className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
-            style={{ background: 'rgba(237, 116, 47,0.10)', color: '#ED742F', border: '1px solid rgba(237, 116, 47,0.4)' }}
+            style={{
+              background: isLight ? '#F97316' : 'rgba(237, 116, 47,0.10)',
+              color: isLight ? '#fff' : '#ED742F',
+              border: isLight ? 'none' : '1px solid rgba(237, 116, 47,0.4)',
+              boxShadow: isLight ? '0 10px 24px rgba(249,115,22,0.22)' : 'none',
+            }}
             onClick={() => setShowPicker(true)}>
             <Plus size={15} strokeWidth={2.5} />
             {t(locale, 'record.addExerciseBtn')}
@@ -1057,14 +1069,16 @@ export default function WorkoutRecorder({
                 background: canFinish
                   ? '#ED742F'
                   : isSavedState
-                    ? 'rgba(34,197,94,0.12)'
-                    : 'rgba(237, 116, 47,0.22)',
+                    ? (isLight ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.12)')
+                    : (isLight ? 'rgba(237, 116, 47,0.15)' : 'rgba(237, 116, 47,0.22)'),
                 color: canFinish
                   ? '#fff'
                   : isSavedState
-                    ? '#22c55e'
-                    : 'rgba(255,255,255,0.42)',
-                border: isSavedState ? '1px solid rgba(34,197,94,0.25)' : 'none',
+                    ? (isLight ? '#16A34A' : '#22c55e')
+                    : (isLight ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.42)'),
+                border: isSavedState
+                  ? (isLight ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(34,197,94,0.25)')
+                  : 'none',
                 boxShadow: canFinish ? '0 4px 20px rgba(237, 116, 47,0.3)' : 'none',
                 transition: 'background 200ms, color 200ms, box-shadow 200ms',
               }}
@@ -1119,8 +1133,8 @@ export default function WorkoutRecorder({
             <button
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-75 transition-opacity"
               style={{
-                background: 'rgba(237,116,47,0.07)',
-                border: '1px solid rgba(237,116,47,0.22)',
+                background: isLight ? 'rgba(249,115,22,0.08)' : 'rgba(237,116,47,0.07)',
+                border: isLight ? '1px solid rgba(249,115,22,0.35)' : '1px solid rgba(237,116,47,0.22)',
               }}
               onClick={() => router.push(`/share?type=today&date=${date}`)}>
               <Share2 size={13} style={{ color: '#ED742F' }} />

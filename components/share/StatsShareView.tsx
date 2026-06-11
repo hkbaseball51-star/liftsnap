@@ -905,7 +905,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   )
 
   const sectionLabel = (text: string) => (
-    <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 8 }}>{text}</p>
+    <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.08em', marginBottom: 8 }}>{text}</p>
   )
 
   // Volume volume format helper
