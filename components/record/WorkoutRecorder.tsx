@@ -1011,7 +1011,7 @@ export default function WorkoutRecorder({
         style={{
           bottom: 0,
           paddingTop: 10,
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 26px)',
           background: isLight
             ? 'linear-gradient(to bottom, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.64) 45%, rgba(255,255,255,0.86) 100%)'
             : 'linear-gradient(to bottom, rgba(8,8,8,0.28) 0%, rgba(8,8,8,0.58) 45%, rgba(8,8,8,0.78) 100%)',
@@ -1174,7 +1174,7 @@ export default function WorkoutRecorder({
         style={{
           position: 'fixed',
           right: 20,
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 192px)',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 116px)',
           zIndex: 41,
           display: 'flex',
           alignItems: 'center',
