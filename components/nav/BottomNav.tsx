@@ -11,6 +11,7 @@ function getTodayJST() {
 
 // Full-screen pages where the bottom nav should not appear
 const HIDE_NAV = new Set([
+  '/record',
   '/analytics/chart',
   '/body-log',
   '/body-timeline',

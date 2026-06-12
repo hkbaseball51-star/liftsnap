@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
-import { localCreateSession, localSaveFullSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight, localGetPreviousSession, localGetPreviousSessionByType, localGetExerciseHistory, type PreviousSessionData, type ExerciseHistoryResult } from '@/lib/localDB'
+import { localCreateSession, localSaveFullSession, localDeleteSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight, localGetPreviousSession, localGetPreviousSessionByType, localGetExerciseHistory, type PreviousSessionData, type ExerciseHistoryResult } from '@/lib/localDB'
 import { getDemoPreviousSession, getDemoPreviousSessionByType } from '@/actions/demo'
 import { useDemoMode } from '@/lib/useDemoMode'
 import type { CopyFilterType } from '@/lib/copyFilter'
@@ -478,6 +478,7 @@ export default function WorkoutRecorder({
   const [assistMenuTarget, setAssistMenuTarget] = useState<{ exerciseId: string; setId: string; currentStatus: AssistStatus } | null>(null)
   const [bwSaving, setBwSaving] = useState(false)
   const [bwSaved,  setBwSaved]  = useState(false)
+  const [deleteToast, setDeleteToast] = useState(false)
 
   const todayStr = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
   const isDateToday = date === todayStr
@@ -567,7 +568,8 @@ export default function WorkoutRecorder({
 
   const hasWorkoutContent = exerciseList.length > 0
   const isSavedState = !isDirty && sessionId !== null
-  const canFinish = !saving && isDirty && displaySetsCount > 0
+  const isDeleteMode = isDirty && exerciseList.length === 0 && sessionId !== null
+  const canFinish = !saving && isDirty && (displaySetsCount > 0 || isDeleteMode)
 
   const saveStatusDisplay = useMemo(() => {
     if (saving) return { text: t(locale, 'record.saving'), color: '#888' }
@@ -776,27 +778,38 @@ export default function WorkoutRecorder({
   const handleFinish = async () => {
     setSaving(true)
     try {
-      let sid = sessionId
-      if (!sid) {
-        sid = localCreateSession(date, title)
-        setSessionId(sid)
+      if (exerciseList.length === 0) {
+        if (sessionId) {
+          localDeleteSession(sessionId)
+          setTimeout(() => void refreshData(), 0)
+        }
+        setSessionId(null)
+        setIsDirty(false)
+        setDeleteToast(true)
+        setTimeout(() => setDeleteToast(false), 2500)
+      } else {
+        let sid = sessionId
+        if (!sid) {
+          sid = localCreateSession(date, title)
+          setSessionId(sid)
+        }
+        const setsToSave = exerciseList.flatMap(ex =>
+          ex.sets
+            .filter(s => s.weight_kg !== null && s.reps !== null)
+            .map(s => ({
+              exercise_name: ex.name,
+              muscle_group: ex.muscle_group,
+              set_number: s.set_number,
+              weight_kg: s.weight_kg,
+              reps: s.reps,
+              note: ex.note || null,
+              assistStatus: s.assistStatus,
+            }))
+        )
+        localSaveFullSession(sid, title, setsToSave)
+        setTimeout(() => void refreshData(), 0)
+        setIsDirty(false)
       }
-      const setsToSave = exerciseList.flatMap(ex =>
-        ex.sets
-          .filter(s => s.weight_kg !== null && s.reps !== null)
-          .map(s => ({
-            exercise_name: ex.name,
-            muscle_group: ex.muscle_group,
-            set_number: s.set_number,
-            weight_kg: s.weight_kg,
-            reps: s.reps,
-            note: ex.note || null,
-            assistStatus: s.assistStatus,
-          }))
-      )
-      localSaveFullSession(sid, title, setsToSave)
-      setTimeout(() => void refreshData(), 0)
-      setIsDirty(false)
     } finally {
       setSaving(false)
     }
@@ -870,6 +883,16 @@ export default function WorkoutRecorder({
             </span>
           </div>
         )}
+        {/* Delete toast banner */}
+        {deleteToast && (
+          <div
+            className="-mx-4 px-4 flex items-center py-1.5 mb-1"
+            style={{ background: 'rgba(239,68,68,0.07)', borderBottom: '1px solid rgba(239,68,68,0.12)' }}>
+            <span className="text-[11px] font-black tracking-wider" style={{ color: '#ef4444' }}>
+              ✓ {locale === 'ja' ? 'この日の記録を削除しました' : 'Workout removed.'}
+            </span>
+          </div>
+        )}
 
         {/* Row 1: X | date | spacer */}
         <div className="flex items-center justify-between pb-1">
@@ -925,7 +948,7 @@ export default function WorkoutRecorder({
 
       {/* ── Exercise list ── */}
       <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-2.5"
-        style={{ paddingBottom: 'calc(13rem + env(safe-area-inset-bottom))' }}>
+        style={{ paddingBottom: 'calc(11rem + env(safe-area-inset-bottom))' }}>
 
         {exerciseList.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -983,13 +1006,19 @@ export default function WorkoutRecorder({
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="fixed inset-x-0 z-40 px-4 py-3"
+      <div
+        className="fixed inset-x-0 z-40 px-4"
         style={{
-          bottom: 'calc(4.75rem + env(safe-area-inset-bottom))',
-          background: 'linear-gradient(to top, var(--app-bg) 70%, transparent)',
-        }}>
+          bottom: 0,
+          paddingTop: 10,
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
+          background: isLight ? 'rgba(255,255,255,0.97)' : 'rgba(10,10,10,0.95)',
+          borderTop: `1px solid ${isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)'}`,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        } as React.CSSProperties}>
         {/* Rest button */}
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-end mb-1.5">
           <button
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black"
             style={{
@@ -1007,7 +1036,7 @@ export default function WorkoutRecorder({
 
         {/* Body weight — compact optional row */}
         {(
-          <div className="flex items-center gap-2 mb-2.5 px-0.5">
+          <div className="flex items-center gap-2 mb-2 px-0.5">
             <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.09em', color: '#3a3a3a', flexShrink: 0, whiteSpace: 'nowrap' }}>
               {locale === 'ja' ? '体重・任意' : 'BODY WEIGHT · OPTIONAL'}
             </p>
@@ -1036,7 +1065,7 @@ export default function WorkoutRecorder({
         )}
 
         {prevSession && exerciseList.length > 0 && (
-          <div className="flex justify-center mb-2">
+          <div className="flex justify-center mb-1.5">
             <button
               className="text-xs font-bold px-3 py-1 rounded-full active:opacity-70 transition-opacity"
               style={{
@@ -1049,9 +1078,9 @@ export default function WorkoutRecorder({
             </button>
           </div>
         )}
-        <div className="flex gap-2.5">
+        <div className="flex gap-2">
           <button
-            className="flex-1 py-3.5 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
             style={{
               background: isLight ? '#F97316' : 'rgba(237, 116, 47,0.10)',
               color: isLight ? '#fff' : '#ED742F',
@@ -1062,33 +1091,41 @@ export default function WorkoutRecorder({
             <Plus size={15} strokeWidth={2.5} />
             {t(locale, 'record.addExerciseBtn')}
           </button>
-          {hasWorkoutContent && (
+          {(hasWorkoutContent || isDeleteMode) && (
             <button
-              className="flex-1 py-3.5 rounded-2xl text-sm font-black"
+              className="flex-1 py-3 rounded-2xl text-sm font-black"
               style={{
-                background: canFinish
-                  ? '#ED742F'
+                background: isDeleteMode
+                  ? (isLight ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.12)')
+                  : canFinish
+                    ? '#ED742F'
+                    : isSavedState
+                      ? (isLight ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.12)')
+                      : (isLight ? 'rgba(237, 116, 47,0.15)' : 'rgba(237, 116, 47,0.22)'),
+                color: isDeleteMode
+                  ? '#ef4444'
+                  : canFinish
+                    ? '#fff'
+                    : isSavedState
+                      ? (isLight ? '#16A34A' : '#22c55e')
+                      : (isLight ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.42)'),
+                border: isDeleteMode
+                  ? '1px solid rgba(239,68,68,0.25)'
                   : isSavedState
-                    ? (isLight ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.12)')
-                    : (isLight ? 'rgba(237, 116, 47,0.15)' : 'rgba(237, 116, 47,0.22)'),
-                color: canFinish
-                  ? '#fff'
-                  : isSavedState
-                    ? (isLight ? '#16A34A' : '#22c55e')
-                    : (isLight ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.42)'),
-                border: isSavedState
-                  ? (isLight ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(34,197,94,0.25)')
-                  : 'none',
-                boxShadow: canFinish ? '0 4px 20px rgba(237, 116, 47,0.3)' : 'none',
+                    ? (isLight ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(34,197,94,0.25)')
+                    : 'none',
+                boxShadow: canFinish && !isDeleteMode ? '0 4px 20px rgba(237, 116, 47,0.3)' : 'none',
                 transition: 'background 200ms, color 200ms, box-shadow 200ms',
               }}
               disabled={!canFinish}
               onClick={handleFinish}>
               {saving
                 ? t(locale, 'record.savingBtn')
-                : isSavedState
-                  ? t(locale, 'record.savedBtn')
-                  : t(locale, 'record.saveBtn')}
+                : isDeleteMode
+                  ? (locale === 'ja' ? '記録を削除' : 'Delete record')
+                  : isSavedState
+                    ? t(locale, 'record.savedBtn')
+                    : t(locale, 'record.saveBtn')}
             </button>
           )}
         </div>
@@ -1129,9 +1166,9 @@ export default function WorkoutRecorder({
           Currently: all dates unrestricted (no gate implemented yet).
         */}
         {isSavedState && exerciseList.length > 0 && displaySetsCount > 0 && (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <button
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl active:opacity-75 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-2xl active:opacity-75 transition-opacity"
               style={{
                 background: isLight ? 'rgba(249,115,22,0.08)' : 'rgba(237,116,47,0.07)',
                 border: isLight ? '1px solid rgba(249,115,22,0.35)' : '1px solid rgba(237,116,47,0.22)',

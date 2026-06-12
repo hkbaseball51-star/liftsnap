@@ -193,9 +193,11 @@ export default function TrainingHistorySection({
 
       {/* Filter chips — single-row horizontal scroll */}
       <div style={{
-        display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4,
+        display: 'flex', gap: 10, overflowX: 'auto',
+        paddingLeft: 4, paddingRight: 4, paddingBottom: 6,
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
+        scrollPaddingLeft: 4,
         marginBottom: 12,
       } as React.CSSProperties}>
         {FILTERS.map(({ key, label }) => {
@@ -206,15 +208,16 @@ export default function TrainingHistorySection({
               onClick={() => { setFilter(key); setShowCount(10) }}
               style={{
                 flexShrink: 0,
-                padding: '5px 11px',
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '0.02em',
+                padding: '11px 20px',
+                minHeight: 44,
+                borderRadius: 999,
+                fontSize: 15,
+                fontWeight: sel ? 800 : 700,
+                letterSpacing: '0.01em',
                 whiteSpace: 'nowrap',
-                background: sel ? '#F97316' : 'var(--surface-chip)',
-                color: sel ? '#fff' : 'var(--text-secondary)',
-                border: `1.5px solid ${sel ? '#F97316' : 'var(--border-subtle)'}`,
+                background: sel ? '#F97316' : 'var(--filter-chip-bg)',
+                color: sel ? '#fff' : 'var(--filter-chip-color)',
+                border: `1.5px solid ${sel ? '#F97316' : 'var(--filter-chip-border)'}`,
                 cursor: 'pointer',
               }}>
               {label}

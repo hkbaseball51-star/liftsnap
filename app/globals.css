@@ -18,6 +18,9 @@
   --danger: #ef4444;
   --diff-positive: #22c55e;
   --diff-negative: #f87171;
+  --filter-chip-bg: rgba(255,255,255,0.06);
+  --filter-chip-border: rgba(255,255,255,0.12);
+  --filter-chip-color: rgba(255,255,255,0.78);
 
   /* Theme-switchable tokens (default = dark) */
   --app-bg: #0a0a0a;
@@ -83,6 +86,9 @@
   --text-label: #6B7280;
   --diff-positive: #16a34a;
   --diff-negative: #ef4444;
+  --filter-chip-bg: #FFFFFF;
+  --filter-chip-border: rgba(15,23,42,0.12);
+  --filter-chip-color: #111827;
   --text-chevron: rgba(0,0,0,0.28);
   --input-bg: rgba(0,0,0,0.04);
   --input-border: rgba(0,0,0,0.12);
