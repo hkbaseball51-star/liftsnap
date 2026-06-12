@@ -1020,23 +1020,6 @@ export default function WorkoutRecorder({
           WebkitBackdropFilter: 'blur(24px)',
           boxShadow: isLight ? '0 -12px 32px rgba(15,23,42,0.06)' : '0 -12px 32px rgba(0,0,0,0.22)',
         } as React.CSSProperties}>
-        {/* Rest button */}
-        <div className="flex justify-end mb-1.5">
-          <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black"
-            style={{
-              background: restRemaining !== null ? 'rgba(237, 116, 47,0.1)' : 'rgba(255,255,255,0.04)',
-              color: restRemaining !== null ? '#ED742F' : '#555',
-              border: `1px solid ${restRemaining !== null ? 'rgba(237, 116, 47,0.25)' : 'rgba(255,255,255,0.08)'}`,
-            }}
-            onClick={() => setShowRestSheet(true)}>
-            ⏱{' '}{t(locale, 'record.rest')}{' '}
-            {restRemaining !== null
-              ? `${Math.floor(restRemaining / 60)}:${String(restRemaining % 60).padStart(2, '0')}`
-              : `${Math.floor(restPreset / 60)}:${String(restPreset % 60).padStart(2, '0')}`}
-          </button>
-        </div>
-
         {/* Body weight — compact optional row */}
         {(
           <div className="flex items-center gap-2 mb-2 px-0.5">
@@ -1185,6 +1168,45 @@ export default function WorkoutRecorder({
           </div>
         )}
       </div>
+
+      {/* ── Floating rest timer FAB ── */}
+      <button
+        style={{
+          position: 'fixed',
+          right: 20,
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)',
+          zIndex: 41,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '10px 15px',
+          borderRadius: 999,
+          background: restRemaining !== null
+            ? (isLight ? 'rgba(249,115,22,0.14)' : 'rgba(237,116,47,0.15)')
+            : (isLight ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.08)'),
+          border: `1px solid ${restRemaining !== null
+            ? 'rgba(237,116,47,0.30)'
+            : (isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.14)')}`,
+          color: restRemaining !== null
+            ? '#ED742F'
+            : (isLight ? '#111827' : 'rgba(255,255,255,0.90)'),
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: isLight
+            ? '0 10px 28px rgba(15,23,42,0.10)'
+            : '0 10px 28px rgba(0,0,0,0.32)',
+        } as React.CSSProperties}
+        onClick={() => setShowRestSheet(true)}>
+        <span style={{ fontSize: 14 }}>⏱</span>
+        <span style={{
+          fontSize: 13, fontWeight: 700,
+          fontFamily: 'var(--font-mono)', letterSpacing: '0.04em',
+        }}>
+          {restRemaining !== null
+            ? `${Math.floor(restRemaining / 60)}:${String(restRemaining % 60).padStart(2, '0')}`
+            : `${Math.floor(restPreset / 60)}:${String(restPreset % 60).padStart(2, '0')}`}
+        </span>
+      </button>
 
       {/* ── Modals ── */}
       {showPicker && (
