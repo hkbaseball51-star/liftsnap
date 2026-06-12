@@ -252,6 +252,16 @@ export default function TodayShareView({ data }: { data: TodayData }) {
     'linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%)',
   ].join(', ')
 
+  // premium-black + transparent has dark text, so show a light preview backing.
+  // The checker div is OUTSIDE the capture target — this does NOT affect saved images.
+  const needsLightPreviewBacking = preset === 'premium-black' && isTransparent
+  const lightCheckerBg = [
+    'linear-gradient(45deg, rgba(0,0,0,0.03) 25%, transparent 25%)',
+    'linear-gradient(-45deg, rgba(0,0,0,0.03) 25%, transparent 25%)',
+    'linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.03) 75%)',
+    'linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.03) 75%)',
+  ].join(', ')
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--app-bg)' }}>
 
@@ -303,8 +313,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 <div
                   style={{
                     position: 'absolute', inset: 0,
-                    backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
-                    backgroundImage: checkerBg,
+                    backgroundColor: needsLightPreviewBacking ? '#F9FAFB' : (isTransparent ? '#2a2a2a' : '#161616'),
+                    backgroundImage: needsLightPreviewBacking ? lightCheckerBg : checkerBg,
                     backgroundSize: '20px 20px',
                     backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
                     borderRadius: 24,
@@ -362,8 +372,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   {(isTransparent || cardStyle === 'glass') && (
                     <div style={{
                       position: 'absolute', inset: 0,
-                      backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
-                      backgroundImage: checkerBg,
+                      backgroundColor: needsLightPreviewBacking ? '#F9FAFB' : (isTransparent ? '#2a2a2a' : '#161616'),
+                      backgroundImage: needsLightPreviewBacking ? lightCheckerBg : checkerBg,
                       backgroundSize: '20px 20px',
                       backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
                       borderRadius: 24,
@@ -415,8 +425,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   {(isTransparent || cardStyle === 'glass') && (
                     <div style={{
                       position: 'absolute', inset: 0,
-                      backgroundColor: isTransparent ? '#2a2a2a' : '#161616',
-                      backgroundImage: checkerBg,
+                      backgroundColor: needsLightPreviewBacking ? '#F9FAFB' : (isTransparent ? '#2a2a2a' : '#161616'),
+                      backgroundImage: needsLightPreviewBacking ? lightCheckerBg : checkerBg,
                       backgroundSize: '20px 20px',
                       backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
                       borderRadius: 24,
@@ -509,8 +519,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                   className="py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
                   style={{
                     background: sel ? `${swatch}22` : 'var(--surface-chip)',
-                    color:      sel ? swatch         : 'var(--text-secondary)',
-                    border:     `1px solid ${sel ? swatch : 'var(--border-subtle)'}`,
+                    color: sel
+                      ? (value === 'pearl-white' || value === 'premium-black' ? 'var(--text-primary)' : swatch)
+                      : 'var(--text-secondary)',
+                    border: `1px solid ${sel ? swatch : 'var(--border-subtle)'}`,
                     minHeight: 44,
                   }}
                   onClick={() => handleSetPreset(value)}>

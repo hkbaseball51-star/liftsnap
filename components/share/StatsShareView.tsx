@@ -59,6 +59,8 @@ const AREA_FILL: Record<Accent, string> = {
 }
 
 const CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
+// Light checker — dark squares at low opacity, used as preview backing for dark-text transparent cards
+const LIGHT_CHECKER = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.04'%3E%3Cpath d='M0 0h10v10H0V0zm10 10h10v10H10V10z'/%3E%3C/g%3E%3C/svg%3E")`
 
 const BODY_PART_DISPLAY: Record<string, string> = {
   all: 'ALL', chest: 'CHEST', back: 'BACK', legs: 'LEGS',
@@ -673,17 +675,32 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const gpBadgeBg    = isTransparentCard ? (gp.badgeBgTransp ?? gp.badgeBg) : gp.badgeBg
   const gpBadgeTxt   = isTransparentCard ? (gp.badgeTextTransp ?? gp.badgeText) : gp.badgeText
   const areaFill     = acRgba(gpAccent, 0.12)
-  const transparentBg = `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.48)), ${CHECKER} #1a1a1a`
+  // preview-only: premium-black + transparent uses dark text, so show a light preview backing.
+  // The checker/backing is applied to the OUTER WRAPPER (outside all capture refs), so it
+  // never appears in the saved PNG. Capture refs have no background in transparent mode.
+  const needsLightPreviewBacking = graphPreset === 'premium-black' && isTransparentCard
   const gpGlassSt    = glassCardStyle(gp.accentHex, gp.isDark !== false)
-  const cardBgProps  = isTransparentCard
-    ? { background: transparentBg }
-    : gpGlassSt
+  // transparent: NO background on capture refs — they are already transparent.
+  // glass: glass gradient applied to capture refs (appears in saved PNG at ~62% opacity).
+  const cardBgProps  = isTransparentCard ? {} : gpGlassSt
   const shadowValue    = SHADOW_MAP[shadowLevel]
   const glassShadow    = gp.isDark !== false
     ? `0 8px 28px rgba(0,0,0,0.62), 0 2px 8px rgba(0,0,0,0.46), 0 0 0 1px ${acRgba(gpAccent, 0.20)}, inset 0 1px 0 rgba(255,255,255,0.12)`
     : `0 4px 18px rgba(0,0,0,0.24), 0 1px 5px rgba(0,0,0,0.14), 0 0 0 1px rgba(255,255,255,0.30), inset 0 1px 0 rgba(255,255,255,0.48)`
   const cardBoxShadow  = isTransparentCard ? 'none' : glassShadow
   const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
+
+  // ── UI button accent ──────────────────────────────────────────────────
+  // rawUiAc: always a hex string (safe to pass to acRgba for background tints).
+  // uiAc: the TEXT / BORDER color for selected-state UI buttons.
+  //   Pearl-white (#F0EFEA) and premium-black (#E5E7EB) swatches are near-white —
+  //   they disappear on light UI backgrounds. Substitute var(--text-primary) so
+  //   selected button labels stay readable in both Light and Dark themes.
+  // svgUiAc: the hex color for LayoutThumb SVG strokes (CSS vars don't work in SVG).
+  const rawUiAc        = gp.uiSwatch ?? gp.accentHex
+  const isPearlOrBlack = graphPreset === 'pearl-white' || graphPreset === 'premium-black'
+  const uiAc           = isPearlOrBlack ? 'var(--text-primary)' : rawUiAc
+  const svgUiAc        = isPearlOrBlack ? (isLight ? '#374151' : '#E5E7EB') : rawUiAc
 
   /* ── MAX 1RM data ────────────────────────────────────────── */
   const rm1FullHistory = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).history : []
@@ -943,9 +960,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
                   cursor: 'pointer', textAlign: 'left',
                 }}>
-                <LayoutThumb layoutKey={l.key} accentHex={gp.uiSwatch ?? gp.accentHex} selected={sel} isBar={isBarType} isDark={!isLight} />
+                <LayoutThumb layoutKey={l.key} accentHex={svgUiAc} selected={sel} isBar={isBarType} isDark={!isLight} />
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: sel ? (gp.uiSwatch ?? gp.accentHex) : 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: sel ? uiAc : 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
                     {l.ratio} {ja ? l.labelJa : l.labelEn}
                   </p>
                   {!ja && (
@@ -969,12 +986,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             <div className="flex gap-2">
               {(['bodypart', 'ppl'] as VolViewType[]).map(vt => {
                 const sel = volViewType === vt
-                const uiAc = gp.uiSwatch ?? gp.accentHex
                 return (
                   <button key={vt} onClick={() => setVolViewType(vt)}
                     className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                     style={{
-                      background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                      background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                       color: sel ? uiAc : 'var(--text-inactive)',
                       border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                     }}>
@@ -992,13 +1008,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {VOL_BODY_PARTS.map(bp => {
                   const sel = volBodyPart === bp.key
-                  const uiAc = gp.uiSwatch ?? gp.accentHex
                   return (
                     <button key={bp.key}
                       onClick={() => router.push(`/share?type=stats&metric=volume&bodypart=${bp.key}`)}
                       style={{
                         padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                        background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                         color: sel ? uiAc : 'var(--text-inactive)',
                         border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                       }}>
@@ -1017,13 +1032,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ display: 'flex', gap: 6 }}>
                 {VOL_PPL_GROUPS.map(pg => {
                   const sel = pplGroup === pg.key
-                  const uiAc = gp.uiSwatch ?? gp.accentHex
                   return (
                     <button key={pg.key}
                       onClick={() => setPplGroup(pg.key)}
                       style={{
                         flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                        background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                         color: sel ? uiAc : 'var(--text-inactive)',
                         border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                       }}>
@@ -1046,12 +1060,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             { value: 'ja' as const, label: '日本語' },
           ]).map(({ value, label }) => {
             const sel = cardLang === value
-            const uiAc = gp.uiSwatch ?? gp.accentHex
             return (
               <button key={value} onClick={() => setCardLang(value)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                  background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                   color: sel ? uiAc : 'var(--text-inactive)',
                   border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
@@ -1068,12 +1081,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <div className="flex gap-2">
           {(['glass', 'transparent'] as CardStyle[]).map(cs => {
             const sel = cardStyle === cs
-            const uiAc = gp.uiSwatch ?? gp.accentHex
             return (
               <button key={cs} onClick={() => setCardStyle(cs)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                  background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                   color: sel ? uiAc : 'var(--text-inactive)',
                   border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
@@ -1107,7 +1119,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 }} />
                 <span style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textAlign: 'left',
-                  color: sel ? swatch : 'var(--text-inactive)', lineHeight: 1.3, display: 'block',
+                  color: sel ? (pk === 'pearl-white' || pk === 'premium-black' ? 'var(--text-primary)' : swatch) : 'var(--text-inactive)',
+                  lineHeight: 1.3, display: 'block',
                 }}>
                   {ja ? PRESET_LABELS_JA[pk] : PRESET_LABELS[pk]}
                 </span>
@@ -1123,7 +1136,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         <div className="flex gap-2">
           {(['none', 'soft', 'strong', 'extra-strong'] as ShadowLevel[]).map(sl => {
             const sel = shadowLevel === sl
-            const uiAc = gp.uiSwatch ?? gp.accentHex
             const label = ja
               ? (sl === 'none' ? 'なし' : sl === 'soft' ? '弱め' : sl === 'strong' ? '強め' : '最大')
               : (sl === 'none' ? 'None' : sl === 'soft' ? 'Soft' : sl === 'strong' ? 'Strong' : 'Extra')
@@ -1131,7 +1143,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <button key={sl} onClick={() => setShadowLevel(sl)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                 style={{
-                  background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                  background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                   color: sel ? uiAc : 'var(--text-inactive)',
                   border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
@@ -1152,12 +1164,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               { value: 'ja' as const, label: '日本語'    },
             ]).map(({ value, label }) => {
               const sel = exerciseNameLang === value
-              const uiAc = gp.uiSwatch ?? gp.accentHex
               return (
                 <button key={value} onClick={() => setExerciseNameLang(value)}
                   className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                   style={{
-                    background: sel ? acRgba(uiAc, 0.15) : 'var(--surface-chip)',
+                    background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                     color: sel ? uiAc : 'var(--text-inactive)',
                     border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                   }}>
@@ -1170,14 +1181,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       )}
 
       {/* ⑥ PREVIEW ──────────────────────────────────────────── */}
-      {/* Glass mode: subtle checker behind card so users can see the semi-transparency in preview. */}
-      {/* The checker is NOT inside the capture ref — it's outside the card div — so it never */}
-      {/* appears in the saved PNG. Transparent mode uses its own transparentBg on the card itself. */}
-      <div className="px-4 mb-5" style={!isTransparentCard ? {
-        backgroundColor: 'var(--card-bg-primary)',
-        backgroundImage: CHECKER,
+      {/* Checker behind all cards (glass AND transparent) so semi-transparency is visible. */}
+      {/* The checker is on the OUTER WRAPPER — outside all capture refs — so it never        */}
+      {/* appears in saved PNGs. Transparent capture refs have no inline background at all.   */}
+      <div className="px-4 mb-5" style={{
+        backgroundColor: isTransparentCard
+          ? (needsLightPreviewBacking ? '#F9FAFB' : '#1a1a1a')
+          : 'var(--card-bg-primary)',
+        backgroundImage: needsLightPreviewBacking ? LIGHT_CHECKER : CHECKER,
         backgroundSize: '20px 20px',
-      } : undefined}>
+      }}>
 
         {isMax1RM ? (
 
