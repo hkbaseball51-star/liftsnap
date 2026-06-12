@@ -1012,10 +1012,11 @@ export default function WorkoutRecorder({
           bottom: 0,
           paddingTop: 10,
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
-          background: isLight ? 'rgba(255,255,255,0.97)' : 'rgba(10,10,10,0.95)',
+          background: isLight ? 'rgba(255,255,255,0.82)' : 'rgba(8,8,8,0.78)',
           borderTop: `1px solid ${isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)'}`,
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: isLight ? '0 -12px 32px rgba(15,23,42,0.08)' : '0 -12px 32px rgba(0,0,0,0.35)',
         } as React.CSSProperties}>
         {/* Rest button */}
         <div className="flex justify-end mb-1.5">
