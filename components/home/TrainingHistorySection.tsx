@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import WorkoutDetailSheet from './WorkoutDetailSheet'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
@@ -74,7 +75,7 @@ function hexToRgb(hex: string): string {
 
 // ── Diff helpers ──────────────────────────────────────────────────────────────
 
-type PrevDiff = {
+export type PrevDiff = {
   volumeDiff: number      // internal kg; display converts to unit
   rmDiff:     number | null  // internal kg; null when either session has no 1RM
   setsDiff:   number
@@ -126,8 +127,9 @@ export default function TrainingHistorySection({
   const { unit }   = useWeightUnit()
   const ja = locale === 'ja'
 
-  const [filter,    setFilter]    = useState<FilterKey>('ALL')
-  const [showCount, setShowCount] = useState(10)
+  const [filter,        setFilter]        = useState<FilterKey>('ALL')
+  const [showCount,     setShowCount]     = useState(10)
+  const [selectedEntry, setSelectedEntry] = useState<{ summary: DaySummary; diff: PrevDiff | null } | null>(null)
 
   useEffect(() => {
     if (calendarFilter !== null) {
@@ -253,11 +255,13 @@ export default function TrainingHistorySection({
             return (
               <div
                 key={summary.date}
+                onClick={() => setSelectedEntry({ summary, diff })}
                 style={{
                   background: 'var(--card-bg-primary)',
                   border: '1px solid var(--card-border-primary)',
                   borderRadius: 16,
                   padding: '12px 14px',
+                  cursor: 'pointer',
                 }}>
 
                 {/* Header: date + muscle badge */}
@@ -374,6 +378,16 @@ export default function TrainingHistorySection({
             </button>
           )}
         </div>
+      )}
+
+      {/* Detail bottom sheet — renders only when a card is tapped */}
+      {selectedEntry && (
+        <WorkoutDetailSheet
+          summary={selectedEntry.summary}
+          diff={selectedEntry.diff}
+          todayStr={todayStr}
+          onClose={() => setSelectedEntry(null)}
+        />
       )}
     </div>
   )
