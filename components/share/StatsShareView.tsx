@@ -674,7 +674,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const textPrimary  = isDarkBg ? '#fff' : '#111827'
   const gpBadgeBg    = isTransparentCard ? (gp.badgeBgTransp ?? gp.badgeBg) : gp.badgeBg
   const gpBadgeTxt   = isTransparentCard ? (gp.badgeTextTransp ?? gp.badgeText) : gp.badgeText
-  const areaFill     = acRgba(gpAccent, 0.12)
+  // transparent mode: suppress the area-fill polygon so the saved PNG has no
+  // semi-transparent color surface under the line — only the line/dots remain.
+  const areaFill     = isTransparentCard ? 'none' : acRgba(gpAccent, 0.12)
   // preview-only: premium-black + transparent uses dark text, so show a light preview backing.
   // The checker/backing is applied to the OUTER WRAPPER (outside all capture refs), so it
   // never appears in the saved PNG. Capture refs have no background in transparent mode.
