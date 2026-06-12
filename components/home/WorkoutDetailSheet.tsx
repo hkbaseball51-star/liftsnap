@@ -9,6 +9,7 @@ import type { PrevDiff } from './TrainingHistorySection'
 import { useAppData } from '@/contexts/AppDataContext'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
+import { useTheme } from '@/lib/useTheme'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 import { getDisplayName } from '@/lib/exerciseNames'
@@ -81,6 +82,19 @@ function formatDateLabel(dateStr: string, todayStr: string, ja: boolean): { date
   return { date: dateLabel, ago: agoLabel }
 }
 
+const BADGE_FULL_NAME: Record<string, { ja: string; en: string }> = {
+  C:    { ja: '胸',       en: 'Chest' },
+  B:    { ja: '背中',     en: 'Back' },
+  L:    { ja: '脚',       en: 'Legs' },
+  S:    { ja: '肩',       en: 'Shoulders' },
+  A:    { ja: '腕',       en: 'Arms' },
+  ABS:  { ja: '腹筋',     en: 'Core' },
+  PUS:  { ja: 'プッシュ', en: 'Push' },
+  PUL:  { ja: 'プル',     en: 'Pull' },
+  LEG:  { ja: '脚',       en: 'Legs' },
+  FULL: { ja: '全身',     en: 'Full Body' },
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function WorkoutDetailSheet({
@@ -94,11 +108,13 @@ export default function WorkoutDetailSheet({
   todayStr: string
   onClose: () => void
 }) {
-  const router         = useRouter()
-  const { locale }     = useLocale()
-  const { unit }       = useWeightUnit()
+  const router          = useRouter()
+  const { locale }      = useLocale()
+  const { theme }       = useTheme()
+  const { unit }        = useWeightUnit()
   const { rawSessions } = useAppData()
-  const ja = locale === 'ja'
+  const ja      = locale === 'ja'
+  const isLight = theme === 'light'
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -188,6 +204,8 @@ export default function WorkoutDetailSheet({
   const accentColor = ppl?.color ?? baseColor
   const accentRgb   = hexToRgb(accentColor)
   const badgeLabel  = ppl?.label ?? summary.muscleGroup.toUpperCase()
+  const badgeNames  = BADGE_FULL_NAME[badgeLabel]
+  const badgeText   = badgeNames ? `${badgeLabel} ${ja ? badgeNames.ja : badgeNames.en}` : badgeLabel
 
   const { date: dateLabel, ago: agoLabel } = formatDateLabel(summary.date, todayStr, ja)
 
@@ -243,12 +261,13 @@ export default function WorkoutDetailSheet({
               )}
             </div>
             <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
-              padding: '2px 10px', borderRadius: 20,
-              background: `rgba(${accentRgb}, 0.15)`,
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.08em',
+              padding: '3px 10px', borderRadius: 20,
+              background: `rgba(${accentRgb}, 0.14)`,
               color: accentColor,
+              border: `1px solid rgba(${accentRgb}, 0.28)`,
             }}>
-              {badgeLabel}
+              {badgeText}
             </span>
           </div>
 
@@ -287,31 +306,49 @@ export default function WorkoutDetailSheet({
         <div style={{ display: 'flex', gap: 8, padding: '10px 18px 0' }}>
           <button
             onClick={handlePrev}
+            disabled={!hasPrev}
             style={{
-              flex: 1, padding: '7px 0',
-              borderRadius: 10,
-              background: 'var(--surface-chip)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              fontSize: 12, fontWeight: 600,
+              flex: 1, minHeight: 46,
+              borderRadius: 14,
+              background: hasPrev
+                ? (isLight ? '#FFFFFF' : 'rgba(255,255,255,0.08)')
+                : (isLight ? '#F3F4F6' : 'rgba(255,255,255,0.04)'),
+              border: `1px solid ${hasPrev
+                ? (isLight ? 'rgba(15,23,42,0.14)' : 'rgba(255,255,255,0.14)')
+                : (isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)')}`,
+              color: hasPrev
+                ? (isLight ? '#111827' : 'rgba(255,255,255,0.90)')
+                : (isLight ? 'rgba(17,24,39,0.32)' : 'rgba(255,255,255,0.28)'),
+              fontSize: 14, fontWeight: 700,
+              boxShadow: hasPrev && isLight ? '0 4px 12px rgba(15,23,42,0.06)' : 'none',
+              opacity: hasPrev ? 1 : 0.55,
               cursor: hasPrev ? 'pointer' : 'default',
-              opacity: hasPrev ? 1 : 0.35,
               pointerEvents: hasPrev ? 'auto' : 'none',
+              transition: 'background 150ms, border-color 150ms',
             } as React.CSSProperties}>
-            ← {ja ? '前の記録' : 'Prev'}
+            ← {ja ? '前の記録' : 'Previous'}
           </button>
           <button
             onClick={handleNext}
+            disabled={!hasNext}
             style={{
-              flex: 1, padding: '7px 0',
-              borderRadius: 10,
-              background: 'var(--surface-chip)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              fontSize: 12, fontWeight: 600,
+              flex: 1, minHeight: 46,
+              borderRadius: 14,
+              background: hasNext
+                ? (isLight ? '#FFFFFF' : 'rgba(255,255,255,0.08)')
+                : (isLight ? '#F3F4F6' : 'rgba(255,255,255,0.04)'),
+              border: `1px solid ${hasNext
+                ? (isLight ? 'rgba(15,23,42,0.14)' : 'rgba(255,255,255,0.14)')
+                : (isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)')}`,
+              color: hasNext
+                ? (isLight ? '#111827' : 'rgba(255,255,255,0.90)')
+                : (isLight ? 'rgba(17,24,39,0.32)' : 'rgba(255,255,255,0.28)'),
+              fontSize: 14, fontWeight: 700,
+              boxShadow: hasNext && isLight ? '0 4px 12px rgba(15,23,42,0.06)' : 'none',
+              opacity: hasNext ? 1 : 0.55,
               cursor: hasNext ? 'pointer' : 'default',
-              opacity: hasNext ? 1 : 0.35,
               pointerEvents: hasNext ? 'auto' : 'none',
+              transition: 'background 150ms, border-color 150ms',
             } as React.CSSProperties}>
             {ja ? '次の記録' : 'Next'} →
           </button>
