@@ -91,7 +91,7 @@ export async function captureElement(
   const hasRadius = Boolean(borderRadius && borderRadius !== '0px' && borderRadius !== '0')
   const prevClipPath = el.style.clipPath
 
-  // Saved values for transparent-mode style mutations — restored in finally regardless of outcome.
+  // Saved values — restored in finally regardless of outcome.
   const prevBg            = el.style.background
   const prevBgColor       = el.style.backgroundColor
   const prevBgImg         = el.style.backgroundImage
@@ -100,27 +100,29 @@ export async function captureElement(
   const prevHtmlBg        = document.documentElement.style.background
   const prevHtmlBgColor   = document.documentElement.style.backgroundColor
 
+  // iOS WebKit's SVG ForeignObject renderer applies the live document's body/html
+  // background to the HTML context inside the foreignObject.  For transparent cards
+  // this makes the card opaque; for glass cards this collapses the alpha layers in
+  // the glass gradient, turning semi-transparent tints into fully opaque colors.
+  // Clearing body/html unconditionally fixes both modes — glass gradient stays in
+  // background-image (untouched) and its alpha values render correctly against
+  // transparent.  All values are restored in the finally block.
+  document.body.style.background            = 'transparent'
+  document.body.style.backgroundColor       = 'transparent'
+  document.documentElement.style.background       = 'transparent'
+  document.documentElement.style.backgroundColor  = 'transparent'
+
   if (clearBackground) {
-    // iOS WebKit's SVG ForeignObject renderer applies the live document's body/html
-    // background-color to the HTML context inside the foreignObject, so transparent
-    // card elements render against the page background (e.g. #F8F7F3 beige in light
-    // mode) rather than true alpha-zero pixels.  Temporarily setting body/html to
-    // transparent before the toPng call removes this bleed-through for the duration
-    // of the capture.  All values are restored in the finally block.
+    // Transparent card mode: also clear the element's own background.
     el.style.background            = 'transparent'
     el.style.backgroundColor       = 'transparent'
     el.style.backgroundImage       = 'none'
-    document.body.style.background            = 'transparent'
-    document.body.style.backgroundColor       = 'transparent'
-    document.documentElement.style.background       = 'transparent'
-    document.documentElement.style.backgroundColor  = 'transparent'
   }
   if (hasRadius) {
     el.style.clipPath = `inset(0 round ${borderRadius})`
   }
-  if (clearBackground || hasRadius) {
-    await new Promise(r => requestAnimationFrame(r))
-  }
+  // Always wait one frame — document body/html styles were just mutated.
+  await new Promise(r => requestAnimationFrame(r))
 
   try {
     // Warm-up: loads SVG/image resources; result is discarded
@@ -142,14 +144,14 @@ export async function captureElement(
     return blob
   } finally {
     // Always restore — even on error — so the page theme is never left broken.
+    document.body.style.background                   = prevBodyBg
+    document.body.style.backgroundColor              = prevBodyBgColor
+    document.documentElement.style.background        = prevHtmlBg
+    document.documentElement.style.backgroundColor   = prevHtmlBgColor
     if (clearBackground) {
       el.style.background                              = prevBg
       el.style.backgroundColor                         = prevBgColor
       el.style.backgroundImage                         = prevBgImg
-      document.body.style.background                   = prevBodyBg
-      document.body.style.backgroundColor              = prevBodyBgColor
-      document.documentElement.style.background        = prevHtmlBg
-      document.documentElement.style.backgroundColor   = prevHtmlBgColor
     }
     if (hasRadius) el.style.clipPath = prevClipPath
   }
