@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import TrainingCalendar, { type CalendarSession } from './TrainingCalendar'
 import SelectedDaySummary from './SelectedDaySummary'
+import TrainingHistorySection, { getAutoFilter } from './TrainingHistorySection'
 import { CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
@@ -107,6 +108,14 @@ export default function CalendarWithSummary({
 
   const selectedSummary = selectedDate ? (daySummaries[selectedDate] ?? null) : null
 
+  const calendarFilter = (() => {
+    if (!selectedDate) return null
+    const s = daySummaries[selectedDate]
+    if (!s) return null
+    const muscles = s.allMuscleGroups.length > 0 ? s.allMuscleGroups : [s.muscleGroup]
+    return getAutoFilter(muscles)
+  })()
+
   return (
     <>
       <TrainingCalendar
@@ -165,6 +174,11 @@ export default function CalendarWithSummary({
           />
         </div>
       )}
+      <TrainingHistorySection
+        daySummaries={daySummaries}
+        todayStr={todayStr}
+        calendarFilter={calendarFilter}
+      />
     </>
   )
 }
