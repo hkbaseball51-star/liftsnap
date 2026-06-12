@@ -570,10 +570,11 @@ function BWLineSVG({ values, accentHex, latestHex, areaFill, strokeWidth = 0.75,
 }
 
 /* ── Bar chart SVG for Daily Volume card previews ─────────── */
-function VolBarSVG({ bars, accentHex, latestHex }: {
+function VolBarSVG({ bars, accentHex, latestHex, isTransparent = false }: {
   bars: VolBar[]
   accentHex: string
   latestHex: string
+  isTransparent?: boolean
 }) {
   if (!bars.length) return null
   const maxVal = Math.max(...bars.map(b => b.value))
@@ -593,7 +594,8 @@ function VolBarSVG({ bars, accentHex, latestHex }: {
         const by = H - bh
         const isHighlight = b.isLatest || b.isBest
         const fillColor = isHighlight ? latestHex : accentHex
-        const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
+        // Boost opacity in transparent mode so bars are visible on any background
+        const opacity = b.isLatest ? 1 : b.isBest ? (isTransparent ? 0.90 : 0.82) : (isTransparent ? 0.72 : 0.38)
         return (
           <rect key={i}
             x={bx.toFixed(2)} y={by.toFixed(2)}
@@ -677,10 +679,28 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // transparent mode: suppress the area-fill polygon so the saved PNG has no
   // semi-transparent color surface under the line — only the line/dots remain.
   const areaFill     = isTransparentCard ? 'none' : acRgba(gpAccent, 0.12)
+
+  // 4:1 bottom transparent: "background-less material" mode.
+  // Use glass-mode accent/badge/text colors so content is vivid and readable on any background.
+  // (User explicitly approved visibility-priority color adjustment for 4:1 transparent mode.)
+  const isBottomTransp = isTransparentCard && graphLayout === 'bottom'
+  const btAccent   = isBottomTransp ? gp.accentHex                   : gpAccent
+  const btLatest   = isBottomTransp ? (gp.latestHex ?? gp.accentHex) : gpLatest
+  const btBadgeBg  = isBottomTransp ? gp.badgeBg                     : gpBadgeBg
+  const btBadgeTxt = isBottomTransp ? gp.badgeText                   : gpBadgeTxt
+  const btText     = isBottomTransp ? (gp.isDark !== false ? '#fff' : '#111827') : textPrimary
+  const btRgb      = isBottomTransp ? (gp.isDark !== false ? '255,255,255' : '17,24,39') : gpRgb
+  const btPtxt     = (a: number) => `rgba(${btRgb},${a})`
+  const btIsDarkBg = isBottomTransp ? (gp.isDark !== false) : isDarkBg
+
   // preview-only: premium-black + transparent uses dark text, so show a light preview backing.
+  // Also apply light backing for pearl-white bottom transparent (glass-mode = dark text).
   // The checker/backing is applied to the OUTER WRAPPER (outside all capture refs), so it
   // never appears in the saved PNG. Capture refs have no background in transparent mode.
-  const needsLightPreviewBacking = graphPreset === 'premium-black' && isTransparentCard
+  const needsLightPreviewBacking = isTransparentCard && (
+    graphPreset === 'premium-black' ||
+    (graphLayout === 'bottom' && gp.isDark === false)
+  )
   const gpGlassSt    = glassCardStyle(gp.accentHex, gp.isDark !== false)
   // transparent: explicitly clear both background shorthand AND backgroundImage.
   // iOS Safari may not reset background-image when the `background` shorthand is set to
@@ -697,6 +717,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     : `0 4px 18px rgba(0,0,0,0.24), 0 1px 5px rgba(0,0,0,0.14), 0 0 0 1px rgba(255,255,255,0.30), inset 0 1px 0 rgba(255,255,255,0.48)`
   const cardBoxShadow  = isTransparentCard ? 'none' : glassShadow
   const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
+  // Strong multi-layer shadow for 4:1 bottom transparent — text legible on any background
+  const btShadow = isBottomTransp
+    ? '0 1px 3px rgba(0,0,0,0.88), 0 2px 10px rgba(0,0,0,0.65)'
+    : textShadowVal
 
   // ── UI button accent ──────────────────────────────────────────────────
   // rawUiAc: always a hex string (safe to pass to acRgba for background tints).
@@ -926,6 +950,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     <span style={{
       fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5,
       background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent',
+      letterSpacing: '0.16em', display: 'inline-block',
+    }}>REPRA</span>
+  )
+
+  // Badge for 4:1 bottom transparent — uses glass-mode badge colors for visibility
+  const btBadge = (
+    <span style={{
+      fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5,
+      background: btBadgeBg, color: btBadgeTxt, border: '1px solid transparent',
       letterSpacing: '0.16em', display: 'inline-block',
     }}>REPRA</span>
   )
@@ -1261,22 +1294,22 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'bottom' && (
               <div ref={bottomCardRef} style={{
-                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
+                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: isTransparentCard ? 0 : 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: btShadow,
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {gpBadge}
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 10px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0, lineHeight: 1.2 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
+                  {btBadge}
+                  <p style={{ fontSize: 12, fontWeight: 900, color: btText, margin: '4px 0 10px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: btAccent, letterSpacing: '0.08em', margin: 0, lineHeight: 1.2 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
-                  <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
+                  <MiniLineSVG data={rm1SVGData} accentHex={btAccent} latestHex={btLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={btIsDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
-                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} {cl('best', 'ベスト')}</p>
+                  <p style={{ fontSize: 30, fontWeight: 900, color: btAccent, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
+                  <p style={{ fontSize: 9, color: btPtxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} {cl('best', 'ベスト')}</p>
                   {rm1Growth !== null && (
                     <p style={{ fontSize: 10, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
                       {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
@@ -1413,28 +1446,28 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'bottom' && (
               <div ref={bottomWeightRef} style={{
-                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
+                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: isTransparentCard ? 0 : 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: btShadow,
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('BODY WEIGHT', '体重')}</p>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: textPrimary, margin: 0, lineHeight: 1.2 }}>
+                  {btBadge}
+                  <p style={{ fontSize: 8, fontWeight: 700, color: btAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('BODY WEIGHT', '体重')}</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: btText, margin: 0, lineHeight: 1.2 }}>
                     {bwHistory.length >= 2
-                      ? <>{bwStartDisplay}<span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span><span style={{ color: ptxt(0.30), margin: '0 3px' }}>→</span><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
-                      : <><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
+                      ? <>{bwStartDisplay}<span style={{ fontSize: 7, color: btPtxt(0.46), marginLeft: 1 }}>{unitLabel}</span><span style={{ color: btPtxt(0.30), margin: '0 3px' }}>→</span><span style={{ color: btAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: btPtxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
+                      : <><span style={{ color: btAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: btPtxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
                     }
                   </p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
-                  <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
+                  <BWLineSVG values={bwValues} accentHex={btAccent} latestHex={btLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={btIsDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bwCurrentDisplay}</p>
-                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel}</p>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: gpAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
+                  <p style={{ fontSize: 30, fontWeight: 900, color: btAccent, margin: 0, lineHeight: 1 }}>{bwCurrentDisplay}</p>
+                  <p style={{ fontSize: 9, color: btPtxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel}</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: btAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
                 </div>
               </div>
             )}
@@ -1555,23 +1588,23 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'bottom' && (
               <div ref={bottomVolRef} style={{
-                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
+                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: isTransparentCard ? 0 : 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: btShadow,
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volCardLabel}</p>
+                  {btBadge}
+                  <p style={{ fontSize: 8, fontWeight: 700, color: btAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: btText, margin: 0, lineHeight: 1.1 }}>{volCardLabel}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '65%', background: 'transparent' }}>
-                  <VolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} />
+                  <VolBarSVG bars={volBars30.bars} accentHex={btAccent} latestHex={btLatest} isTransparent={isTransparentCard} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
-                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>{cl('total', '合計')}</p>
-                  <p style={{ fontSize: 8.5, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: btAccent, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
+                  <p style={{ fontSize: 8, color: btPtxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>{cl('total', '合計')}</p>
+                  <p style={{ fontSize: 8.5, color: btPtxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                 </div>
               </div>
             )}
