@@ -91,18 +91,10 @@ export async function captureElement(
   const hasRadius = Boolean(borderRadius && borderRadius !== '0px' && borderRadius !== '0')
   const prevClipPath = el.style.clipPath
   const prevBg = el.style.background
-  const prevBodyBg = document.body.style.background
-  const prevHtmlBg = document.documentElement.style.background
 
   if (clearBackground) {
-    // Remove checker pattern so the PNG alpha channel is truly transparent.
-    // Also clear body/html backgrounds: html-to-image's ForeignObject renderer
-    // inherits the live document's computed body background-color into the clone's
-    // HTML context, making it show through transparent cards as beige (light mode)
-    // or dark (dark mode). Setting these to transparent during capture prevents that.
+    // Remove checker pattern so the PNG alpha channel is truly transparent
     el.style.background = 'transparent'
-    document.body.style.background = 'transparent'
-    document.documentElement.style.background = 'transparent'
   }
   if (hasRadius) {
     el.style.clipPath = `inset(0 round ${borderRadius})`
@@ -130,11 +122,7 @@ export async function captureElement(
     }
     return blob
   } finally {
-    if (clearBackground) {
-      el.style.background = prevBg
-      document.body.style.background = prevBodyBg
-      document.documentElement.style.background = prevHtmlBg
-    }
+    if (clearBackground) el.style.background = prevBg
     if (hasRadius) el.style.clipPath = prevClipPath
   }
 }

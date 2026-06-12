@@ -680,9 +680,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // never appears in the saved PNG. Capture refs have no background in transparent mode.
   const needsLightPreviewBacking = graphPreset === 'premium-black' && isTransparentCard
   const gpGlassSt    = glassCardStyle(gp.accentHex, gp.isDark !== false)
-  // transparent: explicit transparent background on capture refs so WebKit canvas doesn't inherit white.
-  // glass: glass gradient applied to capture refs (appears in saved PNG at ~62% opacity).
-  const cardBgProps  = isTransparentCard ? { background: 'transparent' } : gpGlassSt
+  // transparent: explicitly clear both background shorthand AND backgroundImage.
+  // iOS Safari may not reset background-image when the `background` shorthand is set to
+  // 'transparent' via JS — the glass linear-gradient layer can linger in computed style.
+  // html-to-image copies computed background-image to the clone (it only writes
+  // backgroundColor, never backgroundImage), so an un-cleared gradient appears in the PNG.
+  // Adding backgroundImage:'none' forces the computed value to none before capture.
+  const cardBgProps  = isTransparentCard
+    ? { background: 'transparent', backgroundImage: 'none' }
+    : gpGlassSt
   const shadowValue    = SHADOW_MAP[shadowLevel]
   const glassShadow    = gp.isDark !== false
     ? `0 8px 28px rgba(0,0,0,0.62), 0 2px 8px rgba(0,0,0,0.46), 0 0 0 1px ${acRgba(gpAccent, 0.20)}, inset 0 1px 0 rgba(255,255,255,0.12)`
