@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Share2 } from 'lucide-react'
 import { MUSCLE_COLORS, getPPLDisplay } from './TrainingCalendar'
 import type { DaySummary } from './CalendarWithSummary'
 import type { PrevDiff } from './TrainingHistorySection'
-import { localGetSessionForDate } from '@/lib/localDB'
+import { useAppData } from '@/contexts/AppDataContext'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
@@ -84,20 +84,33 @@ function formatDateLabel(dateStr: string, todayStr: string, ja: boolean): { date
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function WorkoutDetailSheet({
-  summary,
-  diff,
+  allEntries,
+  initialIndex,
   todayStr,
   onClose,
 }: {
-  summary: DaySummary
-  diff: PrevDiff | null
+  allEntries: { summary: DaySummary; diff: PrevDiff | null }[]
+  initialIndex: number
   todayStr: string
   onClose: () => void
 }) {
-  const router     = useRouter()
-  const { locale } = useLocale()
-  const { unit }   = useWeightUnit()
+  const router         = useRouter()
+  const { locale }     = useLocale()
+  const { unit }       = useWeightUnit()
+  const { rawSessions } = useAppData()
   const ja = locale === 'ja'
+
+  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  // allEntries sorted newest→oldest; higher index = older session
+  const hasPrev = currentIndex < allEntries.length - 1  // older record exists
+  const hasNext = currentIndex > 0                       // newer record exists
+
+  const handlePrev = () => { if (hasPrev) setCurrentIndex(i => i + 1) }
+  const handleNext = () => { if (hasNext) setCurrentIndex(i => i - 1) }
+
+  const { summary, diff } = allEntries[currentIndex]
 
   // Prevent background scroll while sheet is open
   useEffect(() => {
@@ -113,8 +126,33 @@ export default function WorkoutDetailSheet({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Full session data — synchronous localStorage read, only fires when sheet opens
-  const sessionDetail = useMemo(() => localGetSessionForDate(summary.date), [summary.date])
+  // Scroll sheet to top when navigating to a different session
+  useEffect(() => {
+    if (sheetRef.current) sheetRef.current.scrollTop = 0
+  }, [currentIndex])
+
+  // Build session detail from rawSessions (already in React state — no localStorage read)
+  // rawSessions is stable during navigation; only changes when the user saves a workout.
+  const sessionDetail = useMemo(() => {
+    const session = rawSessions.find(s => s.trained_at === summary.date)
+    if (!session) return null
+    const map = new Map<string, { note: string | null; sets: { id: string; set_number: number; weight_kg: number | null; reps: number | null }[] }>()
+    for (const [globalIdx, s] of session.sets.entries()) {
+      if (!map.has(s.exercise_name)) map.set(s.exercise_name, { note: s.note ?? null, sets: [] })
+      const exSets = map.get(s.exercise_name)!.sets
+      exSets.push({
+        id:         s.id         ?? `set-${globalIdx}`,
+        set_number: s.set_number ?? (exSets.length + 1),
+        weight_kg:  s.weight_kg,
+        reps:       s.reps,
+      })
+    }
+    return {
+      id: session.id,
+      title: session.title ?? '',
+      exercises: Array.from(map.entries()).map(([name, d]) => ({ name, note: d.note, sets: d.sets })),
+    }
+  }, [summary.date, rawSessions])
 
   // Per-exercise stats, sorted by volume desc (matches DaySummary ordering)
   const exercises = useMemo(() => {
@@ -169,6 +207,7 @@ export default function WorkoutDetailSheet({
 
       {/* ── Sheet ────────────────────────────────────────────────────────── */}
       <div
+        ref={sheetRef}
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: 'var(--bg-card)',
@@ -187,7 +226,7 @@ export default function WorkoutDetailSheet({
           }} />
         </div>
 
-        {/* Header row: date / badge / close */}
+        {/* Header row: date / [edit] [close] */}
         <div style={{
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
           padding: '10px 18px 0',
@@ -213,16 +252,68 @@ export default function WorkoutDetailSheet({
             </span>
           </div>
 
+          {/* Edit + Close buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexShrink: 0 }}>
+            <button
+              onClick={() => { onClose(); router.push(`/record?date=${summary.date}&from=calendar`) }}
+              style={{
+                padding: '5px 13px',
+                borderRadius: 20,
+                background: '#F97316',
+                border: 'none',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+                cursor: 'pointer',
+              }}>
+              {ja ? '編集' : 'Edit'}
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                width: 30, height: 30, borderRadius: 15,
+                background: 'var(--surface-chip)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', flexShrink: 0,
+              }}>
+              <X size={14} style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Prev / Next navigation row */}
+        <div style={{ display: 'flex', gap: 8, padding: '10px 18px 0' }}>
           <button
-            onClick={onClose}
+            onClick={handlePrev}
             style={{
-              width: 30, height: 30, borderRadius: 15,
+              flex: 1, padding: '7px 0',
+              borderRadius: 10,
               background: 'var(--surface-chip)',
               border: '1px solid var(--border-subtle)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', flexShrink: 0, marginTop: 2,
-            }}>
-            <X size={14} style={{ color: 'var(--text-secondary)' }} />
+              color: 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 600,
+              cursor: hasPrev ? 'pointer' : 'default',
+              opacity: hasPrev ? 1 : 0.35,
+              pointerEvents: hasPrev ? 'auto' : 'none',
+            } as React.CSSProperties}>
+            ← {ja ? '前の記録' : 'Prev'}
+          </button>
+          <button
+            onClick={handleNext}
+            style={{
+              flex: 1, padding: '7px 0',
+              borderRadius: 10,
+              background: 'var(--surface-chip)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 600,
+              cursor: hasNext ? 'pointer' : 'default',
+              opacity: hasNext ? 1 : 0.35,
+              pointerEvents: hasNext ? 'auto' : 'none',
+            } as React.CSSProperties}>
+            {ja ? '次の記録' : 'Next'} →
           </button>
         </div>
 

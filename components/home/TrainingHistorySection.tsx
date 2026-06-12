@@ -129,7 +129,7 @@ export default function TrainingHistorySection({
 
   const [filter,        setFilter]        = useState<FilterKey>('ALL')
   const [showCount,     setShowCount]     = useState(10)
-  const [selectedEntry, setSelectedEntry] = useState<{ summary: DaySummary; diff: PrevDiff | null } | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<{ index: number } | null>(null)
 
   useEffect(() => {
     if (calendarFilter !== null) {
@@ -241,7 +241,7 @@ export default function TrainingHistorySection({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {displayedWithDiffs.map(({ summary, diff }) => {
+          {displayedWithDiffs.map(({ summary, diff }, idx) => {
             const { label: dateLabel, sub: ageSub } = formatRelDate(summary.date, todayStr, ja)
             const allMuscles  = summary.allMuscleGroups.length > 0 ? summary.allMuscleGroups : [summary.muscleGroup]
             const ppl         = getPPLDisplay(allMuscles)
@@ -255,7 +255,7 @@ export default function TrainingHistorySection({
             return (
               <div
                 key={summary.date}
-                onClick={() => setSelectedEntry({ summary, diff })}
+                onClick={() => setSelectedEntry({ index: idx })}
                 style={{
                   background: 'var(--card-bg-primary)',
                   border: '1px solid var(--card-border-primary)',
@@ -383,8 +383,8 @@ export default function TrainingHistorySection({
       {/* Detail bottom sheet — renders only when a card is tapped */}
       {selectedEntry && (
         <WorkoutDetailSheet
-          summary={selectedEntry.summary}
-          diff={selectedEntry.diff}
+          allEntries={withDiffs}
+          initialIndex={selectedEntry.index}
           todayStr={todayStr}
           onClose={() => setSelectedEntry(null)}
         />

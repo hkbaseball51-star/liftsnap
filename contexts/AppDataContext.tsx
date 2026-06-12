@@ -38,10 +38,12 @@ import type { DaySummary } from '@/components/home/CalendarWithSummary'
 // ── Internal raw types ──────────────────────────────────────────────────────
 
 type RawSet = {
+  id?:           string          // present for local sessions (LocalSet); absent in demo
   exercise_name: string
   muscle_group:  string | null
   weight_kg:     number | null
   reps:          number | null
+  set_number?:   number          // present for local sessions; absent in demo
   is_completed:  boolean
   note?:         string | null
 }
@@ -61,6 +63,9 @@ export type WeekSession    = { id: string; trained_at: string; total_volume_kg: 
 // ── Public context type ─────────────────────────────────────────────────────
 
 export type AppDataContextValue = {
+  // Raw sessions with full set data (already in memory — use instead of re-reading localStorage)
+  rawSessions:       RawSession[]
+
   // For Home / Calendar
   calendarSessions:  CalendarSession[]
   daySummaries:      Record<string, DaySummary>
@@ -387,6 +392,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // ── Context value ─────────────────────────────────────────────────────────
 
   const value = useMemo<AppDataContextValue>(() => ({
+    rawSessions,
     calendarSessions,
     daySummaries,
     bodyWeightByDate,
@@ -405,6 +411,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     refreshData,
     addBodyWeight,
   }), [
+    rawSessions,
     calendarSessions, daySummaries, bodyWeightByDate,
     thisWeekSessions, lastWeekVolume, allTimeEst1rm, weekStreak, todayStr,
     exercises, totalSessions, bodyWeightHistory,
