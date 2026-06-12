@@ -91,19 +91,23 @@ export const PRESETS: Record<DesignPreset, PresetDef> = {
     bgPerEx:       'linear-gradient(145deg, rgba(20,184,166,0.07) 0%, rgba(8,26,24,0.52) 100%)',
   },
   'premium-black': {
-    accentHex:     '#E5E7EB',
-    uiSwatch:      '#E5E7EB',
-    badgeBg:       '#E5E7EB',
-    badgeBorder:   'transparent',
-    badgeText:     '#111827',
-    border:        'rgba(255,255,255,0.18)',
-    subText:       'rgba(255,255,255,0.72)',
-    defaultShadow: 'strong',
-    bgCombined:    'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(5,5,5,0.58) 100%)',
-    bgFull:        'linear-gradient(165deg, rgba(14,14,14,0.98) 0%, rgba(3,3,3,0.99) 100%)',
-    bgPerEx:       'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(5,5,5,0.65) 100%)',
-    latestHex:     '#FFFFFF',
-    latestHexTransp: '#FFFFFF',
+    accentHex:        '#E5E7EB',
+    accentHexTransp:  '#111827',                  // transparent: dark accent for volume/highlights
+    uiSwatch:         '#E5E7EB',
+    badgeBg:          '#E5E7EB',
+    badgeBgTransp:    '#111827',                  // transparent: dark badge bg
+    badgeBorder:      'transparent',
+    badgeText:        '#111827',
+    badgeTextTransp:  '#FFFFFF',                  // transparent: white on dark badge
+    border:           'rgba(255,255,255,0.18)',
+    subText:          'rgba(255,255,255,0.72)',
+    subTextTransp:    'rgba(15,23,42,0.68)',       // transparent: dark sub text
+    defaultShadow:    'strong',
+    bgCombined:       'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(5,5,5,0.58) 100%)',
+    bgFull:           'linear-gradient(165deg, rgba(14,14,14,0.98) 0%, rgba(3,3,3,0.99) 100%)',
+    bgPerEx:          'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(5,5,5,0.65) 100%)',
+    latestHex:        '#FFFFFF',
+    latestHexTransp:  '#111827',                  // transparent: dark graph highlight
   },
   'pearl-white': {
     accentHex:        '#111827',
@@ -314,7 +318,8 @@ export default function WorkoutStoryCardContent({
   const dn = (n: string) => exerciseNameLang === 'ja' ? n : tname(n)
   const p             = PRESETS[preset]
   const isTransparent = cardStyle === 'transparent'
-  const isDarkBg      = isTransparent || (p.isDark !== false)
+  // transparent: premium-black → dark text (black on transparent); all others → light text (white on transparent)
+  const isDarkBg      = isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
   const acHex         = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
   const subTextColor  = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor  = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
@@ -488,7 +493,7 @@ export default function WorkoutStoryCardContent({
       {/* Made with REPRA */}
       <p style={{
         fontSize: 8,
-        color: isTransparent ? 'rgba(255,255,255,0.45)' : ptxt(0.22),
+        color: isTransparent ? ptxt(0.45) : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
       }}>
         Made with{' '}
@@ -527,7 +532,8 @@ export function ExerciseStoryCard({
   const dn = (n: string) => exerciseNameLang === 'ja' ? n : tname(n)
   const p              = PRESETS[preset]
   const isTransparent  = cardStyle === 'transparent'
-  const isDarkBg       = isTransparent || (p.isDark !== false)
+  // transparent: premium-black → dark text; all others → light text
+  const isDarkBg       = isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
   const acHex          = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
   const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
@@ -631,7 +637,7 @@ export function ExerciseStoryCard({
       {/* Made with REPRA */}
       <p style={{
         fontSize: 8,
-        color: isTransparent ? 'rgba(255,255,255,0.45)' : ptxt(0.22),
+        color: isTransparent ? ptxt(0.45) : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
       }}>
         Made with{' '}
@@ -659,7 +665,8 @@ export function WorkoutSummaryStoryCard({
 }) {
   const p              = PRESETS[preset]
   const isTransparent  = cardStyle === 'transparent'
-  const isDarkBg       = isTransparent || (p.isDark !== false)
+  // transparent: premium-black → dark text; all others → light text
+  const isDarkBg       = isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
   const acHex          = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
   const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
@@ -758,7 +765,7 @@ export function WorkoutSummaryStoryCard({
       {/* Made with REPRA */}
       <p style={{
         fontSize: 8,
-        color: isTransparent ? 'rgba(255,255,255,0.45)' : ptxt(0.22),
+        color: isTransparent ? ptxt(0.45) : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 28,
       }}>
         Made with{' '}

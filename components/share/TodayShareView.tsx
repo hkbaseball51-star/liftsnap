@@ -73,13 +73,18 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const [naturalWidth,  setNaturalWidth]   = useState(0)
   const [naturalHeight, setNaturalHeight]  = useState(0)
 
-  // Measure natural card dimensions for checker background sizing.
+  // Measure natural (max-content) card dimensions.
+  // content.style.width = 'max-content' forces shrink-to-fit before reading offsetWidth,
+  // so naturalWidth reflects the card's content-driven width, not the container width.
   useLayoutEffect(() => {
     const content = contentRef.current
     if (!content) return
+    content.style.width = 'max-content'
+    const contentW = content.offsetWidth
+    const contentH = content.scrollHeight
     setContentScale(1)
-    setNaturalWidth(content.offsetWidth)
-    setNaturalHeight(content.scrollHeight)
+    setNaturalWidth(contentW)
+    setNaturalHeight(contentH)
   }, [data])
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
@@ -275,7 +280,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         /* Combined: variable-height card — capture target is previewCardRef */
         <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
           <div style={{
-            width: 'min(94vw, 420px)',
+            width: 'fit-content',
+            maxWidth: 'min(94vw, 420px)',
             background: isLight ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
             border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
             borderRadius: 30,
@@ -288,6 +294,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                 position: 'relative',
                 borderRadius: 24,
                 background: 'transparent',
+                width: 'max-content',
+                maxWidth: 'min(360px, calc(100vw - 40px))',
               }}
             >
               {/* Transparent/Glass card: checker fills card background via inset:0 */}
@@ -310,7 +318,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               <div style={{ position: 'relative', zIndex: 2 }}>
                 <div
                   ref={contentRef}
-                  style={{ width: naturalWidth > 0 ? `${naturalWidth}px` : '100%' }}
+                  style={{ width: naturalWidth > 0 ? `${naturalWidth}px` : 'max-content', maxWidth: '100%' }}
                 >
                   {/*
                     previewCardRef: the ACTUAL capture target.

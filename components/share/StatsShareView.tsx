@@ -663,7 +663,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   // Graph card backgrounds
   const isTransparentCard = cardStyle === 'transparent'
-  const isDarkBg  = isTransparentCard || (gp.isDark !== false)
+  // transparent: premium-black → dark text (black on transparent); all others → light text (white on transparent)
+  const isDarkBg  = isTransparentCard ? (graphPreset !== 'premium-black') : (gp.isDark !== false)
   const gpAccent  = isTransparentCard ? (gp.accentHexTransp ?? gp.accentHex) : gp.accentHex
   const gpLatest  = isTransparentCard ? (gp.latestHexTransp ?? gp.latestHex ?? gpAccent) : (gp.latestHex ?? gp.accentHex)
   const gpRgb     = isDarkBg ? '255,255,255' : '17,24,39'
