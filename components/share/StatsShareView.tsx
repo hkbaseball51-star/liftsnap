@@ -680,9 +680,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // never appears in the saved PNG. Capture refs have no background in transparent mode.
   const needsLightPreviewBacking = graphPreset === 'premium-black' && isTransparentCard
   const gpGlassSt    = glassCardStyle(gp.accentHex, gp.isDark !== false)
-  // transparent: NO background on capture refs — they are already transparent.
+  // transparent: explicit transparent background on capture refs so WebKit canvas doesn't inherit white.
   // glass: glass gradient applied to capture refs (appears in saved PNG at ~62% opacity).
-  const cardBgProps  = isTransparentCard ? {} : gpGlassSt
+  const cardBgProps  = isTransparentCard ? { background: 'transparent' } : gpGlassSt
   const shadowValue    = SHADOW_MAP[shadowLevel]
   const glassShadow    = gp.isDark !== false
     ? `0 8px 28px rgba(0,0,0,0.62), 0 2px 8px rgba(0,0,0,0.46), 0 0 0 1px ${acRgba(gpAccent, 0.20)}, inset 0 1px 0 rgba(255,255,255,0.12)`
@@ -1187,7 +1187,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       <div className="px-4 mb-5" style={{
         backgroundColor: isTransparentCard
           ? (needsLightPreviewBacking ? '#F9FAFB' : '#1a1a1a')
-          : 'var(--card-bg-primary)',
+          : '#111111',
         backgroundImage: needsLightPreviewBacking ? LIGHT_CHECKER : CHECKER,
         backgroundSize: '20px 20px',
       }}>
@@ -1260,10 +1260,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 1px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 6px', lineHeight: 1.1 }}>{exName}</p>
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
                   <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
@@ -1420,7 +1420,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     }
                   </p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '62%' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
                   <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
@@ -1557,7 +1557,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
                   <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volCardLabel}</p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '65%' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '65%', background: 'transparent' }}>
                   <VolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} />
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
