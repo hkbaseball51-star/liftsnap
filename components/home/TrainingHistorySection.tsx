@@ -6,7 +6,7 @@ import type { DaySummary } from './CalendarWithSummary'
 import { formatVolume } from '@/lib/utils'
 import { useLocale } from '@/lib/useLocale'
 import { useWeightUnit } from '@/lib/useWeightUnit'
-import { toDisplayWeight, weightUnitLabel } from '@/lib/units'
+import { toDisplayWeight, weightUnitLabel, type WeightUnit } from '@/lib/units'
 import { getDisplayName } from '@/lib/exerciseNames'
 
 export type FilterKey = 'ALL' | 'PUSH' | 'PULL' | 'LEGS' | 'CHEST' | 'BACK' | 'SHOULDERS' | 'ARMS' | 'ABS'
@@ -72,6 +72,47 @@ function hexToRgb(hex: string): string {
   return `${r}, ${g}, ${b}`
 }
 
+// ── Diff helpers ──────────────────────────────────────────────────────────────
+
+type PrevDiff = {
+  volumeDiff: number      // internal kg; display converts to unit
+  rmDiff:     number | null  // internal kg; null when either session has no 1RM
+  setsDiff:   number
+}
+
+function fmtVolDiff(diffKg: number, unit: WeightUnit): string {
+  const sign = diffKg > 0 ? '+' : ''
+  if (unit === 'lbs') {
+    const d = Math.round(toDisplayWeight(diffKg, unit))
+    if (d === 0) return '±0lb'
+    return `${sign}${d}lb`
+  }
+  const abs = Math.abs(diffKg)
+  if (abs >= 100) {
+    const t = (diffKg / 1000).toFixed(1)
+    if (t === '0.0' || t === '-0.0') return '±0t'
+    return `${sign}${t}t`
+  }
+  const rounded = Math.round(diffKg)
+  if (rounded === 0) return '±0kg'
+  return `${sign}${rounded}kg`
+}
+
+function fmtRmDiff(diffKg: number, unit: WeightUnit): string {
+  const sign = diffKg > 0 ? '+' : ''
+  const d    = Math.round(toDisplayWeight(diffKg, unit))
+  if (d === 0) return `±0${weightUnitLabel(unit)}`
+  return `${sign}${d}${weightUnitLabel(unit)}`
+}
+
+function diffColor(diff: number): string {
+  if (diff > 0) return 'var(--diff-positive)'
+  if (diff < 0) return 'var(--diff-negative)'
+  return 'var(--text-muted)'
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function TrainingHistorySection({
   daySummaries,
   todayStr,
@@ -107,19 +148,40 @@ export default function TrainingHistorySection({
     { key: 'ABS',       label: ja ? '腹筋'  : 'Abs'         },
   ]
 
+  // Sorted newest → oldest
   const sorted = useMemo(() => (
     Object.values(daySummaries).sort((a, b) => b.date.localeCompare(a.date))
   ), [daySummaries])
 
+  // Sessions matching current filter
   const filtered = useMemo(() => (
     sorted.filter(s => matchesFilter(s, filter))
   ), [sorted, filter])
 
-  const displayed = filtered.slice(0, showCount)
-  const hasMore   = filtered.length > showCount
+  // Pair each session with its previous-same-filter diff.
+  // filtered[i+1] is the session immediately before filtered[i] under this filter.
+  // diff === null for the oldest session (no prior comparison available).
+  const withDiffs = useMemo(() => (
+    filtered.map((summary, idx) => {
+      const prev = filtered[idx + 1]
+      if (!prev) return { summary, diff: null as PrevDiff | null }
+      const diff: PrevDiff = {
+        volumeDiff: summary.totalVolume - prev.totalVolume,
+        rmDiff: (summary.best1rm > 0 && prev.best1rm > 0)
+                ? summary.best1rm - prev.best1rm
+                : null,
+        setsDiff: summary.totalSets - prev.totalSets,
+      }
+      return { summary, diff }
+    })
+  ), [filtered])
+
+  const displayedWithDiffs = withDiffs.slice(0, showCount)
+  const hasMore            = filtered.length > showCount
 
   return (
     <div style={{ marginTop: 20 }}>
+      {/* Section title */}
       <p style={{
         fontSize: 9, fontWeight: 800, letterSpacing: '0.14em',
         color: 'var(--text-label)', marginBottom: 10, textTransform: 'uppercase',
@@ -160,7 +222,7 @@ export default function TrainingHistorySection({
       </div>
 
       {/* History cards or empty state */}
-      {displayed.length === 0 ? (
+      {displayedWithDiffs.length === 0 ? (
         <div style={{
           padding: '20px 18px',
           textAlign: 'center',
@@ -177,16 +239,16 @@ export default function TrainingHistorySection({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {displayed.map((summary) => {
+          {displayedWithDiffs.map(({ summary, diff }) => {
             const { label: dateLabel, sub: ageSub } = formatRelDate(summary.date, todayStr, ja)
-            const allMuscles   = summary.allMuscleGroups.length > 0 ? summary.allMuscleGroups : [summary.muscleGroup]
-            const ppl          = getPPLDisplay(allMuscles)
-            const baseColor    = MUSCLE_COLORS[summary.muscleGroup] ?? '#ED742F'
-            const accentColor  = ppl?.color ?? baseColor
-            const accentRgb    = hexToRgb(accentColor)
-            const badgeLabel   = ppl?.label ?? summary.muscleGroup.toUpperCase()
-            const moreCount    = summary.secondExercise ? Math.max(0, summary.extraCount - 1) : 0
-            const hasExtra     = summary.extraCount > 0
+            const allMuscles  = summary.allMuscleGroups.length > 0 ? summary.allMuscleGroups : [summary.muscleGroup]
+            const ppl         = getPPLDisplay(allMuscles)
+            const baseColor   = MUSCLE_COLORS[summary.muscleGroup] ?? '#ED742F'
+            const accentColor = ppl?.color ?? baseColor
+            const accentRgb   = hexToRgb(accentColor)
+            const badgeLabel  = ppl?.label ?? summary.muscleGroup.toUpperCase()
+            const moreCount   = summary.secondExercise ? Math.max(0, summary.extraCount - 1) : 0
+            const hasExtra    = summary.extraCount > 0
 
             return (
               <div
@@ -251,6 +313,44 @@ export default function TrainingHistorySection({
                   {formatVolume(summary.totalVolume, unit)}
                   {summary.best1rm > 0 && ` · 1RM ${toDisplayWeight(summary.best1rm, unit)}${weightUnitLabel(unit)}`}
                 </p>
+
+                {/* Previous comparison row */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '3px 8px',
+                  marginTop: 7, paddingTop: 7,
+                  borderTop: '1px solid var(--card-divider)',
+                }}>
+                  {diff !== null ? (
+                    <>
+                      <span style={{
+                        fontSize: 9, fontWeight: 600, letterSpacing: '0.06em',
+                        color: 'var(--text-muted)', marginRight: 2,
+                      }}>
+                        {ja ? '前回比' : 'vs prev'}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: diffColor(diff.volumeDiff) }}>
+                        {fmtVolDiff(diff.volumeDiff, unit)}
+                      </span>
+                      {diff.rmDiff !== null && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: diffColor(diff.rmDiff) }}>
+                          {fmtRmDiff(diff.rmDiff, unit)}&nbsp;1RM
+                        </span>
+                      )}
+                      {diff.setsDiff !== 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 500, color: diffColor(diff.setsDiff) }}>
+                          ({diff.setsDiff > 0 ? '+' : ''}{diff.setsDiff}&nbsp;{ja ? 'sets' : 'sets'})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, letterSpacing: '0.06em',
+                      color: 'var(--text-muted)',
+                    }}>
+                      {ja ? '初回記録' : 'First record'}
+                    </span>
+                  )}
+                </div>
               </div>
             )
           })}

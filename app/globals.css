@@ -16,6 +16,8 @@
   --accent-purple: #6E38D4;
   --success: #22c55e;
   --danger: #ef4444;
+  --diff-positive: #22c55e;
+  --diff-negative: #f87171;
 
   /* Theme-switchable tokens (default = dark) */
   --app-bg: #0a0a0a;
@@ -79,6 +81,8 @@
   --card-icon-bg: rgba(0,0,0,0.05);
   --card-icon-border: rgba(0,0,0,0.10);
   --text-label: #6B7280;
+  --diff-positive: #16a34a;
+  --diff-negative: #ef4444;
   --text-chevron: rgba(0,0,0,0.28);
   --input-bg: rgba(0,0,0,0.04);
   --input-border: rgba(0,0,0,0.12);
