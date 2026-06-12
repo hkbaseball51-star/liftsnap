@@ -1266,8 +1266,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               }}>
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {gpBadge}
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 6px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
+                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 10px', lineHeight: 1.1 }}>{exName}</p>
+                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0, lineHeight: 1.2 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                 </div>
                 <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
                   <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />

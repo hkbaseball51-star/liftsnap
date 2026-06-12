@@ -90,11 +90,30 @@ export async function captureElement(
   // clip-path: inset() is explicitly clipped in the canvas pipeline on all WebKit versions.
   const hasRadius = Boolean(borderRadius && borderRadius !== '0px' && borderRadius !== '0')
   const prevClipPath = el.style.clipPath
-  const prevBg = el.style.background
+
+  // Saved values for transparent-mode style mutations — restored in finally regardless of outcome.
+  const prevBg            = el.style.background
+  const prevBgColor       = el.style.backgroundColor
+  const prevBgImg         = el.style.backgroundImage
+  const prevBodyBg        = document.body.style.background
+  const prevBodyBgColor   = document.body.style.backgroundColor
+  const prevHtmlBg        = document.documentElement.style.background
+  const prevHtmlBgColor   = document.documentElement.style.backgroundColor
 
   if (clearBackground) {
-    // Remove checker pattern so the PNG alpha channel is truly transparent
-    el.style.background = 'transparent'
+    // iOS WebKit's SVG ForeignObject renderer applies the live document's body/html
+    // background-color to the HTML context inside the foreignObject, so transparent
+    // card elements render against the page background (e.g. #F8F7F3 beige in light
+    // mode) rather than true alpha-zero pixels.  Temporarily setting body/html to
+    // transparent before the toPng call removes this bleed-through for the duration
+    // of the capture.  All values are restored in the finally block.
+    el.style.background            = 'transparent'
+    el.style.backgroundColor       = 'transparent'
+    el.style.backgroundImage       = 'none'
+    document.body.style.background            = 'transparent'
+    document.body.style.backgroundColor       = 'transparent'
+    document.documentElement.style.background       = 'transparent'
+    document.documentElement.style.backgroundColor  = 'transparent'
   }
   if (hasRadius) {
     el.style.clipPath = `inset(0 round ${borderRadius})`
@@ -122,7 +141,16 @@ export async function captureElement(
     }
     return blob
   } finally {
-    if (clearBackground) el.style.background = prevBg
+    // Always restore — even on error — so the page theme is never left broken.
+    if (clearBackground) {
+      el.style.background                              = prevBg
+      el.style.backgroundColor                         = prevBgColor
+      el.style.backgroundImage                         = prevBgImg
+      document.body.style.background                   = prevBodyBg
+      document.body.style.backgroundColor              = prevBodyBgColor
+      document.documentElement.style.background        = prevHtmlBg
+      document.documentElement.style.backgroundColor   = prevHtmlBgColor
+    }
     if (hasRadius) el.style.clipPath = prevClipPath
   }
 }
