@@ -1481,6 +1481,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'bottom' && (
+              <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div ref={bottomCardRef} style={{
                 width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
@@ -1507,6 +1508,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     </p>
                   )}
                 </div>
+              </div>
               </div>
             )}
 
@@ -1650,6 +1652,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'bottom' && (
+              <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div ref={bottomWeightRef} style={{
                 width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
@@ -1677,6 +1680,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel}</p>
                   <p style={{ fontSize: 10, fontWeight: 700, color: gpAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
                 </div>
+              </div>
               </div>
             )}
 
@@ -1809,6 +1813,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'bottom' && (
+              <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div ref={bottomVolRef} style={{
                 width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
@@ -1831,6 +1836,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 8, color: ptxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>{cl('total', '合計')}</p>
                   <p style={{ fontSize: 8.5, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                 </div>
+              </div>
               </div>
             )}
 
