@@ -1493,7 +1493,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 10px', lineHeight: 1.1 }}>{exName}</p>
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0, lineHeight: 1.2 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '67%', background: 'transparent' }}>
                   <ChartWithYAxis ticks={rm1Ticks} pyOf={rm1PyOf} gridColor={gridColor} labelColor={gridLabelColor}
                     formatLabel={v => `${Math.round(v)}${unitLabel}`}>
                     <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
@@ -1669,7 +1669,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     }
                   </p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '62%', background: 'transparent' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '67%', background: 'transparent' }}>
                   <ChartWithYAxis ticks={bwTicks} pyOf={bwPyOf} gridColor={gridColor} labelColor={gridLabelColor}
                     formatLabel={v => `${Math.round(v * 10) / 10}${unitLabel}`}>
                     <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
@@ -1825,7 +1825,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
                   <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volCardLabel}</p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '65%', background: 'transparent' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '70%', background: 'transparent' }}>
                   <ChartWithYAxis ticks={vol30Ticks} pyOf={vol30PyOf} gridColor={gridColor} labelColor={gridLabelColor}
                     formatLabel={volFmtAxis}>
                     <VolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} isTransparent={isTransparentCard} />

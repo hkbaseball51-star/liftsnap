@@ -65,11 +65,10 @@ const RX  = 50   // card corner radius (borderRadius:18px CSS × 2.77 ≈ 50)
 const PAD_H  = 44     // 16px CSS × 2.77
 const LEFT_X = PAD_H  // 44
 const LEFT_W = 270    // left column width
-const GAP_L  = 38     // 14px × 2.77
-const CTR_X  = LEFT_X + LEFT_W + GAP_L   // 352
-const CTR_W  = 406    // chart width; right edge at x=758
-const GAP_R  = 42     // gap between chart and right column
-//  Right col area: x=800..1036 (236px)
+const GAP_L  = 24     // gap between left col and chart
+const CTR_X  = LEFT_X + LEFT_W + GAP_L   // 338
+const CTR_W  = 490    // chart width; right edge at x=828
+//  Right col area: x=828..1036 (~208px)
 const RIGHT_X = CW - PAD_H  // 1036 — text anchor for right-aligned values
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -130,7 +129,7 @@ function lineChartGeom(args: FourByOneArgs) {
   const values = args.metric === 'max1rm'
     ? (args.rm1SVGData ?? []).map(d => d.est1rm)
     : (args.bwValues ?? [])
-  const chartH = Math.round(CH * 0.62)
+  const chartH = Math.round(CH * 0.67)
   const y0     = CY - Math.round(chartH / 2)
   const padYt  = 14, padYb = 8
   const max    = values.length ? Math.max(...values) : 0
@@ -143,7 +142,7 @@ function lineChartGeom(args: FourByOneArgs) {
 
 function barChartGeom(args: FourByOneArgs) {
   const bars   = args.volBars ?? []
-  const chartH = Math.round(CH * 0.65)
+  const chartH = Math.round(CH * 0.70)
   const yBot   = CY + Math.round(chartH / 2)
   const maxVal = bars.length ? Math.max(...bars.map(b => b.value)) : 0
   const py     = (v: number) => maxVal > 0 ? yBot - (v / maxVal) * chartH * 0.92 : yBot
@@ -317,10 +316,10 @@ function drawLine(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
     : (args.bwValues ?? [])
   if (values.length < 2) return
 
-  const chartH = Math.round(CH * 0.62)  // 167px
+  const chartH = Math.round(CH * 0.67)  // 181px
   const y0     = CY - Math.round(chartH / 2)  // top of chart area
   const yBot   = y0 + chartH
-  const padX   = 18, padYt = 14, padYb = 8
+  const padX   = 12, padYt = 14, padYb = 8
 
   const max = Math.max(...values)
   const min = Math.min(...values)
@@ -376,7 +375,7 @@ function drawBars(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal === 0) return
 
-  const chartH = Math.round(CH * 0.65)  // 175px
+  const chartH = Math.round(CH * 0.70)  // 189px
   const yBot   = CY + Math.round(chartH / 2)
   const gap    = Math.max(0.4, 0.8 - bars.length * 0.005) * (CTR_W / 100)
   const slotW  = CTR_W / bars.length
@@ -541,8 +540,16 @@ export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
   const canvas    = document.createElement('canvas')
   canvas.width    = CW * 2  // 2160px — 2× logical size for sharper output
   canvas.height   = CH * 2  // 540px
-  const ctx       = canvas.getContext('2d')
+  // { alpha: true } is the HTML spec default but must be explicit on some iOS WebKit builds
+  // that otherwise produce an opaque context and lose all transparency in the saved PNG.
+  const ctx       = canvas.getContext('2d', { alpha: true })
   if (!ctx) throw new Error('Canvas 2D context unavailable')
+
+  // Guarantee a fully-transparent canvas regardless of browser/OS defaults.
+  // clearRect uses physical pixel coordinates (before scale).
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.globalCompositeOperation = 'source-over'
+  ctx.globalAlpha = 1
 
   // All drawing uses the original 1080×270 coordinate system; the 2× scale
   // maps it to the 2160×540 canvas for sharper PNG output.
