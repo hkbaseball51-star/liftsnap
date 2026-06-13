@@ -534,15 +534,12 @@ function drawRightVol(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
-  // ── dev-only cardStyle verification (remove after confirming) ────────────────
-  if (process.env.NODE_ENV !== 'production') {
-    /* eslint-disable no-console */
-    console.log('[4:1 export] cardStyle:', args.cardStyle,
-      '| metric:', args.metric,
-      '| isTransparent:', args.cardStyle === 'transparent',
-      '| isGlass:', args.cardStyle === 'glass')
-    /* eslint-enable no-console */
-  }
+  // ── cardStyle diagnostic (remove after confirming transparent fix) ───────────
+  /* eslint-disable no-console */
+  console.log('[4:1 export] cardStyle:', args.cardStyle,
+    '| metric:', args.metric,
+    '| isTransparent:', args.cardStyle === 'transparent')
+  /* eslint-enable no-console */
   // ────────────────────────────────────────────────────────────────────────────
 
   await document.fonts.ready
@@ -570,6 +567,15 @@ export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
   // Pixels outside the rounded rect are never written → PNG corners are transparent.
   rrPath(ctx, 0, 0, CW, CH, RX)
   ctx.clip()
+
+  // Transparent mode: second clearRect in logical coords inside the active clip.
+  // clearRect respects clip, so this only zeros pixels inside the rounded rect.
+  // Defensive against iOS WebKit builds that don't fully honour { alpha: true }
+  // on getContext — without this, those builds may leave stale opaque pixels
+  // inside the clip region before any drawing code runs.
+  if (args.cardStyle !== 'glass') {
+    ctx.clearRect(0, 0, CW, CH)
+  }
 
   // Glass background: semi-transparent gradient layers keep alpha in the PNG.
   // Transparent mode: canvas starts transparent; nothing drawn for background.
@@ -605,28 +611,43 @@ export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
   else if (args.metric === 'bodyweight') drawRightBW(ctx, args)
   else                                   drawRightVol(ctx, args)
 
-  // ── dev-only alpha inspection (remove after confirming) ─────────────────────
-  // getImageData uses physical pixel coordinates (not affected by ctx.scale).
+  // ── canvas alpha inspection ───────────────────────────────────────────────
+  // getImageData uses physical pixel coordinates (unaffected by ctx.scale).
   // Physical canvas: CW*2 × CH*2 = 2160 × 540.
-  if (process.env.NODE_ENV !== 'production') {
-    /* eslint-disable no-console */
-    const chk = (label: string, px: number, py: number) => {
-      const d = ctx.getImageData(px, py, 1, 1).data
-      console.log(`[4:1 alpha/${args.cardStyle}] ${label}: rgba(${d[0]},${d[1]},${d[2]},${d[3]})`)
-    }
-    chk('top-left',     1,        1       )  // expect a=0 (outside rounded corner)
-    chk('top-right',    CW*2-1,   1       )  // expect a=0
-    chk('bottom-left',  1,        CH*2-1  )  // expect a=0
-    chk('bottom-right', CW*2-1,   CH*2-1  )  // expect a=0
-    chk('card-center',  CW,       CH      )  // transparent→a=0, glass→a>0
-    /* eslint-enable no-console */
+  //
+  // 'bg-top-center': physical (CTR_X*2, 20) = logical (338, 10).
+  //   Above chart top (y0=44) and above all badge/text — a pure background pixel.
+  //   transparent mode → a=0;  glass mode → a≈158.
+  //   Any non-zero value in transparent mode, or any value far from 158 in glass = BUG.
+  /* eslint-disable no-console */
+  const chk = (label: string, px: number, py: number) => {
+    const d = ctx.getImageData(px, py, 1, 1).data
+    console.log(`[4:1 alpha/${args.cardStyle}] ${label}: rgba(${d[0]},${d[1]},${d[2]},${d[3]})`)
   }
-  // ────────────────────────────────────────────────────────────────────────────
+  chk('top-left',       1,          1       )  // a=0 (outside clip corner)
+  chk('top-right',      CW*2-1,     1       )  // a=0
+  chk('bottom-left',    1,          CH*2-1  )  // a=0
+  chk('bottom-right',   CW*2-1,     CH*2-1  )  // a=0
+  chk('bg-top-center',  CTR_X * 2,  20      )  // pure bg: transparent→a=0, glass→a≈158
+  chk('card-center',    CW,         CH      )  // may be chart line (a=255 = chart, not bg)
+  /* eslint-enable no-console */
+  // ─────────────────────────────────────────────────────────────────────────
 
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      b => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))),
-      'image/png',
-    )
-  })
+  // Export PNG via toDataURL+fetch — the same path used by html-to-image / captureElement.
+  // On some iOS WebKit builds, canvas.toBlob('image/png') silently produces an RGB PNG
+  // (colorType=2, no alpha channel) instead of RGBA (colorType=6), causing Instagram and
+  // Photos to treat the image as fully opaque.  toDataURL consistently produces RGBA PNG.
+  const dataUrl = canvas.toDataURL('image/png')
+  const blob    = await fetch(dataUrl).then(r => r.blob())
+
+  // PNG color-type verification: byte[25] in the IHDR chunk encodes the color type.
+  //   2 = RGB  (no alpha → transparency lost → Instagram shows opaque)
+  //   6 = RGBA (alpha preserved → Instagram shows glass/transparent correctly)
+  /* eslint-disable no-console */
+  const pngBuf = await blob.slice(0, 26).arrayBuffer()
+  const pngHdr = new Uint8Array(pngBuf)
+  console.log(`[4:1 PNG] colorType: ${pngHdr[25]} (6=RGBA ✓, 2=RGB=no alpha ✗), size: ${blob.size}`)
+  /* eslint-enable no-console */
+
+  return blob
 }
