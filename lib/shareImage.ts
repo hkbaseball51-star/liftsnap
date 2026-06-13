@@ -64,12 +64,14 @@ export async function captureElement(
   //   2. Higher minimum pixelRatio improves rendering quality at small CSS pixel heights.
   const isFourByOne = W / H > 3.2
 
-  // Target ~1080px wide output regardless of aspect ratio.
-  // For 4:1 cards raise the minimum pixel ratio from 2 to 2.5 — on mobile widths the
-  // formula already exceeds 2.5 so this only affects wider viewports (tablets).
+  // Per-aspect-ratio output targets for sharp saves.
+  // 1:1 → 1440px (Instagram), 16:9 → 1920px (HD/YouTube), others → 1080px.
+  const isSquare   = !isFourByOne && W > 0 && Math.abs(W - H) / Math.max(W, H) < 0.05
+  const isSixteen9 = !isFourByOne && !isSquare && W > 0 && H > 0 && Math.abs(W / H - 16 / 9) < 0.12
+  const targetPx   = isSquare ? 1440 : isSixteen9 ? 1920 : 1080
   const pixelRatio = isFourByOne
-    ? Math.min(3, Math.max(2.5, 1080 / W))
-    : Math.min(3, Math.max(2,   1080 / W))
+    ? Math.min(3, Math.max(2.5, 1080   / W))
+    : Math.min(5, Math.max(2,   targetPx / W))
 
   const opts = {
     width:  W,

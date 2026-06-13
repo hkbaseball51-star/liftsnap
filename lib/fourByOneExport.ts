@@ -45,6 +45,11 @@ export type FourByOneArgs = {
   activeVolTotalStr?:     string
   activeVolSessionCount?: number
   volBars?:               VolBar[]
+
+  // Axis / resolution extras
+  xStartDate?: string
+  xEndDate?:   string
+  unit?:       'kg' | 'lbs'
 }
 
 // ── Canvas dimensions ────────────────────────────────────────────────────────
@@ -98,6 +103,138 @@ function ptxt(isDarkBg: boolean, a: number): string {
 
 function primaryText(isDarkBg: boolean): string {
   return isDarkBg ? '#ffffff' : '#111827'
+}
+
+// ── Y-axis / grid helpers ─────────────────────────────────────────────────────
+
+function niceYTicks(min: number, max: number, count = 3): number[] {
+  if (max <= min) return [min]
+  const range = max - min
+  const raw   = range / Math.max(count - 1, 1)
+  const mag   = Math.pow(10, Math.floor(Math.log10(raw)))
+  const step  = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? mag * 10
+  const lo    = Math.ceil(min / step) * step
+  const ticks: number[] = []
+  for (let t = lo; t <= max * 1.001; t += step) {
+    ticks.push(Math.round(t * 1e9) / 1e9)
+    if (ticks.length >= count + 2) break
+  }
+  return ticks.filter(t => t >= min * 0.999 && t <= max * 1.001)
+}
+
+function toDisplay(v: number, unit: string | undefined): number {
+  return unit === 'lbs' ? v * 2.20462 : v
+}
+
+function lineChartGeom(args: FourByOneArgs) {
+  const values = args.metric === 'max1rm'
+    ? (args.rm1SVGData ?? []).map(d => d.est1rm)
+    : (args.bwValues ?? [])
+  const chartH = Math.round(CH * 0.62)
+  const y0     = CY - Math.round(chartH / 2)
+  const padYt  = 14, padYb = 8
+  const max    = values.length ? Math.max(...values) : 0
+  const min    = values.length ? Math.min(...values) : 0
+  const rng    = max - min || max * 0.1 || 1
+  const py     = (v: number) => y0 + padYt + ((max - v) / rng) * (chartH - padYt - padYb)
+  const ticks  = values.length >= 2 ? niceYTicks(min, max, 3) : []
+  return { values, chartH, y0, yBot: y0 + chartH, py, ticks }
+}
+
+function barChartGeom(args: FourByOneArgs) {
+  const bars   = args.volBars ?? []
+  const chartH = Math.round(CH * 0.65)
+  const yBot   = CY + Math.round(chartH / 2)
+  const maxVal = bars.length ? Math.max(...bars.map(b => b.value)) : 0
+  const py     = (v: number) => maxVal > 0 ? yBot - (v / maxVal) * chartH * 0.92 : yBot
+  const ticks  = bars.length >= 2 && maxVal > 0 ? niceYTicks(0, maxVal, 3).filter(t => t > 0) : []
+  return { bars, chartH, yBot, y0: yBot - chartH, py, ticks, maxVal }
+}
+
+function drawLineGridLines(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const { values, y0, yBot, py, ticks } = lineChartGeom(args)
+  if (values.length < 2 || !ticks.length) return
+  const gridColor = args.isDarkBg ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.10)'
+  ctx.save()
+  ctx.setLineDash([5, 8])
+  ctx.strokeStyle = gridColor
+  ctx.lineWidth   = 1.2
+  ticks.forEach(tick => {
+    const ty = py(tick)
+    if (ty < y0 || ty > yBot) return
+    ctx.beginPath()
+    ctx.moveTo(CTR_X, ty); ctx.lineTo(CTR_X + CTR_W, ty)
+    ctx.stroke()
+  })
+  ctx.restore()
+}
+
+function drawLineAxes(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const { values, y0, yBot, py, ticks } = lineChartGeom(args)
+  if (values.length < 2) return
+  const lblColor  = args.isDarkBg ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.40)'
+  const dateColor = args.isDarkBg ? 'rgba(255,255,255,0.38)' : 'rgba(15,23,42,0.32)'
+  const unit      = args.unitLabel ?? ''
+  ctx.font         = fnt(13, false)
+  ctx.fillStyle    = lblColor
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'bottom'
+  ticks.forEach(tick => {
+    const ty = py(tick)
+    if (ty < y0 || ty > yBot) return
+    ctx.fillText(`${Math.round(tick * 10) / 10}${unit}`, CTR_X + 4, ty - 2)
+  })
+  if (args.xStartDate || args.xEndDate) {
+    ctx.font         = fnt(13, false)
+    ctx.fillStyle    = dateColor
+    ctx.textBaseline = 'top'
+    if (args.xStartDate) { ctx.textAlign = 'left';  ctx.fillText(args.xStartDate, CTR_X + 4, yBot + 4) }
+    if (args.xEndDate)   { ctx.textAlign = 'right'; ctx.fillText(args.xEndDate,   CTR_X + CTR_W - 4, yBot + 4) }
+  }
+}
+
+function drawBarGridLines(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const { bars, py, ticks, maxVal } = barChartGeom(args)
+  if (!bars.length || !maxVal || !ticks.length) return
+  const gridColor = args.isDarkBg ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.10)'
+  ctx.save()
+  ctx.setLineDash([5, 8])
+  ctx.strokeStyle = gridColor
+  ctx.lineWidth   = 1.2
+  ticks.forEach(tick => {
+    const ty = py(tick)
+    ctx.beginPath()
+    ctx.moveTo(CTR_X, ty); ctx.lineTo(CTR_X + CTR_W, ty)
+    ctx.stroke()
+  })
+  ctx.restore()
+}
+
+function drawBarAxes(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const { bars, yBot, py, ticks, maxVal } = barChartGeom(args)
+  if (!bars.length || !maxVal) return
+  const lblColor  = args.isDarkBg ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.40)'
+  const dateColor = args.isDarkBg ? 'rgba(255,255,255,0.38)' : 'rgba(15,23,42,0.32)'
+  const unit      = args.unitLabel ?? ''
+  ctx.font         = fnt(13, false)
+  ctx.fillStyle    = lblColor
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'bottom'
+  ticks.forEach(tick => {
+    const dv = toDisplay(tick, args.unit)
+    let label: string
+    if (dv >= 10000)     label = `${Math.round(dv / 1000)}k`
+    else if (dv >= 1000) label = `${(dv / 1000).toFixed(1)}k`
+    else                 label = `${Math.round(dv)}${unit}`
+    ctx.fillText(label, CTR_X + 4, py(tick) - 2)
+  })
+  if (args.xStartDate || args.xEndDate) {
+    ctx.font         = fnt(13, false)
+    ctx.fillStyle    = dateColor
+    ctx.textBaseline = 'top'
+    if (args.xStartDate) { ctx.textAlign = 'left';  ctx.fillText(args.xStartDate, CTR_X + 4, yBot + 4) }
+    if (args.xEndDate)   { ctx.textAlign = 'right'; ctx.fillText(args.xEndDate,   CTR_X + CTR_W - 4, yBot + 4) }
+  }
 }
 
 // ── Glass background ──────────────────────────────────────────────────────────
@@ -402,10 +539,14 @@ export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
   await new Promise<void>(r => requestAnimationFrame(() => r()))
 
   const canvas    = document.createElement('canvas')
-  canvas.width    = CW
-  canvas.height   = CH
+  canvas.width    = CW * 2  // 2160px — 2× logical size for sharper output
+  canvas.height   = CH * 2  // 540px
   const ctx       = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas 2D context unavailable')
+
+  // All drawing uses the original 1080×270 coordinate system; the 2× scale
+  // maps it to the 2160×540 canvas for sharper PNG output.
+  ctx.scale(2, 2)
 
   // Clip to rounded rect — all drawing is confined inside the card corners.
   // Pixels outside the rounded rect are never written → PNG corners are transparent.
@@ -429,9 +570,17 @@ export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
   else if (args.metric === 'bodyweight') drawLeftBW(ctx, args)
   else                                   drawLeftVol(ctx, args)
 
+  // Grid lines — drawn before chart so chart data renders on top
+  if (args.metric === 'volume') drawBarGridLines(ctx, args)
+  else                          drawLineGridLines(ctx, args)
+
   // Center chart
   if (args.metric === 'volume') drawBars(ctx, args)
   else                          drawLine(ctx, args)
+
+  // Y-axis labels + X-axis dates — drawn after chart so labels sit on top
+  if (args.metric === 'volume') drawBarAxes(ctx, args)
+  else                          drawLineAxes(ctx, args)
 
   // Right column (main stat)
   if (args.metric === 'max1rm')          drawRight1RM(ctx, args)
