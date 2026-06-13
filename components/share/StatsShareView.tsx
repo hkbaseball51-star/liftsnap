@@ -1481,12 +1481,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'banner' && (
-              <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
+              <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div ref={bannerCardRef} style={{
-                position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
-                transform: 'rotate(-90deg)', transformOrigin: 'center',
-                ...cardBgProps, borderRadius: 18,
-                isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
+                width: '100%', aspectRatio: '2/1', ...cardBgProps, borderRadius: 18,
+                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
@@ -1654,12 +1652,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'banner' && (
-              <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
+              <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div ref={bannerWeightRef} style={{
-                position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
-                transform: 'rotate(-90deg)', transformOrigin: 'center',
-                ...cardBgProps, borderRadius: 18,
-                isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
+                width: '100%', aspectRatio: '2/1', ...cardBgProps, borderRadius: 18,
+                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
@@ -1817,12 +1813,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'banner' && (
-              <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
+              <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div ref={bannerVolRef} style={{
-                position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
-                transform: 'rotate(-90deg)', transformOrigin: 'center',
-                ...cardBgProps, borderRadius: 18,
-                isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
+                width: '100%', aspectRatio: '2/1', ...cardBgProps, borderRadius: 18,
+                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
