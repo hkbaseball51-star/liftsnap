@@ -673,15 +673,16 @@ function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true, da
   const rng = max - min || max * 0.1 || 1
 
   const px = (v: number) => LP + ((v - min) / rng) * (100 - LP - RP)
-  const py = (i: number) => TP + (i / (data.length - 1)) * (100 - TP - BP)
+  // i=0 (oldest) at bottom, i=n-1 (newest) at top
+  const py = (i: number) => (100 - BP) - (i / (data.length - 1)) * (100 - TP - BP)
 
   const linePoints = data.map((d, i) => `${px(d.est1rm).toFixed(1)},${py(i).toFixed(1)}`).join(' ')
   const areaPoints = `${LP},${py(0).toFixed(1)} ${linePoints} ${LP},${py(data.length - 1).toFixed(1)}`
 
   const lastX = px(values[values.length - 1]!)
-  const lastY = py(data.length - 1)
+  const lastY = py(data.length - 1)   // newest → top (small y)
   const firstX = px(values[0]!)
-  const firstY = py(0)
+  const firstY = py(0)                // oldest → bottom (large y)
   const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
   const gridColor = isDarkBg ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.11)'
   const lblColor  = isDarkBg ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.40)'
@@ -763,15 +764,16 @@ function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true
   const rng = max - min || max * 0.1 || 1
 
   const px = (v: number) => LP + ((v - min) / rng) * (100 - LP - RP)
-  const py = (i: number) => TP + (i / Math.max(values.length - 1, 1)) * (100 - TP - BP)
+  // i=0 (oldest) at bottom, i=n-1 (newest) at top
+  const py = (i: number) => (100 - BP) - (i / Math.max(values.length - 1, 1)) * (100 - TP - BP)
 
   const linePoints = values.map((v, i) => `${px(v).toFixed(1)},${py(i).toFixed(1)}`).join(' ')
   const areaPoints = `${LP},${py(0).toFixed(1)} ${linePoints} ${LP},${py(values.length - 1).toFixed(1)}`
 
   const lastX = px(values[values.length - 1]!)
-  const lastY = py(values.length - 1)
+  const lastY = py(values.length - 1)   // newest → top (small y)
   const firstX = px(values[0]!)
-  const firstY = py(0)
+  const firstY = py(0)                  // oldest → bottom (large y)
   const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
   const gridColor = isDarkBg ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.11)'
   const lblColor  = isDarkBg ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.40)'
@@ -853,7 +855,8 @@ function SideVolBarSVG({ bars, accentHex, latestHex, isDarkBg = true }: {
   const barH  = slotH * 0.55
 
   const bxOf = (v: number) => LP + (v / maxVal) * (100 - LP - RP) * 0.95
-  const byOf = (i: number) => TP + i * slotH + (slotH - barH) / 2
+  // i=0 (oldest) at bottom, i=n-1 (newest) at top
+  const byOf = (i: number) => TP + (n - 1 - i) * slotH + (slotH - barH) / 2
 
   const raw = maxVal / 3
   const mag = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 0.01))))

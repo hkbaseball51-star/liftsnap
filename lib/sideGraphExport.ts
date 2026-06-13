@@ -5,15 +5,15 @@
  * Left ~50% of canvas is the glass card; right 50% is fully transparent.
  *
  * Axes are swapped vs. standard charts:
- *   y-axis → date (vertical, top = oldest, bottom = newest)
+ *   y-axis → date (vertical, bottom = oldest, top = newest)
  *   x-axis → value (horizontal)
  *
  * MAX 1RM / Body Weight: vertical line progression (dates top→bottom, value left→right).
  * Daily Volume: horizontal bars (each row = one date, bar extends right by value).
  *
  * Chart area layout (logical coordinates):
- *   DATE_LABEL_W (44px) on the left for y-axis date labels
- *   X_LABEL_H   (20px) at the bottom for x-axis value ticks
+ *   DATE_LABEL_W (30px) on the left for y-axis date labels
+ *   X_LABEL_H   (18px) at the bottom for x-axis value ticks
  */
 
 type VolBar = { label: string; value: number; isLatest: boolean; isBest: boolean }
@@ -73,29 +73,29 @@ const CX = CARD_X + 10  // 28
 
 // Badge
 const BADGE_Y  = CARD_Y + 12  // 82
-const BADGE_W  = 84
+const BADGE_W  = 52   // sized to text width (~38px) + left/right padding
 const BADGE_H  = 22
 const BADGE_RX = 10
 
 // Chart total area (header above, footer below)
 const CHART_TOP = CARD_Y + 185   // 255
-const CHART_BOT = CARD_Y + CARD_H - 22  // 868
+const CHART_BOT = CARD_Y + CARD_H - 16  // 874 — extended to reduce gap above footer
 
 // Y-axis date label column (left of plot)
-const DATE_LABEL_W = 44
+const DATE_LABEL_W = 30  // reduced to move graph left and align with text
 
 // X-axis value label row (below plot)
-const X_LABEL_H = 20
+const X_LABEL_H = 18
 
 // Plot bounds — where lines/bars actually render
-const PLOT_X   = CARD_X + 10 + DATE_LABEL_W  // 72
-const PLOT_W   = CARD_X + CARD_W - 8 - PLOT_X  // 18+255-8-72 = 193
+const PLOT_X   = CX + DATE_LABEL_W  // 58 — aligned with CX for left-side consistency
+const PLOT_W   = CARD_X + CARD_W - 8 - PLOT_X  // 18+255-8-58 = 207
 const PLOT_TOP = CHART_TOP + 8   // 263
-const PLOT_BOT = CHART_BOT - X_LABEL_H  // 848
-const PLOT_H   = PLOT_BOT - PLOT_TOP   // 585
+const PLOT_BOT = CHART_BOT - X_LABEL_H  // 856
+const PLOT_H   = PLOT_BOT - PLOT_TOP   // 593
 
 // X-axis label baseline (below plot)
-const XLBL_Y = PLOT_BOT + 5  // 853
+const XLBL_Y = PLOT_BOT + 4  // 860
 
 // suppress unused warning for CH (canvas height is set via CH*2)
 void CH
@@ -260,7 +260,7 @@ function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 }
 
 // ── Line chart (MAX 1RM / Body Weight) ───────────────────────────────────────
-// x = value (horizontal), y = date index (top=oldest, bottom=newest)
+// x = value (horizontal), y = date index (bottom=oldest i=0, top=newest i=n-1)
 
 function drawSideLine(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const values = args.metric === 'max1rm'
@@ -276,7 +276,8 @@ function drawSideLine(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 
   const padX = 8, padY = 6
   const px = (v: number) => PLOT_X + padX + ((v - min) / rng) * (PLOT_W - 2 * padX)
-  const py = (i: number) => PLOT_TOP + padY + (i / (n - 1)) * (PLOT_H - 2 * padY)
+  // i=0 (oldest) maps to bottom; i=n-1 (newest) maps to top
+  const py = (i: number) => PLOT_BOT - padY - (i / (n - 1)) * (PLOT_H - 2 * padY)
 
   const xTicks   = niceXTicks(min, max, 3)
   const dateIdxs = sampleIndices(n, 4)
@@ -362,7 +363,7 @@ function drawSideLine(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 }
 
 // ── Horizontal bar chart (Daily Volume) ──────────────────────────────────────
-// y = bar index (date, top=oldest), bar extends right from PLOT_X by value
+// y = bar index (date, bottom=oldest i=0, top=newest i=n-1), bar extends right from PLOT_X by value
 
 function drawSideBars(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const bars = args.volBars ?? []
@@ -411,6 +412,7 @@ function drawSideBars(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.restore()
 
   // 3. Y-axis date labels (right-aligned, left of bars)
+  // i=0 (oldest) is at bottom; i=n-1 (newest) is at top
   ctx.save()
   ctx.font         = fnt(9, false)
   ctx.fillStyle    = datC
@@ -418,16 +420,16 @@ function drawSideBars(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.textBaseline = 'middle'
   dateIdxs.forEach(idx => {
     if (idx < n && bars[idx]) {
-      const gy = PLOT_TOP + (idx + 0.5) * slotH
+      const gy = PLOT_BOT - (idx + 0.5) * slotH
       ctx.fillText(fmtDateLabel(bars[idx]!.label, args.cardLang), PLOT_X - 4, gy)
     }
   })
   ctx.restore()
 
-  // 4. Draw bars
+  // 4. Draw bars (i=0 oldest at bottom, i=n-1 newest at top)
   bars.forEach((bar, i) => {
     const bw    = Math.max((bar.value / maxVal) * PLOT_W * 0.92, 1.5)
-    const by    = PLOT_TOP + i * slotH + (slotH - barH) / 2
+    const by    = PLOT_BOT - (i + 1) * slotH + (slotH - barH) / 2
     const fill  = (bar.isLatest || bar.isBest) ? args.graphLatestHex : args.graphAccentHex
     ctx.globalAlpha = bar.isLatest ? 1 : bar.isBest ? 0.82 : 0.38
     ctx.fillStyle   = fill
