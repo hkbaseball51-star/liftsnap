@@ -351,8 +351,8 @@ function drawLine(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
   ctx.strokeStyle = args.graphAccentHex
   ctx.lineWidth   = 2.5
-  ctx.lineJoin    = 'miter'
-  ctx.lineCap     = 'butt'
+  ctx.lineJoin    = 'round'
+  ctx.lineCap     = 'round'
   ctx.stroke()
 
   // First dot

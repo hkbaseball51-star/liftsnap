@@ -390,7 +390,8 @@ function ChartSVG({ pts, ac, accent, chartType }: {
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
       <polygon points={areaPoints} fill={AREA_FILL[accent]} />
       <polyline points={linePoints} fill="none" stroke={ac.barActive}
-        strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"
+        vectorEffect="non-scaling-stroke" />
       {sub.map((d, i) => (
         <circle key={i} cx={px(i)} cy={py(d.value)}
           r={i === sub.length - 1 ? 2.8 : 1.6}
@@ -472,12 +473,11 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
 }
 
 /* ── Sharp polyline SVG for MAX 1RM card previews ─────────── */
-function MiniLineSVG({ data, accentHex, latestHex, areaFill, strokeWidth = 0.75, isDarkBg = true }: {
+function MiniLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true }: {
   data: { est1rm: number }[]
   accentHex: string
   latestHex: string
   areaFill: string
-  strokeWidth?: number
   isDarkBg?: boolean
 }) {
   if (data.length < 2) return null
@@ -514,17 +514,21 @@ function MiniLineSVG({ data, accentHex, latestHex, areaFill, strokeWidth = 0.75,
     // Using absolute rather than relative+100% avoids ambiguous percentage-height
     // resolution inside a flex item.
     <div style={{ position: 'absolute', inset: 0 }}>
-      {/* Line/area SVG — preserveAspectRatio:none is fine for polygon/polyline
-          but distorts <circle> r values when the aspect ratio differs from the viewBox */}
+      {/* Line/area SVG — vectorEffect="non-scaling-stroke" keeps stroke width uniform
+          regardless of container aspect ratio (fixes thick/thin lines with preserveAspectRatio:none) */}
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         <polygon points={areaPoints} fill={areaFill} />
         <polyline
           points={linePoints} fill="none" stroke={accentHex}
-          strokeWidth={strokeWidth} strokeLinejoin="miter" strokeLinecap="butt"
+          strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
         />
-        <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill={firstDotColor} />
       </svg>
+      {/* First dot — CSS div stays a perfect circle regardless of container aspect ratio */}
+      <div style={{ position: 'absolute', left: `${firstX}%`, top: `${firstY}%`,
+                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    borderRadius: '50%', background: firstDotColor, pointerEvents: 'none' }} />
       {/* Last-point glow rings — CSS border-radius:50% is always a perfect circle
           regardless of the container's aspect ratio */}
       <div style={{ position: 'absolute', left: `${lxPct}%`, top: `${lyPct}%`,
@@ -544,12 +548,11 @@ function MiniLineSVG({ data, accentHex, latestHex, areaFill, strokeWidth = 0.75,
 }
 
 /* ── Sharp polyline SVG for Body Weight card previews ─────── */
-function BWLineSVG({ values, accentHex, latestHex, areaFill, strokeWidth = 0.75, isDarkBg = true }: {
+function BWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true }: {
   values: number[]
   accentHex: string
   latestHex: string
   areaFill: string
-  strokeWidth?: number
   isDarkBg?: boolean
 }) {
   if (values.length < 1) return null
@@ -587,11 +590,14 @@ function BWLineSVG({ values, accentHex, latestHex, areaFill, strokeWidth = 0.75,
         {values.length >= 2 && (
           <polyline
             points={linePoints} fill="none" stroke={accentHex}
-            strokeWidth={strokeWidth} strokeLinejoin="miter" strokeLinecap="butt"
+            strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
           />
         )}
-        <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.0" fill={firstDotColor} />
       </svg>
+      <div style={{ position: 'absolute', left: `${firstX}%`, top: `${firstY}%`,
+                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    borderRadius: '50%', background: firstDotColor, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', left: `${lxPct}%`, top: `${lyPct}%`,
                     transform: 'translate(-50%,-50%)', width: 18, height: 18,
                     borderRadius: '50%', background: latestHex, opacity: 0.08,
@@ -649,42 +655,86 @@ function VolBarSVG({ bars, accentHex, latestHex, isTransparent = false }: {
 }
 
 /* ── Side Graph SVG components (x=value, y=date, used in 'side' layout preview) ── */
+/* Layout: LP=18% left for date labels, BP=12% bottom for value labels           */
 
-function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true }: {
+function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true, dates = [] }: {
   data: { est1rm: number }[]
   accentHex: string
   latestHex: string
   areaFill: string
   isDarkBg?: boolean
+  dates?: string[]
 }) {
   if (data.length < 2) return null
-  const W = 100, H = 100
+  const LP = 18, RP = 2, TP = 4, BP = 12
   const values = data.map(d => d.est1rm)
   const max = Math.max(...values)
   const min = Math.min(...values)
   const rng = max - min || max * 0.1 || 1
 
-  const px = (v: number) => 6 + ((v - min) / rng) * 88
-  const py = (i: number) => 4 + (i / (data.length - 1)) * 92
+  const px = (v: number) => LP + ((v - min) / rng) * (100 - LP - RP)
+  const py = (i: number) => TP + (i / (data.length - 1)) * (100 - TP - BP)
 
   const linePoints = data.map((d, i) => `${px(d.est1rm).toFixed(1)},${py(i).toFixed(1)}`).join(' ')
-  const areaPoints = `6,${py(0).toFixed(1)} ${linePoints} 6,${py(data.length - 1).toFixed(1)}`
+  const areaPoints = `${LP},${py(0).toFixed(1)} ${linePoints} ${LP},${py(data.length - 1).toFixed(1)}`
 
   const lastX = px(values[values.length - 1]!)
   const lastY = py(data.length - 1)
   const firstX = px(values[0]!)
   const firstY = py(0)
   const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
+  const gridColor = isDarkBg ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.11)'
+  const lblColor  = isDarkBg ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.40)'
+  const datColor  = isDarkBg ? 'rgba(255,255,255,0.40)' : 'rgba(15,23,42,0.35)'
+
+  const raw = rng / 2
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 0.01))))
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw) ?? mag*10
+  const xTicks: number[] = []
+  for (let t = Math.ceil(min/step)*step; t <= max*1.001; t = Math.round((t+step)*1e9)/1e9) {
+    xTicks.push(t); if (xTicks.length >= 4) break
+  }
+  const filteredTicks = xTicks.filter(t => t >= min*0.999 && t <= max*1.001)
+
+  const n = data.length
+  const hasDates = dates.length >= n
+  const dateIdxs = n <= 2 ? [0, n-1] : [0, Math.round(n/3), Math.round(2*n/3), n-1]
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none"
            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {filteredTicks.map((tick, i) => (
+          <line key={i} x1={px(tick).toFixed(1)} y1={TP} x2={px(tick).toFixed(1)} y2={100 - BP}
+            stroke={gridColor} strokeWidth="0.7" strokeDasharray="2 3" />
+        ))}
         <polygon points={areaPoints} fill={areaFill} />
         <polyline points={linePoints} fill="none" stroke={accentHex}
-          strokeWidth="1.5" strokeLinejoin="miter" strokeLinecap="butt" />
-        <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.2" fill={firstDotColor} />
+          strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
+          vectorEffect="non-scaling-stroke" />
       </svg>
+      <div style={{ position: 'absolute', left: `${firstX}%`, top: `${firstY}%`,
+                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    borderRadius: '50%', background: firstDotColor, pointerEvents: 'none' }} />
+      {hasDates && dateIdxs.map((idx, i) => {
+        if (idx >= n || !dates[idx]) return null
+        const d = new Date(dates[idx]! + 'T00:00:00')
+        return (
+          <div key={i} style={{ position: 'absolute', left: 0, top: `${py(idx)}%`,
+            width: `${LP - 1}%`, transform: 'translateY(-50%)', textAlign: 'right',
+            fontSize: 4.5, color: datColor, lineHeight: 1, pointerEvents: 'none',
+            overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            {`${d.getMonth()+1}/${d.getDate()}`}
+          </div>
+        )
+      })}
+      {filteredTicks.map((tick, i) => (
+        <div key={i} style={{ position: 'absolute', left: `${px(tick)}%`, top: `${100 - BP + 2}%`,
+          transform: 'translateX(-50%)', fontSize: 4, color: lblColor, lineHeight: 1,
+          pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          {Math.round(tick)}
+        </div>
+      ))}
       <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
                     transform: 'translate(-50%,-50%)', width: 14, height: 14,
                     borderRadius: '50%', background: latestHex, opacity: 0.08, pointerEvents: 'none' }} />
@@ -698,40 +748,83 @@ function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true }: 
   )
 }
 
-function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true }: {
+function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true, dates = [] }: {
   values: number[]
   accentHex: string
   latestHex: string
   areaFill: string
   isDarkBg?: boolean
+  dates?: string[]
 }) {
   if (values.length < 2) return null
-  const W = 100, H = 100
+  const LP = 18, RP = 2, TP = 4, BP = 12
   const max = Math.max(...values)
   const min = Math.min(...values)
   const rng = max - min || max * 0.1 || 1
 
-  const px = (v: number) => 6 + ((v - min) / rng) * 88
-  const py = (i: number) => 4 + (i / Math.max(values.length - 1, 1)) * 92
+  const px = (v: number) => LP + ((v - min) / rng) * (100 - LP - RP)
+  const py = (i: number) => TP + (i / Math.max(values.length - 1, 1)) * (100 - TP - BP)
 
   const linePoints = values.map((v, i) => `${px(v).toFixed(1)},${py(i).toFixed(1)}`).join(' ')
-  const areaPoints = `6,${py(0).toFixed(1)} ${linePoints} 6,${py(values.length - 1).toFixed(1)}`
+  const areaPoints = `${LP},${py(0).toFixed(1)} ${linePoints} ${LP},${py(values.length - 1).toFixed(1)}`
 
   const lastX = px(values[values.length - 1]!)
   const lastY = py(values.length - 1)
   const firstX = px(values[0]!)
   const firstY = py(0)
   const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
+  const gridColor = isDarkBg ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.11)'
+  const lblColor  = isDarkBg ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.40)'
+  const datColor  = isDarkBg ? 'rgba(255,255,255,0.40)' : 'rgba(15,23,42,0.35)'
+
+  const raw = rng / 2
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 0.01))))
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw) ?? mag*10
+  const xTicks: number[] = []
+  for (let t = Math.ceil(min/step)*step; t <= max*1.001; t = Math.round((t+step)*1e9)/1e9) {
+    xTicks.push(t); if (xTicks.length >= 4) break
+  }
+  const filteredTicks = xTicks.filter(t => t >= min*0.999 && t <= max*1.001)
+
+  const n = values.length
+  const hasDates = dates.length >= n
+  const dateIdxs = n <= 2 ? [0, n-1] : [0, Math.round(n/3), Math.round(2*n/3), n-1]
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none"
            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {filteredTicks.map((tick, i) => (
+          <line key={i} x1={px(tick).toFixed(1)} y1={TP} x2={px(tick).toFixed(1)} y2={100 - BP}
+            stroke={gridColor} strokeWidth="0.7" strokeDasharray="2 3" />
+        ))}
         <polygon points={areaPoints} fill={areaFill} />
         <polyline points={linePoints} fill="none" stroke={accentHex}
-          strokeWidth="1.5" strokeLinejoin="miter" strokeLinecap="butt" />
-        <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.2" fill={firstDotColor} />
+          strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
+          vectorEffect="non-scaling-stroke" />
       </svg>
+      <div style={{ position: 'absolute', left: `${firstX}%`, top: `${firstY}%`,
+                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    borderRadius: '50%', background: firstDotColor, pointerEvents: 'none' }} />
+      {hasDates && dateIdxs.map((idx, i) => {
+        if (idx >= n || !dates[idx]) return null
+        const d = new Date(dates[idx]! + 'T00:00:00')
+        return (
+          <div key={i} style={{ position: 'absolute', left: 0, top: `${py(idx)}%`,
+            width: `${LP - 1}%`, transform: 'translateY(-50%)', textAlign: 'right',
+            fontSize: 4.5, color: datColor, lineHeight: 1, pointerEvents: 'none',
+            overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            {`${d.getMonth()+1}/${d.getDate()}`}
+          </div>
+        )
+      })}
+      {filteredTicks.map((tick, i) => (
+        <div key={i} style={{ position: 'absolute', left: `${px(tick)}%`, top: `${100 - BP + 2}%`,
+          transform: 'translateX(-50%)', fontSize: 4, color: lblColor, lineHeight: 1,
+          pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          {Math.round(tick * 10) / 10}
+        </div>
+      ))}
       <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
                     transform: 'translate(-50%,-50%)', width: 14, height: 14,
                     borderRadius: '50%', background: latestHex, opacity: 0.08, pointerEvents: 'none' }} />
@@ -745,32 +838,79 @@ function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true
   )
 }
 
-function SideVolBarSVG({ bars, accentHex, latestHex }: {
+function SideVolBarSVG({ bars, accentHex, latestHex, isDarkBg = true }: {
   bars: VolBar[]
   accentHex: string
   latestHex: string
+  isDarkBg?: boolean
 }) {
   if (!bars.length) return null
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal === 0) return null
-  const W = 100, H = 100
-  const slotH = H / bars.length
+  const LP = 18, RP = 2, TP = 4, BP = 12
+  const n = bars.length
+  const slotH = (100 - TP - BP) / n
   const barH  = slotH * 0.55
 
+  const bxOf = (v: number) => LP + (v / maxVal) * (100 - LP - RP) * 0.95
+  const byOf = (i: number) => TP + i * slotH + (slotH - barH) / 2
+
+  const raw = maxVal / 3
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 0.01))))
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw) ?? mag*10
+  const xTicks: number[] = []
+  for (let t = step; t <= maxVal*1.001; t = Math.round((t+step)*1e9)/1e9) {
+    xTicks.push(t); if (xTicks.length >= 3) break
+  }
+
+  const gridColor = isDarkBg ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.11)'
+  const lblColor  = isDarkBg ? 'rgba(255,255,255,0.48)' : 'rgba(15,23,42,0.40)'
+  const datColor  = isDarkBg ? 'rgba(255,255,255,0.40)' : 'rgba(15,23,42,0.35)'
+
+  const dateIdxs = n <= 2 ? [0, n-1] : [0, Math.round(n/3), Math.round(2*n/3), n-1]
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-      {bars.map((b, i) => {
-        const bw      = Math.max((b.value / maxVal) * 92, 0.5)
-        const by      = i * slotH + (slotH - barH) / 2
-        const fill    = (b.isLatest || b.isBest) ? latestHex : accentHex
-        const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {xTicks.map((tick, i) => (
+          <line key={i} x1={bxOf(tick).toFixed(1)} y1={TP} x2={bxOf(tick).toFixed(1)} y2={100 - BP}
+            stroke={gridColor} strokeWidth="0.7" strokeDasharray="2 3" />
+        ))}
+        {bars.map((b, i) => {
+          const bw      = Math.max(bxOf(b.value) - LP, 0.5)
+          const by      = byOf(i)
+          const fill    = (b.isLatest || b.isBest) ? latestHex : accentHex
+          const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
+          return (
+            <rect key={i} x={LP} y={by.toFixed(2)} width={bw.toFixed(2)} height={barH.toFixed(2)}
+              rx="1" fill={fill} opacity={opacity} />
+          )
+        })}
+      </svg>
+      {dateIdxs.map((idx, i) => {
+        if (idx >= n || !bars[idx]) return null
+        const s = bars[idx]!.label ?? ''
+        const label = s.length === 7
+          ? `${parseInt(s.slice(5,7),10)}月`
+          : (() => { const d = new Date(s + 'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}` })()
         return (
-          <rect key={i}
-            x={0} y={by.toFixed(2)} width={bw.toFixed(2)} height={barH.toFixed(2)}
-            rx="1" fill={fill} opacity={opacity} />
+          <div key={i} style={{ position: 'absolute', left: 0, top: `${byOf(idx) + barH / 2}%`,
+            width: `${LP - 1}%`, transform: 'translateY(-50%)', textAlign: 'right',
+            fontSize: 4.5, color: datColor, lineHeight: 1, pointerEvents: 'none',
+            overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            {label}
+          </div>
         )
       })}
-    </svg>
+      {xTicks.map((tick, i) => (
+        <div key={i} style={{ position: 'absolute', left: `${bxOf(tick)}%`, top: `${100 - BP + 2}%`,
+          transform: 'translateX(-50%)', fontSize: 4, color: lblColor, lineHeight: 1,
+          pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          {tick >= 10000 ? `${Math.round(tick/1000)}k` : tick >= 1000 ? `${(tick/1000).toFixed(1)}k` : Math.round(tick)}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1113,6 +1253,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             unit,
             rm1Growth: rm1Growth ?? null,
             rm1SVGData,
+            rm1Dates: rm1FullHistory.map(p => p.date),
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1165,6 +1306,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             bwChangeStr,
             bwValues,
             bwHistoryLen: bwHistory.length,
+            bwDates: bwHistory.map(p => p.date),
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1578,7 +1720,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
                   {rm1SVGData.length >= 2
                     ? <ChartWithYAxis ticks={rm1Ticks} pyOf={rm1PyOf} gridColor={gridColor} labelColor={gridLabelColor} formatLabel={v => `${Math.round(v)}${unitLabel}`}>
-                        <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.8} isDarkBg={isDarkBg} />
+                        <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                       </ChartWithYAxis>
                     : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
@@ -1596,9 +1738,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'side' && (
               <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
-                {/* Left card — ~38% of story width */}
+                {/* Left card — ~47% of story width */}
                 <div style={{
-                  position: 'absolute', left: '3%', top: '3%', width: '38%', bottom: '3%',
+                  position: 'absolute', left: '3%', top: '3%', width: '47%', bottom: '3%',
                   ...cardBgProps, borderRadius: 18,
                   overflow: 'hidden', isolation: 'isolate',
                   border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
@@ -1619,7 +1761,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   )}
                   <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
                     {rm1SVGData.length >= 2
-                      ? <SideLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                      ? <SideLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} dates={rm1FullHistory.map(p => p.date)} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
                   </div>
                   <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
@@ -1643,7 +1785,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       xLeft={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[0].date) : undefined}
                       xRight={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date) : undefined}
                       xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                      <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.6} isDarkBg={isDarkBg} />
+                      <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                     </ChartWithYAxis>
                   </div>
                   <div>
@@ -1695,7 +1837,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     xLeft={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[0].date) : undefined}
                     xRight={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date) : undefined}
                     xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                    <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.7} isDarkBg={isDarkBg} />
+                    <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                   </ChartWithYAxis>
                 </div>
               </div>
@@ -1746,7 +1888,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
                   {bwValues.length >= 2
                     ? <ChartWithYAxis ticks={bwTicks} pyOf={bwPyOf} gridColor={gridColor} labelColor={gridLabelColor} formatLabel={v => `${Math.round(v * 10) / 10}${unitLabel}`}>
-                        <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.8} isDarkBg={isDarkBg} />
+                        <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                       </ChartWithYAxis>
                     : bwValues.length === 1
                       ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
@@ -1769,7 +1911,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'side' && (
               <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 <div style={{
-                  position: 'absolute', left: '3%', top: '3%', width: '38%', bottom: '3%',
+                  position: 'absolute', left: '3%', top: '3%', width: '47%', bottom: '3%',
                   ...cardBgProps, borderRadius: 18,
                   overflow: 'hidden', isolation: 'isolate',
                   border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
@@ -1787,7 +1929,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   )}
                   <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
                     {bwValues.length >= 2
-                      ? <SideBWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                      ? <SideBWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} dates={bwHistory.map(p => p.date)} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
                   </div>
                   <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
@@ -1810,7 +1952,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       xLeft={bwHistory.length >= 2 ? fmtXLabel(bwFirstDate) : undefined}
                       xRight={bwHistory.length >= 2 ? fmtXLabel(bwLastDate) : undefined}
                       xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                      <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.6} isDarkBg={isDarkBg} />
+                      <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                     </ChartWithYAxis>
                   </div>
                   <div>
@@ -1854,7 +1996,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     xLeft={bwHistory.length >= 2 ? fmtXLabel(bwFirstDate) : undefined}
                     xRight={bwHistory.length >= 2 ? fmtXLabel(bwLastDate) : undefined}
                     xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                    <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.7} isDarkBg={isDarkBg} />
+                    <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                   </ChartWithYAxis>
                 </div>
               </div>
@@ -1926,7 +2068,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'side' && (
               <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 <div style={{
-                  position: 'absolute', left: '3%', top: '3%', width: '38%', bottom: '3%',
+                  position: 'absolute', left: '3%', top: '3%', width: '47%', bottom: '3%',
                   ...cardBgProps, borderRadius: 18,
                   overflow: 'hidden', isolation: 'isolate',
                   border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
@@ -1940,9 +2082,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     <span style={{ fontSize: 16, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
                   </div>
                   <p style={{ fontSize: 7, color: ptxt(0.40), margin: '2px 0 3px' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
-                  <div style={{ flex: 1, minHeight: 0, margin: '4px 0' }}>
+                  <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
                     {volBars30.bars.length > 0
-                      ? <SideVolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} />
+                      ? <SideVolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} isDarkBg={isDarkBg} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
                   </div>
                   <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
