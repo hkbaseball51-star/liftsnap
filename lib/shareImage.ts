@@ -59,12 +59,17 @@ export async function captureElement(
     throw new Error(`Export element has zero dimensions: ${W}×${H}`)
   }
 
+  // 4:1 banner cards (aspect > 3.2) need different treatment:
+  //   1. clip-path: inset() causes mis-clipped corners on the extreme aspect ratio.
+  //   2. Higher minimum pixelRatio improves rendering quality at small CSS pixel heights.
+  const isFourByOne = W / H > 3.2
+
   // Target ~1080px wide output regardless of aspect ratio.
-  // Using max(W,H) underscales portrait (9:16) cards: H≈693px on a 390px-wide phone
-  // gave pixelRatio=2 → only 780px wide output. Using W always gives ~1080px wide.
-  // Non-integer ratio is intentional: html-to-image accepts floats and produces
-  // output width = W × pixelRatio = 1080px exactly on mobile.
-  const pixelRatio = Math.min(3, Math.max(2, 1080 / W))
+  // For 4:1 cards raise the minimum pixel ratio from 2 to 2.5 — on mobile widths the
+  // formula already exceeds 2.5 so this only affects wider viewports (tablets).
+  const pixelRatio = isFourByOne
+    ? Math.min(3, Math.max(2.5, 1080 / W))
+    : Math.min(3, Math.max(2,   1080 / W))
 
   const opts = {
     width:  W,
@@ -87,8 +92,10 @@ export async function captureElement(
   // overflow:hidden + border-radius alone is NOT consistently respected by WebKit's
   // ForeignObject renderer — background gradients and graph layers paint as rectangles
   // and bleed outside the rounded corners in the saved PNG.
-  // clip-path: inset() is explicitly clipped in the canvas pipeline on all WebKit versions.
-  const hasRadius = Boolean(borderRadius && borderRadius !== '0px' && borderRadius !== '0')
+  // EXCEPTION: 4:1 cards skip clip-path because the extreme aspect ratio causes WebKit's
+  // inset() radius computation to produce white corners or mis-clipped edges.  Their
+  // border-radius + overflow:hidden is sufficient since the gradient surface is simple.
+  const hasRadius = !isFourByOne && Boolean(borderRadius && borderRadius !== '0px' && borderRadius !== '0')
   const prevClipPath = el.style.clipPath
 
   // Saved values — restored in finally regardless of outcome.
@@ -112,11 +119,29 @@ export async function captureElement(
   document.documentElement.style.background       = 'transparent'
   document.documentElement.style.backgroundColor  = 'transparent'
 
+  // Per-descendant backgroundImage records — populated only when clearBackground=true.
+  // iOS Safari may not propagate an inherited backgroundImage:'none' through the
+  // foreignObject serialization tree, so glass gradient layers on inner components
+  // bleed into the transparent PNG even when the root element is cleared.
+  type ChildBgRecord = { el: HTMLElement; bgImg: string }
+  let childBgRecords: ChildBgRecord[] = []
+
   if (clearBackground) {
-    // Transparent card mode: also clear the element's own background.
+    // Transparent card mode: clear the element's own background.
     el.style.background            = 'transparent'
     el.style.backgroundColor       = 'transparent'
     el.style.backgroundImage       = 'none'
+
+    // Also clear inline backgroundImage on every descendant that has one set.
+    // We only touch inline styles (not computed) so purely CSS-class-driven backgrounds
+    // (chart fills, SVG strokes, text colors) are untouched.
+    el.querySelectorAll<HTMLElement>('*').forEach(child => {
+      const inlineBgImg = child.style.backgroundImage
+      if (inlineBgImg && inlineBgImg !== '' && inlineBgImg !== 'none') {
+        childBgRecords.push({ el: child, bgImg: inlineBgImg })
+        child.style.backgroundImage = 'none'
+      }
+    })
   }
   if (hasRadius) {
     el.style.clipPath = `inset(0 round ${borderRadius})`
@@ -152,6 +177,9 @@ export async function captureElement(
       el.style.background                              = prevBg
       el.style.backgroundColor                         = prevBgColor
       el.style.backgroundImage                         = prevBgImg
+      childBgRecords.forEach(({ el: child, bgImg }) => {
+        child.style.backgroundImage = bgImg
+      })
     }
     if (hasRadius) el.style.clipPath = prevClipPath
   }
