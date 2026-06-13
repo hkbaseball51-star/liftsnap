@@ -828,27 +828,50 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       let filename: string
 
       if (data.type === 'max1rm') {
-        const el: HTMLDivElement | null =
-          graphLayout === 'full'   ? fullGraphRef.current  :
-          graphLayout === 'bottom' ? bottomCardRef.current :
-          graphLayout === 'mini'   ? miniCardRef.current   :
-                                     wideCardRef.current
-
-        const w = el?.offsetWidth ?? 0; const h = el?.offsetHeight ?? 0
-        const innerText = el?.innerText?.trim() ?? ''; const childCount = el?.children.length ?? 0
-
-        if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
-          setStatus('Could not create image. Please try again.')
-          setTimeout(() => setStatus(''), 3000); setSharing(false); return
-        }
-
-        blob = await captureElement(el, { clearBackground: cardStyle === 'transparent' })
         const today = new Date().toISOString().split('T')[0]
         const nameSlug = (RM_JA_EN[exNameRaw] ?? exNameRaw)
           .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 20) || 'exercise'
         filename = graphLayout === 'full'
           ? `repra-max-1rm-story-${today}-${nameSlug}.png`
           : `repra-max-1rm-card-${today}-${nameSlug}-${graphLayout}.png`
+
+        if (graphLayout === 'bottom') {
+          const { exportFourByOneCard } = await import('@/lib/fourByOneExport')
+          blob = await exportFourByOneCard({
+            metric: 'max1rm',
+            cardStyle,
+            graphAccentHex: gpAccent,
+            graphLatestHex: gpLatest,
+            areaFill,
+            isDarkBg,
+            glassAccentHex: gp.accentHex,
+            glassIsDark: gp.isDark !== false,
+            gpBorder: gp.border,
+            badgeBg: gpBadgeBg,
+            badgeTxt: gpBadgeTxt,
+            cardLang,
+            exName,
+            bestRMDisplay,
+            unitLabel,
+            rm1Growth: rm1Growth ?? null,
+            rm1SVGData,
+          })
+        } else {
+          const el: HTMLDivElement | null =
+            graphLayout === 'full' ? fullGraphRef.current :
+            graphLayout === 'mini' ? miniCardRef.current  :
+                                     wideCardRef.current
+
+          const w = el?.offsetWidth ?? 0; const h = el?.offsetHeight ?? 0
+          const innerText = el?.innerText?.trim() ?? ''; const childCount = el?.children.length ?? 0
+
+          if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
+            setStatus('Could not create image. Please try again.')
+            setTimeout(() => setStatus(''), 3000); setSharing(false); return
+          }
+
+          blob = await captureElement(el, { clearBackground: cardStyle === 'transparent' })
+        }
 
         const r1 = await shareOrDownloadImage({ blob, filename,
           title: graphLayout === 'full' ? 'REPRA Graph Story' : 'REPRA Graph Card' })
@@ -857,25 +880,49 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         return
 
       } else if (data.type === 'bodyweight') {
-        const el: HTMLDivElement | null =
-          graphLayout === 'full'   ? fullWeightRef.current   :
-          graphLayout === 'bottom' ? bottomWeightRef.current :
-          graphLayout === 'mini'   ? miniWeightRef.current   :
-                                     wideWeightRef.current
-
-        const w = el?.offsetWidth ?? 0; const h = el?.offsetHeight ?? 0
-        const innerText = el?.innerText?.trim() ?? ''; const childCount = el?.children.length ?? 0
-
-        if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
-          setStatus('Could not create image. Please try again.')
-          setTimeout(() => setStatus(''), 3000); setSharing(false); return
-        }
-
-        blob = await captureElement(el, { clearBackground: cardStyle === 'transparent' })
         const today = new Date().toISOString().split('T')[0]
         filename = graphLayout === 'full'
           ? `repra-bodyweight-story-${today}.png`
           : `repra-bodyweight-card-${today}-${graphLayout}.png`
+
+        if (graphLayout === 'bottom') {
+          const { exportFourByOneCard } = await import('@/lib/fourByOneExport')
+          blob = await exportFourByOneCard({
+            metric: 'bodyweight',
+            cardStyle,
+            graphAccentHex: gpAccent,
+            graphLatestHex: gpLatest,
+            areaFill,
+            isDarkBg,
+            glassAccentHex: gp.accentHex,
+            glassIsDark: gp.isDark !== false,
+            gpBorder: gp.border,
+            badgeBg: gpBadgeBg,
+            badgeTxt: gpBadgeTxt,
+            cardLang,
+            unitLabel,
+            bwCurrentDisplay,
+            bwStartDisplay,
+            bwChangeStr,
+            bwValues,
+            bwHistoryLen: bwHistory.length,
+          })
+        } else {
+          const el: HTMLDivElement | null =
+            graphLayout === 'full' ? fullWeightRef.current :
+            graphLayout === 'mini' ? miniWeightRef.current :
+                                     wideWeightRef.current
+
+          const w = el?.offsetWidth ?? 0; const h = el?.offsetHeight ?? 0
+          const innerText = el?.innerText?.trim() ?? ''; const childCount = el?.children.length ?? 0
+
+          if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
+            setStatus('Could not create image. Please try again.')
+            setTimeout(() => setStatus(''), 3000); setSharing(false); return
+          }
+
+          blob = await captureElement(el, { clearBackground: cardStyle === 'transparent' })
+        }
 
         const r2 = await shareOrDownloadImage({ blob, filename,
           title: graphLayout === 'full' ? 'REPRA Weight Graph Story' : 'REPRA Weight Graph Card' })
@@ -884,26 +931,48 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         return
 
       } else {
-        // Daily Volume — DOM capture path
-        const el: HTMLDivElement | null =
-          graphLayout === 'full'   ? fullVolRef.current   :
-          graphLayout === 'bottom' ? bottomVolRef.current :
-          graphLayout === 'mini'   ? miniVolRef.current   :
-                                     wideVolRef.current
-
-        const w = el?.offsetWidth ?? 0; const h = el?.offsetHeight ?? 0
-        const innerText = el?.innerText?.trim() ?? ''; const childCount = el?.children.length ?? 0
-
-        if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
-          setStatus('Could not create image. Please try again.')
-          setTimeout(() => setStatus(''), 3000); setSharing(false); return
-        }
-
-        blob = await captureElement(el, { clearBackground: cardStyle === 'transparent' })
+        // Daily Volume
         const today = new Date().toISOString().split('T')[0]
         filename = graphLayout === 'full'
           ? `repra-volume-story-${today}-${volBodyPart}.png`
           : `repra-volume-card-${today}-${volBodyPart}-${graphLayout}.png`
+
+        if (graphLayout === 'bottom') {
+          const { exportFourByOneCard } = await import('@/lib/fourByOneExport')
+          blob = await exportFourByOneCard({
+            metric: 'volume',
+            cardStyle,
+            graphAccentHex: gpAccent,
+            graphLatestHex: gpLatest,
+            areaFill,
+            isDarkBg,
+            glassAccentHex: gp.accentHex,
+            glassIsDark: gp.isDark !== false,
+            gpBorder: gp.border,
+            badgeBg: gpBadgeBg,
+            badgeTxt: gpBadgeTxt,
+            cardLang,
+            volCardLabel,
+            activeVolTotalStr,
+            activeVolSessionCount,
+            volBars: volBars30.bars,
+          })
+        } else {
+          const el: HTMLDivElement | null =
+            graphLayout === 'full' ? fullVolRef.current :
+            graphLayout === 'mini' ? miniVolRef.current :
+                                     wideVolRef.current
+
+          const w = el?.offsetWidth ?? 0; const h = el?.offsetHeight ?? 0
+          const innerText = el?.innerText?.trim() ?? ''; const childCount = el?.children.length ?? 0
+
+          if (!el || w === 0 || h === 0 || innerText === '' || childCount === 0) {
+            setStatus('Could not create image. Please try again.')
+            setTimeout(() => setStatus(''), 3000); setSharing(false); return
+          }
+
+          blob = await captureElement(el, { clearBackground: cardStyle === 'transparent' })
+        }
 
         const r3 = await shareOrDownloadImage({ blob, filename,
           title: graphLayout === 'full' ? 'REPRA Volume Graph Story' : 'REPRA Volume Graph Card' })
