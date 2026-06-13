@@ -73,9 +73,10 @@ const CX = CARD_X + 10  // 28
 
 // Badge
 const BADGE_Y  = CARD_Y + 12  // 82
-const BADGE_W  = 52   // sized to text width (~38px) + left/right padding
 const BADGE_H  = 22
 const BADGE_RX = 10
+const BADGE_PAD_L = 11  // left padding inside badge
+const BADGE_PAD_R = 10  // right padding inside badge
 
 // Chart total area (header above, footer below)
 const CHART_TOP = CARD_Y + 185   // 255
@@ -249,14 +250,17 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // ── REPRA badge ───────────────────────────────────────────────────────────────
 
 function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  rrPath(ctx, CX, BADGE_Y, BADGE_W, BADGE_H, BADGE_RX)
+  // Measure actual text width first so the pill always fits the text
+  ctx.font = fnt(14, true)
+  const textW = ctx.measureText('REPRA').width
+  const bw = Math.ceil(textW) + BADGE_PAD_L + BADGE_PAD_R
+  rrPath(ctx, CX, BADGE_Y, bw, BADGE_H, BADGE_RX)
   ctx.fillStyle = args.badgeBg
   ctx.fill()
-  ctx.font         = fnt(14, true)
   ctx.fillStyle    = args.badgeTxt
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
-  ctx.fillText('REPRA', CX + 12, BADGE_Y + 15)
+  ctx.fillText('REPRA', CX + BADGE_PAD_L, BADGE_Y + 15)
 }
 
 // ── Line chart (MAX 1RM / Body Weight) ───────────────────────────────────────

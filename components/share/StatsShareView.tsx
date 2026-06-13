@@ -666,7 +666,7 @@ function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true, da
   dates?: string[]
 }) {
   if (data.length < 2) return null
-  const LP = 18, RP = 2, TP = 4, BP = 12
+  const LP = 16, RP = 3, TP = 1, BP = 3
   const values = data.map(d => d.est1rm)
   const max = Math.max(...values)
   const min = Math.min(...values)
@@ -730,7 +730,7 @@ function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true, da
         )
       })}
       {filteredTicks.map((tick, i) => (
-        <div key={i} style={{ position: 'absolute', left: `${px(tick)}%`, top: `${100 - BP + 2}%`,
+        <div key={i} style={{ position: 'absolute', left: `${px(tick)}%`, top: '97.74%',
           transform: 'translateX(-50%)', fontSize: 4, color: lblColor, lineHeight: 1,
           pointerEvents: 'none', whiteSpace: 'nowrap' }}>
           {Math.round(tick)}
@@ -758,7 +758,7 @@ function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true
   dates?: string[]
 }) {
   if (values.length < 2) return null
-  const LP = 18, RP = 2, TP = 4, BP = 12
+  const LP = 16, RP = 3, TP = 1, BP = 3
   const max = Math.max(...values)
   const min = Math.min(...values)
   const rng = max - min || max * 0.1 || 1
@@ -821,7 +821,7 @@ function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true
         )
       })}
       {filteredTicks.map((tick, i) => (
-        <div key={i} style={{ position: 'absolute', left: `${px(tick)}%`, top: `${100 - BP + 2}%`,
+        <div key={i} style={{ position: 'absolute', left: `${px(tick)}%`, top: '97.74%',
           transform: 'translateX(-50%)', fontSize: 4, color: lblColor, lineHeight: 1,
           pointerEvents: 'none', whiteSpace: 'nowrap' }}>
           {Math.round(tick * 10) / 10}
@@ -849,7 +849,7 @@ function SideVolBarSVG({ bars, accentHex, latestHex, isDarkBg = true }: {
   if (!bars.length) return null
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal === 0) return null
-  const LP = 18, RP = 2, TP = 4, BP = 12
+  const LP = 16, RP = 3, TP = 1, BP = 3
   const n = bars.length
   const slotH = (100 - TP - BP) / n
   const barH  = slotH * 0.55
@@ -907,7 +907,7 @@ function SideVolBarSVG({ bars, accentHex, latestHex, isDarkBg = true }: {
         )
       })}
       {xTicks.map((tick, i) => (
-        <div key={i} style={{ position: 'absolute', left: `${bxOf(tick)}%`, top: `${100 - BP + 2}%`,
+        <div key={i} style={{ position: 'absolute', left: `${bxOf(tick)}%`, top: '97.74%',
           transform: 'translateX(-50%)', fontSize: 4, color: lblColor, lineHeight: 1,
           pointerEvents: 'none', whiteSpace: 'nowrap' }}>
           {tick >= 10000 ? `${Math.round(tick/1000)}k` : tick >= 1000 ? `${(tick/1000).toFixed(1)}k` : Math.round(tick)}
@@ -1741,33 +1741,54 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
             {graphLayout === 'side' && (
               <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
-                {/* Left card — ~47% of story width */}
+                {/* Left card — positioned to match canvas: CARD_X/CW=3.33%, CARD_Y/CH=7.29%, CARD_W/CW=47.22%, CARD_H/CH=85.42% */}
                 <div style={{
-                  position: 'absolute', left: '3%', top: '3%', width: '47%', bottom: '3%',
+                  position: 'absolute', left: '3.33%', top: '7.29%', width: '47.22%', height: '85.42%',
                   ...cardBgProps, borderRadius: 18,
                   overflow: 'hidden', isolation: 'isolate',
                   border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
                   boxShadow: cardBoxShadow, textShadow: textShadowVal,
-                  display: 'flex', flexDirection: 'column', padding: '10px 8px 8px',
                 }}>
-                  {gpBadge}
-                  <p style={{ fontSize: 7, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 1px' }}>{cl('1RM PROGRESS', '1RM推移')}</p>
-                  <p style={{ fontSize: 9.5, fontWeight: 900, color: textPrimary, margin: '0 0 4px', lineHeight: 1.1 }}>{exName}</p>
-                  <div style={{ flexShrink: 0 }}>
-                    <span style={{ fontSize: 18, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bestRMDisplay}</span>
-                    <span style={{ fontSize: 7, color: ptxt(0.50), marginLeft: 2 }}>{unitLabel} {cl('best', 'ベスト')}</span>
-                  </div>
+                  {/* REPRA badge: left=CX/CARD_W=3.92%, top=(BADGE_Y-CARD_Y)/CARD_H=1.46% */}
+                  <span style={{ position: 'absolute', left: '3.92%', top: '1.46%',
+                    fontSize: 7, fontWeight: 900, padding: '1.5px 6px', borderRadius: 4,
+                    background: gpBadgeBg, color: gpBadgeTxt, letterSpacing: '0.16em', display: 'inline-block' }}>REPRA</span>
+                  {/* 1RM PROGRESS: top=(BADGE_Y+40-CARD_Y)/CARD_H=6.34% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '6.34%', margin: 0,
+                    fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em' }}>
+                    {cl('1RM PROGRESS', '1RM推移')}
+                  </p>
+                  {/* exName: top=(BADGE_Y+64-CARD_Y)/CARD_H=9.27% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '9.27%', margin: 0,
+                    fontSize: 9, fontWeight: 900, color: textPrimary, lineHeight: 1.1 }}>
+                    {exName}
+                  </p>
+                  {/* bestRMDisplay: top=(BADGE_Y+112-CARD_Y)/CARD_H=15.12% */}
+                  <span style={{ position: 'absolute', left: '3.92%', top: '15.12%',
+                    fontSize: 17, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>
+                    {bestRMDisplay}
+                  </span>
+                  {/* unit label: top=(BADGE_Y+132-CARD_Y)/CARD_H=17.56% */}
+                  <span style={{ position: 'absolute', left: '3.92%', top: '17.56%',
+                    fontSize: 6, color: ptxt(0.50) }}>
+                    {unitLabel} {cl('best', 'ベスト')}
+                  </span>
+                  {/* growth: top=(BADGE_Y+154-CARD_Y)/CARD_H=20.24% */}
                   {rm1Growth !== null && (
-                    <p style={{ fontSize: 8, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '2px 0 3px' }}>
+                    <p style={{ position: 'absolute', left: '3.92%', top: '20.24%', margin: 0,
+                      fontSize: 7.5, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171' }}>
                       {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
                     </p>
                   )}
-                  <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
+                  {/* Chart: top=(CHART_TOP-CARD_Y)/CARD_H=22.56%, height=(CHART_BOT-CHART_TOP)/CARD_H=75.49% */}
+                  <div style={{ position: 'absolute', left: 0, top: '22.56%', width: '100%', height: '75.49%' }}>
                     {rm1SVGData.length >= 2
                       ? <SideLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} dates={rm1FullHistory.map(p => p.date)} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
                   </div>
-                  <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
+                  {/* Made with REPRA: bottom=10/CARD_H=1.22% */}
+                  <p style={{ position: 'absolute', left: '3.92%', bottom: '1.22%', margin: 0,
+                    fontSize: 5.5, color: ptxt(0.22) }}>Made with REPRA</p>
                 </div>
               </div>
             )}
@@ -1914,28 +1935,52 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'side' && (
               <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 <div style={{
-                  position: 'absolute', left: '3%', top: '3%', width: '47%', bottom: '3%',
+                  position: 'absolute', left: '3.33%', top: '7.29%', width: '47.22%', height: '85.42%',
                   ...cardBgProps, borderRadius: 18,
                   overflow: 'hidden', isolation: 'isolate',
                   border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
                   boxShadow: cardBoxShadow, textShadow: textShadowVal,
-                  display: 'flex', flexDirection: 'column', padding: '10px 8px 8px',
                 }}>
-                  {gpBadge}
-                  <p style={{ fontSize: 7, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 1px' }}>{cl('BODY WEIGHT', '体重')}</p>
-                  <div style={{ flexShrink: 0 }}>
-                    <span style={{ fontSize: 18, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bwCurrentDisplay}</span>
-                    <span style={{ fontSize: 7, color: ptxt(0.50), marginLeft: 2 }}>{unitLabel}</span>
-                  </div>
+                  <span style={{ position: 'absolute', left: '3.92%', top: '1.46%',
+                    fontSize: 7, fontWeight: 900, padding: '1.5px 6px', borderRadius: 4,
+                    background: gpBadgeBg, color: gpBadgeTxt, letterSpacing: '0.16em', display: 'inline-block' }}>REPRA</span>
+                  {/* BODY WEIGHT: top=6.34% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '6.34%', margin: 0,
+                    fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em' }}>
+                    {cl('BODY WEIGHT', '体重')}
+                  </p>
+                  {/* hasBoth: start→current at top=9.02% = (BADGE_Y+62-CARD_Y)/CARD_H */}
                   {bwHistory.length >= 2 && (
-                    <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, margin: '2px 0 3px' }}>{bwChangeStr}{unitLabel}</p>
+                    <p style={{ position: 'absolute', left: '3.92%', top: '9.02%', margin: 0,
+                      fontSize: 6.5, color: ptxt(0.55) }}>
+                      {bwStartDisplay} → {bwCurrentDisplay}
+                    </p>
                   )}
-                  <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
+                  {/* bwCurrentDisplay: hasBoth→14.39%, else→12.68% */}
+                  <span style={{ position: 'absolute', left: '3.92%',
+                    top: bwHistory.length >= 2 ? '14.39%' : '12.68%',
+                    fontSize: 17, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>
+                    {bwCurrentDisplay}
+                  </span>
+                  {/* unitLabel: hasBoth→16.83%, else→15.12% */}
+                  <span style={{ position: 'absolute', left: '3.92%',
+                    top: bwHistory.length >= 2 ? '16.83%' : '15.12%',
+                    fontSize: 6, color: ptxt(0.50) }}>
+                    {unitLabel}
+                  </span>
+                  {/* bwChangeStr: hasBoth→19.76%, else→17.80% */}
+                  <p style={{ position: 'absolute', left: '3.92%',
+                    top: bwHistory.length >= 2 ? '19.76%' : '17.80%', margin: 0,
+                    fontSize: 7.5, fontWeight: 700, color: gpAccent }}>
+                    {bwChangeStr}{unitLabel}
+                  </p>
+                  <div style={{ position: 'absolute', left: 0, top: '22.56%', width: '100%', height: '75.49%' }}>
                     {bwValues.length >= 2
                       ? <SideBWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} dates={bwHistory.map(p => p.date)} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
                   </div>
-                  <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
+                  <p style={{ position: 'absolute', left: '3.92%', bottom: '1.22%', margin: 0,
+                    fontSize: 5.5, color: ptxt(0.22) }}>Made with REPRA</p>
                 </div>
               </div>
             )}
@@ -2071,26 +2116,47 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             {graphLayout === 'side' && (
               <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 <div style={{
-                  position: 'absolute', left: '3%', top: '3%', width: '47%', bottom: '3%',
+                  position: 'absolute', left: '3.33%', top: '7.29%', width: '47.22%', height: '85.42%',
                   ...cardBgProps, borderRadius: 18,
                   overflow: 'hidden', isolation: 'isolate',
                   border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
                   boxShadow: cardBoxShadow, textShadow: textShadowVal,
-                  display: 'flex', flexDirection: 'column', padding: '10px 8px 8px',
                 }}>
-                  {gpBadge}
-                  <p style={{ fontSize: 7, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
-                  <p style={{ fontSize: 9.5, fontWeight: 900, color: textPrimary, margin: '0 0 3px', lineHeight: 1.1 }}>{volCardLabel}</p>
-                  <div style={{ flexShrink: 0 }}>
-                    <span style={{ fontSize: 16, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
-                  </div>
-                  <p style={{ fontSize: 7, color: ptxt(0.40), margin: '2px 0 3px' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
-                  <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
+                  <span style={{ position: 'absolute', left: '3.92%', top: '1.46%',
+                    fontSize: 7, fontWeight: 900, padding: '1.5px 6px', borderRadius: 4,
+                    background: gpBadgeBg, color: gpBadgeTxt, letterSpacing: '0.16em', display: 'inline-block' }}>REPRA</span>
+                  {/* DAILY VOLUME: top=6.34% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '6.34%', margin: 0,
+                    fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em' }}>
+                    {cl('DAILY VOLUME', '総重量')}
+                  </p>
+                  {/* volCardLabel: top=(BADGE_Y+64-CARD_Y)/CARD_H=9.27% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '9.27%', margin: 0,
+                    fontSize: 9, fontWeight: 900, color: textPrimary, lineHeight: 1.1 }}>
+                    {volCardLabel}
+                  </p>
+                  {/* activeVolTotalStr: top=(BADGE_Y+108-CARD_Y)/CARD_H=14.63% */}
+                  <span style={{ position: 'absolute', left: '3.92%', top: '14.63%',
+                    fontSize: 16, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>
+                    {activeVolTotalStr}
+                  </span>
+                  {/* total label: top=(BADGE_Y+128-CARD_Y)/CARD_H=17.07% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '17.07%', margin: 0,
+                    fontSize: 6, color: ptxt(0.45) }}>
+                    {cl('total', '合計')}
+                  </p>
+                  {/* sessions: top=(BADGE_Y+148-CARD_Y)/CARD_H=19.51% */}
+                  <p style={{ position: 'absolute', left: '3.92%', top: '19.51%', margin: 0,
+                    fontSize: 6, color: ptxt(0.35) }}>
+                    {activeVolSessionCount} {cl('sessions', 'セッション')}
+                  </p>
+                  <div style={{ position: 'absolute', left: 0, top: '22.56%', width: '100%', height: '75.49%' }}>
                     {volBars30.bars.length > 0
                       ? <SideVolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} isDarkBg={isDarkBg} />
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
                   </div>
-                  <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
+                  <p style={{ position: 'absolute', left: '3.92%', bottom: '1.22%', margin: 0,
+                    fontSize: 5.5, color: ptxt(0.22) }}>Made with REPRA</p>
                 </div>
               </div>
             )}
