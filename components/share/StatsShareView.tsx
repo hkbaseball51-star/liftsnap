@@ -32,7 +32,7 @@ export type StatsData =
 type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
-type GraphLayout  = 'full' | 'banner' | 'mini' | 'wide'
+type GraphLayout  = 'full' | 'side' | 'mini' | 'wide'
 // TODO_PRO: premiumDesignPresets — 'premium-black' and 'pearl-white' are candidates for Pro-only presets.
 type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint' | 'premium-black' | 'pearl-white'
 type CardStyle    = 'glass' | 'transparent'
@@ -91,10 +91,10 @@ const VOL_PPL_GROUPS = [
 ] as const
 
 const GRAPH_LAYOUTS = [
-  { key: 'full',   labelEn: 'Full',   labelJa: '全画面',    ratio: '9:16' },
-  { key: 'banner', labelEn: 'Banner', labelJa: 'バナー',    ratio: '2:1'  },
-  { key: 'mini',   labelEn: 'Mini',   labelJa: 'ミニカード', ratio: '1:1' },
-  { key: 'wide',   labelEn: 'Wide',   labelJa: 'ワイド',    ratio: '16:9' },
+  { key: 'full',   labelEn: 'Full',       labelJa: '全画面',    ratio: '9:16' },
+  { key: 'side',   labelEn: 'Side Graph', labelJa: '左グラフ',   ratio: '9:16' },
+  { key: 'mini',   labelEn: 'Mini',       labelJa: 'ミニカード', ratio: '1:1'  },
+  { key: 'wide',   labelEn: 'Wide',       labelJa: 'ワイド',     ratio: '16:9' },
 ] as const
 
 const PRESET_LABELS: Record<GraphPreset, string> = {
@@ -410,7 +410,7 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
 }) {
   const rects: Record<string, { x: number; y: number; w: number; h: number }> = {
     full:   { x: 14, y: 4,  w: 12, h: 32 },
-    banner: { x: 17, y: 4,  w: 6,  h: 32 },
+    side:   { x: 5,  y: 4,  w: 12, h: 32 },
     mini:   { x: 8,  y: 8,  w: 24, h: 24 },
     wide:   { x: 3,  y: 10, w: 34, h: 20 },
   }
@@ -419,8 +419,7 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
   const rectFill     = selected ? `${accentHex}18` : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
   const rectStroke   = selected ? accentHex : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)'
 
-  // Banner is always shown as line thumb (bar bars would be invisible in narrow rect)
-  if (isBar && layoutKey !== 'banner') {
+  if (isBar) {
     const barCount = 7
     const innerW = r.w - 4
     const slotW = innerW / barCount
@@ -649,6 +648,132 @@ function VolBarSVG({ bars, accentHex, latestHex, isTransparent = false }: {
   )
 }
 
+/* ── Side Graph SVG components (x=value, y=date, used in 'side' layout preview) ── */
+
+function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true }: {
+  data: { est1rm: number }[]
+  accentHex: string
+  latestHex: string
+  areaFill: string
+  isDarkBg?: boolean
+}) {
+  if (data.length < 2) return null
+  const W = 100, H = 100
+  const values = data.map(d => d.est1rm)
+  const max = Math.max(...values)
+  const min = Math.min(...values)
+  const rng = max - min || max * 0.1 || 1
+
+  const px = (v: number) => 6 + ((v - min) / rng) * 88
+  const py = (i: number) => 4 + (i / (data.length - 1)) * 92
+
+  const linePoints = data.map((d, i) => `${px(d.est1rm).toFixed(1)},${py(i).toFixed(1)}`).join(' ')
+  const areaPoints = `6,${py(0).toFixed(1)} ${linePoints} 6,${py(data.length - 1).toFixed(1)}`
+
+  const lastX = px(values[values.length - 1]!)
+  const lastY = py(data.length - 1)
+  const firstX = px(values[0]!)
+  const firstY = py(0)
+  const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
+
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <polygon points={areaPoints} fill={areaFill} />
+        <polyline points={linePoints} fill="none" stroke={accentHex}
+          strokeWidth="1.5" strokeLinejoin="miter" strokeLinecap="butt" />
+        <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.2" fill={firstDotColor} />
+      </svg>
+      <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
+                    transform: 'translate(-50%,-50%)', width: 14, height: 14,
+                    borderRadius: '50%', background: latestHex, opacity: 0.08, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
+                    transform: 'translate(-50%,-50%)', width: 8, height: 8,
+                    borderRadius: '50%', background: latestHex, opacity: 0.28, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
+                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    borderRadius: '50%', background: latestHex, pointerEvents: 'none' }} />
+    </div>
+  )
+}
+
+function SideBWLineSVG({ values, accentHex, latestHex, areaFill, isDarkBg = true }: {
+  values: number[]
+  accentHex: string
+  latestHex: string
+  areaFill: string
+  isDarkBg?: boolean
+}) {
+  if (values.length < 2) return null
+  const W = 100, H = 100
+  const max = Math.max(...values)
+  const min = Math.min(...values)
+  const rng = max - min || max * 0.1 || 1
+
+  const px = (v: number) => 6 + ((v - min) / rng) * 88
+  const py = (i: number) => 4 + (i / Math.max(values.length - 1, 1)) * 92
+
+  const linePoints = values.map((v, i) => `${px(v).toFixed(1)},${py(i).toFixed(1)}`).join(' ')
+  const areaPoints = `6,${py(0).toFixed(1)} ${linePoints} 6,${py(values.length - 1).toFixed(1)}`
+
+  const lastX = px(values[values.length - 1]!)
+  const lastY = py(values.length - 1)
+  const firstX = px(values[0]!)
+  const firstY = py(0)
+  const firstDotColor = isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
+
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <polygon points={areaPoints} fill={areaFill} />
+        <polyline points={linePoints} fill="none" stroke={accentHex}
+          strokeWidth="1.5" strokeLinejoin="miter" strokeLinecap="butt" />
+        <circle cx={firstX.toFixed(1)} cy={firstY.toFixed(1)} r="1.2" fill={firstDotColor} />
+      </svg>
+      <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
+                    transform: 'translate(-50%,-50%)', width: 14, height: 14,
+                    borderRadius: '50%', background: latestHex, opacity: 0.08, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
+                    transform: 'translate(-50%,-50%)', width: 8, height: 8,
+                    borderRadius: '50%', background: latestHex, opacity: 0.28, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
+                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    borderRadius: '50%', background: latestHex, pointerEvents: 'none' }} />
+    </div>
+  )
+}
+
+function SideVolBarSVG({ bars, accentHex, latestHex }: {
+  bars: VolBar[]
+  accentHex: string
+  latestHex: string
+}) {
+  if (!bars.length) return null
+  const maxVal = Math.max(...bars.map(b => b.value))
+  if (maxVal === 0) return null
+  const W = 100, H = 100
+  const slotH = H / bars.length
+  const barH  = slotH * 0.55
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+      {bars.map((b, i) => {
+        const bw      = Math.max((b.value / maxVal) * 92, 0.5)
+        const by      = i * slotH + (slotH - barH) / 2
+        const fill    = (b.isLatest || b.isBest) ? latestHex : accentHex
+        const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
+        return (
+          <rect key={i}
+            x={0} y={by.toFixed(2)} width={bw.toFixed(2)} height={barH.toFixed(2)}
+            rx="1" fill={fill} opacity={opacity} />
+        )
+      })}
+    </svg>
+  )
+}
+
 /* ── Y-axis + X-axis overlay for graph cards ─────────────────────── */
 function ChartWithYAxis({
   children, ticks, pyOf, gridColor, labelColor, formatLabel,
@@ -722,22 +847,19 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const router = useRouter()
 
   // MAX 1RM export refs
-  const fullGraphRef  = useRef<HTMLDivElement>(null)
-  const bannerCardRef = useRef<HTMLDivElement>(null)
-  const miniCardRef   = useRef<HTMLDivElement>(null)
-  const wideCardRef   = useRef<HTMLDivElement>(null)
+  const fullGraphRef = useRef<HTMLDivElement>(null)
+  const miniCardRef  = useRef<HTMLDivElement>(null)
+  const wideCardRef  = useRef<HTMLDivElement>(null)
 
   // Body Weight export refs
-  const fullWeightRef   = useRef<HTMLDivElement>(null)
-  const bannerWeightRef = useRef<HTMLDivElement>(null)
-  const miniWeightRef   = useRef<HTMLDivElement>(null)
-  const wideWeightRef   = useRef<HTMLDivElement>(null)
+  const fullWeightRef = useRef<HTMLDivElement>(null)
+  const miniWeightRef = useRef<HTMLDivElement>(null)
+  const wideWeightRef = useRef<HTMLDivElement>(null)
 
   // Daily Volume export refs
-  const fullVolRef   = useRef<HTMLDivElement>(null)
-  const bannerVolRef = useRef<HTMLDivElement>(null)
-  const miniVolRef   = useRef<HTMLDivElement>(null)
-  const wideVolRef   = useRef<HTMLDivElement>(null)
+  const fullVolRef = useRef<HTMLDivElement>(null)
+  const miniVolRef = useRef<HTMLDivElement>(null)
+  const wideVolRef = useRef<HTMLDivElement>(null)
 
   const { unit }   = useWeightUnit()
   const unitLabel  = weightUnitLabel(unit)
@@ -921,9 +1043,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const vol60PyOf    = (v: number) => vol60AxisMax > 0 ? 100 - (v / vol60AxisMax) * 92 : 50
   const vol60XLeft   = volBars60.bars.length >= 2 ? volBars60.bars[0].label : ''
   const vol60XRight  = volBars60.bars.length >= 2 ? volBars60.bars[volBars60.bars.length - 1].label : ''
-  const vol30AxisMax = volBars30.bars.length ? Math.max(...volBars30.bars.map(b => b.value)) : 0
-  const vol30Ticks   = volBars30.bars.length >= 2 ? niceYTicks(0, vol30AxisMax, 3).filter(t => t > 0) : []
-  const vol30PyOf    = (v: number) => vol30AxisMax > 0 ? 100 - (v / vol30AxisMax) * 92 : 50
+
 
   const volGranLabel = volBarsAll.granularity === 'daily' ? 'DAILY'
     : volBarsAll.granularity === 'weekly' ? 'WEEKLY' : 'MONTHLY'
@@ -972,9 +1092,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-max-1rm-story-${today}-${nameSlug}.png`
           : `repra-max-1rm-card-${today}-${nameSlug}-${graphLayout}.png`
 
-        if (graphLayout === 'banner') {
-          const { exportTwoByOneCard } = await import('@/lib/twoByOneExport')
-          blob = await exportTwoByOneCard({
+        if (graphLayout === 'side') {
+          const { exportSideGraphCard } = await import('@/lib/sideGraphExport')
+          blob = await exportSideGraphCard({
             metric: 'max1rm',
             cardStyle,
             graphAccentHex: gpAccent,
@@ -993,8 +1113,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             unit,
             rm1Growth: rm1Growth ?? null,
             rm1SVGData,
-            xStartDate: rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[0].date) : undefined,
-            xEndDate:   rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date) : undefined,
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1014,7 +1132,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         }
 
         const r1 = await shareOrDownloadImage({ blob, filename,
-          title: graphLayout === 'full' ? 'REPRA Graph Story' : 'REPRA Graph Card' })
+          title: (graphLayout === 'full' || graphLayout === 'side') ? 'REPRA Graph Story' : 'REPRA Graph Card' })
         incrementShareCount(); setShareCount(getShareCount())
         if (r1 === 'downloaded') { setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000) } else { setStatus('') }
         return
@@ -1025,9 +1143,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-bodyweight-story-${today}.png`
           : `repra-bodyweight-card-${today}-${graphLayout}.png`
 
-        if (graphLayout === 'banner') {
-          const { exportTwoByOneCard } = await import('@/lib/twoByOneExport')
-          blob = await exportTwoByOneCard({
+        if (graphLayout === 'side') {
+          const { exportSideGraphCard } = await import('@/lib/sideGraphExport')
+          blob = await exportSideGraphCard({
             metric: 'bodyweight',
             cardStyle,
             graphAccentHex: gpAccent,
@@ -1047,8 +1165,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             bwChangeStr,
             bwValues,
             bwHistoryLen: bwHistory.length,
-            xStartDate: bwHistory.length >= 2 ? fmtXLabel(bwFirstDate) : undefined,
-            xEndDate:   bwHistory.length >= 2 ? fmtXLabel(bwLastDate)  : undefined,
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1068,7 +1184,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         }
 
         const r2 = await shareOrDownloadImage({ blob, filename,
-          title: graphLayout === 'full' ? 'REPRA Weight Graph Story' : 'REPRA Weight Graph Card' })
+          title: (graphLayout === 'full' || graphLayout === 'side') ? 'REPRA Weight Graph Story' : 'REPRA Weight Graph Card' })
         incrementShareCount(); setShareCount(getShareCount())
         if (r2 === 'downloaded') { setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000) } else { setStatus('') }
         return
@@ -1080,9 +1196,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-volume-story-${today}-${volBodyPart}.png`
           : `repra-volume-card-${today}-${volBodyPart}-${graphLayout}.png`
 
-        if (graphLayout === 'banner') {
-          const { exportTwoByOneCard } = await import('@/lib/twoByOneExport')
-          blob = await exportTwoByOneCard({
+        if (graphLayout === 'side') {
+          const { exportSideGraphCard } = await import('@/lib/sideGraphExport')
+          blob = await exportSideGraphCard({
             metric: 'volume',
             cardStyle,
             graphAccentHex: gpAccent,
@@ -1101,8 +1217,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             activeVolTotalStr,
             activeVolSessionCount,
             volBars: volBars30.bars,
-            xStartDate: volBars30.bars.length >= 2 ? volBars30.bars[0].label : undefined,
-            xEndDate:   volBars30.bars.length >= 2 ? volBars30.bars[volBars30.bars.length - 1].label : undefined,
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1122,7 +1236,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         }
 
         const r3 = await shareOrDownloadImage({ blob, filename,
-          title: graphLayout === 'full' ? 'REPRA Volume Graph Story' : 'REPRA Volume Graph Card' })
+          title: (graphLayout === 'full' || graphLayout === 'side') ? 'REPRA Volume Graph Story' : 'REPRA Volume Graph Card' })
         incrementShareCount(); setShareCount(getShareCount())
         if (r3 === 'downloaded') { setStatus('Downloaded!'); setTimeout(() => setStatus(''), 2000) } else { setStatus('') }
         return
@@ -1480,35 +1594,36 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
             )}
 
-            {graphLayout === 'banner' && (
-              <div style={{ marginLeft: -16, marginRight: -16 }}>
-              <div ref={bannerCardRef} style={{
-                width: '100%', aspectRatio: '2/1', ...cardBgProps, borderRadius: 18,
-                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
-                boxShadow: cardBoxShadow, gap: 14,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
-              }}>
-                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {graphLayout === 'side' && (
+              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
+                {/* Left card — ~38% of story width */}
+                <div style={{
+                  position: 'absolute', left: '3%', top: '3%', width: '38%', bottom: '3%',
+                  ...cardBgProps, borderRadius: 18,
+                  overflow: 'hidden', isolation: 'isolate',
+                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                  boxShadow: cardBoxShadow, textShadow: textShadowVal,
+                  display: 'flex', flexDirection: 'column', padding: '10px 8px 8px',
+                }}>
                   {gpBadge}
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: '4px 0 10px', lineHeight: 1.1 }}>{exName}</p>
-                  <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: 0, lineHeight: 1.2 }}>{cl('1RM PROGRESS', '1RM推移')}</p>
-                </div>
-                <div style={{ flex: 1, minWidth: 0, height: '67%', background: 'transparent' }}>
-                  <ChartWithYAxis ticks={rm1Ticks} pyOf={rm1PyOf} gridColor={gridColor} labelColor={gridLabelColor}
-                    formatLabel={v => `${Math.round(v)}${unitLabel}`}>
-                    <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
-                  </ChartWithYAxis>
-                </div>
-                <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bestRMDisplay}</p>
-                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel} {cl('best', 'ベスト')}</p>
+                  <p style={{ fontSize: 7, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 1px' }}>{cl('1RM PROGRESS', '1RM推移')}</p>
+                  <p style={{ fontSize: 9.5, fontWeight: 900, color: textPrimary, margin: '0 0 4px', lineHeight: 1.1 }}>{exName}</p>
+                  <div style={{ flexShrink: 0 }}>
+                    <span style={{ fontSize: 18, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bestRMDisplay}</span>
+                    <span style={{ fontSize: 7, color: ptxt(0.50), marginLeft: 2 }}>{unitLabel} {cl('best', 'ベスト')}</span>
+                  </div>
                   {rm1Growth !== null && (
-                    <p style={{ fontSize: 10, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>
+                    <p style={{ fontSize: 8, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171', margin: '2px 0 3px' }}>
                       {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
                     </p>
                   )}
+                  <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
+                    {rm1SVGData.length >= 2
+                      ? <SideLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
+                  </div>
+                  <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
                 </div>
-              </div>
               </div>
             )}
 
@@ -1651,36 +1766,32 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
             )}
 
-            {graphLayout === 'banner' && (
-              <div style={{ marginLeft: -16, marginRight: -16 }}>
-              <div ref={bannerWeightRef} style={{
-                width: '100%', aspectRatio: '2/1', ...cardBgProps, borderRadius: 18,
-                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
-                boxShadow: cardBoxShadow, gap: 14,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
-              }}>
-                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {graphLayout === 'side' && (
+              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
+                <div style={{
+                  position: 'absolute', left: '3%', top: '3%', width: '38%', bottom: '3%',
+                  ...cardBgProps, borderRadius: 18,
+                  overflow: 'hidden', isolation: 'isolate',
+                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                  boxShadow: cardBoxShadow, textShadow: textShadowVal,
+                  display: 'flex', flexDirection: 'column', padding: '10px 8px 8px',
+                }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('BODY WEIGHT', '体重')}</p>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: textPrimary, margin: 0, lineHeight: 1.2 }}>
-                    {bwHistory.length >= 2
-                      ? <>{bwStartDisplay}<span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span><span style={{ color: ptxt(0.30), margin: '0 3px' }}>→</span><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
-                      : <><span style={{ color: gpAccent }}>{bwCurrentDisplay}</span><span style={{ fontSize: 7, color: ptxt(0.46), marginLeft: 1 }}>{unitLabel}</span></>
-                    }
-                  </p>
+                  <p style={{ fontSize: 7, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 1px' }}>{cl('BODY WEIGHT', '体重')}</p>
+                  <div style={{ flexShrink: 0 }}>
+                    <span style={{ fontSize: 18, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bwCurrentDisplay}</span>
+                    <span style={{ fontSize: 7, color: ptxt(0.50), marginLeft: 2 }}>{unitLabel}</span>
+                  </div>
+                  {bwHistory.length >= 2 && (
+                    <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, margin: '2px 0 3px' }}>{bwChangeStr}{unitLabel}</p>
+                  )}
+                  <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '4px 0' }}>
+                    {bwValues.length >= 2
+                      ? <SideBWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
+                  </div>
+                  <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '67%', background: 'transparent' }}>
-                  <ChartWithYAxis ticks={bwTicks} pyOf={bwPyOf} gridColor={gridColor} labelColor={gridLabelColor}
-                    formatLabel={v => `${Math.round(v * 10) / 10}${unitLabel}`}>
-                    <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} strokeWidth={0.65} isDarkBg={isDarkBg} />
-                  </ChartWithYAxis>
-                </div>
-                <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{bwCurrentDisplay}</p>
-                  <p style={{ fontSize: 9, color: ptxt(0.50), margin: '2px 0 0', fontWeight: 500 }}>{unitLabel}</p>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: gpAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
-                </div>
-              </div>
               </div>
             )}
 
@@ -1812,31 +1923,30 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
             )}
 
-            {graphLayout === 'banner' && (
-              <div style={{ marginLeft: -16, marginRight: -16 }}>
-              <div ref={bannerVolRef} style={{
-                width: '100%', aspectRatio: '2/1', ...cardBgProps, borderRadius: 18,
-                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
-                boxShadow: cardBoxShadow, gap: 14,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
-              }}>
-                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {graphLayout === 'side' && (
+              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
+                <div style={{
+                  position: 'absolute', left: '3%', top: '3%', width: '38%', bottom: '3%',
+                  ...cardBgProps, borderRadius: 18,
+                  overflow: 'hidden', isolation: 'isolate',
+                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
+                  boxShadow: cardBoxShadow, textShadow: textShadowVal,
+                  display: 'flex', flexDirection: 'column', padding: '10px 8px 8px',
+                }}>
                   {gpBadge}
-                  <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '4px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
-                  <p style={{ fontSize: 12, fontWeight: 900, color: textPrimary, margin: 0, lineHeight: 1.1 }}>{volCardLabel}</p>
+                  <p style={{ fontSize: 7, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 1px' }}>{cl('DAILY VOLUME', '総重量')}</p>
+                  <p style={{ fontSize: 9.5, fontWeight: 900, color: textPrimary, margin: '0 0 3px', lineHeight: 1.1 }}>{volCardLabel}</p>
+                  <div style={{ flexShrink: 0 }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
+                  </div>
+                  <p style={{ fontSize: 7, color: ptxt(0.40), margin: '2px 0 3px' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
+                  <div style={{ flex: 1, minHeight: 0, margin: '4px 0' }}>
+                    {volBars30.bars.length > 0
+                      ? <SideVolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} />
+                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
+                  </div>
+                  <p style={{ fontSize: 6, color: ptxt(0.22), margin: '3px 0 0', flexShrink: 0 }}>Made with REPRA</p>
                 </div>
-                <div style={{ flex: 1, minWidth: 0, height: '70%', background: 'transparent' }}>
-                  <ChartWithYAxis ticks={vol30Ticks} pyOf={vol30PyOf} gridColor={gridColor} labelColor={gridLabelColor}
-                    formatLabel={volFmtAxis}>
-                    <VolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} isTransparent={isTransparentCard} />
-                  </ChartWithYAxis>
-                </div>
-                <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>{activeVolTotalStr}</p>
-                  <p style={{ fontSize: 8, color: ptxt(0.45), margin: '2px 0 0', fontWeight: 500 }}>{cl('total', '合計')}</p>
-                  <p style={{ fontSize: 8.5, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
-                </div>
-              </div>
               </div>
             )}
 
@@ -1917,10 +2027,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           {sharing
             ? (ja ? '画像を作成中...' : 'Creating image...')
             : isMax1RM
-              ? (graphLayout === 'full' ? (ja ? 'グラフStoryを保存' : 'Save Graph Story') : (ja ? 'グラフカードを保存' : 'Save Graph Card'))
+              ? ((graphLayout === 'full' || graphLayout === 'side') ? (ja ? 'グラフStoryを保存' : 'Save Graph Story') : (ja ? 'グラフカードを保存' : 'Save Graph Card'))
               : isBW
-                ? (graphLayout === 'full' ? (ja ? '体重グラフStoryを保存' : 'Save Weight Graph Story') : (ja ? '体重グラフカードを保存' : 'Save Weight Graph Card'))
-                : (graphLayout === 'full' ? (ja ? '総重量グラフStoryを保存' : 'Save Volume Graph Story') : (ja ? '総重量グラフカードを保存' : 'Save Volume Graph Card'))
+                ? ((graphLayout === 'full' || graphLayout === 'side') ? (ja ? '体重グラフStoryを保存' : 'Save Weight Graph Story') : (ja ? '体重グラフカードを保存' : 'Save Weight Graph Card'))
+                : ((graphLayout === 'full' || graphLayout === 'side') ? (ja ? '総重量グラフStoryを保存' : 'Save Volume Graph Story') : (ja ? '総重量グラフカードを保存' : 'Save Volume Graph Card'))
           }
         </button>
         <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
