@@ -1484,7 +1484,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
               <div ref={bannerCardRef} style={{
                 position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
-                transform: 'rotate(90deg)', transformOrigin: 'center',
+                transform: 'rotate(-90deg)', transformOrigin: 'center',
                 ...cardBgProps, borderRadius: 18,
                 isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
@@ -1657,7 +1657,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
               <div ref={bannerWeightRef} style={{
                 position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
-                transform: 'rotate(90deg)', transformOrigin: 'center',
+                transform: 'rotate(-90deg)', transformOrigin: 'center',
                 ...cardBgProps, borderRadius: 18,
                 isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
@@ -1820,7 +1820,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
               <div ref={bannerVolRef} style={{
                 position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
-                transform: 'rotate(90deg)', transformOrigin: 'center',
+                transform: 'rotate(-90deg)', transformOrigin: 'center',
                 ...cardBgProps, borderRadius: 18,
                 isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
