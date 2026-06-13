@@ -32,7 +32,7 @@ export type StatsData =
 type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
-type GraphLayout  = 'full' | 'bottom' | 'mini' | 'wide'
+type GraphLayout  = 'full' | 'banner' | 'mini' | 'wide'
 // TODO_PRO: premiumDesignPresets — 'premium-black' and 'pearl-white' are candidates for Pro-only presets.
 type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint' | 'premium-black' | 'pearl-white'
 type CardStyle    = 'glass' | 'transparent'
@@ -91,10 +91,10 @@ const VOL_PPL_GROUPS = [
 ] as const
 
 const GRAPH_LAYOUTS = [
-  { key: 'full',   labelEn: 'Full',   labelJa: '全画面',   ratio: '9:16' },
-  { key: 'bottom', labelEn: 'Bottom', labelJa: '下部バー', ratio: '4:1'  },
+  { key: 'full',   labelEn: 'Full',   labelJa: '全画面',    ratio: '9:16' },
+  { key: 'banner', labelEn: 'Banner', labelJa: 'バナー',    ratio: '2:1'  },
   { key: 'mini',   labelEn: 'Mini',   labelJa: 'ミニカード', ratio: '1:1' },
-  { key: 'wide',   labelEn: 'Wide',   labelJa: 'ワイド',   ratio: '16:9' },
+  { key: 'wide',   labelEn: 'Wide',   labelJa: 'ワイド',    ratio: '16:9' },
 ] as const
 
 const PRESET_LABELS: Record<GraphPreset, string> = {
@@ -410,7 +410,7 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
 }) {
   const rects: Record<string, { x: number; y: number; w: number; h: number }> = {
     full:   { x: 14, y: 4,  w: 12, h: 32 },
-    bottom: { x: 3,  y: 15, w: 34, h: 9  },
+    banner: { x: 17, y: 4,  w: 6,  h: 32 },
     mini:   { x: 8,  y: 8,  w: 24, h: 24 },
     wide:   { x: 3,  y: 10, w: 34, h: 20 },
   }
@@ -419,8 +419,8 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
   const rectFill     = selected ? `${accentHex}18` : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
   const rectStroke   = selected ? accentHex : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)'
 
-  // Bar chart thumb
-  if (isBar) {
+  // Banner is always shown as line thumb (bar bars would be invisible in narrow rect)
+  if (isBar && layoutKey !== 'banner') {
     const barCount = 7
     const innerW = r.w - 4
     const slotW = innerW / barCount
@@ -723,19 +723,19 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   // MAX 1RM export refs
   const fullGraphRef  = useRef<HTMLDivElement>(null)
-  const bottomCardRef = useRef<HTMLDivElement>(null)
+  const bannerCardRef = useRef<HTMLDivElement>(null)
   const miniCardRef   = useRef<HTMLDivElement>(null)
   const wideCardRef   = useRef<HTMLDivElement>(null)
 
   // Body Weight export refs
   const fullWeightRef   = useRef<HTMLDivElement>(null)
-  const bottomWeightRef = useRef<HTMLDivElement>(null)
+  const bannerWeightRef = useRef<HTMLDivElement>(null)
   const miniWeightRef   = useRef<HTMLDivElement>(null)
   const wideWeightRef   = useRef<HTMLDivElement>(null)
 
   // Daily Volume export refs
   const fullVolRef   = useRef<HTMLDivElement>(null)
-  const bottomVolRef = useRef<HTMLDivElement>(null)
+  const bannerVolRef = useRef<HTMLDivElement>(null)
   const miniVolRef   = useRef<HTMLDivElement>(null)
   const wideVolRef   = useRef<HTMLDivElement>(null)
 
@@ -972,9 +972,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-max-1rm-story-${today}-${nameSlug}.png`
           : `repra-max-1rm-card-${today}-${nameSlug}-${graphLayout}.png`
 
-        if (graphLayout === 'bottom') {
-          const { exportFourByOneCard } = await import('@/lib/fourByOneExport')
-          blob = await exportFourByOneCard({
+        if (graphLayout === 'banner') {
+          const { exportTwoByOneCard } = await import('@/lib/twoByOneExport')
+          blob = await exportTwoByOneCard({
             metric: 'max1rm',
             cardStyle,
             graphAccentHex: gpAccent,
@@ -1025,9 +1025,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-bodyweight-story-${today}.png`
           : `repra-bodyweight-card-${today}-${graphLayout}.png`
 
-        if (graphLayout === 'bottom') {
-          const { exportFourByOneCard } = await import('@/lib/fourByOneExport')
-          blob = await exportFourByOneCard({
+        if (graphLayout === 'banner') {
+          const { exportTwoByOneCard } = await import('@/lib/twoByOneExport')
+          blob = await exportTwoByOneCard({
             metric: 'bodyweight',
             cardStyle,
             graphAccentHex: gpAccent,
@@ -1080,9 +1080,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           ? `repra-volume-story-${today}-${volBodyPart}.png`
           : `repra-volume-card-${today}-${volBodyPart}-${graphLayout}.png`
 
-        if (graphLayout === 'bottom') {
-          const { exportFourByOneCard } = await import('@/lib/fourByOneExport')
-          blob = await exportFourByOneCard({
+        if (graphLayout === 'banner') {
+          const { exportTwoByOneCard } = await import('@/lib/twoByOneExport')
+          blob = await exportTwoByOneCard({
             metric: 'volume',
             cardStyle,
             graphAccentHex: gpAccent,
@@ -1480,11 +1480,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
             )}
 
-            {graphLayout === 'bottom' && (
-              <div style={{ marginLeft: -16, marginRight: -16 }}>
-              <div ref={bottomCardRef} style={{
-                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
-                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
+            {graphLayout === 'banner' && (
+              <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
+              <div ref={bannerCardRef} style={{
+                position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
+                transform: 'rotate(90deg)', transformOrigin: 'center',
+                ...cardBgProps, borderRadius: 18,
+                isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
@@ -1651,11 +1653,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
             )}
 
-            {graphLayout === 'bottom' && (
-              <div style={{ marginLeft: -16, marginRight: -16 }}>
-              <div ref={bottomWeightRef} style={{
-                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
-                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
+            {graphLayout === 'banner' && (
+              <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
+              <div ref={bannerWeightRef} style={{
+                position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
+                transform: 'rotate(90deg)', transformOrigin: 'center',
+                ...cardBgProps, borderRadius: 18,
+                isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>
@@ -1812,11 +1816,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               </div>
             )}
 
-            {graphLayout === 'bottom' && (
-              <div style={{ marginLeft: -16, marginRight: -16 }}>
-              <div ref={bottomVolRef} style={{
-                width: '100%', aspectRatio: '4/1', ...cardBgProps, borderRadius: 18,
-                position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
+            {graphLayout === 'banner' && (
+              <div style={{ position: 'relative', width: '44%', margin: '0 auto', aspectRatio: '1/2', overflow: 'hidden' }}>
+              <div ref={bannerVolRef} style={{
+                position: 'absolute', width: '200%', height: '50%', left: '-50%', top: '25%',
+                transform: 'rotate(90deg)', transformOrigin: 'center',
+                ...cardBgProps, borderRadius: 18,
+                isolation: 'isolate', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 16px',
                 boxShadow: cardBoxShadow, gap: 14,
                 border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
               }}>

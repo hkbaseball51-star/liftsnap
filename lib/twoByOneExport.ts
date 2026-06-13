@@ -1,75 +1,67 @@
 /**
- * Direct canvas 2D export for 4:1 (bottom) graph story cards.
+ * Direct canvas 2D export for 2:1 banner graph cards.
  *
- * Draws everything via canvas 2D API — no html-to-image, no SVG-as-image.
- * SVG images loaded via Blob URL render with a white background in WebKit,
- * making glass cards opaque and transparent cards white.  Canvas 2D avoids
- * this: the canvas starts transparent, glass fills use real alpha, and the
- * clip path enforces rounded corners so pixels outside are never written.
+ * Output: 1920×960 RGBA PNG (logical 960×480, 2× physical scale).
+ * Canvas starts transparent, glass fills use real alpha, rounded-rect clip
+ * ensures corner pixels are never written.
+ * Export via toDataURL+fetch — same path as html-to-image — to guarantee
+ * RGBA colorType=6 PNG on iOS WebKit (toBlob may produce RGB colorType=2).
  *
- * Only called when graphLayout === 'bottom'.  All other layouts keep captureElement.
+ * Only called when graphLayout === 'banner'.  All other layouts keep captureElement.
  */
 
 type VolBar = { label: string; value: number; isLatest: boolean; isBest: boolean }
 
-export type FourByOneArgs = {
+export type TwoByOneArgs = {
   metric:           'max1rm' | 'bodyweight' | 'volume'
   cardStyle:        'glass'  | 'transparent'
-  graphAccentHex:   string   // gpAccent — text / graph stroke color
-  graphLatestHex:   string   // gpLatest — last-point dot color
-  areaFill:         string   // area fill under line ('none' in transparent)
+  graphAccentHex:   string
+  graphLatestHex:   string
+  areaFill:         string
   isDarkBg:         boolean
-  glassAccentHex:   string   // gp.accentHex — 6-char hex for glass gradient
-  glassIsDark:      boolean  // gp.isDark !== false
-  gpBorder:         string   // gp.border
-  badgeBg:          string   // gpBadgeBg
-  badgeTxt:         string   // gpBadgeTxt
+  glassAccentHex:   string
+  glassIsDark:      boolean
+  gpBorder:         string
+  badgeBg:          string
+  badgeTxt:         string
   cardLang:         'en' | 'ja'
 
-  // MAX 1RM
-  exName?:          string
-  bestRMDisplay?:   number
-  unitLabel?:       string
-  rm1Growth?:       number | null
-  rm1SVGData?:      { est1rm: number }[]
+  exName?:           string
+  bestRMDisplay?:    number
+  unitLabel?:        string
+  rm1Growth?:        number | null
+  rm1SVGData?:       { est1rm: number }[]
 
-  // Body Weight
   bwCurrentDisplay?: number
   bwStartDisplay?:   number
   bwChangeStr?:      string
   bwValues?:         number[]
   bwHistoryLen?:     number
 
-  // Volume
   volCardLabel?:          string
   activeVolTotalStr?:     string
   activeVolSessionCount?: number
   volBars?:               VolBar[]
 
-  // Axis / resolution extras
   xStartDate?: string
   xEndDate?:   string
   unit?:       'kg' | 'lbs'
 }
 
 // ── Canvas dimensions ────────────────────────────────────────────────────────
-const CW  = 1080
-const CH  = 270
-const CY  = 135  // vertical center
-const RX  = 50   // card corner radius (borderRadius:18px CSS × 2.77 ≈ 50)
+const CW = 960
+const CH = 480
+const CY = 240
+const RX = 40
 
-// ── Column layout (horizontal) ────────────────────────────────────────────────
-// Left: REPRA badge + metric label + key text
-// Center: chart
-// Right: main stat, secondary label, change indicator
-const PAD_H  = 44     // 16px CSS × 2.77
-const LEFT_X = PAD_H  // 44
-const LEFT_W = 270    // left column width
-const GAP_L  = 24     // gap between left col and chart
-const CTR_X  = LEFT_X + LEFT_W + GAP_L   // 338
-const CTR_W  = 490    // chart width; right edge at x=828
-//  Right col area: x=828..1036 (~208px)
-const RIGHT_X = CW - PAD_H  // 1036 — text anchor for right-aligned values
+// ── Column layout ─────────────────────────────────────────────────────────────
+const PAD_H  = 44
+const LEFT_X = PAD_H        // 44
+const LEFT_W = 240
+const GAP_L  = 20
+const CTR_X  = LEFT_X + LEFT_W + GAP_L  // 304
+const CTR_W  = 420
+const RIGHT_X = CW - PAD_H  // 916
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -80,13 +72,13 @@ function rrPath(
   ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.lineTo(x + w - r, y)
-  ctx.arcTo(x + w, y,   x + w, y + r,     r)
+  ctx.arcTo(x + w, y,     x + w, y + r,     r)
   ctx.lineTo(x + w, y + h - r)
   ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
   ctx.lineTo(x + r, y + h)
-  ctx.arcTo(x,   y + h, x,   y + h - r,   r)
+  ctx.arcTo(x,     y + h, x,     y + h - r, r)
   ctx.lineTo(x, y + r)
-  ctx.arcTo(x,   y,   x + r, y,           r)
+  ctx.arcTo(x,     y,     x + r, y,         r)
   ctx.closePath()
 }
 
@@ -125,7 +117,7 @@ function toDisplay(v: number, unit: string | undefined): number {
   return unit === 'lbs' ? v * 2.20462 : v
 }
 
-function lineChartGeom(args: FourByOneArgs) {
+function lineChartGeom(args: TwoByOneArgs) {
   const values = args.metric === 'max1rm'
     ? (args.rm1SVGData ?? []).map(d => d.est1rm)
     : (args.bwValues ?? [])
@@ -140,7 +132,7 @@ function lineChartGeom(args: FourByOneArgs) {
   return { values, chartH, y0, yBot: y0 + chartH, py, ticks }
 }
 
-function barChartGeom(args: FourByOneArgs) {
+function barChartGeom(args: TwoByOneArgs) {
   const bars   = args.volBars ?? []
   const chartH = Math.round(CH * 0.70)
   const yBot   = CY + Math.round(chartH / 2)
@@ -150,7 +142,7 @@ function barChartGeom(args: FourByOneArgs) {
   return { bars, chartH, yBot, y0: yBot - chartH, py, ticks, maxVal }
 }
 
-function drawLineGridLines(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawLineGridLines(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const { values, y0, yBot, py, ticks } = lineChartGeom(args)
   if (values.length < 2 || !ticks.length) return
   const gridColor = args.isDarkBg ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.10)'
@@ -168,7 +160,7 @@ function drawLineGridLines(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   ctx.restore()
 }
 
-function drawLineAxes(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawLineAxes(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const { values, y0, yBot, py, ticks } = lineChartGeom(args)
   if (values.length < 2) return
   const lblColor  = args.isDarkBg ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.40)'
@@ -192,7 +184,7 @@ function drawLineAxes(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   }
 }
 
-function drawBarGridLines(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawBarGridLines(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const { bars, py, ticks, maxVal } = barChartGeom(args)
   if (!bars.length || !maxVal || !ticks.length) return
   const gridColor = args.isDarkBg ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.10)'
@@ -209,7 +201,7 @@ function drawBarGridLines(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   ctx.restore()
 }
 
-function drawBarAxes(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawBarAxes(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const { bars, yBot, py, ticks, maxVal } = barChartGeom(args)
   if (!bars.length || !maxVal) return
   const lblColor  = args.isDarkBg ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.40)'
@@ -237,28 +229,22 @@ function drawBarAxes(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
 }
 
 // ── Glass background ──────────────────────────────────────────────────────────
-// Replicates glassCardStyle() from WorkoutStoryCardContent using canvas gradients.
-// All fills use alpha < 1 so the PNG retains transparency behind the card.
 
-function drawGlass(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawGlass(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const hex    = args.glassAccentHex
   const isDark = args.glassIsDark
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
 
-  // Layer 1: base gradient (CSS linear-gradient 150deg — upper-left → lower-right diagonal)
   const baseGrad = ctx.createLinearGradient(CW * 0.28, 0, CW * 0.72, CH)
   if (!isDark) {
-    // pearl-white: warm frosted glass
     baseGrad.addColorStop(0, 'rgba(245,244,239,0.68)')
     baseGrad.addColorStop(1, 'rgba(237,236,229,0.68)')
   } else if (r > 200 && g > 200 && b > 200) {
-    // premium-black: near-black glass
     baseGrad.addColorStop(0, 'rgba(17,17,20,0.62)')
     baseGrad.addColorStop(1, 'rgba(7,7,9,0.62)')
   } else {
-    // colored dark presets (orange, ice-blue, violet, mint)
     const dr = Math.round(r * 0.16)
     const dg = Math.round(g * 0.13)
     const db = Math.round(b * 0.15)
@@ -271,21 +257,18 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   ctx.fillStyle = baseGrad
   ctx.fillRect(0, 0, CW, CH)
 
-  // Layer 2: top-edge white shimmer
   const topGrad = ctx.createLinearGradient(0, 0, 0, CH * 0.10)
   topGrad.addColorStop(0, 'rgba(255,255,255,0.10)')
   topGrad.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = topGrad
   ctx.fillRect(0, 0, CW, CH * 0.10)
 
-  // Layer 3: accent radial glow at bottom-left
   const acGlow = ctx.createRadialGradient(CW * 0.12, CH, 0, CW * 0.12, CH, CW * 0.38)
   acGlow.addColorStop(0, `rgba(${r},${g},${b},0.16)`)
   acGlow.addColorStop(1, `rgba(${r},${g},${b},0)`)
   ctx.fillStyle = acGlow
   ctx.fillRect(0, 0, CW, CH)
 
-  // Layer 4: white radial glow at top-right
   const wGlow = ctx.createRadialGradient(CW * 0.88, 0, 0, CW * 0.88, 0, CW * 0.27)
   wGlow.addColorStop(0, 'rgba(255,255,255,0.13)')
   wGlow.addColorStop(1, 'rgba(255,255,255,0)')
@@ -295,29 +278,29 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
 
 // ── REPRA badge ───────────────────────────────────────────────────────────────
 
-function drawBadge(ctx: CanvasRenderingContext2D, args: FourByOneArgs, y: number) {
+function drawBadge(ctx: CanvasRenderingContext2D, args: TwoByOneArgs, y: number) {
   const bx = LEFT_X
   const bw = 114, bh = 32, bR = 14
   rrPath(ctx, bx, y, bw, bh, bR)
   ctx.fillStyle = args.badgeBg
   ctx.fill()
-  ctx.font = fnt(22, true)
+  ctx.font      = fnt(22, true)
   ctx.fillStyle = args.badgeTxt
-  ctx.textAlign = 'left'
+  ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
   ctx.fillText('REPRA', bx + 18, y + 23)
 }
 
 // ── Line chart (MAX 1RM + Body Weight) ───────────────────────────────────────
 
-function drawLine(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawLine(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const values = args.metric === 'max1rm'
     ? (args.rm1SVGData ?? []).map(d => d.est1rm)
     : (args.bwValues ?? [])
   if (values.length < 2) return
 
-  const chartH = Math.round(CH * 0.67)  // 181px
-  const y0     = CY - Math.round(chartH / 2)  // top of chart area
+  const chartH = Math.round(CH * 0.67)
+  const y0     = CY - Math.round(chartH / 2)
   const yBot   = y0 + chartH
   const padX   = 12, padYt = 14, padYb = 8
 
@@ -331,36 +314,32 @@ function drawLine(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
     y0 + padYt + ((max - v) / rng) * (chartH - padYt - padYb)
 
   const pts = values.map((v, i) => [px(i), py(v)] as [number, number])
-  const [fx, fy] = pts[0]
-  const [lx, ly] = pts[pts.length - 1]
+  const [fx, fy] = pts[0]!
+  const [lx, ly] = pts[pts.length - 1]!
 
-  // Area fill
   if (args.areaFill && args.areaFill !== 'none') {
     ctx.beginPath()
-    ctx.moveTo(pts[0][0], yBot)
+    ctx.moveTo(pts[0]![0], yBot)
     pts.forEach(([x, y]) => ctx.lineTo(x, y))
-    ctx.lineTo(pts[pts.length - 1][0], yBot)
+    ctx.lineTo(pts[pts.length - 1]![0], yBot)
     ctx.closePath()
     ctx.fillStyle = args.areaFill
     ctx.fill()
   }
 
-  // Line stroke
   ctx.beginPath()
-  ctx.moveTo(pts[0][0], pts[0][1])
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
+  ctx.moveTo(pts[0]![0], pts[0]![1])
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i]![0], pts[i]![1])
   ctx.strokeStyle = args.graphAccentHex
   ctx.lineWidth   = 2.5
   ctx.lineJoin    = 'miter'
   ctx.lineCap     = 'butt'
   ctx.stroke()
 
-  // First dot
   const fdot = args.isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
   ctx.beginPath(); ctx.arc(fx, fy, 2.8, 0, Math.PI * 2)
   ctx.fillStyle = fdot; ctx.fill()
 
-  // Last dot with glow rings
   ctx.fillStyle = args.graphLatestHex
   ctx.globalAlpha = 0.08; ctx.beginPath(); ctx.arc(lx, ly, 9.7, 0, Math.PI * 2); ctx.fill()
   ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.arc(lx, ly, 5.5, 0, Math.PI * 2); ctx.fill()
@@ -369,25 +348,25 @@ function drawLine(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
 
 // ── Bar chart (Daily Volume) ──────────────────────────────────────────────────
 
-function drawBars(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawBars(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   const bars = args.volBars ?? []
   if (!bars.length) return
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal === 0) return
 
-  const chartH = Math.round(CH * 0.70)  // 189px
+  const chartH = Math.round(CH * 0.70)
   const yBot   = CY + Math.round(chartH / 2)
   const gap    = Math.max(0.4, 0.8 - bars.length * 0.005) * (CTR_W / 100)
   const slotW  = CTR_W / bars.length
   const barW   = Math.max(slotW - gap, 0.5)
   const rad    = Math.min(4, barW / 3)
 
-  bars.forEach((b, i) => {
-    const bh     = Math.max((b.value / maxVal) * chartH * 0.92, 1.7)
+  bars.forEach((bar, i) => {
+    const bh     = Math.max((bar.value / maxVal) * chartH * 0.92, 1.7)
     const bx     = CTR_X + i * slotW + (slotW - barW) / 2
     const by     = yBot - bh
-    const fill   = (b.isLatest || b.isBest) ? args.graphLatestHex : args.graphAccentHex
-    ctx.globalAlpha = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
+    const fill   = (bar.isLatest || bar.isBest) ? args.graphLatestHex : args.graphAccentHex
+    ctx.globalAlpha = bar.isLatest ? 1 : bar.isBest ? 0.82 : 0.38
     ctx.fillStyle   = fill
     ctx.beginPath()
     ctx.moveTo(bx + rad, by)
@@ -405,200 +384,172 @@ function drawBars(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
 
 // ── Left column ───────────────────────────────────────────────────────────────
 
-function drawLeft1RM(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
-  drawBadge(ctx, args, 63)
+function drawLeft1RM(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
+  drawBadge(ctx, args, 120)
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  // Exercise name
-  ctx.font      = fnt(33, true)
+  ctx.font      = fnt(36, true)
   ctx.fillStyle = primaryText(args.isDarkBg)
-  ctx.fillText(args.exName ?? '', LEFT_X, 147)
-
-  // 1RM label
-  ctx.font      = fnt(20, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(
-    args.cardLang === 'ja' ? '1RM推移' : '1RM PROGRESS',
-    LEFT_X, 197,
-  )
-}
-
-function drawLeftBW(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
-  drawBadge(ctx, args, 78)
-  ctx.textAlign    = 'left'
-  ctx.textBaseline = 'alphabetic'
+  ctx.fillText(args.exName ?? '', LEFT_X, 222)
 
   ctx.font      = fnt(22, true)
   ctx.fillStyle = args.graphAccentHex
   ctx.fillText(
+    args.cardLang === 'ja' ? '1RM推移' : '1RM PROGRESS',
+    LEFT_X, 274,
+  )
+}
+
+function drawLeftBW(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
+  drawBadge(ctx, args, 130)
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  ctx.font      = fnt(24, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(
     args.cardLang === 'ja' ? '体重' : 'BODY WEIGHT',
-    LEFT_X, 152,
+    LEFT_X, 230,
   )
 
   const hasBoth = (args.bwHistoryLen ?? 0) >= 2
   const valLine = hasBoth
     ? `${args.bwStartDisplay ?? ''} → ${args.bwCurrentDisplay ?? ''} ${args.unitLabel ?? ''}`
     : `${args.bwCurrentDisplay ?? ''} ${args.unitLabel ?? ''}`
-  ctx.font      = fnt(28, true)
+  ctx.font      = fnt(30, true)
   ctx.fillStyle = primaryText(args.isDarkBg)
-  ctx.fillText(valLine, LEFT_X, 191)
+  ctx.fillText(valLine, LEFT_X, 274)
 }
 
-function drawLeftVol(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
-  drawBadge(ctx, args, 75)
+function drawLeftVol(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
+  drawBadge(ctx, args, 130)
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  ctx.font      = fnt(22, true)
+  ctx.font      = fnt(24, true)
   ctx.fillStyle = args.graphAccentHex
   ctx.fillText(
     args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME',
-    LEFT_X, 149,
+    LEFT_X, 230,
   )
 
-  ctx.font      = fnt(33, true)
+  ctx.font      = fnt(36, true)
   ctx.fillStyle = primaryText(args.isDarkBg)
-  ctx.fillText(args.volCardLabel ?? '', LEFT_X, 196)
+  ctx.fillText(args.volCardLabel ?? '', LEFT_X, 282)
 }
 
 // ── Right column ──────────────────────────────────────────────────────────────
 
-function drawRight1RM(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawRight1RM(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   ctx.textAlign    = 'right'
   ctx.textBaseline = 'alphabetic'
 
-  // Main value
-  ctx.font      = fnt(83, true)
+  ctx.font      = fnt(90, true)
   ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(String(args.bestRMDisplay ?? ''), RIGHT_X, 138)
+  ctx.fillText(String(args.bestRMDisplay ?? ''), RIGHT_X, 254)
 
-  // Unit + "best"
-  ctx.font      = fnt(25, false)
+  ctx.font      = fnt(26, false)
   ctx.fillStyle = ptxt(args.isDarkBg, 0.50)
   ctx.fillText(
     `${args.unitLabel ?? ''} ${args.cardLang === 'ja' ? 'ベスト' : 'best'}`,
-    RIGHT_X, 168,
+    RIGHT_X, 288,
   )
 
-  // Growth indicator
   const growth = args.rm1Growth
   if (growth !== null && growth !== undefined) {
-    ctx.font      = fnt(28, true)
+    ctx.font      = fnt(30, true)
     ctx.fillStyle = growth >= 0 ? '#4ade80' : '#f87171'
-    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth}`, RIGHT_X, 201)
+    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth}`, RIGHT_X, 324)
   }
 }
 
-function drawRightBW(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawRightBW(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   ctx.textAlign    = 'right'
   ctx.textBaseline = 'alphabetic'
 
-  ctx.font      = fnt(83, true)
+  ctx.font      = fnt(90, true)
   ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(String(args.bwCurrentDisplay ?? ''), RIGHT_X, 138)
+  ctx.fillText(String(args.bwCurrentDisplay ?? ''), RIGHT_X, 254)
 
-  ctx.font      = fnt(25, false)
+  ctx.font      = fnt(26, false)
   ctx.fillStyle = ptxt(args.isDarkBg, 0.50)
-  ctx.fillText(args.unitLabel ?? '', RIGHT_X, 168)
+  ctx.fillText(args.unitLabel ?? '', RIGHT_X, 288)
 
-  ctx.font      = fnt(28, true)
+  ctx.font      = fnt(30, true)
   ctx.fillStyle = args.graphAccentHex
   ctx.fillText(
     `${args.bwChangeStr ?? ''}${args.unitLabel ?? ''}`,
-    RIGHT_X, 201,
+    RIGHT_X, 324,
   )
 }
 
-function drawRightVol(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+function drawRightVol(ctx: CanvasRenderingContext2D, args: TwoByOneArgs) {
   ctx.textAlign    = 'right'
   ctx.textBaseline = 'alphabetic'
-  const sessLabel = args.cardLang === 'ja' ? 'セッション' : 'sessions'
+  const sessLabel  = args.cardLang === 'ja' ? 'セッション' : 'sessions'
 
-  ctx.font      = fnt(61, true)
+  ctx.font      = fnt(68, true)
   ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(args.activeVolTotalStr ?? '', RIGHT_X, 128)
-
-  ctx.font      = fnt(22, false)
-  ctx.fillStyle = ptxt(args.isDarkBg, 0.45)
-  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'total', RIGHT_X, 158)
+  ctx.fillText(args.activeVolTotalStr ?? '', RIGHT_X, 246)
 
   ctx.font      = fnt(24, false)
+  ctx.fillStyle = ptxt(args.isDarkBg, 0.45)
+  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'total', RIGHT_X, 278)
+
+  ctx.font      = fnt(26, false)
   ctx.fillStyle = ptxt(args.isDarkBg, 0.35)
   ctx.fillText(
     `${args.activeVolSessionCount ?? 0} ${sessLabel}`,
-    RIGHT_X, 187,
+    RIGHT_X, 310,
   )
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
+export async function exportTwoByOneCard(args: TwoByOneArgs): Promise<Blob> {
   await document.fonts.ready
   await new Promise<void>(r => requestAnimationFrame(() => r()))
 
   const canvas    = document.createElement('canvas')
-  canvas.width    = CW * 2  // 2160px — 2× logical size for sharper output
-  canvas.height   = CH * 2  // 540px
-  // { alpha: true } is the HTML spec default but must be explicit on some iOS WebKit builds
-  // that otherwise produce an opaque context and lose all transparency in the saved PNG.
+  canvas.width    = CW * 2  // 1920px
+  canvas.height   = CH * 2  // 960px
   const ctx       = canvas.getContext('2d', { alpha: true })
   if (!ctx) throw new Error('Canvas 2D context unavailable')
 
-  // Guarantee a fully-transparent canvas regardless of browser/OS defaults.
-  // clearRect uses physical pixel coordinates (before scale).
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.globalCompositeOperation = 'source-over'
   ctx.globalAlpha = 1
-
-  // All drawing uses the original 1080×270 coordinate system; the 2× scale
-  // maps it to the 2160×540 canvas for sharper PNG output.
   ctx.scale(2, 2)
 
-  // Clip to rounded rect — all drawing is confined inside the card corners.
-  // Pixels outside the rounded rect are never written → PNG corners are transparent.
   rrPath(ctx, 0, 0, CW, CH, RX)
   ctx.clip()
 
-  // Transparent mode: second clearRect in logical coords inside the active clip.
-  // clearRect respects clip, so this only zeros pixels inside the rounded rect.
-  // Defensive against iOS WebKit builds that don't fully honour { alpha: true }
-  // on getContext — without this, those builds may leave stale opaque pixels
-  // inside the clip region before any drawing code runs.
   if (args.cardStyle !== 'glass') {
     ctx.clearRect(0, 0, CW, CH)
   }
 
-  // Glass background: semi-transparent gradient layers keep alpha in the PNG.
-  // Transparent mode: canvas starts transparent; nothing drawn for background.
   if (args.cardStyle === 'glass') {
     drawGlass(ctx, args)
-
-    // Border: lineWidth 4 → 2px visible inside clip, matching the 1px CSS border at 2.77×
     rrPath(ctx, 0, 0, CW, CH, RX)
     ctx.strokeStyle = args.gpBorder
     ctx.lineWidth   = 4
     ctx.stroke()
   }
 
-  // Left column (badge + labels)
   if (args.metric === 'max1rm')          drawLeft1RM(ctx, args)
   else if (args.metric === 'bodyweight') drawLeftBW(ctx, args)
   else                                   drawLeftVol(ctx, args)
 
-  // Grid lines — drawn before chart so chart data renders on top
   if (args.metric === 'volume') drawBarGridLines(ctx, args)
   else                          drawLineGridLines(ctx, args)
 
-  // Center chart
   if (args.metric === 'volume') drawBars(ctx, args)
   else                          drawLine(ctx, args)
 
-  // Y-axis labels + X-axis dates — drawn after chart so labels sit on top
   if (args.metric === 'volume') drawBarAxes(ctx, args)
   else                          drawLineAxes(ctx, args)
 
-  // Right column (main stat)
   if (args.metric === 'max1rm')          drawRight1RM(ctx, args)
   else if (args.metric === 'bodyweight') drawRightBW(ctx, args)
   else                                   drawRightVol(ctx, args)
