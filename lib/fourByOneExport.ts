@@ -534,6 +534,17 @@ function drawRightVol(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
+  // ── dev-only cardStyle verification (remove after confirming) ────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    /* eslint-disable no-console */
+    console.log('[4:1 export] cardStyle:', args.cardStyle,
+      '| metric:', args.metric,
+      '| isTransparent:', args.cardStyle === 'transparent',
+      '| isGlass:', args.cardStyle === 'glass')
+    /* eslint-enable no-console */
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   await document.fonts.ready
   await new Promise<void>(r => requestAnimationFrame(() => r()))
 
@@ -593,6 +604,24 @@ export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
   if (args.metric === 'max1rm')          drawRight1RM(ctx, args)
   else if (args.metric === 'bodyweight') drawRightBW(ctx, args)
   else                                   drawRightVol(ctx, args)
+
+  // ── dev-only alpha inspection (remove after confirming) ─────────────────────
+  // getImageData uses physical pixel coordinates (not affected by ctx.scale).
+  // Physical canvas: CW*2 × CH*2 = 2160 × 540.
+  if (process.env.NODE_ENV !== 'production') {
+    /* eslint-disable no-console */
+    const chk = (label: string, px: number, py: number) => {
+      const d = ctx.getImageData(px, py, 1, 1).data
+      console.log(`[4:1 alpha/${args.cardStyle}] ${label}: rgba(${d[0]},${d[1]},${d[2]},${d[3]})`)
+    }
+    chk('top-left',     1,        1       )  // expect a=0 (outside rounded corner)
+    chk('top-right',    CW*2-1,   1       )  // expect a=0
+    chk('bottom-left',  1,        CH*2-1  )  // expect a=0
+    chk('bottom-right', CW*2-1,   CH*2-1  )  // expect a=0
+    chk('card-center',  CW,       CH      )  // transparent→a=0, glass→a>0
+    /* eslint-enable no-console */
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
