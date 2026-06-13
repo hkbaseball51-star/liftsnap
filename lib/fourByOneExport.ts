@@ -1,11 +1,11 @@
 /**
- * SVG-direct → canvas → PNG export for 4:1 (bottom) graph story cards.
+ * Direct canvas 2D export for 4:1 (bottom) graph story cards.
  *
- * html-to-image / foreignObject is unreliable on iOS Safari at extreme aspect
- * ratios: rounded-corner clipping breaks, glass gradients bleed, and the result
- * is either white-cornered or blank.  This module bypasses the DOM renderer by
- * building an SVG string, drawing it to an off-screen canvas, and returning a
- * PNG blob — no html-to-image involved.
+ * Draws everything via canvas 2D API — no html-to-image, no SVG-as-image.
+ * SVG images loaded via Blob URL render with a white background in WebKit,
+ * making glass cards opaque and transparent cards white.  Canvas 2D avoids
+ * this: the canvas starts transparent, glass fills use real alpha, and the
+ * clip path enforces rounded corners so pixels outside are never written.
  *
  * Only called when graphLayout === 'bottom'.  All other layouts keep captureElement.
  */
@@ -17,7 +17,7 @@ export type FourByOneArgs = {
   cardStyle:        'glass'  | 'transparent'
   graphAccentHex:   string   // gpAccent — text / graph stroke color
   graphLatestHex:   string   // gpLatest — last-point dot color
-  areaFill:         string   // area polygon fill under line ('none' in transparent)
+  areaFill:         string   // area fill under line ('none' in transparent)
   isDarkBg:         boolean
   glassAccentHex:   string   // gp.accentHex — 6-char hex for glass gradient
   glassIsDark:      boolean  // gp.isDark !== false
@@ -47,119 +47,143 @@ export type FourByOneArgs = {
   volBars?:               VolBar[]
 }
 
-// ── Layout constants (1080 × 270) ─────────────────────────────────────────────
+// ── Canvas dimensions ────────────────────────────────────────────────────────
+const CW  = 1080
+const CH  = 270
+const CY  = 135  // vertical center
+const RX  = 50   // card corner radius (borderRadius:18px CSS × 2.77 ≈ 50)
 
-const W  = 1080
-const H  = 270
-const CY = 135
-
-const PAD_H   = 44   // 16px CSS × 2.75
-const GAP     = 38   // 14px CSS × 2.75
-const LEFT_W  = 240
-const RIGHT_W = 230
-const LEFT_X  = PAD_H
-const CTR_X   = LEFT_X + LEFT_W + GAP
-const CTR_W   = W - 2 * PAD_H - 2 * GAP - LEFT_W - RIGHT_W  // ≈ 456
-const RIGHT_X = CTR_X + CTR_W + GAP                           // right edge for text-anchor="end"
+// ── Column layout (horizontal) ────────────────────────────────────────────────
+// Left: REPRA badge + metric label + key text
+// Center: chart
+// Right: main stat, secondary label, change indicator
+const PAD_H  = 44     // 16px CSS × 2.77
+const LEFT_X = PAD_H  // 44
+const LEFT_W = 270    // left column width
+const GAP_L  = 38     // 14px × 2.77
+const CTR_X  = LEFT_X + LEFT_W + GAP_L   // 352
+const CTR_W  = 406    // chart width; right edge at x=758
+const GAP_R  = 42     // gap between chart and right column
+//  Right col area: x=800..1036 (236px)
+const RIGHT_X = CW - PAD_H  // 1036 — text anchor for right-aligned values
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function e(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+function rrPath(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y,   x + w, y + r,     r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x,   y + h, x,   y + h - r,   r)
+  ctx.lineTo(x, y + r)
+  ctx.arcTo(x,   y,   x + r, y,           r)
+  ctx.closePath()
+}
+
+const FF = 'system-ui, -apple-system, sans-serif'
+
+function fnt(size: number, bold: boolean): string {
+  return `${bold ? 'bold ' : ''}${size}px ${FF}`
 }
 
 function ptxt(isDarkBg: boolean, a: number): string {
   return isDarkBg ? `rgba(255,255,255,${a})` : `rgba(17,24,39,${a})`
 }
 
-function textPrimary(isDarkBg: boolean): string {
+function primaryText(isDarkBg: boolean): string {
   return isDarkBg ? '#ffffff' : '#111827'
 }
 
-function firstDotColor(isDarkBg: boolean): string {
-  return isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
-}
+// ── Glass background ──────────────────────────────────────────────────────────
+// Replicates glassCardStyle() from WorkoutStoryCardContent using canvas gradients.
+// All fills use alpha < 1 so the PNG retains transparency behind the card.
 
-// ── Glass gradient defs ───────────────────────────────────────────────────────
+function drawGlass(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const hex    = args.glassAccentHex
+  const isDark = args.glassIsDark
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
 
-function glassDefs(accentHex: string, isDark: boolean): string {
-  const r = parseInt(accentHex.slice(1, 3), 16)
-  const g = parseInt(accentHex.slice(3, 5), 16)
-  const b = parseInt(accentHex.slice(5, 7), 16)
-
-  let c1: string
-  let c2: string
-
+  // Layer 1: base gradient (CSS linear-gradient 150deg — upper-left → lower-right diagonal)
+  const baseGrad = ctx.createLinearGradient(CW * 0.28, 0, CW * 0.72, CH)
   if (!isDark) {
-    // Pearl-white: warm frosted glass
-    c1 = 'rgba(245,244,239,0.68)'
-    c2 = 'rgba(237,236,229,0.68)'
+    // pearl-white: warm frosted glass
+    baseGrad.addColorStop(0, 'rgba(245,244,239,0.68)')
+    baseGrad.addColorStop(1, 'rgba(237,236,229,0.68)')
   } else if (r > 200 && g > 200 && b > 200) {
-    // Premium-black: near-black glass
-    c1 = 'rgba(17,17,20,0.62)'
-    c2 = 'rgba(7,7,9,0.62)'
+    // premium-black: near-black glass
+    baseGrad.addColorStop(0, 'rgba(17,17,20,0.62)')
+    baseGrad.addColorStop(1, 'rgba(7,7,9,0.62)')
   } else {
-    // Colored dark presets
+    // colored dark presets (orange, ice-blue, violet, mint)
     const dr = Math.round(r * 0.16)
     const dg = Math.round(g * 0.13)
     const db = Math.round(b * 0.15)
     const er = Math.round(r * 0.09)
     const eg = Math.round(g * 0.07)
     const eb = Math.round(b * 0.09)
-    c1 = `rgba(${dr},${dg},${db},0.62)`
-    c2 = `rgba(${er},${eg},${eb},0.62)`
+    baseGrad.addColorStop(0, `rgba(${dr},${dg},${db},0.62)`)
+    baseGrad.addColorStop(1, `rgba(${er},${eg},${eb},0.62)`)
   }
+  ctx.fillStyle = baseGrad
+  ctx.fillRect(0, 0, CW, CH)
 
-  return `
-    <linearGradient id="baseGrad" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0%"   stop-color="${c1}"/>
-      <stop offset="100%" stop-color="${c2}"/>
-    </linearGradient>
-    <linearGradient id="topShimmer" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.10"/>
-      <stop offset="7%"   stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="accentGlow" cx="12%" cy="100%" r="40%" gradientUnits="objectBoundingBox">
-      <stop offset="0%"   stop-color="rgb(${r},${g},${b})" stop-opacity="0.16"/>
-      <stop offset="100%" stop-color="rgb(0,0,0)"          stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="whiteGlow" cx="88%" cy="4%" r="28%" gradientUnits="objectBoundingBox">
-      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.13"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>`
+  // Layer 2: top-edge white shimmer
+  const topGrad = ctx.createLinearGradient(0, 0, 0, CH * 0.10)
+  topGrad.addColorStop(0, 'rgba(255,255,255,0.10)')
+  topGrad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = topGrad
+  ctx.fillRect(0, 0, CW, CH * 0.10)
+
+  // Layer 3: accent radial glow at bottom-left
+  const acGlow = ctx.createRadialGradient(CW * 0.12, CH, 0, CW * 0.12, CH, CW * 0.38)
+  acGlow.addColorStop(0, `rgba(${r},${g},${b},0.16)`)
+  acGlow.addColorStop(1, `rgba(${r},${g},${b},0)`)
+  ctx.fillStyle = acGlow
+  ctx.fillRect(0, 0, CW, CH)
+
+  // Layer 4: white radial glow at top-right
+  const wGlow = ctx.createRadialGradient(CW * 0.88, 0, 0, CW * 0.88, 0, CW * 0.27)
+  wGlow.addColorStop(0, 'rgba(255,255,255,0.13)')
+  wGlow.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = wGlow
+  ctx.fillRect(0, 0, CW, CH)
 }
 
-function glassRects(border: string): string {
-  return `
-    <rect width="${W}" height="${H}" fill="url(#baseGrad)"/>
-    <rect width="${W}" height="${H}" fill="url(#topShimmer)"/>
-    <rect width="${W}" height="${H}" fill="url(#accentGlow)"/>
-    <rect width="${W}" height="${H}" fill="url(#whiteGlow)"/>
-    <rect width="${W}" height="${H}" rx="50" ry="50" fill="none"
-          stroke="${border}" stroke-width="2"/>`
+// ── REPRA badge ───────────────────────────────────────────────────────────────
+
+function drawBadge(ctx: CanvasRenderingContext2D, args: FourByOneArgs, y: number) {
+  const bx = LEFT_X
+  const bw = 114, bh = 32, bR = 14
+  rrPath(ctx, bx, y, bw, bh, bR)
+  ctx.fillStyle = args.badgeBg
+  ctx.fill()
+  ctx.font = fnt(22, true)
+  ctx.fillStyle = args.badgeTxt
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillText('REPRA', bx + 18, y + 23)
 }
 
-// ── Chart SVG fragments ───────────────────────────────────────────────────────
+// ── Line chart (MAX 1RM + Body Weight) ───────────────────────────────────────
 
-function lineChart(
-  values: number[],
-  accentHex: string,
-  latestHex: string,
-  areaFill: string,
-  isDarkBg: boolean,
-): string {
-  if (values.length < 2) return ''
+function drawLine(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const values = args.metric === 'max1rm'
+    ? (args.rm1SVGData ?? []).map(d => d.est1rm)
+    : (args.bwValues ?? [])
+  if (values.length < 2) return
 
-  const chartH   = Math.round(H * 0.62)
-  const y0       = CY - Math.round(chartH / 2)
-  const padX     = 27
-  const padYt    = 17
-  const padYb    = 10
+  const chartH = Math.round(CH * 0.62)  // 167px
+  const y0     = CY - Math.round(chartH / 2)  // top of chart area
+  const yBot   = y0 + chartH
+  const padX   = 18, padYt = 14, padYb = 8
 
   const max = Math.max(...values)
   const min = Math.min(...values)
@@ -170,223 +194,254 @@ function lineChart(
   const py = (v: number) =>
     y0 + padYt + ((max - v) / rng) * (chartH - padYt - padYb)
 
-  const pts  = values.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`)
-  const linePts  = pts.join(' ')
-  const areaPts  = `${(CTR_X + padX).toFixed(1)},${(y0 + chartH)} ${linePts} ${(CTR_X + CTR_W - padX).toFixed(1)},${(y0 + chartH)}`
+  const pts = values.map((v, i) => [px(i), py(v)] as [number, number])
+  const [fx, fy] = pts[0]
+  const [lx, ly] = pts[pts.length - 1]
 
-  const lx = px(values.length - 1)
-  const ly = py(values[values.length - 1])
-  const fx = px(0)
-  const fy = py(values[0])
+  // Area fill
+  if (args.areaFill && args.areaFill !== 'none') {
+    ctx.beginPath()
+    ctx.moveTo(pts[0][0], yBot)
+    pts.forEach(([x, y]) => ctx.lineTo(x, y))
+    ctx.lineTo(pts[pts.length - 1][0], yBot)
+    ctx.closePath()
+    ctx.fillStyle = args.areaFill
+    ctx.fill()
+  }
 
-  const fdot = firstDotColor(isDarkBg)
+  // Line stroke
+  ctx.beginPath()
+  ctx.moveTo(pts[0][0], pts[0][1])
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
+  ctx.strokeStyle = args.graphAccentHex
+  ctx.lineWidth   = 2.5
+  ctx.lineJoin    = 'miter'
+  ctx.lineCap     = 'butt'
+  ctx.stroke()
 
-  return `
-    ${areaFill !== 'none' ? `<polygon points="${areaPts}" fill="${areaFill}"/>` : ''}
-    <polyline points="${linePts}" fill="none" stroke="${accentHex}"
-              stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="butt"/>
-    <circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="2.8" fill="${fdot}"/>
-    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="9.7" fill="${latestHex}" opacity="0.08"/>
-    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="5.5" fill="${latestHex}" opacity="0.28"/>
-    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.9" fill="${latestHex}"/>`
+  // First dot
+  const fdot = args.isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
+  ctx.beginPath(); ctx.arc(fx, fy, 2.8, 0, Math.PI * 2)
+  ctx.fillStyle = fdot; ctx.fill()
+
+  // Last dot with glow rings
+  ctx.fillStyle = args.graphLatestHex
+  ctx.globalAlpha = 0.08; ctx.beginPath(); ctx.arc(lx, ly, 9.7, 0, Math.PI * 2); ctx.fill()
+  ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.arc(lx, ly, 5.5, 0, Math.PI * 2); ctx.fill()
+  ctx.globalAlpha = 1.00; ctx.beginPath(); ctx.arc(lx, ly, 3.9, 0, Math.PI * 2); ctx.fill()
 }
 
-function barChart(
-  bars: VolBar[],
-  accentHex: string,
-  latestHex: string,
-): string {
-  if (!bars.length) return ''
+// ── Bar chart (Daily Volume) ──────────────────────────────────────────────────
 
+function drawBars(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  const bars = args.volBars ?? []
+  if (!bars.length) return
   const maxVal = Math.max(...bars.map(b => b.value))
-  if (maxVal === 0) return ''
+  if (maxVal === 0) return
 
-  const chartH = Math.round(H * 0.65)
+  const chartH = Math.round(CH * 0.65)  // 175px
   const yBot   = CY + Math.round(chartH / 2)
-
   const gap    = Math.max(0.4, 0.8 - bars.length * 0.005) * (CTR_W / 100)
   const slotW  = CTR_W / bars.length
   const barW   = Math.max(slotW - gap, 0.5)
   const rad    = Math.min(4, barW / 3)
 
-  return bars.map((b, i) => {
-    const bh      = Math.max((b.value / maxVal) * chartH * 0.92, 1.7)
-    const bx      = CTR_X + i * slotW + (slotW - barW) / 2
-    const by      = yBot - bh
-    const isHi    = b.isLatest || b.isBest
-    const fill    = isHi ? latestHex : accentHex
-    const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
-
-    return `<rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}"
-              width="${Math.max(barW, 0.5).toFixed(2)}" height="${bh.toFixed(2)}"
-              rx="${rad.toFixed(2)}" ry="${rad.toFixed(2)}"
-              fill="${fill}" opacity="${opacity}"/>`
-  }).join('\n    ')
+  bars.forEach((b, i) => {
+    const bh     = Math.max((b.value / maxVal) * chartH * 0.92, 1.7)
+    const bx     = CTR_X + i * slotW + (slotW - barW) / 2
+    const by     = yBot - bh
+    const fill   = (b.isLatest || b.isBest) ? args.graphLatestHex : args.graphAccentHex
+    ctx.globalAlpha = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
+    ctx.fillStyle   = fill
+    ctx.beginPath()
+    ctx.moveTo(bx + rad, by)
+    ctx.lineTo(bx + barW - rad, by)
+    ctx.arcTo(bx + barW, by,      bx + barW, by + rad, rad)
+    ctx.lineTo(bx + barW, by + bh)
+    ctx.lineTo(bx,        by + bh)
+    ctx.lineTo(bx,        by + rad)
+    ctx.arcTo(bx,         by,      bx + rad,  by,       rad)
+    ctx.closePath()
+    ctx.fill()
+  })
+  ctx.globalAlpha = 1
 }
 
-// ── Font string helper ────────────────────────────────────────────────────────
+// ── Left column ───────────────────────────────────────────────────────────────
 
-const FF = 'system-ui,-apple-system,sans-serif'
+function drawLeft1RM(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  drawBadge(ctx, args, 63)
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
 
-function txt(
-  x: number, y: number, fontSize: number, fontWeight: number,
-  fill: string, anchor: 'start' | 'middle' | 'end',
-  content: string,
-  extra = '',
-): string {
-  return `<text x="${x}" y="${y}" text-anchor="${anchor}"
-    font-family="${FF}" font-size="${fontSize}" font-weight="${fontWeight}"
-    fill="${fill}"${extra}>${e(content)}</text>`
+  // Exercise name
+  ctx.font      = fnt(33, true)
+  ctx.fillStyle = primaryText(args.isDarkBg)
+  ctx.fillText(args.exName ?? '', LEFT_X, 147)
+
+  // 1RM label
+  ctx.font      = fnt(20, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(
+    args.cardLang === 'ja' ? '1RM推移' : '1RM PROGRESS',
+    LEFT_X, 197,
+  )
 }
 
-// ── Badge ─────────────────────────────────────────────────────────────────────
+function drawLeftBW(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  drawBadge(ctx, args, 78)
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
 
-function badge(badgeBg: string, badgeTxt: string): string {
-  const bx = LEFT_X, by = 84, bw = 82, bh = 28, rx = 7
-  const tx = bx + bw / 2, ty = by + 20
-  return `
-    <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${rx}" ry="${rx}" fill="${badgeBg}"/>
-    <text x="${tx}" y="${ty}" text-anchor="middle"
-      font-family="${FF}" font-size="20" font-weight="900" fill="${badgeTxt}"
-      letter-spacing="3">REPRA</text>`
-}
+  ctx.font      = fnt(22, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(
+    args.cardLang === 'ja' ? '体重' : 'BODY WEIGHT',
+    LEFT_X, 152,
+  )
 
-// ── Left column per metric ────────────────────────────────────────────────────
-
-function leftMax1RM(args: FourByOneArgs): string {
-  const tp    = textPrimary(args.isDarkBg)
-  const label = args.cardLang === 'ja' ? '1RM推移' : '1RM PROGRESS'
-  return `
-    ${badge(args.badgeBg, args.badgeTxt)}
-    ${txt(LEFT_X, 152, 33, 900, tp,              'start', args.exName ?? '')}
-    ${txt(LEFT_X, 180, 20, 700, args.graphAccentHex, 'start', label, ' letter-spacing="2"')}`
-}
-
-function leftBodyWeight(args: FourByOneArgs): string {
-  const tp     = textPrimary(args.isDarkBg)
-  const label  = args.cardLang === 'ja' ? '体重' : 'BODY WEIGHT'
   const hasBoth = (args.bwHistoryLen ?? 0) >= 2
   const valLine = hasBoth
-    ? `${args.bwStartDisplay} → ${args.bwCurrentDisplay} ${args.unitLabel ?? ''}`
-    : `${args.bwCurrentDisplay} ${args.unitLabel ?? ''}`
-  return `
-    ${badge(args.badgeBg, args.badgeTxt)}
-    ${txt(LEFT_X, 138, 22, 700, args.graphAccentHex, 'start', label, ' letter-spacing="2"')}
-    ${txt(LEFT_X, 172, 28, 700, tp,                  'start', valLine)}`
+    ? `${args.bwStartDisplay ?? ''} → ${args.bwCurrentDisplay ?? ''} ${args.unitLabel ?? ''}`
+    : `${args.bwCurrentDisplay ?? ''} ${args.unitLabel ?? ''}`
+  ctx.font      = fnt(28, true)
+  ctx.fillStyle = primaryText(args.isDarkBg)
+  ctx.fillText(valLine, LEFT_X, 191)
 }
 
-function leftVolume(args: FourByOneArgs): string {
-  const tp    = textPrimary(args.isDarkBg)
-  const label = args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME'
-  return `
-    ${badge(args.badgeBg, args.badgeTxt)}
-    ${txt(LEFT_X, 138, 22, 700, args.graphAccentHex,  'start', label, ' letter-spacing="2"')}
-    ${txt(LEFT_X, 178, 33, 900, tp,                   'start', args.volCardLabel ?? '')}`
+function drawLeftVol(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  drawBadge(ctx, args, 75)
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  ctx.font      = fnt(22, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(
+    args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME',
+    LEFT_X, 149,
+  )
+
+  ctx.font      = fnt(33, true)
+  ctx.fillStyle = primaryText(args.isDarkBg)
+  ctx.fillText(args.volCardLabel ?? '', LEFT_X, 196)
 }
 
-// ── Right column per metric ───────────────────────────────────────────────────
+// ── Right column ──────────────────────────────────────────────────────────────
 
-function rightMax1RM(args: FourByOneArgs): string {
-  const sec     = ptxt(args.isDarkBg, 0.50)
-  const growth  = args.rm1Growth
-  const growthColor = (growth !== null && growth !== undefined && growth >= 0) ? '#4ade80' : '#f87171'
-  return `
-    ${txt(RIGHT_X, 128, 83, 900, args.graphAccentHex, 'end', String(args.bestRMDisplay ?? ''))}
-    ${txt(RIGHT_X, 158, 25, 400, sec, 'end', `${args.unitLabel ?? ''} ${args.cardLang === 'ja' ? 'ベスト' : 'best'}`)}
-    ${growth !== null && growth !== undefined
-      ? txt(RIGHT_X, 186, 28, 700, growthColor, 'end', `${growth >= 0 ? '+' : ''}${growth}`)
-      : ''}`
+function drawRight1RM(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  ctx.textAlign    = 'right'
+  ctx.textBaseline = 'alphabetic'
+
+  // Main value
+  ctx.font      = fnt(83, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(String(args.bestRMDisplay ?? ''), RIGHT_X, 138)
+
+  // Unit + "best"
+  ctx.font      = fnt(25, false)
+  ctx.fillStyle = ptxt(args.isDarkBg, 0.50)
+  ctx.fillText(
+    `${args.unitLabel ?? ''} ${args.cardLang === 'ja' ? 'ベスト' : 'best'}`,
+    RIGHT_X, 168,
+  )
+
+  // Growth indicator
+  const growth = args.rm1Growth
+  if (growth !== null && growth !== undefined) {
+    ctx.font      = fnt(28, true)
+    ctx.fillStyle = growth >= 0 ? '#4ade80' : '#f87171'
+    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth}`, RIGHT_X, 201)
+  }
 }
 
-function rightBodyWeight(args: FourByOneArgs): string {
-  const sec = ptxt(args.isDarkBg, 0.50)
-  return `
-    ${txt(RIGHT_X, 128, 83, 900, args.graphAccentHex, 'end', String(args.bwCurrentDisplay ?? ''))}
-    ${txt(RIGHT_X, 158, 25, 400, sec,                 'end', args.unitLabel ?? '')}
-    ${txt(RIGHT_X, 186, 28, 700, args.graphAccentHex, 'end', `${args.bwChangeStr ?? ''}${args.unitLabel ?? ''}`)}`
+function drawRightBW(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  ctx.textAlign    = 'right'
+  ctx.textBaseline = 'alphabetic'
+
+  ctx.font      = fnt(83, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(String(args.bwCurrentDisplay ?? ''), RIGHT_X, 138)
+
+  ctx.font      = fnt(25, false)
+  ctx.fillStyle = ptxt(args.isDarkBg, 0.50)
+  ctx.fillText(args.unitLabel ?? '', RIGHT_X, 168)
+
+  ctx.font      = fnt(28, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(
+    `${args.bwChangeStr ?? ''}${args.unitLabel ?? ''}`,
+    RIGHT_X, 201,
+  )
 }
 
-function rightVolume(args: FourByOneArgs): string {
-  const sec1 = ptxt(args.isDarkBg, 0.45)
-  const sec2 = ptxt(args.isDarkBg, 0.35)
+function drawRightVol(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
+  ctx.textAlign    = 'right'
+  ctx.textBaseline = 'alphabetic'
   const sessLabel = args.cardLang === 'ja' ? 'セッション' : 'sessions'
-  return `
-    ${txt(RIGHT_X, 130, 61, 900, args.graphAccentHex, 'end', args.activeVolTotalStr ?? '')}
-    ${txt(RIGHT_X, 157, 22, 400, sec1,                'end', args.cardLang === 'ja' ? '合計' : 'total')}
-    ${txt(RIGHT_X, 181, 24, 400, sec2,                'end', `${args.activeVolSessionCount ?? 0} ${sessLabel}`)}`
+
+  ctx.font      = fnt(61, true)
+  ctx.fillStyle = args.graphAccentHex
+  ctx.fillText(args.activeVolTotalStr ?? '', RIGHT_X, 128)
+
+  ctx.font      = fnt(22, false)
+  ctx.fillStyle = ptxt(args.isDarkBg, 0.45)
+  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'total', RIGHT_X, 158)
+
+  ctx.font      = fnt(24, false)
+  ctx.fillStyle = ptxt(args.isDarkBg, 0.35)
+  ctx.fillText(
+    `${args.activeVolSessionCount ?? 0} ${sessLabel}`,
+    RIGHT_X, 187,
+  )
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function exportFourByOneCard(args: FourByOneArgs): Promise<Blob> {
-  const isGlass = args.cardStyle === 'glass'
+  await document.fonts.ready
+  await new Promise<void>(r => requestAnimationFrame(() => r()))
 
-  // Defs section (gradients + clip path)
-  const defs = `<defs>
-    ${isGlass ? glassDefs(args.glassAccentHex, args.glassIsDark) : ''}
-    <clipPath id="card">
-      <rect width="${W}" height="${H}" rx="50" ry="50"/>
-    </clipPath>
-  </defs>`
+  const canvas    = document.createElement('canvas')
+  canvas.width    = CW
+  canvas.height   = CH
+  const ctx       = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D context unavailable')
 
-  // Background
-  const bg = isGlass ? glassRects(args.gpBorder) : ''
+  // Clip to rounded rect — all drawing is confined inside the card corners.
+  // Pixels outside the rounded rect are never written → PNG corners are transparent.
+  rrPath(ctx, 0, 0, CW, CH, RX)
+  ctx.clip()
 
-  // Left column
-  const left =
-    args.metric === 'max1rm'     ? leftMax1RM(args) :
-    args.metric === 'bodyweight' ? leftBodyWeight(args) :
-                                   leftVolume(args)
+  // Glass background: semi-transparent gradient layers keep alpha in the PNG.
+  // Transparent mode: canvas starts transparent; nothing drawn for background.
+  if (args.cardStyle === 'glass') {
+    drawGlass(ctx, args)
+
+    // Border: lineWidth 4 → 2px visible inside clip, matching the 1px CSS border at 2.77×
+    rrPath(ctx, 0, 0, CW, CH, RX)
+    ctx.strokeStyle = args.gpBorder
+    ctx.lineWidth   = 4
+    ctx.stroke()
+  }
+
+  // Left column (badge + labels)
+  if (args.metric === 'max1rm')          drawLeft1RM(ctx, args)
+  else if (args.metric === 'bodyweight') drawLeftBW(ctx, args)
+  else                                   drawLeftVol(ctx, args)
 
   // Center chart
-  const chart =
-    args.metric === 'volume'
-      ? barChart(args.volBars ?? [], args.graphAccentHex, args.graphLatestHex)
-      : lineChart(
-          args.metric === 'max1rm'
-            ? (args.rm1SVGData ?? []).map(d => d.est1rm)
-            : (args.bwValues ?? []),
-          args.graphAccentHex,
-          args.graphLatestHex,
-          args.areaFill,
-          args.isDarkBg,
-        )
+  if (args.metric === 'volume') drawBars(ctx, args)
+  else                          drawLine(ctx, args)
 
-  // Right column
-  const right =
-    args.metric === 'max1rm'     ? rightMax1RM(args) :
-    args.metric === 'bodyweight' ? rightBodyWeight(args) :
-                                   rightVolume(args)
-
-  const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-  ${defs}
-  <g clip-path="url(#card)">
-    ${bg}
-    ${left}
-    ${chart}
-    ${right}
-  </g>
-</svg>`
-
-  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
-  const url     = URL.createObjectURL(svgBlob)
+  // Right column (main stat)
+  if (args.metric === 'max1rm')          drawRight1RM(ctx, args)
+  else if (args.metric === 'bodyweight') drawRightBW(ctx, args)
+  else                                   drawRightVol(ctx, args)
 
   return new Promise<Blob>((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () => {
-      const canvas    = document.createElement('canvas')
-      canvas.width    = W
-      canvas.height   = H
-      const ctx       = canvas.getContext('2d')
-      if (!ctx) { URL.revokeObjectURL(url); reject(new Error('No 2D context')); return }
-      ctx.drawImage(img, 0, 0, W, H)
-      URL.revokeObjectURL(url)
-      canvas.toBlob(
-        b => b ? resolve(b) : reject(new Error('canvas.toBlob returned null')),
-        'image/png',
-      )
-    }
-    img.onerror = (err) => { URL.revokeObjectURL(url); reject(err) }
-    img.src = url
+    canvas.toBlob(
+      b => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))),
+      'image/png',
+    )
   })
 }
