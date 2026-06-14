@@ -399,22 +399,21 @@ function drawProgressBars(
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal <= normFloor) return
 
-  // Slot height cap by density — smaller cap → bars cluster, centering prevents top-bias
-  // Max expected n for Volume side graph is 40; line charts (1RM/BW) pass up to 60
-  const maxSlotH = n <= 5  ? 72 : n <= 10 ? 60 : n <= 20 ? 44 : 32
+  // Slot height = bar height + gap. Cap controls the gap to prevent wide empty spacing.
+  // Targets: n≤5 → barH 22px gap 10px slot 32 | n≤10 → 18/8/26 | n≤20 → 13/7/20 | n≤40 → 7/7/14
+  const maxSlotH = n <= 5 ? 32 : n <= 10 ? 26 : n <= 20 ? 20 : 14
   const slotH    = Math.min((BARS_BOT - barsTop) / n, maxSlotH)
 
-  // Center the used area so sparse sets float mid-card rather than top-cluster
+  // Center the used area vertically so sparse bar sets do not top-cluster
   const usedH  = slotH * n
   const startY = barsTop + Math.max(0, ((BARS_BOT - barsTop) - usedH) / 2)
 
-  // Bar height by density (target ranges from spec)
-  // n<=5: 18-22px  |  6-10: 14-18px  |  11-20: 10-14px  |  21-40: 5-8px
+  // Bar height: 72% of slot (leaves ~28% as gap between bars)
   let barH: number
   if      (n <= 5)  barH = Math.min(22, slotH * 0.72)
-  else if (n <= 10) barH = Math.min(17, slotH * 0.68)
-  else if (n <= 20) barH = Math.min(13, slotH * 0.62)
-  else              barH = Math.min(7,  slotH * 0.58)
+  else if (n <= 10) barH = Math.min(18, slotH * 0.72)
+  else if (n <= 20) barH = Math.min(13, slotH * 0.70)
+  else              barH = Math.min(7,  slotH * 0.65)
   barH = Math.max(barH, 2)
 
   // Date labels: all for n<=7, every other for n<=14, max ~6 for dense

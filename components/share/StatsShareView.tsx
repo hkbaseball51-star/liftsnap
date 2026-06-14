@@ -1207,6 +1207,20 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const vol40XLeft   = volBars40.bars.length >= 2 ? volBars40.bars[0].label : ''
   const vol40XRight  = volBars40.bars.length >= 2 ? volBars40.bars[volBars40.bars.length - 1].label : ''
 
+  // Side Graph uses daily granularity (max 40) regardless of total session count.
+  // aggregateVolBars switches to weekly at 61+ sessions, which collapses bars to ~10-15.
+  // By slicing activeVolHistory directly we always get daily density for the side card.
+  const volBarsSide = useMemo((): VolBar[] => {
+    const limited = activeVolHistory.slice(-40)
+    const maxVal  = limited.length ? Math.max(...limited.map(p => p.volume)) : 0
+    return limited.map((p, i) => ({
+      label:    p.date,
+      value:    p.volume,
+      isLatest: i === limited.length - 1,
+      isBest:   maxVal > 0 && p.volume === maxVal,
+    }))
+  }, [activeVolHistory])
+
   const volGranLabel = volBarsAll.granularity === 'daily' ? 'DAILY'
     : volBarsAll.granularity === 'weekly' ? 'WEEKLY' : 'MONTHLY'
 
@@ -1255,7 +1269,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       volCardLabel, activeVolTotalStr, String(activeVolSessionCount),
       isMax1RM ? rm1DataView.map((d, i) => `${rm1DatesView[i] ?? ''}:${d.est1rm}`).join(',') : '',
       isBW      ? bwDataView.map((v, i) => `${bwDatesView[i] ?? ''}:${v}`).join(',') : '',
-      isVol     ? volBars40.bars.map(b => `${b.label}:${b.value}`).join(',') : '',
+      isVol     ? volBarsSide.map(b => `${b.label}:${b.value}`).join(',') : '',
     ].join('|')
   }, [
     graphLayout, isMax1RM, isBW, isVol,
@@ -1265,7 +1279,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     exName, bestRMDisplay, rm1Growth,
     bwCurrentDisplay, bwStartDisplay, bwChangeStr,
     volCardLabel, activeVolTotalStr, activeVolSessionCount,
-    rm1DataView, rm1DatesView, bwDataView, bwDatesView, volBars40,
+    rm1DataView, rm1DatesView, bwDataView, bwDatesView, volBarsSide,
   ])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1293,7 +1307,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           bwCurrentDisplay, bwStartDisplay, bwChangeStr,
           bwValues: bwDataView, bwHistoryLen: bwDataView.length, bwDates: bwDatesView,
           bwStartDate: bwHistory.length ? bwHistory[0].date : undefined,
-          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars40.bars,
+          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBarsSide,
         })
         if (gen !== sideGenRef.current) return
         if (sidePreviewUrlRef.current) URL.revokeObjectURL(sidePreviewUrlRef.current)
@@ -1451,7 +1465,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             volCardLabel,
             activeVolTotalStr,
             activeVolSessionCount,
-            volBars: volBars40.bars,
+            volBars: volBarsSide,
           })
         } else {
           const el: HTMLDivElement | null =
