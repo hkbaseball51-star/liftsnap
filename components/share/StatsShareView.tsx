@@ -1022,6 +1022,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const [shareCount, setShareCount] = useState(0)
 
   const sidePreviewUrlRef                   = useRef<string>('')
+  const sideGenRef                          = useRef(0)
   const [sidePreviewSrc, setSidePreviewSrc] = useState<string>('')
 
   // Graph layout controls — shared by MAX 1RM, Body Weight, Daily Volume
@@ -1223,15 +1224,45 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const activeVolLastDate     = activeVolHistory.length ? activeVolHistory[activeVolHistory.length - 1].date : ''
 
   /* ── Side graph canvas preview ───────────────────────────── */
+  // Stable string key — prevents unstable object/array refs from re-triggering the effect.
+  // String comparison is value-based, so even if arrays are recreated each render,
+  // the key stays identical as long as the serialized content hasn't changed.
+  const sidePreviewKey = useMemo(() => {
+    if (graphLayout !== 'side') return ''
+    return [
+      isMax1RM ? 'rm' : isBW ? 'bw' : 'vol',
+      cardStyle, gpAccent, gpLatest, areaFill,
+      isDarkBg ? '1' : '0',
+      gp.accentHex, String(gp.isDark), gp.border,
+      gpBadgeBg, gpBadgeTxt, cardLang, unitLabel, unit,
+      exName ?? '', String(bestRMDisplay ?? ''), String(rm1Growth ?? ''),
+      String(bwCurrentDisplay), String(bwStartDisplay), bwChangeStr,
+      volCardLabel, activeVolTotalStr, String(activeVolSessionCount),
+      isMax1RM ? rm1FullHistory.map(p => `${p.date}:${p.est1rm}`).join(',') : '',
+      isBW      ? bwHistory.map(p => `${p.date}:${p.weight}`).join(',') : '',
+      isVol     ? volBars30.bars.map(b => `${b.label}:${b.value}`).join(',') : '',
+    ].join('|')
+  }, [
+    graphLayout, isMax1RM, isBW, isVol,
+    cardStyle, gpAccent, gpLatest, areaFill, isDarkBg,
+    gp.accentHex, gp.isDark, gp.border, gpBadgeBg, gpBadgeTxt,
+    cardLang, unitLabel, unit,
+    exName, bestRMDisplay, rm1Growth,
+    bwCurrentDisplay, bwStartDisplay, bwChangeStr,
+    volCardLabel, activeVolTotalStr, activeVolSessionCount,
+    rm1FullHistory, bwHistory, volBars30,
+  ])
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (graphLayout !== 'side') {
+    if (!sidePreviewKey) {
       if (sidePreviewUrlRef.current) { URL.revokeObjectURL(sidePreviewUrlRef.current); sidePreviewUrlRef.current = '' }
       setSidePreviewSrc('')
       return
     }
-    let cancelled = false
-    setSidePreviewSrc('')
+    // Generation counter: only the latest async result may update state.
+    // This prevents a slow previous export from overwriting a newer one.
+    const gen = ++sideGenRef.current
     const run = async () => {
       try {
         const { exportSideGraphCard } = await import('@/lib/sideGraphExport')
@@ -1248,25 +1279,18 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           bwValues, bwHistoryLen: bwHistory.length, bwDates: bwHistory.map(p => p.date),
           volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars30.bars,
         })
-        if (cancelled) return
+        if (gen !== sideGenRef.current) return
         if (sidePreviewUrlRef.current) URL.revokeObjectURL(sidePreviewUrlRef.current)
         const url = URL.createObjectURL(blob)
         sidePreviewUrlRef.current = url
         setSidePreviewSrc(url)
-      } catch { /* ignore preview errors */ }
+      } catch (e) {
+        if (gen !== sideGenRef.current) return
+        console.error('[sidePreview]', e)
+      }
     }
     run()
-    return () => { cancelled = true }
-  }, [
-    graphLayout, isMax1RM, isBW,
-    cardStyle, gpAccent, gpLatest, areaFill, isDarkBg,
-    gp.accentHex, gp.isDark, gp.border, gpBadgeBg, gpBadgeTxt,
-    cardLang, unitLabel, unit,
-    data,
-    exName, bestRMDisplay, rm1Growth,
-    bwCurrentDisplay, bwStartDisplay, bwChangeStr,
-    volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars30,
-  ])
+  }, [sidePreviewKey])
 
   /* ── Share handler ───────────────────────────────────────── */
   const handleShare = async () => {
