@@ -216,16 +216,23 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs, cardH = C
 // ── REPRA badge ───────────────────────────────────────────────────────────────
 
 function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
+  // Premium pill: dark bg + accent border + accent text. Fall back to light on pearl-white glass.
+  const acc = args.isDarkBg ? args.graphAccentHex : 'rgba(229,231,235,0.85)'
+  ctx.letterSpacing = '2px'
   ctx.font = fnt(14, true)
   const textW = ctx.measureText('REPRA').width
-  const bw = Math.ceil(textW) + BADGE_PAD_L + BADGE_PAD_R
+  const bw    = Math.ceil(textW) + BADGE_PAD_L + BADGE_PAD_R
   rrPath(ctx, CX, BADGE_Y, bw, BADGE_H, BADGE_RX)
-  ctx.fillStyle = args.badgeBg
+  ctx.fillStyle   = 'rgba(12,10,8,0.75)'
   ctx.fill()
-  ctx.fillStyle    = args.badgeTxt
+  ctx.strokeStyle = acc
+  ctx.lineWidth   = 1.5
+  ctx.stroke()
+  ctx.fillStyle    = acc
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
   ctx.fillText('REPRA', CX + BADGE_PAD_L, BADGE_Y + 15)
+  ctx.letterSpacing = '0px'
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────

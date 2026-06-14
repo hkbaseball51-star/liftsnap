@@ -288,8 +288,10 @@ async function generateStatsCard(data: StatsData, theme: Theme, accent: Accent, 
     ctx.fillRect(0, 0, W, H)
   }
 
-  ctx.fillStyle = ac.badgeBg; rr(ctx, 80, 100, 268, 68, 14); ctx.fill()
-  ctx.fillStyle = ac.badgeText; ctx.font = f(28, 700); ctx.fillText('REPRA', 112, 147)
+  rr(ctx, 80, 100, 268, 68, 14)
+  ctx.fillStyle = 'rgba(12,10,8,0.75)'; ctx.fill()
+  ctx.strokeStyle = ac.hex; ctx.lineWidth = 3; ctx.stroke()
+  ctx.fillStyle = ac.hex; ctx.font = f(28, 700); ctx.fillText('REPRA', 112, 147)
 
   const divider = (y: number) => {
     ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1.5
@@ -1102,6 +1104,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // transparent mode: suppress the area-fill polygon so the saved PNG has no
   // semi-transparent color surface under the line — only the line/dots remain.
   const areaFill     = isTransparentCard ? 'none' : acRgba(gpAccent, 0.12)
+  const repraLogoBadgeAccent = isDarkBg ? gpAccent : 'rgba(229,231,235,0.85)'
 
   // preview-only: premium-black + transparent uses dark text, so show a light preview backing.
   // The checker/backing is applied to the OUTER WRAPPER (outside all capture refs), so it
@@ -1840,7 +1843,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
+                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 9px', borderRadius: 99, background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent, border: `1.5px solid ${repraLogoBadgeAccent}`, letterSpacing: '0.18em', display: 'inline-block' }}>REPRA</span>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>{cl('MAX 1RM PROGRESS', '最大1RMの推移')}</p>
                   <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{exName}</p>
                 </div>
@@ -1991,7 +1994,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
+                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 9px', borderRadius: 99, background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent, border: `1.5px solid ${repraLogoBadgeAccent}`, letterSpacing: '0.18em', display: 'inline-block' }}>REPRA</span>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 0' }}>{cl('BODY WEIGHT PROGRESS', '体重の変化')}</p>
                 </div>
                 <div style={{ height: 1, background: acRgba(gpAccent, 0.25), margin: '10px 18px' }} />
@@ -2138,7 +2141,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 {/* Header */}
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 5, background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent', letterSpacing: '0.12em', display: 'inline-block' }}>REPRA</span>
+                    <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 9px', borderRadius: 99, background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent, border: `1.5px solid ${repraLogoBadgeAccent}`, letterSpacing: '0.18em', display: 'inline-block' }}>REPRA</span>
                     <span style={{ fontSize: 7, fontWeight: 700, color: acRgba(gpAccent, 0.6), letterSpacing: '0.12em' }}>{volGranLabel}</span>
                   </div>
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>{cl('DAILY VOLUME', '総重量')}</p>

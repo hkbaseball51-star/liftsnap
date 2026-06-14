@@ -324,6 +324,7 @@ export default function WorkoutStoryCardContent({
   const subTextColor  = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor  = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
+  const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
   const textPrimary   = isDarkBg ? '#fff' : '#111827'
   const rgb           = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt          = (a: number) => `rgba(${rgb},${a})`
@@ -366,10 +367,10 @@ export default function WorkoutStoryCardContent({
       <div>
         <span style={{
           display: 'inline-block',
-          fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
-          padding: '4px 11px', borderRadius: 5,
-          background: badgeBgColor, color: badgeTextColor,
-          border: `1px solid ${p.badgeBorder}`,
+          fontSize: 10, fontWeight: 900, letterSpacing: '0.20em',
+          padding: '4px 12px', borderRadius: 99,
+          background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent,
+          border: `1.5px solid ${repraLogoBadgeAccent}`,
         }}>REPRA</span>
       </div>
 
@@ -538,6 +539,7 @@ export function ExerciseStoryCard({
   const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
+  const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
   const textPrimary    = isDarkBg ? '#fff' : '#111827'
   const rgb            = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt           = (a: number) => `rgba(${rgb},${a})`
@@ -569,10 +571,10 @@ export function ExerciseStoryCard({
       <div>
         <span style={{
           display: 'inline-block',
-          fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
-          padding: '4px 11px', borderRadius: 5,
-          background: badgeBgColor, color: badgeTextColor,
-          border: `1px solid ${p.badgeBorder}`,
+          fontSize: 10, fontWeight: 900, letterSpacing: '0.20em',
+          padding: '4px 12px', borderRadius: 99,
+          background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent,
+          border: `1.5px solid ${repraLogoBadgeAccent}`,
         }}>REPRA</span>
       </div>
 
@@ -671,6 +673,7 @@ export function WorkoutSummaryStoryCard({
   const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
+  const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
   const textPrimary    = isDarkBg ? '#fff' : '#111827'
   const rgb            = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt           = (a: number) => `rgba(${rgb},${a})`
@@ -704,10 +707,10 @@ export function WorkoutSummaryStoryCard({
       <div>
         <span style={{
           display: 'inline-block',
-          fontSize: 10, fontWeight: 900, letterSpacing: '0.16em',
-          padding: '4px 11px', borderRadius: 5,
-          background: badgeBgColor, color: badgeTextColor,
-          border: `1px solid ${p.badgeBorder}`,
+          fontSize: 10, fontWeight: 900, letterSpacing: '0.20em',
+          padding: '4px 12px', borderRadius: 99,
+          background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent,
+          border: `1.5px solid ${repraLogoBadgeAccent}`,
         }}>REPRA</span>
       </div>
 
