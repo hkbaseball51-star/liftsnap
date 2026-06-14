@@ -1240,7 +1240,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // aggregateVolBars switches to weekly at 61+ sessions, which collapses bars to ~10-15.
   // By slicing activeVolHistory directly we always get daily density for the side card.
   const volBarsSide = useMemo((): VolBar[] => {
-    const limited = activeVolHistory.slice(-18)
+    const limited = activeVolHistory.slice(-28)
     const maxVal  = limited.length ? Math.max(...limited.map(p => p.volume)) : 0
     return limited.map((p, i) => ({
       label:    p.date,

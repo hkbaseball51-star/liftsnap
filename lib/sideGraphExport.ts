@@ -400,9 +400,9 @@ function drawProgressBars(
   if (maxVal <= normFloor) return barsTop
 
   // Target slot (barH + gap) and bar heights per density.
-  // Vol graph caps at 18 bars; tiers above n=18 kept as safety fallback only.
-  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : n <= 30 ? 14 : 11
-  const targetBarH  = n <= 10 ? 20 : n <= 18 ? 18 : n <= 30 ? 12 : 10
+  // Vol graph caps at 28 bars; tiers above n=28 kept as safety fallback only.
+  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : n <= 28 ? 16 : 11
+  const targetBarH  = n <= 10 ? 20 : n <= 18 ? 18 : n <= 28 ? 12 : 8
 
   // Safety cap: don't overflow the full-height bar area
   const slotH = Math.min(targetSlotH, (BARS_BOT - barsTop) / Math.max(n, 1))
@@ -739,7 +739,7 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // For 1RM / Body Weight the card is always full height.
 function computeVolCardH(n: number): number {
   if (n <= 0) return CARD_H
-  const targetSlotH = n <= 10 ? 24 : 22  // vol capped at 18 bars; n≤18 uses 22px slots
+  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : 16  // vol capped at 28 bars
   const barsEnd     = VOL_BARS_TOP + n * targetSlotH
   const footerPad   = 34   // space below last bar for footer text
   const minCardH    = 430  // always tall enough to show all header sections
