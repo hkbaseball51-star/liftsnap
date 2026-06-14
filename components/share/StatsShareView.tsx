@@ -202,6 +202,23 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 
 type ChartPt = { date: string; value: number }
 
+/* ── Even-sampling utility ───────────────────────────────── */
+// Picks up to maxCount items from the full array, always including the first
+// and last, with the rest selected at equal intervals. Deterministic.
+function sampleEvenly<T>(items: T[], maxCount: number): T[] {
+  if (maxCount <= 0) return []
+  if (items.length <= maxCount) return items
+  if (maxCount === 1) return [items[items.length - 1]!]
+  const last = items.length - 1
+  const seen = new Set<number>()
+  const result: T[] = []
+  for (let i = 0; i < maxCount; i++) {
+    const idx = Math.round((i * last) / (maxCount - 1))
+    if (!seen.has(idx)) { seen.add(idx); result.push(items[idx]!) }
+  }
+  return result
+}
+
 /* ── Volume bar aggregation ───────────────────────────────── */
 type VolBar = { label: string; value: number; isLatest: boolean; isBest: boolean }
 
@@ -243,7 +260,7 @@ function aggregateVolBars(
     raw = order.map(k => ({ label: k, value: map.get(k) ?? 0 }))
   }
 
-  const limited = limit !== null ? raw.slice(-limit) : raw
+  const limited = limit !== null ? sampleEvenly(raw, limit) : raw
   const maxVal = limited.length ? Math.max(...limited.map(b => b.value)) : 0
 
   return {
@@ -1139,9 +1156,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     est1rm: Math.round(toDisplayWeight(p.est1rm, unit)),
   }))
   const rm1LayoutLimit = GRAPH_STORY_LIMITS[graphLayout]
-  const rm1DataView    = useMemo(() => rm1SVGData.slice(-rm1LayoutLimit), [rm1SVGData, rm1LayoutLimit])
+  const rm1DataView    = useMemo(() => sampleEvenly(rm1SVGData, rm1LayoutLimit), [rm1SVGData, rm1LayoutLimit])
   const rm1DatesView   = useMemo(
-    () => rm1FullHistory.slice(-rm1LayoutLimit).map(p => p.date),
+    () => sampleEvenly(rm1FullHistory, rm1LayoutLimit).map(p => p.date),
     [rm1FullHistory, rm1LayoutLimit],
   )
   const rm1AxisMax = rm1DataView.length ? Math.max(...rm1DataView.map(d => d.est1rm)) : 0
@@ -1166,9 +1183,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       ? `+${bwChangeRaw.toFixed(1)}`
       : `${bwChangeRaw.toFixed(1)}`
   const bwValues       = bwHistory.map(d => Math.round(toDisplayWeight(d.weight, unit) * 10) / 10)
-  const bwDataView  = useMemo(() => bwValues.slice(-rm1LayoutLimit), [bwValues, rm1LayoutLimit])
+  const bwDataView  = useMemo(() => sampleEvenly(bwValues, rm1LayoutLimit), [bwValues, rm1LayoutLimit])
   const bwDatesView = useMemo(
-    () => bwHistory.slice(-rm1LayoutLimit).map(p => p.date),
+    () => sampleEvenly(bwHistory, rm1LayoutLimit).map(p => p.date),
     [bwHistory, rm1LayoutLimit],
   )
   const bwAxisMax = bwDataView.length ? Math.max(...bwDataView) : 0
@@ -1240,7 +1257,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // aggregateVolBars switches to weekly at 61+ sessions, which collapses bars to ~10-15.
   // By slicing activeVolHistory directly we always get daily density for the side card.
   const volBarsSide = useMemo((): VolBar[] => {
-    const limited = activeVolHistory.slice(-28)
+    const limited = sampleEvenly(activeVolHistory, 28)
     const maxVal  = limited.length ? Math.max(...limited.map(p => p.volume)) : 0
     return limited.map((p, i) => ({
       label:    p.date,
