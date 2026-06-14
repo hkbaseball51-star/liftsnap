@@ -195,6 +195,28 @@ export default function TrainingCalendar({
   // Month jump sheet state
   const [jumpOpen, setJumpOpen] = useState(false)
 
+  // Restore the last-viewed month on mount so returning from Record (past-month recording)
+  // lands on the correct month instead of resetting to today.
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('repra_calendar_visible_month')
+      if (!saved) return
+      const [y, m] = saved.split('-').map(Number)
+      if (y && m && m >= 1 && m <= 12) { setYear(y); setMonth(m - 1) }
+    } catch { /* sessionStorage unavailable (private mode, etc.) */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Keep sessionStorage in sync whenever the displayed month changes.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        'repra_calendar_visible_month',
+        `${year}-${String(month + 1).padStart(2, '0')}`,
+      )
+    } catch { /* sessionStorage unavailable */ }
+  }, [year, month])
+
   // Derive logged months directly from the sessions prop (localStorage data).
   // No async fetch needed — sessions are already in memory.
   const loggedMonths = useMemo(() => {

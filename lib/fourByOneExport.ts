@@ -380,7 +380,6 @@ function drawBars(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
   const gap    = Math.max(0.4, 0.8 - bars.length * 0.005) * (CTR_W / 100)
   const slotW  = CTR_W / bars.length
   const barW   = Math.max(slotW - gap, 0.5)
-  const rad    = Math.min(4, barW / 3)
 
   bars.forEach((b, i) => {
     const bh     = Math.max((b.value / maxVal) * chartH * 0.92, 1.7)
@@ -389,16 +388,7 @@ function drawBars(ctx: CanvasRenderingContext2D, args: FourByOneArgs) {
     const fill   = (b.isLatest || b.isBest) ? args.graphLatestHex : args.graphAccentHex
     ctx.globalAlpha = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
     ctx.fillStyle   = fill
-    ctx.beginPath()
-    ctx.moveTo(bx + rad, by)
-    ctx.lineTo(bx + barW - rad, by)
-    ctx.arcTo(bx + barW, by,      bx + barW, by + rad, rad)
-    ctx.lineTo(bx + barW, by + bh)
-    ctx.lineTo(bx,        by + bh)
-    ctx.lineTo(bx,        by + rad)
-    ctx.arcTo(bx,         by,      bx + rad,  by,       rad)
-    ctx.closePath()
-    ctx.fill()
+    ctx.fillRect(bx, by, barW, bh)
   })
   ctx.globalAlpha = 1
 }

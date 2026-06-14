@@ -764,7 +764,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                           domain={[0, volAxis.yMax]} ticks={volTicks}
                           tickFormatter={v => fmtVolT(v)} />
                         <Tooltip content={volTooltip} cursor={{ stroke: 'var(--chart-cursor)', fill: 'var(--chart-cursor-fill)' }} />
-                        <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2, 2, 0, 0]} maxBarSize={16} />
+                        <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={0} maxBarSize={16} />
                       </BarChart>
                     </div>
                   </div>

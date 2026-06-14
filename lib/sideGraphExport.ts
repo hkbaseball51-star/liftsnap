@@ -4,16 +4,11 @@
  * Output: 1080×1920 RGBA PNG (logical 540×960, 2× physical scale).
  * Left ~50% of canvas is the glass card; right 50% is fully transparent.
  *
- * Axes are swapped vs. standard charts:
- *   y-axis → date (vertical, bottom = oldest, top = newest)
- *   x-axis → value (horizontal)
- *
- * MAX 1RM / Body Weight: vertical line progression (dates top→bottom, value left→right).
- * Daily Volume: horizontal bars (each row = one date, bar extends right by value).
- *
- * Chart area layout (logical coordinates):
- *   DATE_LABEL_W (30px) on the left for y-axis date labels
- *   X_LABEL_H   (18px) at the bottom for x-axis value ticks
+ * Layout: vertical Story progress report.
+ *   Header: BADGE + TYPE + NAME + stat sections (START / BEST or CURRENT / GAIN or CHANGE)
+ *   Body:   PROGRESSION — horizontal bar list, newest at top.
+ *           Up to 60 bars passed in; date labels and value labels are thinned
+ *           automatically so the card stays readable at any density.
  */
 
 type VolBar = { label: string; value: number; isLatest: boolean; isBest: boolean }
@@ -23,7 +18,7 @@ export type SideGraphArgs = {
   cardStyle:        'glass'  | 'transparent'
   graphAccentHex:   string
   graphLatestHex:   string
-  areaFill:         string
+  areaFill:         string   // kept in type for caller compatibility; unused in this layout
   isDarkBg:         boolean
   glassAccentHex:   string
   glassIsDark:      boolean
@@ -33,12 +28,12 @@ export type SideGraphArgs = {
   cardLang:         'en' | 'ja'
 
   // MAX 1RM
-  exName?:           string
-  bestRMDisplay?:    number
-  unitLabel?:        string
-  rm1Growth?:        number | null
-  rm1SVGData?:       { est1rm: number }[]
-  rm1Dates?:         string[]   // ISO date strings for each rm1SVGData point
+  exName?:          string
+  bestRMDisplay?:   number
+  unitLabel?:       string
+  rm1Growth?:       number | null
+  rm1SVGData?:      { est1rm: number }[]
+  rm1Dates?:        string[]
 
   // Body Weight
   bwCurrentDisplay?: number
@@ -46,7 +41,8 @@ export type SideGraphArgs = {
   bwChangeStr?:      string
   bwValues?:         number[]
   bwHistoryLen?:     number
-  bwDates?:          string[]   // ISO date strings for each bwValues entry
+  bwDates?:          string[]
+  bwStartDate?:      string   // all-time first date (for header START section)
 
   // Volume
   volCardLabel?:          string
@@ -58,48 +54,28 @@ export type SideGraphArgs = {
 }
 
 // ── Canvas dimensions (logical; physical = 2×) ────────────────────────────────
-const CW = 540   // → 1080px physical
-const CH = 960   // → 1920px physical
+const CW = 540
+const CH = 960
+void CH
 
-// ── Left card — widened to ~50% of story width ────────────────────────────────
+// ── Card ──────────────────────────────────────────────────────────────────────
 const CARD_X  = 18
 const CARD_Y  = 70
-const CARD_W  = 255  // physical right edge: (18+255)*2 = 546px ≈ 50.6% of 1080
+const CARD_W  = 255
 const CARD_H  = 820
 const CARD_RX = 20
 
-// Content left edge inside card
-const CX = CARD_X + 10  // 28
+const CX = CARD_X + 10           // 28  — left content edge
+const RX = CARD_X + CARD_W - 10  // 263 — right content edge
 
-// Badge
-const BADGE_Y  = CARD_Y + 12  // 82
-const BADGE_H  = 22
-const BADGE_RX = 10
-const BADGE_PAD_L = 11  // left padding inside badge
-const BADGE_PAD_R = 10  // right padding inside badge
+const BADGE_Y     = CARD_Y + 12  // 82
+const BADGE_H     = 22
+const BADGE_RX    = 10
+const BADGE_PAD_L = 11
+const BADGE_PAD_R = 10
 
-// Chart total area (header above, footer below)
-const CHART_TOP = CARD_Y + 185   // 255
-const CHART_BOT = CARD_Y + CARD_H - 16  // 874 — extended to reduce gap above footer
-
-// Y-axis date label column (left of plot)
-const DATE_LABEL_W = 30  // reduced to move graph left and align with text
-
-// X-axis value label row (below plot)
-const X_LABEL_H = 18
-
-// Plot bounds — where lines/bars actually render
-const PLOT_X   = CX + DATE_LABEL_W  // 58 — aligned with CX for left-side consistency
-const PLOT_W   = CARD_X + CARD_W - 8 - PLOT_X  // 18+255-8-58 = 207
-const PLOT_TOP = CHART_TOP + 8   // 263
-const PLOT_BOT = CHART_BOT - X_LABEL_H  // 856
-const PLOT_H   = PLOT_BOT - PLOT_TOP   // 593
-
-// X-axis label baseline (below plot)
-const XLBL_Y = PLOT_BOT + 4  // 860
-
-// suppress unused warning for CH (canvas height is set via CH*2)
-void CH
+// Bottom of bar area (above footer)
+const BARS_BOT = CARD_Y + CARD_H - 24  // 866
 
 // ── Drawing helpers ───────────────────────────────────────────────────────────
 
@@ -134,42 +110,6 @@ function primaryText(isDarkBg: boolean): string {
   return isDarkBg ? '#ffffff' : '#111827'
 }
 
-// ── Axis helpers ──────────────────────────────────────────────────────────────
-
-/** Pick up to `count` nice tick values within [min, max]. */
-function niceXTicks(min: number, max: number, count = 3): number[] {
-  if (max <= min || count < 2) return [max]
-  const rng  = max - min
-  const raw  = rng / (count - 1)
-  const mag  = Math.pow(10, Math.floor(Math.log10(raw)))
-  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? mag * 10
-  const lo   = Math.ceil(min / step) * step
-  const ticks: number[] = []
-  for (let t = lo; t <= max * 1.001; t = Math.round((t + step) * 1e9) / 1e9) {
-    ticks.push(t)
-    if (ticks.length >= count + 1) break
-  }
-  return ticks.filter(t => t >= min * 0.999 && t <= max * 1.001)
-}
-
-/** Pick `count` evenly-spaced non-zero ticks from 0..maxVal. */
-function niceVolTicks(maxVal: number, count = 3): number[] {
-  if (maxVal === 0) return []
-  const thirds = Array.from({ length: count }, (_, i) => maxVal * (i + 1) / count)
-  const mag    = Math.pow(10, Math.floor(Math.log10(maxVal / count)))
-  const round  = (v: number) => Math.round(v / mag) * mag
-  return [...new Set(thirds.map(round))].filter(t => t > 0 && t <= maxVal * 1.05)
-}
-
-/** Return up to `maxCount` evenly-spaced indices from 0..n-1. */
-function sampleIndices(n: number, maxCount: number): number[] {
-  if (n <= 0) return []
-  const k = Math.min(maxCount, n)
-  if (k === 1) return [0]
-  return Array.from({ length: k }, (_, i) => Math.round(i * (n - 1) / (k - 1)))
-}
-
-/** Format an ISO date string as a compact axis label. */
 function fmtDateLabel(dateStr: string, lang: 'en' | 'ja'): string {
   if (!dateStr) return ''
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const
@@ -180,11 +120,7 @@ function fmtDateLabel(dateStr: string, lang: 'en' | 'ja'): string {
   const d  = new Date(dateStr + 'T00:00:00')
   const mo = d.getMonth()
   const da = d.getDate()
-  return lang === 'ja' ? `${mo + 1}/${da}` : `${M[mo]} ${da}`
-}
-
-function fmtWeightLabel(v: number, unitLabel: string): string {
-  return `${Math.round(v * 10) / 10}${unitLabel}`
+  return lang === 'ja' ? `${mo + 1}/${da}` : `${M[mo]!} ${da}`
 }
 
 function fmtVolLabel(v: number, unit: 'kg' | 'lbs' | undefined): string {
@@ -194,7 +130,26 @@ function fmtVolLabel(v: number, unit: 'kg' | 'lbs' | undefined): string {
   return `${Math.round(dv)}${unit ?? 'kg'}`
 }
 
-// ── Glass background (fills within active clip = card area only) ──────────────
+function drawDiv(ctx: CanvasRenderingContext2D, args: SideGraphArgs, y: number) {
+  ctx.save()
+  ctx.strokeStyle = args.isDarkBg ? 'rgba(255,255,255,0.12)' : 'rgba(17,24,39,0.09)'
+  ctx.lineWidth   = 0.75
+  ctx.setLineDash([])
+  ctx.beginPath()
+  ctx.moveTo(CX, y)
+  ctx.lineTo(RX, y)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function clipTxt(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text
+  let t = text
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1)
+  return t + '…'
+}
+
+// ── Glass background ──────────────────────────────────────────────────────────
 
 function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const hex    = args.glassAccentHex
@@ -250,7 +205,6 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // ── REPRA badge ───────────────────────────────────────────────────────────────
 
 function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  // Measure actual text width first so the pill always fits the text
   ctx.font = fnt(14, true)
   const textW = ctx.measureText('REPRA').width
   const bw = Math.ceil(textW) + BADGE_PAD_L + BADGE_PAD_R
@@ -263,283 +217,6 @@ function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.fillText('REPRA', CX + BADGE_PAD_L, BADGE_Y + 15)
 }
 
-// ── Line chart (MAX 1RM / Body Weight) ───────────────────────────────────────
-// x = value (horizontal), y = date index (bottom=oldest i=0, top=newest i=n-1)
-
-function drawSideLine(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  const values = args.metric === 'max1rm'
-    ? (args.rm1SVGData ?? []).map(d => d.est1rm)
-    : (args.bwValues ?? [])
-  const dates  = args.metric === 'max1rm' ? (args.rm1Dates ?? []) : (args.bwDates ?? [])
-  const n = values.length
-  if (n < 2) return
-
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const rng = max - min || max * 0.1 || 1
-
-  const padX = 8, padY = 6
-  const px = (v: number) => PLOT_X + padX + ((v - min) / rng) * (PLOT_W - 2 * padX)
-  // i=0 (oldest) maps to bottom; i=n-1 (newest) maps to top
-  const py = (i: number) => PLOT_BOT - padY - (i / (n - 1)) * (PLOT_H - 2 * padY)
-
-  const xTicks   = niceXTicks(min, max, 3)
-  const dateIdxs = sampleIndices(n, 4)
-
-  const gridC = args.isDarkBg ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.09)'
-  const lblC  = args.isDarkBg ? 'rgba(255,255,255,0.50)' : 'rgba(15,23,42,0.42)'
-  const datC  = args.isDarkBg ? 'rgba(255,255,255,0.42)' : 'rgba(15,23,42,0.38)'
-
-  // 1. Vertical dashed grid lines at x-tick positions
-  ctx.save()
-  ctx.setLineDash([4, 6])
-  ctx.strokeStyle = gridC
-  ctx.lineWidth   = 1
-  xTicks.forEach(tick => {
-    const gx = px(tick)
-    ctx.beginPath()
-    ctx.moveTo(gx, PLOT_TOP)
-    ctx.lineTo(gx, PLOT_BOT)
-    ctx.stroke()
-  })
-  ctx.restore()
-
-  // 2. X-axis value labels (below plot)
-  ctx.save()
-  ctx.font         = fnt(10, false)
-  ctx.fillStyle    = lblC
-  ctx.textAlign    = 'center'
-  ctx.textBaseline = 'top'
-  xTicks.forEach(tick => {
-    ctx.fillText(fmtWeightLabel(tick, args.unitLabel ?? ''), px(tick), XLBL_Y)
-  })
-  ctx.restore()
-
-  // 3. Y-axis date labels (right-aligned, left of plot area)
-  if (dates.length >= n) {
-    ctx.save()
-    ctx.font         = fnt(9, false)
-    ctx.fillStyle    = datC
-    ctx.textAlign    = 'right'
-    ctx.textBaseline = 'middle'
-    dateIdxs.forEach(idx => {
-      if (idx < n && dates[idx]) {
-        ctx.fillText(fmtDateLabel(dates[idx]!, args.cardLang), PLOT_X - 4, py(idx))
-      }
-    })
-    ctx.restore()
-  }
-
-  // 4. Area fill (to left of the line)
-  if (args.areaFill && args.areaFill !== 'none') {
-    ctx.beginPath()
-    ctx.moveTo(PLOT_X + padX, py(0))
-    values.forEach((v, i) => ctx.lineTo(px(v), py(i)))
-    ctx.lineTo(PLOT_X + padX, py(n - 1))
-    ctx.closePath()
-    ctx.fillStyle = args.areaFill
-    ctx.fill()
-  }
-
-  // 5. Line
-  const pts = values.map((v, i) => [px(v), py(i)] as [number, number])
-  ctx.beginPath()
-  ctx.moveTo(pts[0]![0], pts[0]![1])
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i]![0], pts[i]![1])
-  ctx.strokeStyle = args.graphAccentHex
-  ctx.lineWidth   = 2.5
-  ctx.lineJoin    = 'round'
-  ctx.lineCap     = 'round'
-  ctx.stroke()
-
-  // 6. First dot (oldest data point)
-  const [fx, fy] = pts[0]!
-  const fdot = args.isDarkBg ? 'rgba(255,255,255,0.30)' : 'rgba(17,24,39,0.30)'
-  ctx.beginPath(); ctx.arc(fx, fy, 2.8, 0, Math.PI * 2)
-  ctx.fillStyle = fdot; ctx.fill()
-
-  // 7. Latest dot with glow rings
-  const [lx, ly] = pts[pts.length - 1]!
-  ctx.fillStyle = args.graphLatestHex
-  ctx.globalAlpha = 0.08; ctx.beginPath(); ctx.arc(lx, ly, 9.7, 0, Math.PI * 2); ctx.fill()
-  ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.arc(lx, ly, 5.5, 0, Math.PI * 2); ctx.fill()
-  ctx.globalAlpha = 1.00; ctx.beginPath(); ctx.arc(lx, ly, 3.9, 0, Math.PI * 2); ctx.fill()
-}
-
-// ── Horizontal bar chart (Daily Volume) ──────────────────────────────────────
-// y = bar index (date, bottom=oldest i=0, top=newest i=n-1), bar extends right from PLOT_X by value
-
-function drawSideBars(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  const bars = args.volBars ?? []
-  if (!bars.length) return
-  const maxVal = Math.max(...bars.map(b => b.value))
-  if (maxVal === 0) return
-  const n = bars.length
-
-  const xTicks   = niceVolTicks(maxVal, 3)
-  const dateIdxs = sampleIndices(n, 4)
-
-  const slotH = PLOT_H / n
-  const barH  = Math.max(slotH * 0.52, 1.2)
-  const rad   = Math.min(4, barH / 3)
-
-  const gridC = args.isDarkBg ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.09)'
-  const lblC  = args.isDarkBg ? 'rgba(255,255,255,0.50)' : 'rgba(15,23,42,0.42)'
-  const datC  = args.isDarkBg ? 'rgba(255,255,255,0.42)' : 'rgba(15,23,42,0.38)'
-
-  // Bar right edge at value v
-  const bxOf = (v: number) => PLOT_X + (v / maxVal) * PLOT_W * 0.92
-
-  // 1. Vertical dashed grid lines
-  ctx.save()
-  ctx.setLineDash([4, 6])
-  ctx.strokeStyle = gridC
-  ctx.lineWidth   = 1
-  xTicks.forEach(tick => {
-    const gx = bxOf(tick)
-    ctx.beginPath()
-    ctx.moveTo(gx, PLOT_TOP)
-    ctx.lineTo(gx, PLOT_BOT)
-    ctx.stroke()
-  })
-  ctx.restore()
-
-  // 2. X-axis value labels (below plot)
-  ctx.save()
-  ctx.font         = fnt(10, false)
-  ctx.fillStyle    = lblC
-  ctx.textAlign    = 'center'
-  ctx.textBaseline = 'top'
-  xTicks.forEach(tick => {
-    ctx.fillText(fmtVolLabel(tick, args.unit), bxOf(tick), XLBL_Y)
-  })
-  ctx.restore()
-
-  // 3. Y-axis date labels (right-aligned, left of bars)
-  // i=0 (oldest) is at bottom; i=n-1 (newest) is at top
-  ctx.save()
-  ctx.font         = fnt(9, false)
-  ctx.fillStyle    = datC
-  ctx.textAlign    = 'right'
-  ctx.textBaseline = 'middle'
-  dateIdxs.forEach(idx => {
-    if (idx < n && bars[idx]) {
-      const gy = PLOT_BOT - (idx + 0.5) * slotH
-      ctx.fillText(fmtDateLabel(bars[idx]!.label, args.cardLang), PLOT_X - 4, gy)
-    }
-  })
-  ctx.restore()
-
-  // 4. Draw bars (i=0 oldest at bottom, i=n-1 newest at top)
-  bars.forEach((bar, i) => {
-    const bw    = Math.max((bar.value / maxVal) * PLOT_W * 0.92, 1.5)
-    const by    = PLOT_BOT - (i + 1) * slotH + (slotH - barH) / 2
-    const fill  = (bar.isLatest || bar.isBest) ? args.graphLatestHex : args.graphAccentHex
-    ctx.globalAlpha = bar.isLatest ? 1 : bar.isBest ? 0.82 : 0.38
-    ctx.fillStyle   = fill
-    ctx.beginPath()
-    ctx.moveTo(PLOT_X + rad, by)
-    ctx.lineTo(PLOT_X + bw - rad, by)
-    ctx.arcTo(PLOT_X + bw, by,           PLOT_X + bw, by + rad,   rad)
-    ctx.lineTo(PLOT_X + bw, by + barH)
-    ctx.lineTo(PLOT_X,      by + barH)
-    ctx.lineTo(PLOT_X,      by + rad)
-    ctx.arcTo(PLOT_X,       by,           PLOT_X + rad, by,        rad)
-    ctx.closePath()
-    ctx.fill()
-  })
-  ctx.globalAlpha = 1
-}
-
-// ── Header content ────────────────────────────────────────────────────────────
-
-function drawHeader1RM(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  drawBadge(ctx, args)
-  ctx.textAlign    = 'left'
-  ctx.textBaseline = 'alphabetic'
-
-  ctx.font      = fnt(13, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(args.cardLang === 'ja' ? '1RM推移' : '1RM PROGRESS', CX, BADGE_Y + 40)
-
-  ctx.font      = fnt(17, true)
-  ctx.fillStyle = primaryText(args.isDarkBg)
-  ctx.fillText(args.exName ?? '', CX, BADGE_Y + 64)
-
-  ctx.font      = fnt(36, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(String(args.bestRMDisplay ?? ''), CX, BADGE_Y + 112)
-
-  ctx.font      = fnt(12, false)
-  ctx.fillStyle = ptxt(args.isDarkBg, 0.50)
-  ctx.fillText(`${args.unitLabel ?? ''} ${args.cardLang === 'ja' ? 'ベスト' : 'best'}`, CX, BADGE_Y + 132)
-
-  const growth = args.rm1Growth
-  if (growth !== null && growth !== undefined) {
-    ctx.font      = fnt(14, true)
-    ctx.fillStyle = growth >= 0 ? '#4ade80' : '#f87171'
-    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth}${args.unitLabel ?? ''}`, CX, BADGE_Y + 154)
-  }
-}
-
-function drawHeaderBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  drawBadge(ctx, args)
-  ctx.textAlign    = 'left'
-  ctx.textBaseline = 'alphabetic'
-
-  ctx.font      = fnt(13, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(args.cardLang === 'ja' ? '体重' : 'BODY WEIGHT', CX, BADGE_Y + 40)
-
-  const hasBoth = (args.bwHistoryLen ?? 0) >= 2
-  if (hasBoth) {
-    ctx.font      = fnt(13, false)
-    ctx.fillStyle = ptxt(args.isDarkBg, 0.55)
-    ctx.fillText(`${args.bwStartDisplay ?? ''} → ${args.bwCurrentDisplay ?? ''}`, CX, BADGE_Y + 62)
-  }
-
-  ctx.font      = fnt(36, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(String(args.bwCurrentDisplay ?? ''), CX, hasBoth ? BADGE_Y + 106 : BADGE_Y + 92)
-
-  ctx.font      = fnt(12, false)
-  ctx.fillStyle = ptxt(args.isDarkBg, 0.50)
-  ctx.fillText(args.unitLabel ?? '', CX, hasBoth ? BADGE_Y + 126 : BADGE_Y + 112)
-
-  ctx.font      = fnt(14, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(`${args.bwChangeStr ?? ''}${args.unitLabel ?? ''}`, CX, hasBoth ? BADGE_Y + 150 : BADGE_Y + 134)
-}
-
-function drawHeaderVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
-  drawBadge(ctx, args)
-  ctx.textAlign    = 'left'
-  ctx.textBaseline = 'alphabetic'
-
-  ctx.font      = fnt(13, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME', CX, BADGE_Y + 40)
-
-  ctx.font      = fnt(17, true)
-  ctx.fillStyle = primaryText(args.isDarkBg)
-  ctx.fillText(args.volCardLabel ?? '', CX, BADGE_Y + 64)
-
-  ctx.font      = fnt(30, true)
-  ctx.fillStyle = args.graphAccentHex
-  ctx.fillText(args.activeVolTotalStr ?? '', CX, BADGE_Y + 108)
-
-  ctx.font      = fnt(12, false)
-  ctx.fillStyle = ptxt(args.isDarkBg, 0.45)
-  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'total', CX, BADGE_Y + 128)
-
-  ctx.font      = fnt(11, false)
-  ctx.fillStyle = ptxt(args.isDarkBg, 0.35)
-  ctx.fillText(
-    `${args.activeVolSessionCount ?? 0} ${args.cardLang === 'ja' ? 'セッション' : 'sessions'}`,
-    CX, BADGE_Y + 148,
-  )
-}
-
 // ── Footer ────────────────────────────────────────────────────────────────────
 
 function drawFooter(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
@@ -550,16 +227,343 @@ function drawFooter(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.fillText('Made with REPRA', CX, CARD_Y + CARD_H - 10)
 }
 
+// ── Shared progress bar renderer ──────────────────────────────────────────────
+// Supports up to 60 bars. Date labels and value labels are thinned automatically
+// when bars are dense so the card stays readable.
+
+type BarEntry = { value: number; date: string; isLatest: boolean; isBest: boolean }
+
+function drawProgressBars(
+  ctx:         CanvasRenderingContext2D,
+  args:        SideGraphArgs,
+  bars:        BarEntry[],
+  barsTop:     number,
+  formatValue: (v: number) => string,
+  accentC:     string,
+  latestHex:   string,
+  normFloor = 0,
+) {
+  const n = bars.length
+  if (!n) return
+  const maxVal = Math.max(...bars.map(b => b.value))
+  if (maxVal <= normFloor) return
+
+  const MAX_SLOT_H = 76
+  const slotH = Math.min((BARS_BOT - barsTop) / n, MAX_SLOT_H)
+
+  // Bar height: keep 3-7 px; thicker for sparse, thinner for dense
+  const barH = n <= 15
+    ? Math.min(7, slotH * 0.45)
+    : Math.min(5, slotH * 0.60)
+
+  // Date label thinning: show ~5 milestones for dense bars
+  const labelEvery = n <= 10 ? 1 : Math.max(1, Math.floor(n / 5))
+  const showDateLabel = (i: number) =>
+    i === 0 || i === n - 1 || i % labelEvery === 0 || bars[i]!.isLatest
+
+  // Value label: every bar when sparse; only latest/best when dense
+  const showValueLabel = (bar: BarEntry) =>
+    n <= 20 || bar.isLatest || bar.isBest
+
+  // Column layout: [date 42px][5px][bar][5px][34px value]
+  const DATE_END  = CX + 42
+  const BAR_X     = DATE_END + 5
+  const BAR_MAX_W = RX - BAR_X - 5 - 34
+  const normRange = maxVal - normFloor || 1
+
+  bars.forEach((bar, i) => {
+    const cy = barsTop + (i + 0.5) * slotH
+    const bw = Math.max(((bar.value - normFloor) / normRange) * BAR_MAX_W, 3)
+
+    ctx.save()
+
+    // Date label (thinned when dense)
+    if (showDateLabel(i)) {
+      ctx.font         = fnt(9, bar.isLatest)
+      ctx.fillStyle    = bar.isLatest ? accentC : ptxt(args.isDarkBg, 0.36)
+      ctx.textAlign    = 'right'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(fmtDateLabel(bar.date, args.cardLang), DATE_END, cy)
+    }
+
+    // Horizontal bar — square corners
+    ctx.globalAlpha = bar.isLatest ? 1 : bar.isBest ? 0.65 : 0.28
+    ctx.fillStyle   = bar.isLatest ? latestHex : accentC
+    ctx.fillRect(BAR_X, cy - barH / 2, bw, barH)
+    ctx.globalAlpha = 1
+
+    // Value label (selective when dense)
+    if (showValueLabel(bar)) {
+      ctx.font         = fnt(9, bar.isLatest)
+      ctx.fillStyle    = bar.isLatest ? primaryText(args.isDarkBg) : ptxt(args.isDarkBg, 0.42)
+      ctx.textAlign    = 'right'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(formatValue(bar.value), RX, cy)
+    }
+
+    ctx.restore()
+  })
+}
+
+// ── MAX 1RM ───────────────────────────────────────────────────────────────────
+
+function draw1RM(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
+  drawBadge(ctx, args)
+
+  const acc  = args.graphAccentHex
+  const prim = primaryText(args.isDarkBg)
+  const dim  = (a: number) => ptxt(args.isDarkBg, a)
+  const unit = args.unitLabel ?? ''
+
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  // Type label
+  ctx.font = fnt(11, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? '1RM 推移' : '1RM PROGRESS', CX, 116)
+
+  // Exercise name
+  if (args.exName) {
+    ctx.font = fnt(15, true); ctx.fillStyle = prim
+    ctx.fillText(clipTxt(ctx, args.exName, RX - CX), CX, 133)
+  }
+
+  drawDiv(ctx, args, 143)
+
+  // ── START ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'スタート' : 'START', CX, 154)
+
+  const startRM   = args.rm1SVGData?.[0]?.est1rm
+  const startDate = args.rm1Dates?.[0] ?? ''
+  if (startRM !== undefined) {
+    ctx.font = fnt(13, true); ctx.fillStyle = prim
+    ctx.fillText(`${Math.round(startRM)} ${unit}`, CX, 169)
+  }
+  if (startDate) {
+    ctx.font = fnt(9, false); ctx.fillStyle = dim(0.38)
+    ctx.fillText(fmtDateLabel(startDate, args.cardLang), CX, 181)
+  }
+
+  drawDiv(ctx, args, 191)
+
+  // ── BEST ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'ベスト' : 'BEST', CX, 202)
+
+  ctx.font = fnt(42, true); ctx.fillStyle = acc
+  ctx.fillText(String(args.bestRMDisplay ?? ''), CX, 248)
+
+  ctx.font = fnt(11, false); ctx.fillStyle = dim(0.50)
+  ctx.fillText(`${unit}  ${args.cardLang === 'ja' ? 'ベスト' : 'best'}`, CX, 263)
+
+  drawDiv(ctx, args, 274)
+
+  // ── GAIN ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? '変化' : 'GAIN', CX, 285)
+
+  const growth = args.rm1Growth
+  if (growth !== null && growth !== undefined) {
+    ctx.font      = fnt(17, true)
+    ctx.fillStyle = growth >= 0 ? '#4ade80' : '#f87171'
+    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth} ${unit}`, CX, 303)
+  }
+
+  drawDiv(ctx, args, 313)
+
+  // ── PROGRESSION header ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 324)
+
+  // ── Bars (all passed items, newest at top after reverse) ──
+  const rawData  = args.rm1SVGData ?? []
+  const rawDates = args.rm1Dates ?? []
+  if (rawData.length) {
+    const maxEst = Math.max(...rawData.map(d => d.est1rm))
+    const entries: BarEntry[] = rawData.map((d, i) => ({
+      value:    d.est1rm,
+      date:     rawDates[i] ?? '',
+      isLatest: i === rawData.length - 1,
+      isBest:   d.est1rm >= maxEst - 0.001,
+    }))
+    entries.reverse()
+
+    drawProgressBars(
+      ctx, args, entries, 334,
+      v => `${Math.round(v)}`,
+      acc, args.graphLatestHex,
+    )
+  }
+}
+
+// ── Body Weight ───────────────────────────────────────────────────────────────
+
+function drawBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
+  drawBadge(ctx, args)
+
+  const acc  = args.graphAccentHex
+  const prim = primaryText(args.isDarkBg)
+  const dim  = (a: number) => ptxt(args.isDarkBg, a)
+  const unit = args.unitLabel ?? ''
+
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  // Type label (no exercise name for BW — more vertical space)
+  ctx.font = fnt(11, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? '体重' : 'BODY WEIGHT', CX, 108)
+
+  drawDiv(ctx, args, 118)
+
+  // ── START ── (bwStartDate = all-time first date; bwDates[0] = first in visible window)
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'スタート' : 'START', CX, 129)
+
+  const bwStartDate = args.bwStartDate ?? args.bwDates?.[0] ?? ''
+  ctx.font = fnt(13, true); ctx.fillStyle = prim
+  ctx.fillText(`${args.bwStartDisplay ?? ''} ${unit}`, CX, 144)
+  if (bwStartDate) {
+    ctx.font = fnt(9, false); ctx.fillStyle = dim(0.38)
+    ctx.fillText(fmtDateLabel(bwStartDate, args.cardLang), CX, 156)
+  }
+
+  drawDiv(ctx, args, 166)
+
+  // ── CURRENT ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? '現在' : 'CURRENT', CX, 177)
+
+  ctx.font = fnt(42, true); ctx.fillStyle = acc
+  ctx.fillText(String(args.bwCurrentDisplay ?? ''), CX, 223)
+
+  ctx.font = fnt(11, false); ctx.fillStyle = dim(0.50)
+  ctx.fillText(unit, CX, 238)
+
+  drawDiv(ctx, args, 249)
+
+  // ── CHANGE ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? '変化' : 'CHANGE', CX, 260)
+
+  const bwChange = args.bwChangeStr ?? ''
+  ctx.font = fnt(17, true); ctx.fillStyle = acc
+  ctx.fillText(`${bwChange} ${unit}`, CX, 278)
+
+  drawDiv(ctx, args, 288)
+
+  // ── PROGRESSION header ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 299)
+
+  // ── Bars (all passed items, newest at top after reverse) ──
+  const rawValues = args.bwValues ?? []
+  const rawDates  = args.bwDates ?? []
+  if (rawValues.length) {
+    const minVal = Math.min(...rawValues)
+    const maxVal = Math.max(...rawValues)
+    // Raise the floor so small BW fluctuations remain visually distinct
+    const floor  = Math.max(0, minVal - (maxVal - minVal) * 0.4)
+
+    const entries: BarEntry[] = rawValues.map((v, i) => ({
+      value:    v,
+      date:     rawDates[i] ?? '',
+      isLatest: i === rawValues.length - 1,
+      isBest:   false,
+    }))
+    entries.reverse()
+
+    drawProgressBars(
+      ctx, args, entries, 309,
+      v => `${Math.round(v * 10) / 10}`,
+      acc, args.graphLatestHex,
+      floor,
+    )
+  }
+}
+
+// ── Daily Volume ──────────────────────────────────────────────────────────────
+
+function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
+  drawBadge(ctx, args)
+
+  const acc  = args.graphAccentHex
+  const prim = primaryText(args.isDarkBg)
+  const dim  = (a: number) => ptxt(args.isDarkBg, a)
+
+  ctx.textAlign    = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  // Type label
+  ctx.font = fnt(11, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME', CX, 116)
+
+  // Category / exercise name
+  if (args.volCardLabel) {
+    ctx.font = fnt(15, true); ctx.fillStyle = prim
+    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 133)
+  }
+
+  drawDiv(ctx, args, 143)
+
+  // ── SESSIONS ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'セッション' : 'SESSIONS', CX, 154)
+
+  ctx.font = fnt(17, true); ctx.fillStyle = prim
+  ctx.fillText(
+    `${args.activeVolSessionCount ?? 0}${args.cardLang === 'ja' ? ' セッション' : ' sessions'}`,
+    CX, 171,
+  )
+
+  drawDiv(ctx, args, 181)
+
+  // ── TOTAL (big) ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'TOTAL', CX, 192)
+
+  ctx.font = fnt(38, true); ctx.fillStyle = acc
+  ctx.fillText(args.activeVolTotalStr ?? '', CX, 236)
+
+  ctx.font = fnt(11, false); ctx.fillStyle = dim(0.50)
+  ctx.fillText(args.cardLang === 'ja' ? '合計ボリューム' : 'total volume', CX, 251)
+
+  drawDiv(ctx, args, 262)
+
+  // ── PROGRESSION header ──
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
+  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 273)
+
+  // ── Bars (all passed items, newest at top after reverse) ──
+  const volBars = args.volBars ?? []
+  if (volBars.length) {
+    const entries: BarEntry[] = volBars.map(b => ({
+      value: b.value, date: b.label, isLatest: b.isLatest, isBest: b.isBest,
+    }))
+    entries.reverse()
+    // Ensure the newest (first after reverse) is flagged as latest
+    if (entries.length > 0 && !entries.some(e => e.isLatest)) {
+      entries[0]!.isLatest = true
+    }
+
+    drawProgressBars(
+      ctx, args, entries, 283,
+      v => fmtVolLabel(v, args.unit),
+      acc, args.graphLatestHex,
+    )
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
   await document.fonts.ready
   await new Promise<void>(r => requestAnimationFrame(() => r()))
 
-  const canvas   = document.createElement('canvas')
-  canvas.width   = CW * 2   // 1080px physical
-  canvas.height  = CH * 2   // 1920px physical
-  const ctx      = canvas.getContext('2d', { alpha: true })
+  const canvas  = document.createElement('canvas')
+  canvas.width  = CW * 2
+  canvas.height = CH * 2
+  const ctx     = canvas.getContext('2d', { alpha: true })
   if (!ctx) throw new Error('Canvas 2D context unavailable')
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -567,7 +571,6 @@ export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
   ctx.globalAlpha = 1
   ctx.scale(2, 2)
 
-  // Clip to card area — right ~50% of canvas stays fully transparent
   ctx.save()
   rrPath(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RX)
   ctx.clip()
@@ -584,12 +587,9 @@ export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
     ctx.stroke()
   }
 
-  if (args.metric === 'max1rm')          drawHeader1RM(ctx, args)
-  else if (args.metric === 'bodyweight') drawHeaderBW(ctx, args)
-  else                                   drawHeaderVol(ctx, args)
-
-  if (args.metric === 'volume') drawSideBars(ctx, args)
-  else                          drawSideLine(ctx, args)
+  if (args.metric === 'max1rm')          draw1RM(ctx, args)
+  else if (args.metric === 'bodyweight') drawBW(ctx, args)
+  else                                   drawVol(ctx, args)
 
   drawFooter(ctx, args)
 

@@ -596,7 +596,7 @@ export default function FullScreenChart({
                 width={44} domain={[0, volAxis.yMax]} ticks={volTicks}
                 tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)} />
               <Tooltip content={volTooltip} cursor={{ stroke: 'var(--chart-cursor)', fill: 'var(--chart-cursor-fill)' }} />
-              <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={[2,2,0,0]} maxBarSize={14} isAnimationActive={false} />
+              <Bar dataKey="volume" fill="rgba(237,116,47,0.62)" radius={0} maxBarSize={14} isAnimationActive={false} />
             </BarChart>
           </div>
         </div>

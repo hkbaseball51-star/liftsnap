@@ -33,6 +33,7 @@ type Theme     = 'dark' | 'transparent'
 type Accent    = 'orange' | 'purple' | 'dark' | 'black'
 type ChartType = 'bar' | 'line'
 type GraphLayout  = 'full' | 'side' | 'mini' | 'wide'
+const GRAPH_STORY_LIMITS: Record<GraphLayout, number> = { full: 60, side: 60, mini: 14, wide: 40 }
 // TODO_PRO: premiumDesignPresets — 'premium-black' and 'pearl-white' are candidates for Pro-only presets.
 type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint' | 'premium-black' | 'pearl-white'
 type CardStyle    = 'glass' | 'transparent'
@@ -438,7 +439,7 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
           const bH = r.h * 0.85 * h
           const bx = r.x + 2 + i * slotW + (slotW - barW) / 2
           const by = r.y + r.h - bH - 1
-          return <rect key={i} x={bx.toFixed(1)} y={by.toFixed(1)} width={barW.toFixed(1)} height={bH.toFixed(1)} rx="0.5" fill={i === heights.length - 1 ? stroke : stroke + '60'} />
+          return <rect key={i} x={bx.toFixed(1)} y={by.toFixed(1)} width={barW.toFixed(1)} height={bH.toFixed(1)} rx="0" fill={i === heights.length - 1 ? stroke : stroke + '60'} />
         })}
       </svg>
     )
@@ -629,7 +630,6 @@ function VolBarSVG({ bars, accentHex, latestHex, isTransparent = false }: {
   const gap = Math.max(0.4, 0.8 - bars.length * 0.005)
   const slotW = W / bars.length
   const barW = Math.max(slotW - gap, 0.5)
-  const rad = Math.min(1.5, barW / 3)
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
@@ -645,7 +645,7 @@ function VolBarSVG({ bars, accentHex, latestHex, isTransparent = false }: {
           <rect key={i}
             x={bx.toFixed(2)} y={by.toFixed(2)}
             width={Math.max(barW, 0.5).toFixed(2)} height={bh.toFixed(2)}
-            rx={rad.toFixed(2)} ry={rad.toFixed(2)}
+            rx="0"
             fill={fillColor} opacity={opacity}
           />
         )
@@ -887,7 +887,7 @@ function SideVolBarSVG({ bars, accentHex, latestHex, isDarkBg = true }: {
           const opacity = b.isLatest ? 1 : b.isBest ? 0.82 : 0.38
           return (
             <rect key={i} x={LP} y={by.toFixed(2)} width={bw.toFixed(2)} height={barH.toFixed(2)}
-              rx="1" fill={fill} opacity={opacity} />
+              rx="0" fill={fill} opacity={opacity} />
           )
         })}
       </svg>
@@ -1109,10 +1109,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const rm1SVGData = rm1FullHistory.map(p => ({
     est1rm: Math.round(toDisplayWeight(p.est1rm, unit)),
   }))
-  const rm1AxisMax = rm1SVGData.length ? Math.max(...rm1SVGData.map(d => d.est1rm)) : 0
-  const rm1AxisMin = rm1SVGData.length ? Math.min(...rm1SVGData.map(d => d.est1rm)) : 0
+  const rm1LayoutLimit = GRAPH_STORY_LIMITS[graphLayout]
+  const rm1DataView    = useMemo(() => rm1SVGData.slice(-rm1LayoutLimit), [rm1SVGData, rm1LayoutLimit])
+  const rm1DatesView   = useMemo(
+    () => rm1FullHistory.slice(-rm1LayoutLimit).map(p => p.date),
+    [rm1FullHistory, rm1LayoutLimit],
+  )
+  const rm1AxisMax = rm1DataView.length ? Math.max(...rm1DataView.map(d => d.est1rm)) : 0
+  const rm1AxisMin = rm1DataView.length ? Math.min(...rm1DataView.map(d => d.est1rm)) : 0
   const rm1AxisRng = rm1AxisMax - rm1AxisMin || rm1AxisMax * 0.1 || 1
-  const rm1Ticks   = rm1SVGData.length >= 2 ? niceYTicks(rm1AxisMin, rm1AxisMax, 3) : []
+  const rm1Ticks   = rm1DataView.length >= 2 ? niceYTicks(rm1AxisMin, rm1AxisMax, 3) : []
   const rm1PyOf    = (v: number) => 10 + ((rm1AxisMax - v) / rm1AxisRng) * 84
 
   /* ── Body Weight data ────────────────────────────────────── */
@@ -1131,13 +1137,18 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       ? `+${bwChangeRaw.toFixed(1)}`
       : `${bwChangeRaw.toFixed(1)}`
   const bwValues       = bwHistory.map(d => Math.round(toDisplayWeight(d.weight, unit) * 10) / 10)
-  const bwAxisMax = bwValues.length ? Math.max(...bwValues) : 0
-  const bwAxisMin = bwValues.length ? Math.min(...bwValues) : 0
+  const bwDataView  = useMemo(() => bwValues.slice(-rm1LayoutLimit), [bwValues, rm1LayoutLimit])
+  const bwDatesView = useMemo(
+    () => bwHistory.slice(-rm1LayoutLimit).map(p => p.date),
+    [bwHistory, rm1LayoutLimit],
+  )
+  const bwAxisMax = bwDataView.length ? Math.max(...bwDataView) : 0
+  const bwAxisMin = bwDataView.length ? Math.min(...bwDataView) : 0
   const bwAxisRng = bwAxisMax - bwAxisMin || bwAxisMax * 0.1 || 1
-  const bwTicks   = bwValues.length >= 2 ? niceYTicks(bwAxisMin, bwAxisMax, 3) : []
+  const bwTicks   = bwDataView.length >= 2 ? niceYTicks(bwAxisMin, bwAxisMax, 3) : []
   const bwPyOf    = (v: number) => 10 + ((bwAxisMax - v) / bwAxisRng) * 84
-  const bwFirstDate    = bwHistory.length ? bwHistory[0].date : ''
-  const bwLastDate     = bwHistory.length ? bwHistory[bwHistory.length - 1].date : ''
+  const bwFirstDate = bwDatesView[0] ?? (bwHistory.length ? bwHistory[0].date : '')
+  const bwLastDate  = bwDatesView[bwDatesView.length - 1] ?? (bwHistory.length ? bwHistory[bwHistory.length - 1].date : '')
 
   /* ── Daily Volume data ───────────────────────────────────── */
   const volRaw      = isVol ? (data as Extract<StatsData, {type:'volume'}>) : null
@@ -1178,7 +1189,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // Aggregated bars for each layout — derived from whichever history is active
   const volBarsAll = useMemo(() => aggregateVolBars(activeVolHistory, null),  [activeVolHistory])
   const volBars60  = useMemo(() => aggregateVolBars(activeVolHistory, 60),    [activeVolHistory])
-  const volBars30  = useMemo(() => aggregateVolBars(activeVolHistory, 30),    [activeVolHistory])
   const volBars14  = useMemo(() => aggregateVolBars(activeVolHistory, 14),    [activeVolHistory])
   const vol14AxisMax = volBars14.bars.length ? Math.max(...volBars14.bars.map(b => b.value)) : 0
   const vol14Ticks   = volBars14.bars.length >= 2 ? niceYTicks(0, vol14AxisMax, 4).filter(t => t > 0) : []
@@ -1190,7 +1200,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const vol60PyOf    = (v: number) => vol60AxisMax > 0 ? 100 - (v / vol60AxisMax) * 92 : 50
   const vol60XLeft   = volBars60.bars.length >= 2 ? volBars60.bars[0].label : ''
   const vol60XRight  = volBars60.bars.length >= 2 ? volBars60.bars[volBars60.bars.length - 1].label : ''
-
+  const volBars40  = useMemo(() => aggregateVolBars(activeVolHistory, 40),    [activeVolHistory])
+  const vol40AxisMax = volBars40.bars.length ? Math.max(...volBars40.bars.map(b => b.value)) : 0
+  const vol40Ticks   = volBars40.bars.length >= 2 ? niceYTicks(0, vol40AxisMax, 4).filter(t => t > 0) : []
+  const vol40PyOf    = (v: number) => vol40AxisMax > 0 ? 100 - (v / vol40AxisMax) * 92 : 50
+  const vol40XLeft   = volBars40.bars.length >= 2 ? volBars40.bars[0].label : ''
+  const vol40XRight  = volBars40.bars.length >= 2 ? volBars40.bars[volBars40.bars.length - 1].label : ''
 
   const volGranLabel = volBarsAll.granularity === 'daily' ? 'DAILY'
     : volBarsAll.granularity === 'weekly' ? 'WEEKLY' : 'MONTHLY'
@@ -1238,9 +1253,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       exName ?? '', String(bestRMDisplay ?? ''), String(rm1Growth ?? ''),
       String(bwCurrentDisplay), String(bwStartDisplay), bwChangeStr,
       volCardLabel, activeVolTotalStr, String(activeVolSessionCount),
-      isMax1RM ? rm1FullHistory.map(p => `${p.date}:${p.est1rm}`).join(',') : '',
-      isBW      ? bwHistory.map(p => `${p.date}:${p.weight}`).join(',') : '',
-      isVol     ? volBars30.bars.map(b => `${b.label}:${b.value}`).join(',') : '',
+      isMax1RM ? rm1DataView.map((d, i) => `${rm1DatesView[i] ?? ''}:${d.est1rm}`).join(',') : '',
+      isBW      ? bwDataView.map((v, i) => `${bwDatesView[i] ?? ''}:${v}`).join(',') : '',
+      isVol     ? volBars60.bars.map(b => `${b.label}:${b.value}`).join(',') : '',
     ].join('|')
   }, [
     graphLayout, isMax1RM, isBW, isVol,
@@ -1250,7 +1265,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     exName, bestRMDisplay, rm1Growth,
     bwCurrentDisplay, bwStartDisplay, bwChangeStr,
     volCardLabel, activeVolTotalStr, activeVolSessionCount,
-    rm1FullHistory, bwHistory, volBars30,
+    rm1DataView, rm1DatesView, bwDataView, bwDatesView, volBars60,
   ])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1274,10 +1289,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           gpBorder: gp.border, badgeBg: gpBadgeBg, badgeTxt: gpBadgeTxt,
           cardLang, unitLabel, unit,
           exName, bestRMDisplay, rm1Growth: rm1Growth ?? null,
-          rm1SVGData, rm1Dates: rm1FullHistory.map(p => p.date),
+          rm1SVGData: rm1DataView, rm1Dates: rm1DatesView,
           bwCurrentDisplay, bwStartDisplay, bwChangeStr,
-          bwValues, bwHistoryLen: bwHistory.length, bwDates: bwHistory.map(p => p.date),
-          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars30.bars,
+          bwValues: bwDataView, bwHistoryLen: bwDataView.length, bwDates: bwDatesView,
+          bwStartDate: bwHistory.length ? bwHistory[0].date : undefined,
+          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars60.bars,
         })
         if (gen !== sideGenRef.current) return
         if (sidePreviewUrlRef.current) URL.revokeObjectURL(sidePreviewUrlRef.current)
@@ -1328,8 +1344,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             unitLabel,
             unit,
             rm1Growth: rm1Growth ?? null,
-            rm1SVGData,
-            rm1Dates: rm1FullHistory.map(p => p.date),
+            rm1SVGData: rm1DataView,
+            rm1Dates: rm1DatesView,
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1380,9 +1396,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             bwCurrentDisplay,
             bwStartDisplay,
             bwChangeStr,
-            bwValues,
-            bwHistoryLen: bwHistory.length,
-            bwDates: bwHistory.map(p => p.date),
+            bwValues: bwDataView,
+            bwHistoryLen: bwDataView.length,
+            bwDates: bwDatesView,
+            bwStartDate: bwHistory.length ? bwHistory[0].date : undefined,
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1434,7 +1451,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             volCardLabel,
             activeVolTotalStr,
             activeVolSessionCount,
-            volBars: volBars30.bars,
+            volBars: volBars60.bars,
           })
         } else {
           const el: HTMLDivElement | null =
@@ -1794,16 +1811,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   )}
                 </div>
                 <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
-                  {rm1SVGData.length >= 2
+                  {rm1DataView.length >= 2
                     ? <ChartWithYAxis ticks={rm1Ticks} pyOf={rm1PyOf} gridColor={gridColor} labelColor={gridLabelColor} formatLabel={v => `${Math.round(v)}${unitLabel}`}>
-                        <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                        <MiniLineSVG data={rm1DataView} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                       </ChartWithYAxis>
                     : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
-                {rm1FullHistory.length >= 2 && (
+                {rm1DataView.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
-                    <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>{fmtXLabel(rm1FullHistory[0].date)}</span>
-                    <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>{fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date)}</span>
+                    <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>{fmtXLabel(rm1DatesView[0] ?? '')}</span>
+                    <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>{fmtXLabel(rm1DatesView[rm1DatesView.length - 1] ?? '')}</span>
                   </div>
                 )}
                 <p style={{ fontSize: 7.5, color: ptxt(0.28), padding: '7px 18px 14px', margin: 0, flexShrink: 0 }}>
@@ -1840,10 +1857,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <div style={{ flex: 1, minHeight: 0, margin: '8px 0' }}>
                     <ChartWithYAxis ticks={rm1Ticks} pyOf={rm1PyOf} gridColor={gridColor} labelColor={gridLabelColor}
                       formatLabel={v => `${Math.round(v)}${unitLabel}`}
-                      xLeft={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[0].date) : undefined}
-                      xRight={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date) : undefined}
+                      xLeft={rm1DataView.length >= 2 ? fmtXLabel(rm1DatesView[0] ?? '') : undefined}
+                      xRight={rm1DataView.length >= 2 ? fmtXLabel(rm1DatesView[rm1DatesView.length - 1] ?? '') : undefined}
                       xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                      <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                      <MiniLineSVG data={rm1DataView} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                     </ChartWithYAxis>
                   </div>
                   <div>
@@ -1892,10 +1909,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
                   <ChartWithYAxis ticks={rm1Ticks} pyOf={rm1PyOf} gridColor={gridColor} labelColor={gridLabelColor}
                     formatLabel={v => `${Math.round(v)}${unitLabel}`}
-                    xLeft={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[0].date) : undefined}
-                    xRight={rm1FullHistory.length >= 2 ? fmtXLabel(rm1FullHistory[rm1FullHistory.length - 1].date) : undefined}
+                    xLeft={rm1DataView.length >= 2 ? fmtXLabel(rm1DatesView[0] ?? '') : undefined}
+                    xRight={rm1DataView.length >= 2 ? fmtXLabel(rm1DatesView[rm1DatesView.length - 1] ?? '') : undefined}
                     xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                    <MiniLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                    <MiniLineSVG data={rm1DataView} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                   </ChartWithYAxis>
                 </div>
               </div>
@@ -1944,17 +1961,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   )}
                 </div>
                 <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 0' }}>
-                  {bwValues.length >= 2
+                  {bwDataView.length >= 2
                     ? <ChartWithYAxis ticks={bwTicks} pyOf={bwPyOf} gridColor={gridColor} labelColor={gridLabelColor} formatLabel={v => `${Math.round(v * 10) / 10}${unitLabel}`}>
-                        <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                        <BWLineSVG values={bwDataView} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                       </ChartWithYAxis>
-                    : bwValues.length === 1
+                    : bwDataView.length === 1
                       ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                           <p style={{ fontSize: 38, fontWeight: 900, color: gpAccent, margin: 0 }}>{bwCurrentDisplay}<span style={{ fontSize: 14, color: ptxt(0.45), marginLeft: 4 }}>{unitLabel}</span></p>
                         </div>
                       : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
-                {bwHistory.length >= 2 && (
+                {bwDataView.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
                     <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>{fmtXLabel(bwFirstDate)}</span>
                     <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>{fmtXLabel(bwLastDate)}</span>
@@ -1993,10 +2010,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <div style={{ flex: 1, minHeight: 0, margin: '6px 0' }}>
                     <ChartWithYAxis ticks={bwTicks} pyOf={bwPyOf} gridColor={gridColor} labelColor={gridLabelColor}
                       formatLabel={v => `${Math.round(v * 10) / 10}${unitLabel}`}
-                      xLeft={bwHistory.length >= 2 ? fmtXLabel(bwFirstDate) : undefined}
-                      xRight={bwHistory.length >= 2 ? fmtXLabel(bwLastDate) : undefined}
+                      xLeft={bwDataView.length >= 2 ? fmtXLabel(bwFirstDate) : undefined}
+                      xRight={bwDataView.length >= 2 ? fmtXLabel(bwLastDate) : undefined}
                       xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                      <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                      <BWLineSVG values={bwDataView} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                     </ChartWithYAxis>
                   </div>
                   <div>
@@ -2037,10 +2054,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
                   <ChartWithYAxis ticks={bwTicks} pyOf={bwPyOf} gridColor={gridColor} labelColor={gridLabelColor}
                     formatLabel={v => `${Math.round(v * 10) / 10}${unitLabel}`}
-                    xLeft={bwHistory.length >= 2 ? fmtXLabel(bwFirstDate) : undefined}
-                    xRight={bwHistory.length >= 2 ? fmtXLabel(bwLastDate) : undefined}
+                    xLeft={bwDataView.length >= 2 ? fmtXLabel(bwFirstDate) : undefined}
+                    xRight={bwDataView.length >= 2 ? fmtXLabel(bwLastDate) : undefined}
                     xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                    <BWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
+                    <BWLineSVG values={bwDataView} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} />
                   </ChartWithYAxis>
                 </div>
               </div>
@@ -2084,21 +2101,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
                 {/* Bar chart */}
                 <div style={{ flex: 1, minHeight: 0, padding: '10px 14px 0' }}>
-                  {volBarsAll.bars.length > 0
-                    ? <ChartWithYAxis ticks={volTicks} pyOf={volPyOf} gridColor={gridColor} labelColor={gridLabelColor} formatLabel={volFmtAxis}>
-                        <VolBarSVG bars={volBarsAll.bars} accentHex={gpAccent} latestHex={gpLatest} />
+                  {volBars60.bars.length > 0
+                    ? <ChartWithYAxis ticks={vol60Ticks} pyOf={vol60PyOf} gridColor={gridColor} labelColor={gridLabelColor} formatLabel={volFmtAxis}>
+                        <VolBarSVG bars={volBars60.bars} accentHex={gpAccent} latestHex={gpLatest} />
                       </ChartWithYAxis>
                     : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 9, color: ptxt(0.25) }}>No data yet</p></div>}
                 </div>
 
                 {/* Date range */}
-                {activeVolHistory.length >= 2 && (
+                {volBars60.bars.length >= 2 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 18px 0', flexShrink: 0 }}>
                     <span style={{ fontSize: 7.5, color: ptxt(0.35) }}>
-                      {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[0]?.label ?? '') : fmtXLabel(activeVolFirstDate)}
+                      {vol60XLeft || undefined}
                     </span>
                     <span style={{ fontSize: 7.5, color: gpAccent, fontWeight: 600 }}>
-                      {volBarsAll.granularity === 'monthly' ? fmtMonthLabel(volBarsAll.bars[volBarsAll.bars.length - 1]?.label ?? '') : fmtXLabel(activeVolLastDate)}
+                      {vol60XRight || undefined}
                     </span>
                   </div>
                 )}
@@ -2175,11 +2192,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 </div>
                 {/* Right chart */}
                 <div style={{ flex: 1, minWidth: 0, padding: '14px 14px 14px 0' }}>
-                  <ChartWithYAxis ticks={vol60Ticks} pyOf={vol60PyOf} gridColor={gridColor} labelColor={gridLabelColor}
+                  <ChartWithYAxis ticks={vol40Ticks} pyOf={vol40PyOf} gridColor={gridColor} labelColor={gridLabelColor}
                     formatLabel={volFmtAxis}
-                    xLeft={vol60XLeft || undefined} xRight={vol60XRight || undefined}
+                    xLeft={vol40XLeft || undefined} xRight={vol40XRight || undefined}
                     xLeftColor={ptxt(0.38)} xRightColor={ptxt(0.55)}>
-                    <VolBarSVG bars={volBars60.bars} accentHex={gpAccent} latestHex={gpLatest} />
+                    <VolBarSVG bars={volBars40.bars} accentHex={gpAccent} latestHex={gpLatest} />
                   </ChartWithYAxis>
                 </div>
               </div>
