@@ -400,9 +400,9 @@ function drawProgressBars(
   if (maxVal <= normFloor) return barsTop
 
   // Target slot (barH + gap) and bar heights per density.
-  // Denser tiers to show bars as thick and close-packed.
-  const targetSlotH = n <= 10 ? 24 : n <= 20 ? 19 : n <= 30 ? 14 : 11
-  const targetBarH  = n <= 10 ? 20 : n <= 20 ? 16 : n <= 30 ? 12 : 10
+  // Vol graph caps at 18 bars; tiers above n=18 kept as safety fallback only.
+  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : n <= 30 ? 14 : 11
+  const targetBarH  = n <= 10 ? 20 : n <= 18 ? 18 : n <= 30 ? 12 : 10
 
   // Safety cap: don't overflow the full-height bar area
   const slotH = Math.min(targetSlotH, (BARS_BOT - barsTop) / Math.max(n, 1))
@@ -421,12 +421,13 @@ function drawProgressBars(
   const showValueLabel = (bar: BarEntry) =>
     n <= 14 || bar.isLatest || bar.isBest
 
-  // Column grid: CX ──[40px date]── DATE_END ──[5px]── BAR_X ──[bar ~158px]──[4px]──[28px val]── RX
-  const DATE_END  = CX + 40         // 68  — date label right edge (tighter = bars move left)
-  const BAR_X     = DATE_END + 5    // 73  — bar start
+  // Column grid: CX ──[32px date]── BAR_X ──[bar ~171px]──[4px]──[28px val]── RX
+  // Date labels are left-aligned at CX so they align with NOW/GAIN info text above.
+  const DATE_X    = CX              // 28  — date label left edge (matches info column)
+  const BAR_X     = DATE_X + 32    // 60  — bar start (date ~28px + 4px gap)
   const VAL_W     = 28              // value column width
   const VAL_GAP   = 4
-  const BAR_MAX_W = RX - BAR_X - VAL_GAP - VAL_W  // ≈ 158px max bar width
+  const BAR_MAX_W = RX - BAR_X - VAL_GAP - VAL_W - 16  // ≈ 155px max bar width
   const normRange = maxVal - normFloor || 1
 
   bars.forEach((bar, i) => {
@@ -435,19 +436,19 @@ function drawProgressBars(
 
     ctx.save()
 
-    // Date label — right-aligned at DATE_END; latest shows "NOW" + date two-line
+    // Date label — left-aligned at DATE_X (= CX) to align with info text above
     if (showDateLabel(i)) {
-      ctx.textAlign    = 'right'
+      ctx.textAlign    = 'left'
       ctx.textBaseline = 'middle'
       if (bar.isLatest && slotH >= 17) {
         ctx.font = fnt(7, true); ctx.fillStyle = accentC
-        ctx.fillText('NOW', DATE_END, cy - slotH * 0.25)
+        ctx.fillText('NOW', DATE_X, cy - slotH * 0.25)
         ctx.font = fnt(7.5, false); ctx.fillStyle = accentC
-        ctx.fillText(fmtDateLabel(bar.date, args.cardLang), DATE_END, cy + slotH * 0.22)
+        ctx.fillText(fmtDateLabel(bar.date, args.cardLang), DATE_X, cy + slotH * 0.22)
       } else {
         ctx.font      = fnt(9, bar.isLatest)
         ctx.fillStyle = bar.isLatest ? accentC : ptxt(args.isDarkBg, 0.36)
-        ctx.fillText(fmtDateLabel(bar.date, args.cardLang), DATE_END, cy)
+        ctx.fillText(fmtDateLabel(bar.date, args.cardLang), DATE_X, cy)
       }
     }
 
@@ -640,7 +641,7 @@ function drawBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // ── Daily Volume ──────────────────────────────────────────────────────────────
 
 // VOL_BARS_TOP: y-coordinate where the bar chart starts (must match computeVolCardH)
-const VOL_BARS_TOP = 305
+const VOL_BARS_TOP = 301
 
 function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   drawBadge(ctx, args)
@@ -654,63 +655,69 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  // Compute START / NOW / GAIN from volBars (oldest→newest order before reverse)
   const volBars  = args.volBars ?? []
   const startVal = volBars.length > 1 ? volBars[0]!.value : null
   const nowVal   = volBars.length > 0 ? volBars[volBars.length - 1]!.value : null
   const gainVal  = startVal !== null && nowVal !== null ? nowVal - startVal : null
 
-  // ── Category name (large white bold) — mirrors "BENCH PRESS" in draw1RM ───
+  // ── Part name (large bold primary) ──────────────────────────────────────────
   if (args.volCardLabel) {
     ctx.font = fnt(24, true); ctx.fillStyle = prim
     ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 124)
   }
 
-  // ── Type subtitle (small accent bold) — mirrors "1RM PROGRESS" ─────────────
+  // ── Type subtitle (small accent bold) ────────────────────────────────────────
   ctx.font = fnt(10, true); ctx.fillStyle = acc
   ctx.fillText(ja ? '総重量' : 'DAILY VOLUME', CX, 137)
 
   drawDiv(ctx, args, 147)
 
-  // ── START block ─────────────────────────────────────────────────────────────
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(ja ? 'スタート' : 'START', CX, 159)
-
+  // ── START compact inline: "START" (tiny dim) + value (medium prim) same line ─
+  // Mirrors reference image: "START  55kg" on one baseline.
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.38)
+  ctx.fillText('START', CX, 165)
   if (startVal !== null) {
-    ctx.font = fnt(13, true); ctx.fillStyle = prim
-    ctx.fillText(fmtVolLabel(startVal, args.unit), CX, 173)
+    const startLabelW = ctx.measureText('START').width
+    ctx.font = fnt(20, true); ctx.fillStyle = prim
+    ctx.fillText(fmtVolLabel(startVal, args.unit), CX + startLabelW + 6, 165)
   }
 
-  drawDiv(ctx, args, 191)
-
-  // ── NOW block (hero) — mirrors BEST block in draw1RM ───────────────────────
-  ctx.font = fnt(8, true); ctx.fillStyle = acc
-  ctx.fillText('NOW', CX, 202)
+  // ── NOW + hero inline on same baseline ──────────────────────────────────────
+  // "NOW" (small orange) at left, auto-sized hero number right of it — same baseline.
+  // Font scales by string length so short "4.6t" is large, long "139.2t" is smaller.
+  const HERO_Y = 245
+  ctx.font = fnt(9, true); ctx.fillStyle = acc
+  ctx.fillText('NOW', CX, HERO_Y)
+  const nowLabelW = ctx.measureText('NOW').width
 
   if (nowVal !== null) {
-    ctx.font = fnt(42, true); ctx.fillStyle = acc
-    ctx.fillText(clipTxt(ctx, fmtVolLabel(nowVal, args.unit), RX - CX), CX, 248)
+    const heroText   = fmtVolLabel(nowVal, args.unit)
+    const heroMaxW   = RX - CX - nowLabelW - 6
+    const heroFontSz = Math.min(65, Math.max(36,
+      Math.floor(heroMaxW / Math.max(heroText.length * 0.62, 1))))
+    ctx.font = fnt(heroFontSz, true); ctx.fillStyle = acc
+    ctx.fillText(clipTxt(ctx, heroText, heroMaxW), CX + nowLabelW + 6, HERO_Y)
   }
 
-  // ── GAIN / 成長 ─────────────────────────────────────────────────────────────
+  // ── GAIN / 成長 ──────────────────────────────────────────────────────────────
   if (gainVal !== null && gainVal > 0) {
     ctx.font = fnt(15, true); ctx.fillStyle = GAIN_CLR
     ctx.fillText(
       `+${fmtVolLabel(gainVal, args.unit)} ${ja ? '成長' : 'GAIN'}`,
-      CX, 272,
+      CX, 267,
     )
   } else {
     ctx.font = fnt(10, false); ctx.fillStyle = dim(0.28)
-    ctx.fillText('—', CX, 272)
+    ctx.fillText('—', CX, 267)
   }
 
-  drawDiv(ctx, args, 282)
+  drawDiv(ctx, args, 278)
 
-  // ── PROGRESSION header ──────────────────────────────────────────────────────
+  // ── PROGRESSION header ───────────────────────────────────────────────────────
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(ja ? 'プログレス' : 'PROGRESSION', CX, 293)
+  ctx.fillText(ja ? 'プログレス' : 'PROGRESSION', CX, 289)
 
-  // ── Horizontal bars: newest at top (index 0), oldest at bottom ─────────────
+  // ── Horizontal bars: newest at top (index 0), oldest at bottom ──────────────
   if (volBars.length) {
     const entries: BarEntry[] = volBars.map(b => ({
       value: b.value, date: b.label, isLatest: b.isLatest, isBest: b.isBest,
@@ -732,7 +739,7 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // For 1RM / Body Weight the card is always full height.
 function computeVolCardH(n: number): number {
   if (n <= 0) return CARD_H
-  const targetSlotH = n <= 10 ? 24 : n <= 20 ? 19 : n <= 30 ? 14 : 11
+  const targetSlotH = n <= 10 ? 24 : 22  // vol capped at 18 bars; n≤18 uses 22px slots
   const barsEnd     = VOL_BARS_TOP + n * targetSlotH
   const footerPad   = 34   // space below last bar for footer text
   const minCardH    = 430  // always tall enough to show all header sections
