@@ -633,7 +633,7 @@ function drawBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // ── Daily Volume ──────────────────────────────────────────────────────────────
 
 // VOL_BARS_TOP: y-coordinate where the bar chart starts (must match computeVolCardH)
-const VOL_BARS_TOP = 281
+const VOL_BARS_TOP = 282
 
 function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   drawBadge(ctx, args)
@@ -641,52 +641,58 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const acc  = args.graphAccentHex
   const prim = primaryText(args.isDarkBg)
   const dim  = (a: number) => ptxt(args.isDarkBg, a)
+  const ja   = args.cardLang === 'ja'
 
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  // ── Type label: small, bold, accent — clear hierarchy anchor ─────────────────
-  ctx.font = fnt(9, true); ctx.fillStyle = acc
-  ctx.fillText(args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME', CX, 112)
+  // ┌─────────────────────────────────────────────────────────────────────────┐
+  // │ HEADER — mirrors "BENCH PRESS / 1RM PROGRESS" pattern in reference     │
+  // │   [large white]  部位名 / category     ← primary visual anchor         │
+  // │   [small accent] DAILY VOLUME / 総重量 ← type subtitle below           │
+  // └─────────────────────────────────────────────────────────────────────────┘
 
-  // ── Category / body part: large, bold, white — secondary visual anchor ───────
+  // Category / body part: large, bold, white — "BENCH PRESS"-equivalent
   if (args.volCardLabel) {
-    ctx.font = fnt(19, true); ctx.fillStyle = prim
-    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 132)
+    ctx.font = fnt(22, true); ctx.fillStyle = prim
+    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 124)
   }
 
-  drawDiv(ctx, args, 143)
+  // Type subtitle: small, bold, accent — "1RM PROGRESS"-equivalent
+  ctx.font = fnt(9, true); ctx.fillStyle = acc
+  ctx.fillText(ja ? '総重量' : 'DAILY VOLUME', CX, 139)
 
-  // ── SESSIONS ──────────────────────────────────────────────────────────────────
+  drawDiv(ctx, args, 150)
+
+  // ── SESSIONS ──────────────────────────────────────────────────────────────
   ctx.font = fnt(8, true); ctx.fillStyle = acc
-  ctx.fillText(args.cardLang === 'ja' ? 'セッション' : 'SESSIONS', CX, 155)
+  ctx.fillText(ja ? 'セッション' : 'SESSIONS', CX, 162)
 
   ctx.font = fnt(20, true); ctx.fillStyle = prim
   ctx.fillText(
-    `${args.activeVolSessionCount ?? 0}${args.cardLang === 'ja' ? ' セッション' : ' sessions'}`,
-    CX, 173,
+    `${args.activeVolSessionCount ?? 0}${ja ? ' セッション' : ' sessions'}`,
+    CX, 180,
   )
 
-  drawDiv(ctx, args, 184)
+  drawDiv(ctx, args, 191)
 
-  // ── TOTAL: main metric — largest number on the card ───────────────────────────
+  // ── TOTAL: hero number — the single most prominent element ────────────────
   ctx.font = fnt(8, true); ctx.fillStyle = acc
-  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'TOTAL', CX, 196)
+  ctx.fillText(ja ? '合計' : 'TOTAL', CX, 203)
 
-  // 44px bold: the hero number — most visible element
   ctx.font = fnt(44, true); ctx.fillStyle = acc
-  ctx.fillText(args.activeVolTotalStr ?? '', CX, 238)
+  ctx.fillText(args.activeVolTotalStr ?? '', CX, 245)
 
   ctx.font = fnt(10, false); ctx.fillStyle = dim(0.38)
-  ctx.fillText(args.cardLang === 'ja' ? '合計ボリューム' : 'total volume', CX, 250)
+  ctx.fillText(ja ? '合計ボリューム' : 'total volume', CX, 257)
 
-  drawDiv(ctx, args, 260)
+  drawDiv(ctx, args, 267)
 
-  // ── PROGRESSION header ────────────────────────────────────────────────────────
+  // ── PROGRESSION header ─────────────────────────────────────────────────────
   ctx.font = fnt(8, true); ctx.fillStyle = acc
-  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 271)
+  ctx.fillText(ja ? 'プログレス' : 'PROGRESSION', CX, 278)
 
-  // ── Horizontal bars: newest at top, oldest at bottom ─────────────────────────
+  // ── Horizontal bars: newest at top (index 0), oldest at bottom ────────────
   const volBars = args.volBars ?? []
   if (volBars.length) {
     const entries: BarEntry[] = volBars.map(b => ({

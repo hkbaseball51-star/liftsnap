@@ -275,6 +275,7 @@ export async function getBodyPartDailyVolumeData(bodyPart: string, startDate?: s
     .in('session_id', sessions.map(s => s.id))
     .gt('weight_kg', 0)
     .gt('reps', 0)
+    .limit(5000)
 
   if (!sets?.length) return []
 
@@ -379,6 +380,7 @@ export async function getPPLDailyVolumeAll(startDate?: string) {
     .in('session_id', sessions.map(s => s.id))
     .gt('weight_kg', 0)
     .gt('reps', 0)
+    .limit(5000)
 
   if (!sets?.length) return { push: [], pull: [], legs: [], other: [] }
 
