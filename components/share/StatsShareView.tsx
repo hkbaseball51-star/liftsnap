@@ -1255,7 +1255,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       volCardLabel, activeVolTotalStr, String(activeVolSessionCount),
       isMax1RM ? rm1DataView.map((d, i) => `${rm1DatesView[i] ?? ''}:${d.est1rm}`).join(',') : '',
       isBW      ? bwDataView.map((v, i) => `${bwDatesView[i] ?? ''}:${v}`).join(',') : '',
-      isVol     ? volBars60.bars.map(b => `${b.label}:${b.value}`).join(',') : '',
+      isVol     ? volBars40.bars.map(b => `${b.label}:${b.value}`).join(',') : '',
     ].join('|')
   }, [
     graphLayout, isMax1RM, isBW, isVol,
@@ -1265,7 +1265,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
     exName, bestRMDisplay, rm1Growth,
     bwCurrentDisplay, bwStartDisplay, bwChangeStr,
     volCardLabel, activeVolTotalStr, activeVolSessionCount,
-    rm1DataView, rm1DatesView, bwDataView, bwDatesView, volBars60,
+    rm1DataView, rm1DatesView, bwDataView, bwDatesView, volBars40,
   ])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1293,7 +1293,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           bwCurrentDisplay, bwStartDisplay, bwChangeStr,
           bwValues: bwDataView, bwHistoryLen: bwDataView.length, bwDates: bwDatesView,
           bwStartDate: bwHistory.length ? bwHistory[0].date : undefined,
-          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars60.bars,
+          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars40.bars,
         })
         if (gen !== sideGenRef.current) return
         if (sidePreviewUrlRef.current) URL.revokeObjectURL(sidePreviewUrlRef.current)
@@ -1451,7 +1451,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             volCardLabel,
             activeVolTotalStr,
             activeVolSessionCount,
-            volBars: volBars60.bars,
+            volBars: volBars40.bars,
           })
         } else {
           const el: HTMLDivElement | null =

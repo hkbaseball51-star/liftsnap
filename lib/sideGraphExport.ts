@@ -399,28 +399,30 @@ function drawProgressBars(
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal <= normFloor) return
 
-  // Slot height cap: smaller for sparse displays so bars stay centered, not top-clustered
-  const maxSlotH = n <= 7 ? 60 : n <= 14 ? 50 : n <= 30 ? 38 : 30
+  // Slot height cap by density — smaller cap → bars cluster, centering prevents top-bias
+  // Max expected n for Volume side graph is 40; line charts (1RM/BW) pass up to 60
+  const maxSlotH = n <= 5  ? 72 : n <= 10 ? 60 : n <= 20 ? 44 : 32
   const slotH    = Math.min((BARS_BOT - barsTop) / n, maxSlotH)
 
-  // Center the used area vertically so sparse bar sets float in the middle
+  // Center the used area so sparse sets float mid-card rather than top-cluster
   const usedH  = slotH * n
   const startY = barsTop + Math.max(0, ((BARS_BOT - barsTop) - usedH) / 2)
 
-  // Bar height by density: thick for few bars, thin for many
+  // Bar height by density (target ranges from spec)
+  // n<=5: 18-22px  |  6-10: 14-18px  |  11-20: 10-14px  |  21-40: 5-8px
   let barH: number
-  if      (n <= 7)  barH = Math.min(17, slotH * 0.68)
-  else if (n <= 14) barH = Math.min(13, slotH * 0.62)
-  else if (n <= 30) barH = Math.min(9,  slotH * 0.58)
-  else              barH = Math.min(5,  slotH * 0.56)
-  barH = Math.max(barH, 1.5)
+  if      (n <= 5)  barH = Math.min(22, slotH * 0.72)
+  else if (n <= 10) barH = Math.min(17, slotH * 0.68)
+  else if (n <= 20) barH = Math.min(13, slotH * 0.62)
+  else              barH = Math.min(7,  slotH * 0.58)
+  barH = Math.max(barH, 2)
 
   // Date labels: all for n<=7, every other for n<=14, max ~6 for dense
   const labelEvery = n <= 7 ? 1 : n <= 14 ? 2 : Math.max(1, Math.ceil(n / 6))
   const showDateLabel = (i: number) =>
     i === 0 || i === n - 1 || i % labelEvery === 0 || bars[i]!.isLatest
 
-  // Value labels: show all for n<=14, latest/best only for dense
+  // Value labels: all for n<=14; latest/best only when dense
   const showValueLabel = (bar: BarEntry) =>
     n <= 14 || bar.isLatest || bar.isBest
 
