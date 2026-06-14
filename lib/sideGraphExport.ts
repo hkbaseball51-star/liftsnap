@@ -5,10 +5,8 @@
  * Left ~50% of canvas is the glass card; right 50% is fully transparent.
  *
  * Layout: vertical Story progress report.
- *   Header: BADGE + TYPE + NAME + stat sections (START / BEST or CURRENT / GAIN or CHANGE)
- *   Body:   PROGRESSION — horizontal bar list, newest at top.
- *           Up to 60 bars passed in; date labels and value labels are thinned
- *           automatically so the card stays readable at any density.
+ *   MAX 1RM / Body Weight: line chart (dates on Y, value on X)
+ *   Daily Volume:          horizontal bar chart (60 bars, auto-thinned labels)
  */
 
 type VolBar = { label: string; value: number; isLatest: boolean; isBest: boolean }
@@ -18,7 +16,7 @@ export type SideGraphArgs = {
   cardStyle:        'glass'  | 'transparent'
   graphAccentHex:   string
   graphLatestHex:   string
-  areaFill:         string   // kept in type for caller compatibility; unused in this layout
+  areaFill:         string   // 'none' for transparent, 'rgba(r,g,b,0.12)' for glass
   isDarkBg:         boolean
   glassAccentHex:   string
   glassIsDark:      boolean
@@ -74,7 +72,7 @@ const BADGE_RX    = 10
 const BADGE_PAD_L = 11
 const BADGE_PAD_R = 10
 
-// Bottom of bar area (above footer)
+// Bottom of chart/bar area (above footer)
 const BARS_BOT = CARD_Y + CARD_H - 24  // 866
 
 // ── Drawing helpers ───────────────────────────────────────────────────────────
@@ -147,6 +145,19 @@ function clipTxt(ctx: CanvasRenderingContext2D, text: string, maxWidth: number):
   let t = text
   while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1)
   return t + '…'
+}
+
+/** Parse '#RRGGBB' or '#RGB' → {r,g,b}. Returns null on failure. */
+function parseHex(hex: string): { r: number; g: number; b: number } | null {
+  const h = hex.replace('#', '')
+  if (h.length === 6) {
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+    }
+  }
+  return null
 }
 
 // ── Glass background ──────────────────────────────────────────────────────────
@@ -227,7 +238,147 @@ function drawFooter(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.fillText('Made with REPRA', CX, CARD_Y + CARD_H - 10)
 }
 
-// ── Shared progress bar renderer ──────────────────────────────────────────────
+// ── Line chart (MAX 1RM / Body Weight) ────────────────────────────────────────
+// Orientation: Y-axis = time (oldest at bottom, newest at top)
+//              X-axis = value (min at left, max at right)
+// This matches the SideLineSVG / SideBWLineSVG DOM components.
+
+function drawLineChart(
+  ctx:         CanvasRenderingContext2D,
+  args:        SideGraphArgs,
+  values:      number[],
+  dates:       string[],
+  barsTop:     number,
+  formatValue: (v: number) => string,
+  accentC:     string,
+  latestHex:   string,
+) {
+  const n = values.length
+  if (n === 0) return
+
+  // Chart area layout
+  const DATE_COL  = 44   // left space for date labels
+  const VAL_ROW   = 20   // bottom space for value-axis labels
+  const CHART_L   = CX + DATE_COL   // 72
+  const CHART_R   = RX - 2          // 261
+  const CHART_T   = barsTop + 6
+  const CHART_B   = BARS_BOT - VAL_ROW  // 846
+  const cW        = CHART_R - CHART_L   // 189
+  const cH        = CHART_B - CHART_T
+
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const rng = max - min || max * 0.1 || 1
+
+  // x: value → pixel X  (min at left, max at right)
+  const px = (v: number) => CHART_L + ((v - min) / rng) * cW
+  // y: index → pixel Y  (0=oldest=bottom, n-1=newest=top)
+  const py = (i: number) => n === 1
+    ? (CHART_T + CHART_B) / 2
+    : CHART_B - (i / (n - 1)) * cH
+
+  ctx.save()
+
+  // ── Value-axis ticks (vertical grid lines) ──────────────────────────────────
+  const raw  = rng / 2
+  const mag  = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 0.01))))
+  const step = [1,2,2.5,5,10].map(m => m * mag).find(s => s >= raw) ?? mag * 10
+  const ticks: number[] = []
+  for (let t = Math.ceil(min / step) * step; t <= max * 1.001; t = Math.round((t + step) * 1e9) / 1e9) {
+    ticks.push(t); if (ticks.length >= 4) break
+  }
+
+  ticks.forEach(tick => {
+    const x = px(tick)
+    // Dashed grid line
+    ctx.strokeStyle = args.isDarkBg ? 'rgba(255,255,255,0.10)' : 'rgba(17,24,39,0.07)'
+    ctx.lineWidth   = 0.7
+    ctx.setLineDash([2, 3])
+    ctx.beginPath(); ctx.moveTo(x, CHART_T); ctx.lineTo(x, CHART_B); ctx.stroke()
+    ctx.setLineDash([])
+
+    // Value label below chart
+    ctx.font         = fnt(8, false)
+    ctx.fillStyle    = ptxt(args.isDarkBg, 0.38)
+    ctx.textAlign    = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillText(formatValue(tick), x, CHART_B + 5)
+  })
+
+  // ── Area fill (from line back to left axis) ─────────────────────────────────
+  if (n >= 2 && args.areaFill && args.areaFill !== 'none') {
+    ctx.beginPath()
+    ctx.moveTo(CHART_L, py(0))
+    values.forEach((v, i) => ctx.lineTo(px(v), py(i)))
+    ctx.lineTo(CHART_L, py(n - 1))
+    ctx.closePath()
+    ctx.fillStyle = args.areaFill
+    ctx.fill()
+  }
+
+  // ── Polyline ────────────────────────────────────────────────────────────────
+  if (n >= 2) {
+    ctx.beginPath()
+    values.forEach((v, i) => {
+      if (i === 0) ctx.moveTo(px(v), py(i))
+      else         ctx.lineTo(px(v), py(i))
+    })
+    ctx.strokeStyle = accentC
+    ctx.lineWidth   = 1.5
+    ctx.lineJoin    = 'round'
+    ctx.lineCap     = 'round'
+    ctx.stroke()
+  }
+
+  // ── Date labels (left side, thinned for density) ────────────────────────────
+  const labelEvery = n <= 5 ? 1 : n <= 12 ? 2 : Math.max(1, Math.floor(n / 5))
+  dates.forEach((date, i) => {
+    if (!date) return
+    if (i !== 0 && i !== n - 1 && i % labelEvery !== 0) return
+    const isNewest = i === n - 1
+    ctx.font         = fnt(8, isNewest)
+    ctx.fillStyle    = isNewest ? accentC : ptxt(args.isDarkBg, 0.35)
+    ctx.textAlign    = 'right'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(fmtDateLabel(date, args.cardLang), CHART_L - 4, py(i))
+  })
+
+  // ── First point (oldest) — subtle dot ────────────────────────────────────────
+  if (n >= 2) {
+    ctx.beginPath()
+    ctx.arc(px(values[0]!), py(0), 2.5, 0, Math.PI * 2)
+    ctx.fillStyle = args.isDarkBg ? 'rgba(255,255,255,0.28)' : 'rgba(17,24,39,0.25)'
+    ctx.fill()
+  }
+
+  // ── Latest point — glow rings + solid dot ────────────────────────────────────
+  const lp = parseHex(latestHex)
+  const lxPt = px(values[n - 1]!)
+  const lyPt = py(n - 1)
+  if (lp) {
+    ctx.beginPath()
+    ctx.arc(lxPt, lyPt, 9, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(${lp.r},${lp.g},${lp.b},0.08)`
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(lxPt, lyPt, 5, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(${lp.r},${lp.g},${lp.b},0.28)`
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(lxPt, lyPt, 3.5, 0, Math.PI * 2)
+    ctx.fillStyle = latestHex
+    ctx.fill()
+  } else {
+    ctx.beginPath()
+    ctx.arc(lxPt, lyPt, 3.5, 0, Math.PI * 2)
+    ctx.fillStyle = accentC
+    ctx.fill()
+  }
+
+  ctx.restore()
+}
+
+// ── Horizontal bar chart (Daily Volume only) ──────────────────────────────────
 // Supports up to 60 bars. Date labels and value labels are thinned automatically
 // when bars are dense so the card stays readable.
 
@@ -248,22 +399,30 @@ function drawProgressBars(
   const maxVal = Math.max(...bars.map(b => b.value))
   if (maxVal <= normFloor) return
 
-  const MAX_SLOT_H = 76
-  const slotH = Math.min((BARS_BOT - barsTop) / n, MAX_SLOT_H)
+  // Slot height cap: smaller for sparse displays so bars stay centered, not top-clustered
+  const maxSlotH = n <= 7 ? 60 : n <= 14 ? 50 : n <= 30 ? 38 : 30
+  const slotH    = Math.min((BARS_BOT - barsTop) / n, maxSlotH)
 
-  // Bar height: keep 3-7 px; thicker for sparse, thinner for dense
-  const barH = n <= 15
-    ? Math.min(7, slotH * 0.45)
-    : Math.min(5, slotH * 0.60)
+  // Center the used area vertically so sparse bar sets float in the middle
+  const usedH  = slotH * n
+  const startY = barsTop + Math.max(0, ((BARS_BOT - barsTop) - usedH) / 2)
 
-  // Date label thinning: show ~5 milestones for dense bars
-  const labelEvery = n <= 10 ? 1 : Math.max(1, Math.floor(n / 5))
+  // Bar height by density: thick for few bars, thin for many
+  let barH: number
+  if      (n <= 7)  barH = Math.min(17, slotH * 0.68)
+  else if (n <= 14) barH = Math.min(13, slotH * 0.62)
+  else if (n <= 30) barH = Math.min(9,  slotH * 0.58)
+  else              barH = Math.min(5,  slotH * 0.56)
+  barH = Math.max(barH, 1.5)
+
+  // Date labels: all for n<=7, every other for n<=14, max ~6 for dense
+  const labelEvery = n <= 7 ? 1 : n <= 14 ? 2 : Math.max(1, Math.ceil(n / 6))
   const showDateLabel = (i: number) =>
     i === 0 || i === n - 1 || i % labelEvery === 0 || bars[i]!.isLatest
 
-  // Value label: every bar when sparse; only latest/best when dense
+  // Value labels: show all for n<=14, latest/best only for dense
   const showValueLabel = (bar: BarEntry) =>
-    n <= 20 || bar.isLatest || bar.isBest
+    n <= 14 || bar.isLatest || bar.isBest
 
   // Column layout: [date 42px][5px][bar][5px][34px value]
   const DATE_END  = CX + 42
@@ -272,7 +431,7 @@ function drawProgressBars(
   const normRange = maxVal - normFloor || 1
 
   bars.forEach((bar, i) => {
-    const cy = barsTop + (i + 0.5) * slotH
+    const cy = startY + (i + 0.5) * slotH
     const bw = Math.max(((bar.value - normFloor) / normRange) * BAR_MAX_W, 3)
 
     ctx.save()
@@ -376,21 +535,18 @@ function draw1RM(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
   ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 324)
 
-  // ── Bars (all passed items, newest at top after reverse) ──
+  // ── Line chart (oldest at bottom, newest at top) ──────────────────────────
   const rawData  = args.rm1SVGData ?? []
   const rawDates = args.rm1Dates ?? []
-  if (rawData.length) {
-    const maxEst = Math.max(...rawData.map(d => d.est1rm))
-    const entries: BarEntry[] = rawData.map((d, i) => ({
-      value:    d.est1rm,
-      date:     rawDates[i] ?? '',
-      isLatest: i === rawData.length - 1,
-      isBest:   d.est1rm >= maxEst - 0.001,
-    }))
-    entries.reverse()
+  const values   = rawData.map(d => d.est1rm)
 
-    drawProgressBars(
-      ctx, args, entries, 334,
+  if (values.length === 0) {
+    ctx.font = fnt(9, false); ctx.fillStyle = dim(0.30)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(args.cardLang === 'ja' ? 'データなし' : 'No data', (CX + RX) / 2, (334 + BARS_BOT) / 2)
+  } else {
+    drawLineChart(
+      ctx, args, values, rawDates, 334,
       v => `${Math.round(v)}`,
       acc, args.graphLatestHex,
     )
@@ -456,28 +612,19 @@ function drawBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
   ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 299)
 
-  // ── Bars (all passed items, newest at top after reverse) ──
+  // ── Line chart (oldest at bottom, newest at top) ──────────────────────────
   const rawValues = args.bwValues ?? []
   const rawDates  = args.bwDates ?? []
-  if (rawValues.length) {
-    const minVal = Math.min(...rawValues)
-    const maxVal = Math.max(...rawValues)
-    // Raise the floor so small BW fluctuations remain visually distinct
-    const floor  = Math.max(0, minVal - (maxVal - minVal) * 0.4)
 
-    const entries: BarEntry[] = rawValues.map((v, i) => ({
-      value:    v,
-      date:     rawDates[i] ?? '',
-      isLatest: i === rawValues.length - 1,
-      isBest:   false,
-    }))
-    entries.reverse()
-
-    drawProgressBars(
-      ctx, args, entries, 309,
+  if (rawValues.length === 0) {
+    ctx.font = fnt(9, false); ctx.fillStyle = dim(0.30)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(args.cardLang === 'ja' ? 'データなし' : 'No data', (CX + RX) / 2, (309 + BARS_BOT) / 2)
+  } else {
+    drawLineChart(
+      ctx, args, rawValues, rawDates, 309,
       v => `${Math.round(v * 10) / 10}`,
       acc, args.graphLatestHex,
-      floor,
     )
   }
 }
@@ -534,7 +681,7 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
   ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 273)
 
-  // ── Bars (all passed items, newest at top after reverse) ──
+  // ── Horizontal bars (newest at top after reverse) — square corners ──────────
   const volBars = args.volBars ?? []
   if (volBars.length) {
     const entries: BarEntry[] = volBars.map(b => ({
