@@ -401,8 +401,8 @@ function drawProgressBars(
 
   // Target slot (barH + gap) and bar heights per density.
   // Vol graph caps at 28 bars; tiers above n=28 kept as safety fallback only.
-  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : n <= 28 ? 16 : 11
-  const targetBarH  = n <= 10 ? 20 : n <= 18 ? 18 : n <= 28 ? 12 : 8
+  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : n <= 28 ? 19 : 11
+  const targetBarH  = n <= 10 ? 20 : n <= 18 ? 18 : n <= 28 ? 15 : 8
 
   // Safety cap: don't overflow the full-height bar area
   const slotH = Math.min(targetSlotH, (BARS_BOT - barsTop) / Math.max(n, 1))
@@ -670,8 +670,6 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.font = fnt(10, true); ctx.fillStyle = acc
   ctx.fillText(ja ? '総重量' : 'DAILY VOLUME', CX, 137)
 
-  drawDiv(ctx, args, 147)
-
   // ── START compact inline: "START" (tiny dim) + value (medium prim) same line ─
   // Mirrors reference image: "START  55kg" on one baseline.
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.38)
@@ -685,7 +683,7 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   // ── NOW + hero inline on same baseline ──────────────────────────────────────
   // "NOW" (small orange) at left, auto-sized hero number right of it — same baseline.
   // Font scales by string length so short "4.6t" is large, long "139.2t" is smaller.
-  const HERO_Y = 245
+  const HERO_Y = 230
   ctx.font = fnt(9, true); ctx.fillStyle = acc
   ctx.fillText('NOW', CX, HERO_Y)
   const nowLabelW = ctx.measureText('NOW').width
@@ -704,18 +702,18 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
     ctx.font = fnt(15, true); ctx.fillStyle = GAIN_CLR
     ctx.fillText(
       `+${fmtVolLabel(gainVal, args.unit)} ${ja ? '成長' : 'GAIN'}`,
-      CX, 267,
+      CX, 252,
     )
   } else {
     ctx.font = fnt(10, false); ctx.fillStyle = dim(0.28)
-    ctx.fillText('—', CX, 267)
+    ctx.fillText('—', CX, 252)
   }
 
-  drawDiv(ctx, args, 278)
+  drawDiv(ctx, args, 263)
 
   // ── PROGRESSION header ───────────────────────────────────────────────────────
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(ja ? 'プログレス' : 'PROGRESSION', CX, 289)
+  ctx.fillText(ja ? 'プログレス' : 'PROGRESSION', CX, 274)
 
   // ── Horizontal bars: newest at top (index 0), oldest at bottom ──────────────
   if (volBars.length) {
@@ -739,7 +737,7 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 // For 1RM / Body Weight the card is always full height.
 function computeVolCardH(n: number): number {
   if (n <= 0) return CARD_H
-  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : 16  // vol capped at 28 bars
+  const targetSlotH = n <= 10 ? 24 : n <= 18 ? 22 : 19  // vol capped at 28 bars
   const barsEnd     = VOL_BARS_TOP + n * targetSlotH
   const footerPad   = 34   // space below last bar for footer text
   const minCardH    = 430  // always tall enough to show all header sections
