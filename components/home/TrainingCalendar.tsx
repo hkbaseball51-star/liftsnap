@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
+import { useTheme } from '@/lib/useTheme'
 import { CAL_COLORS as CAL_COLORS_LIB, CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
 
 export type CalendarSession = {
@@ -183,6 +184,8 @@ export default function TrainingCalendar({
 }) {
   const router = useRouter()
   const { locale } = useLocale()
+  const { theme: appTheme } = useTheme()
+  const isLight = appTheme === 'light'
   const clientToday = useMemo(() => localDateStr(new Date()), [])
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
@@ -191,8 +194,22 @@ export default function TrainingCalendar({
 
   // Month jump sheet state
   const [jumpOpen, setJumpOpen] = useState(false)
-  const [loggedMonths, setLoggedMonths] = useState<Array<{ year: number; month: number; count: number }>>([])
-  const [jumpLoading, setJumpLoading] = useState(false)
+
+  // Derive logged months directly from the sessions prop (localStorage data).
+  // No async fetch needed — sessions are already in memory.
+  const loggedMonths = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const s of sessions) {
+      const ym = s.date.slice(0, 7) // "YYYY-MM"
+      map.set(ym, (map.get(ym) ?? 0) + 1)
+    }
+    return [...map.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([ym, count]) => {
+        const [y, m] = ym.split('-').map(Number)
+        return { year: y, month: m - 1, count }
+      })
+  }, [sessions])
 
   const todayYear    = parseInt(clientToday.slice(0, 4))
   const todayMonth   = parseInt(clientToday.slice(5, 7)) - 1
@@ -237,42 +254,6 @@ export default function TrainingCalendar({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month, photoPathsByDate])
 
-  // Fetch all logged months lazily when the jump sheet is opened
-  useEffect(() => {
-    if (!jumpOpen) return
-    if (loggedMonths.length > 0) return
-    let cancelled = false
-    const supabase = createClient()
-    async function load() {
-      setJumpLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelled) { setJumpLoading(false); return }
-      const { data } = await supabase
-        .from('workout_sessions')
-        .select('trained_at')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null)
-        .order('trained_at', { ascending: false })
-      if (cancelled) return
-      const map = new Map<string, number>()
-      for (const row of (data ?? [])) {
-        const ym = (row.trained_at as string).slice(0, 7)
-        map.set(ym, (map.get(ym) ?? 0) + 1)
-      }
-      setLoggedMonths(
-        [...map.entries()]
-          .sort((a, b) => b[0].localeCompare(a[0]))
-          .map(([ym, count]) => {
-            const [y, m] = ym.split('-').map(Number)
-            return { year: y, month: m - 1, count }
-          })
-      )
-      setJumpLoading(false)
-    }
-    load()
-    return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jumpOpen])
 
   const isControlled = controlledSelectedDate !== undefined
   const selectedDate = isControlled ? controlledSelectedDate : internalSelectedDate
@@ -548,14 +529,14 @@ export default function TrainingCalendar({
     {jumpOpen && (
       <div
         className="fixed inset-0 z-50 flex items-end justify-center"
-        style={{ background: 'rgba(0,0,0,0.78)' }}
+        style={{ background: 'rgba(0,0,0,0.60)' }}
         onClick={() => setJumpOpen(false)}>
         <div
           className="w-full flex flex-col"
           style={{
             maxWidth: 600,
-            background: '#1C1C1C',
-            border: '1px solid rgba(255,255,255,0.16)',
+            background: isLight ? '#FAFAF8' : '#1C1C1C',
+            border: `1px solid ${isLight ? '#E5E7EB' : 'rgba(255,255,255,0.16)'}`,
             borderBottom: 'none',
             borderRadius: '24px 24px 0 0',
             maxHeight: '80dvh',
@@ -565,21 +546,30 @@ export default function TrainingCalendar({
           {/* Fixed header */}
           <div className="flex-shrink-0">
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-8 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.18)' }} />
+              <div className="w-8 h-1 rounded-full"
+                style={{ background: isLight ? '#D1D5DB' : 'rgba(255,255,255,0.18)' }} />
             </div>
             <div className="flex items-center justify-between px-5 pt-2 pb-3">
-              <p className="text-[15px] font-black" style={{ color: '#fff' }}>
+              <p className="text-[15px] font-black"
+                style={{ color: isLight ? '#111827' : '#fff' }}>
                 {locale === 'ja' ? '月を選択' : 'Jump to month'}
               </p>
               <button
                 onClick={() => setJumpOpen(false)}
                 aria-label={locale === 'ja' ? '閉じる' : 'Close'}
-                className="w-8 h-8 rounded-full flex items-center justify-center active:opacity-60 transition-opacity flex-shrink-0"
-                style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)' }}>
-                <X size={14} style={{ color: 'rgba(255,255,255,0.72)' }} />
+                className="w-9 h-9 rounded-full flex items-center justify-center active:opacity-60 transition-opacity flex-shrink-0"
+                style={{
+                  background: isLight ? '#F3F4F6' : 'rgba(255,255,255,0.10)',
+                  border: `1px solid ${isLight ? '#E5E7EB' : 'rgba(255,255,255,0.16)'}`,
+                }}>
+                <X size={14} style={{ color: isLight ? '#4B5563' : 'rgba(255,255,255,0.72)' }} />
               </button>
             </div>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginInline: 20 }} />
+            <div style={{
+              height: 1,
+              background: isLight ? '#E5E7EB' : 'rgba(255,255,255,0.10)',
+              marginInline: 20,
+            }} />
           </div>
 
           {/* Scrollable content */}
@@ -610,20 +600,12 @@ export default function TrainingCalendar({
 
             {/* Section label */}
             <p className="text-[10px] font-black tracking-widest mb-3"
-              style={{ color: 'rgba(255,255,255,0.48)' }}>
+              style={{ color: isLight ? '#9CA3AF' : 'rgba(255,255,255,0.48)' }}>
               {locale === 'ja' ? '記録がある月' : 'LOGGED MONTHS'}
             </p>
 
-            {/* Loading */}
-            {jumpLoading && (
-              <div className="flex justify-center py-8">
-                <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
-                  style={{ borderColor: 'rgba(255,255,255,0.25)', borderTopColor: '#ED742F' }} />
-              </div>
-            )}
-
             {/* Month list */}
-            {!jumpLoading && loggedMonths.length > 0 && (
+            {loggedMonths.length > 0 && (
               <div className="space-y-2">
                 {loggedMonths.map(({ year: y, month: m, count }) => {
                   const isCurrent = y === year && m === month
@@ -631,15 +613,23 @@ export default function TrainingCalendar({
                     <button
                       key={`${y}-${m}`}
                       onClick={() => { setYear(y); setMonth(m); setJumpOpen(false) }}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-2xl active:opacity-70 transition-opacity"
+                      className="w-full flex items-center justify-between px-4 active:opacity-70 transition-opacity"
                       style={{
-                        background: isCurrent ? 'rgba(237,116,47,0.12)' : 'rgba(255,255,255,0.06)',
-                        border: `1px solid ${isCurrent ? 'rgba(237,116,47,0.42)' : 'rgba(255,255,255,0.13)'}`,
+                        minHeight: 52,
+                        borderRadius: 16,
+                        background: isCurrent
+                          ? 'rgba(237,116,47,0.12)'
+                          : isLight ? '#F3F4F6' : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${isCurrent
+                          ? 'rgba(237,116,47,0.42)'
+                          : isLight ? '#E5E7EB' : 'rgba(255,255,255,0.13)'}`,
                       }}>
-                      <span className="text-[14px] font-bold" style={{ color: isCurrent ? '#ED742F' : '#fff' }}>
+                      <span className="text-[14px] font-bold"
+                        style={{ color: isCurrent ? '#ED742F' : isLight ? '#111827' : '#fff' }}>
                         {locale === 'ja' ? MONTH_NAMES_JA[m] : MONTH_NAMES[m]} {y}
                       </span>
-                      <span className="text-[11px]" style={{ color: isCurrent ? 'rgba(237,116,47,0.72)' : 'rgba(255,255,255,0.50)' }}>
+                      <span className="text-[11px]"
+                        style={{ color: isCurrent ? 'rgba(237,116,47,0.72)' : isLight ? '#6B7280' : 'rgba(255,255,255,0.50)' }}>
                         {count} {locale === 'ja' ? 'sessions' : count === 1 ? 'session' : 'sessions'}
                       </span>
                     </button>
@@ -648,8 +638,9 @@ export default function TrainingCalendar({
               </div>
             )}
 
-            {!jumpLoading && loggedMonths.length === 0 && (
-              <p className="text-center py-8 text-[13px]" style={{ color: 'rgba(255,255,255,0.40)' }}>
+            {loggedMonths.length === 0 && (
+              <p className="text-center py-8 text-[13px]"
+                style={{ color: isLight ? '#9CA3AF' : 'rgba(255,255,255,0.40)' }}>
                 {locale === 'ja' ? 'まだ記録がありません' : 'No sessions recorded yet'}
               </p>
             )}
