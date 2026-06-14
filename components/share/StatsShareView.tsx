@@ -1021,6 +1021,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const [status,     setStatus]     = useState('')
   const [shareCount, setShareCount] = useState(0)
 
+  const sidePreviewUrlRef                   = useRef<string>('')
+  const [sidePreviewSrc, setSidePreviewSrc] = useState<string>('')
+
   // Graph layout controls — shared by MAX 1RM, Body Weight, Daily Volume
   const [graphLayout,  setGraphLayout]  = useState<GraphLayout>('full')
   const [graphPreset,  setGraphPreset]  = useState<GraphPreset>('orange')
@@ -1218,6 +1221,52 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const activeVolSessionCount = activeVolHistory.length
   const activeVolFirstDate    = activeVolHistory.length ? activeVolHistory[0].date : ''
   const activeVolLastDate     = activeVolHistory.length ? activeVolHistory[activeVolHistory.length - 1].date : ''
+
+  /* ── Side graph canvas preview ───────────────────────────── */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (graphLayout !== 'side') {
+      if (sidePreviewUrlRef.current) { URL.revokeObjectURL(sidePreviewUrlRef.current); sidePreviewUrlRef.current = '' }
+      setSidePreviewSrc('')
+      return
+    }
+    let cancelled = false
+    setSidePreviewSrc('')
+    const run = async () => {
+      try {
+        const { exportSideGraphCard } = await import('@/lib/sideGraphExport')
+        const metric = isMax1RM ? 'max1rm' as const : isBW ? 'bodyweight' as const : 'volume' as const
+        const blob = await exportSideGraphCard({
+          metric, cardStyle,
+          graphAccentHex: gpAccent, graphLatestHex: gpLatest, areaFill, isDarkBg,
+          glassAccentHex: gp.accentHex, glassIsDark: gp.isDark !== false,
+          gpBorder: gp.border, badgeBg: gpBadgeBg, badgeTxt: gpBadgeTxt,
+          cardLang, unitLabel, unit,
+          exName, bestRMDisplay, rm1Growth: rm1Growth ?? null,
+          rm1SVGData, rm1Dates: rm1FullHistory.map(p => p.date),
+          bwCurrentDisplay, bwStartDisplay, bwChangeStr,
+          bwValues, bwHistoryLen: bwHistory.length, bwDates: bwHistory.map(p => p.date),
+          volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBars30.bars,
+        })
+        if (cancelled) return
+        if (sidePreviewUrlRef.current) URL.revokeObjectURL(sidePreviewUrlRef.current)
+        const url = URL.createObjectURL(blob)
+        sidePreviewUrlRef.current = url
+        setSidePreviewSrc(url)
+      } catch { /* ignore preview errors */ }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [
+    graphLayout, isMax1RM, isBW,
+    cardStyle, gpAccent, gpLatest, areaFill, isDarkBg,
+    gp.accentHex, gp.isDark, gp.border, gpBadgeBg, gpBadgeTxt,
+    cardLang, unitLabel, unit,
+    data,
+    exName, bestRMDisplay, rm1Growth,
+    bwCurrentDisplay, bwStartDisplay, bwChangeStr,
+    volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars30,
+  ])
 
   /* ── Share handler ───────────────────────────────────────── */
   const handleShare = async () => {
@@ -1740,56 +1789,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'side' && (
-              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
-                {/* Left card — positioned to match canvas: CARD_X/CW=3.33%, CARD_Y/CH=7.29%, CARD_W/CW=47.22%, CARD_H/CH=85.42% */}
-                <div style={{
-                  position: 'absolute', left: '3.33%', top: '7.29%', width: '47.22%', height: '85.42%',
-                  ...cardBgProps, borderRadius: 18,
-                  overflow: 'hidden', isolation: 'isolate',
-                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
-                  boxShadow: cardBoxShadow, textShadow: textShadowVal,
-                }}>
-                  {/* REPRA badge: left=CX/CARD_W=3.92%, top=(BADGE_Y-CARD_Y)/CARD_H=1.46% */}
-                  <span style={{ position: 'absolute', left: '3.92%', top: '1.46%',
-                    fontSize: 7, fontWeight: 900, padding: '1.5px 6px', borderRadius: 4,
-                    background: gpBadgeBg, color: gpBadgeTxt, letterSpacing: '0.16em', display: 'inline-block' }}>REPRA</span>
-                  {/* 1RM PROGRESS: top=(BADGE_Y+40-CARD_Y)/CARD_H=6.34% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '6.34%', margin: 0,
-                    fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em' }}>
-                    {cl('1RM PROGRESS', '1RM推移')}
-                  </p>
-                  {/* exName: top=(BADGE_Y+64-CARD_Y)/CARD_H=9.27% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '9.27%', margin: 0,
-                    fontSize: 9, fontWeight: 900, color: textPrimary, lineHeight: 1.1 }}>
-                    {exName}
-                  </p>
-                  {/* bestRMDisplay: top=(BADGE_Y+112-CARD_Y)/CARD_H=15.12% */}
-                  <span style={{ position: 'absolute', left: '3.92%', top: '15.12%',
-                    fontSize: 17, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>
-                    {bestRMDisplay}
-                  </span>
-                  {/* unit label: top=(BADGE_Y+132-CARD_Y)/CARD_H=17.56% */}
-                  <span style={{ position: 'absolute', left: '3.92%', top: '17.56%',
-                    fontSize: 6, color: ptxt(0.50) }}>
-                    {unitLabel} {cl('best', 'ベスト')}
-                  </span>
-                  {/* growth: top=(BADGE_Y+154-CARD_Y)/CARD_H=20.24% */}
-                  {rm1Growth !== null && (
-                    <p style={{ position: 'absolute', left: '3.92%', top: '20.24%', margin: 0,
-                      fontSize: 7.5, fontWeight: 700, color: rm1Growth >= 0 ? '#4ade80' : '#f87171' }}>
-                      {rm1Growth >= 0 ? '+' : ''}{rm1Growth}
-                    </p>
-                  )}
-                  {/* Chart: top=(CHART_TOP-CARD_Y)/CARD_H=22.56%, height=(CHART_BOT-CHART_TOP)/CARD_H=75.49% */}
-                  <div style={{ position: 'absolute', left: 0, top: '22.56%', width: '100%', height: '75.49%' }}>
-                    {rm1SVGData.length >= 2
-                      ? <SideLineSVG data={rm1SVGData} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} dates={rm1FullHistory.map(p => p.date)} />
-                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
-                  </div>
-                  {/* Made with REPRA: bottom=10/CARD_H=1.22% */}
-                  <p style={{ position: 'absolute', left: '3.92%', bottom: '1.22%', margin: 0,
-                    fontSize: 5.5, color: ptxt(0.22) }}>Made with REPRA</p>
-                </div>
+              <div style={{
+                aspectRatio: '9/16', width: '100%', position: 'relative',
+                backgroundImage: 'repeating-conic-gradient(#c8c8c8 0% 25%, #f0f0f0 0% 50%)',
+                backgroundSize: '14px 14px',
+              }}>
+                {sidePreviewSrc
+                  ? <img src={sidePreviewSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                  : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(100,100,100,0.5)' }}>Generating…</p>
+                    </div>
+                }
               </div>
             )}
 
@@ -1933,55 +1943,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'side' && (
-              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', left: '3.33%', top: '7.29%', width: '47.22%', height: '85.42%',
-                  ...cardBgProps, borderRadius: 18,
-                  overflow: 'hidden', isolation: 'isolate',
-                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
-                  boxShadow: cardBoxShadow, textShadow: textShadowVal,
-                }}>
-                  <span style={{ position: 'absolute', left: '3.92%', top: '1.46%',
-                    fontSize: 7, fontWeight: 900, padding: '1.5px 6px', borderRadius: 4,
-                    background: gpBadgeBg, color: gpBadgeTxt, letterSpacing: '0.16em', display: 'inline-block' }}>REPRA</span>
-                  {/* BODY WEIGHT: top=6.34% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '6.34%', margin: 0,
-                    fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em' }}>
-                    {cl('BODY WEIGHT', '体重')}
-                  </p>
-                  {/* hasBoth: start→current at top=9.02% = (BADGE_Y+62-CARD_Y)/CARD_H */}
-                  {bwHistory.length >= 2 && (
-                    <p style={{ position: 'absolute', left: '3.92%', top: '9.02%', margin: 0,
-                      fontSize: 6.5, color: ptxt(0.55) }}>
-                      {bwStartDisplay} → {bwCurrentDisplay}
-                    </p>
-                  )}
-                  {/* bwCurrentDisplay: hasBoth→14.39%, else→12.68% */}
-                  <span style={{ position: 'absolute', left: '3.92%',
-                    top: bwHistory.length >= 2 ? '14.39%' : '12.68%',
-                    fontSize: 17, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>
-                    {bwCurrentDisplay}
-                  </span>
-                  {/* unitLabel: hasBoth→16.83%, else→15.12% */}
-                  <span style={{ position: 'absolute', left: '3.92%',
-                    top: bwHistory.length >= 2 ? '16.83%' : '15.12%',
-                    fontSize: 6, color: ptxt(0.50) }}>
-                    {unitLabel}
-                  </span>
-                  {/* bwChangeStr: hasBoth→19.76%, else→17.80% */}
-                  <p style={{ position: 'absolute', left: '3.92%',
-                    top: bwHistory.length >= 2 ? '19.76%' : '17.80%', margin: 0,
-                    fontSize: 7.5, fontWeight: 700, color: gpAccent }}>
-                    {bwChangeStr}{unitLabel}
-                  </p>
-                  <div style={{ position: 'absolute', left: 0, top: '22.56%', width: '100%', height: '75.49%' }}>
-                    {bwValues.length >= 2
-                      ? <SideBWLineSVG values={bwValues} accentHex={gpAccent} latestHex={gpLatest} areaFill={areaFill} isDarkBg={isDarkBg} dates={bwHistory.map(p => p.date)} />
-                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
-                  </div>
-                  <p style={{ position: 'absolute', left: '3.92%', bottom: '1.22%', margin: 0,
-                    fontSize: 5.5, color: ptxt(0.22) }}>Made with REPRA</p>
-                </div>
+              <div style={{
+                aspectRatio: '9/16', width: '100%', position: 'relative',
+                backgroundImage: 'repeating-conic-gradient(#c8c8c8 0% 25%, #f0f0f0 0% 50%)',
+                backgroundSize: '14px 14px',
+              }}>
+                {sidePreviewSrc
+                  ? <img src={sidePreviewSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                  : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(100,100,100,0.5)' }}>Generating…</p>
+                    </div>
+                }
               </div>
             )}
 
@@ -2114,50 +2086,17 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'side' && (
-              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', left: '3.33%', top: '7.29%', width: '47.22%', height: '85.42%',
-                  ...cardBgProps, borderRadius: 18,
-                  overflow: 'hidden', isolation: 'isolate',
-                  border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
-                  boxShadow: cardBoxShadow, textShadow: textShadowVal,
-                }}>
-                  <span style={{ position: 'absolute', left: '3.92%', top: '1.46%',
-                    fontSize: 7, fontWeight: 900, padding: '1.5px 6px', borderRadius: 4,
-                    background: gpBadgeBg, color: gpBadgeTxt, letterSpacing: '0.16em', display: 'inline-block' }}>REPRA</span>
-                  {/* DAILY VOLUME: top=6.34% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '6.34%', margin: 0,
-                    fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em' }}>
-                    {cl('DAILY VOLUME', '総重量')}
-                  </p>
-                  {/* volCardLabel: top=(BADGE_Y+64-CARD_Y)/CARD_H=9.27% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '9.27%', margin: 0,
-                    fontSize: 9, fontWeight: 900, color: textPrimary, lineHeight: 1.1 }}>
-                    {volCardLabel}
-                  </p>
-                  {/* activeVolTotalStr: top=(BADGE_Y+108-CARD_Y)/CARD_H=14.63% */}
-                  <span style={{ position: 'absolute', left: '3.92%', top: '14.63%',
-                    fontSize: 16, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>
-                    {activeVolTotalStr}
-                  </span>
-                  {/* total label: top=(BADGE_Y+128-CARD_Y)/CARD_H=17.07% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '17.07%', margin: 0,
-                    fontSize: 6, color: ptxt(0.45) }}>
-                    {cl('total', '合計')}
-                  </p>
-                  {/* sessions: top=(BADGE_Y+148-CARD_Y)/CARD_H=19.51% */}
-                  <p style={{ position: 'absolute', left: '3.92%', top: '19.51%', margin: 0,
-                    fontSize: 6, color: ptxt(0.35) }}>
-                    {activeVolSessionCount} {cl('sessions', 'セッション')}
-                  </p>
-                  <div style={{ position: 'absolute', left: 0, top: '22.56%', width: '100%', height: '75.49%' }}>
-                    {volBars30.bars.length > 0
-                      ? <SideVolBarSVG bars={volBars30.bars} accentHex={gpAccent} latestHex={gpLatest} isDarkBg={isDarkBg} />
-                      : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}><p style={{ fontSize: 7, color: ptxt(0.25) }}>No data</p></div>}
-                  </div>
-                  <p style={{ position: 'absolute', left: '3.92%', bottom: '1.22%', margin: 0,
-                    fontSize: 5.5, color: ptxt(0.22) }}>Made with REPRA</p>
-                </div>
+              <div style={{
+                aspectRatio: '9/16', width: '100%', position: 'relative',
+                backgroundImage: 'repeating-conic-gradient(#c8c8c8 0% 25%, #f0f0f0 0% 50%)',
+                backgroundSize: '14px 14px',
+              }}>
+                {sidePreviewSrc
+                  ? <img src={sidePreviewSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                  : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(100,100,100,0.5)' }}>Generating…</p>
+                    </div>
+                }
               </div>
             )}
 
