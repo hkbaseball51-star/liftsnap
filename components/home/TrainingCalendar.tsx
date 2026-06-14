@@ -358,14 +358,16 @@ export default function TrainingCalendar({
             </button>
           )}
           <button onClick={prevMonth}
-            className="w-8 h-8 rounded-lg flex items-center justify-center active:opacity-80"
-            style={{ background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' }}>
-            <ChevronLeft size={15} style={{ color: '#cfcfcf' }} />
+            aria-label={locale === 'ja' ? '前月へ' : 'Previous month'}
+            className="w-11 h-11 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
+            style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
+            <ChevronLeft size={20} style={{ color: '#A1A1AA' }} />
           </button>
           <button onClick={nextMonth}
-            className="w-8 h-8 rounded-lg flex items-center justify-center active:opacity-80"
-            style={{ background: 'rgba(255,255,255,0.11)', border: '1px solid rgba(255,255,255,0.15)' }}>
-            <ChevronRight size={15} style={{ color: '#cfcfcf' }} />
+            aria-label={locale === 'ja' ? '次月へ' : 'Next month'}
+            className="w-11 h-11 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
+            style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
+            <ChevronRight size={20} style={{ color: '#A1A1AA' }} />
           </button>
         </div>
       </div>
