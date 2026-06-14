@@ -1174,7 +1174,9 @@ export default function WorkoutRecorder({
         style={{
           position: 'fixed',
           right: 20,
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 116px)',
+          bottom: (prevSession && exerciseList.length > 0)
+            ? 'calc(env(safe-area-inset-bottom, 0px) + 180px)'
+            : 'calc(env(safe-area-inset-bottom, 0px) + 116px)',
           zIndex: 41,
           display: 'flex',
           alignItems: 'center',

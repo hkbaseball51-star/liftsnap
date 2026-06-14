@@ -639,7 +639,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       return (
                         <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
                           style={{ borderTop: '1px solid var(--card-divider)' }}>
-                          <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>{p.label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>{ja ? fmtDateJa(p.date) : formatTooltipDate(p.date)}</span>
                           <div className="flex items-baseline gap-1">
                             <span style={{ fontSize: 16, fontWeight: 700, color: bestRM !== null && origEst1rm === bestRM ? '#ED742F' : 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{p.est1rm}</span>
                             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unitLabel}</span>
@@ -781,7 +781,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                     {[...volDataDisplay].reverse().slice(0, 8).map(p => (
                       <div key={p.date} className="flex items-center justify-between px-4 py-2.5"
                         style={{ borderTop: '1px solid var(--card-divider)' }}>
-                        <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>{p.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>{ja ? fmtDateJa(p.date) : formatTooltipDate(p.date)}</span>
                         <div className="flex items-baseline gap-1">
                           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                             {fmtVolT(p.volume)}
