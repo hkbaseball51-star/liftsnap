@@ -92,10 +92,10 @@ const VOL_PPL_GROUPS = [
 ] as const
 
 const GRAPH_LAYOUTS = [
-  { key: 'full',   labelEn: 'Full',       labelJa: '全画面',    ratio: '9:16' },
-  { key: 'side',   labelEn: 'Side Graph', labelJa: '左グラフ',   ratio: '9:16' },
-  { key: 'mini',   labelEn: 'Mini',       labelJa: 'ミニカード', ratio: '1:1'  },
-  { key: 'wide',   labelEn: 'Wide',       labelJa: 'ワイド',     ratio: '16:9' },
+  { key: 'full',   labelEn: 'Full',        labelJa: '全画面',        ratio: '9:16' },
+  { key: 'side',   labelEn: 'Side Graph',  labelJa: '左サイドグラフ', ratio: ''     },
+  { key: 'mini',   labelEn: 'Mini',        labelJa: 'ミニカード',     ratio: '1:1'  },
+  { key: 'wide',   labelEn: 'Wide',        labelJa: 'ワイド',         ratio: '16:9' },
 ] as const
 
 const PRESET_LABELS: Record<GraphPreset, string> = {
@@ -420,6 +420,35 @@ function LayoutThumb({ layoutKey, accentHex, selected, isBar = false, isDark = t
   const stroke       = selected ? accentHex : isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.28)'
   const rectFill     = selected ? `${accentHex}18` : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
   const rectStroke   = selected ? accentHex : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)'
+
+  // Side Graph: distinct icon — narrow card on the left half with horizontal bars inside.
+  // Right half is empty to convey "left-side only" layout.
+  if (layoutKey === 'side') {
+    const cx = 3, cy = 4, cw = 17, ch = 32
+    const barRatios = [0.60, 0.40, 0.82, 0.52, 1.0]
+    const n        = barRatios.length
+    const barH     = 2.8
+    const padX     = 2.5
+    const maxBW    = cw - padX * 2
+    const slotH    = (ch - 4) / n
+    return (
+      <svg viewBox="0 0 40 40" width={40} height={40} style={{ display: 'block' }}>
+        <rect x={cx} y={cy} width={cw} height={ch} rx={2}
+          fill={rectFill} stroke={rectStroke} strokeWidth={1.4} />
+        {barRatios.map((ratio, i) => {
+          const bw = maxBW * ratio
+          const by = cy + 2 + i * slotH + (slotH - barH) / 2
+          return (
+            <rect key={i}
+              x={(cx + padX).toFixed(1)} y={by.toFixed(1)}
+              width={bw.toFixed(1)} height={barH.toFixed(1)}
+              rx="0"
+              fill={i === n - 1 ? stroke : `${stroke}70`} />
+          )
+        })}
+      </svg>
+    )
+  }
 
   if (isBar) {
     const barCount = 7
@@ -1553,7 +1582,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <LayoutThumb layoutKey={l.key} accentHex={svgUiAc} selected={sel} isBar={isBarType} isDark={!isLight} />
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: sel ? uiAc : 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
-                    {l.ratio} {ja ? l.labelJa : l.labelEn}
+                    {l.ratio ? `${l.ratio} ` : ''}{ja ? l.labelJa : l.labelEn}
                   </p>
                   {!ja && (
                     <p style={{ fontSize: 9, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.2 }}>

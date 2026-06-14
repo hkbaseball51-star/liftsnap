@@ -162,7 +162,7 @@ function parseHex(hex: string): { r: number; g: number; b: number } | null {
 
 // ── Glass background ──────────────────────────────────────────────────────────
 
-function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
+function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs, cardH = CARD_H) {
   const hex    = args.glassAccentHex
   const isDark = args.glassIsDark
   const r = parseInt(hex.slice(1, 3), 16)
@@ -171,7 +171,7 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 
   const baseGrad = ctx.createLinearGradient(
     CARD_X + CARD_W * 0.1, CARD_Y,
-    CARD_X + CARD_W * 0.6, CARD_Y + CARD_H,
+    CARD_X + CARD_W * 0.6, CARD_Y + cardH,
   )
   if (!isDark) {
     baseGrad.addColorStop(0, 'rgba(245,244,239,0.68)')
@@ -186,22 +186,22 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
     baseGrad.addColorStop(1, `rgba(${er},${eg},${eb},0.62)`)
   }
   ctx.fillStyle = baseGrad
-  ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H)
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
 
-  const topGrad = ctx.createLinearGradient(0, CARD_Y, 0, CARD_Y + CARD_H * 0.10)
+  const topGrad = ctx.createLinearGradient(0, CARD_Y, 0, CARD_Y + cardH * 0.10)
   topGrad.addColorStop(0, 'rgba(255,255,255,0.10)')
   topGrad.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = topGrad
-  ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H * 0.10)
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH * 0.10)
 
   const acGlow = ctx.createRadialGradient(
-    CARD_X + CARD_W * 0.12, CARD_Y + CARD_H, 0,
-    CARD_X + CARD_W * 0.12, CARD_Y + CARD_H, CARD_W * 1.2,
+    CARD_X + CARD_W * 0.12, CARD_Y + cardH, 0,
+    CARD_X + CARD_W * 0.12, CARD_Y + cardH, CARD_W * 1.2,
   )
   acGlow.addColorStop(0, `rgba(${r},${g},${b},0.16)`)
   acGlow.addColorStop(1, `rgba(${r},${g},${b},0)`)
   ctx.fillStyle = acGlow
-  ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H)
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
 
   const wGlow = ctx.createRadialGradient(
     CARD_X + CARD_W * 0.88, CARD_Y, 0,
@@ -210,7 +210,7 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   wGlow.addColorStop(0, 'rgba(255,255,255,0.13)')
   wGlow.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = wGlow
-  ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H)
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
 }
 
 // ── REPRA badge ───────────────────────────────────────────────────────────────
@@ -230,12 +230,12 @@ function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 
-function drawFooter(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
+function drawFooter(ctx: CanvasRenderingContext2D, args: SideGraphArgs, cardH = CARD_H) {
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
   ctx.font         = fnt(10, false)
   ctx.fillStyle    = ptxt(args.isDarkBg, 0.22)
-  ctx.fillText('Made with REPRA', CX, CARD_Y + CARD_H - 10)
+  ctx.fillText('Made with REPRA', CX, CARD_Y + cardH - 10)
 }
 
 // ── Line chart (MAX 1RM / Body Weight) ────────────────────────────────────────
@@ -379,8 +379,8 @@ function drawLineChart(
 }
 
 // ── Horizontal bar chart (Daily Volume only) ──────────────────────────────────
-// Supports up to 60 bars. Date labels and value labels are thinned automatically
-// when bars are dense so the card stays readable.
+// Bars are top-aligned: newest entry at top, older entries cascade downward.
+// Returns the Y coordinate where the last bar ends (used for dynamic card height).
 
 type BarEntry = { value: number; date: string; isLatest: boolean; isBest: boolean }
 
@@ -393,42 +393,40 @@ function drawProgressBars(
   accentC:     string,
   latestHex:   string,
   normFloor = 0,
-) {
+): number /* barsEndY */ {
   const n = bars.length
-  if (!n) return
+  if (!n) return barsTop
   const maxVal = Math.max(...bars.map(b => b.value))
-  if (maxVal <= normFloor) return
+  if (maxVal <= normFloor) return barsTop
 
-  // Slot height = bar height + gap. Cap controls the gap to prevent wide empty spacing.
-  // Targets: n≤5 → barH 22px gap 10px slot 32 | n≤10 → 18/8/26 | n≤20 → 13/7/20 | n≤40 → 7/7/14
-  const maxSlotH = n <= 5 ? 32 : n <= 10 ? 26 : n <= 20 ? 20 : 14
-  const slotH    = Math.min((BARS_BOT - barsTop) / n, maxSlotH)
+  // Target slot (barH + gap) and bar heights per density.
+  // Spec: n≤10 → 20px bar 7px gap | 11-20 → 16/6 | 21-30 → 12/5 | 31-40 → 9/4
+  const targetSlotH = n <= 10 ? 27 : n <= 20 ? 22 : n <= 30 ? 17 : 13
+  const targetBarH  = n <= 10 ? 20 : n <= 20 ? 16 : n <= 30 ? 12 : 9
 
-  // Center the used area vertically so sparse bar sets do not top-cluster
-  const usedH  = slotH * n
-  const startY = barsTop + Math.max(0, ((BARS_BOT - barsTop) - usedH) / 2)
+  // Safety cap: don't overflow the full-height bar area
+  const slotH = Math.min(targetSlotH, (BARS_BOT - barsTop) / Math.max(n, 1))
+  const barH  = Math.max(Math.min(targetBarH, slotH * 0.80), 2)
 
-  // Bar height: 72% of slot (leaves ~28% as gap between bars)
-  let barH: number
-  if      (n <= 5)  barH = Math.min(22, slotH * 0.72)
-  else if (n <= 10) barH = Math.min(18, slotH * 0.72)
-  else if (n <= 20) barH = Math.min(13, slotH * 0.70)
-  else              barH = Math.min(7,  slotH * 0.65)
-  barH = Math.max(barH, 2)
+  // TOP-ALIGNED: newest bar at top (index 0), oldest at bottom
+  const startY   = barsTop
+  const barsEndY = startY + n * slotH
 
-  // Date labels: all for n<=7, every other for n<=14, max ~6 for dense
-  const labelEvery = n <= 7 ? 1 : n <= 14 ? 2 : Math.max(1, Math.ceil(n / 6))
-  const showDateLabel = (i: number) =>
+  // Date label thinning: show all for sparse, thin for dense
+  const labelEvery    = n <= 7 ? 1 : n <= 14 ? 2 : Math.max(1, Math.ceil(n / 6))
+  const showDateLabel  = (i: number) =>
     i === 0 || i === n - 1 || i % labelEvery === 0 || bars[i]!.isLatest
 
-  // Value labels: all for n<=14; latest/best only when dense
+  // Value labels: always for sparse, latest/best only when dense
   const showValueLabel = (bar: BarEntry) =>
     n <= 14 || bar.isLatest || bar.isBest
 
-  // Column layout: [date 42px][5px][bar][5px][34px value]
-  const DATE_END  = CX + 42
-  const BAR_X     = DATE_END + 5
-  const BAR_MAX_W = RX - BAR_X - 5 - 34
+  // Column grid: CX ──[50px date]── DATE_END ──[7px]── BAR_X ──[bar 144px]──[4px]──[30px val]── RX
+  const DATE_END  = CX + 50         // 78  — date label right edge
+  const BAR_X     = DATE_END + 7    // 85  — bar start (all bars share this x)
+  const VAL_W     = 30              // value column width
+  const VAL_GAP   = 4              // gap between bar right edge and value text
+  const BAR_MAX_W = RX - BAR_X - VAL_GAP - VAL_W  // 144px max bar width
   const normRange = maxVal - normFloor || 1
 
   bars.forEach((bar, i) => {
@@ -437,7 +435,7 @@ function drawProgressBars(
 
     ctx.save()
 
-    // Date label (thinned when dense)
+    // Date label — right-aligned at DATE_END; latest uses accent color
     if (showDateLabel(i)) {
       ctx.font         = fnt(9, bar.isLatest)
       ctx.fillStyle    = bar.isLatest ? accentC : ptxt(args.isDarkBg, 0.36)
@@ -446,13 +444,13 @@ function drawProgressBars(
       ctx.fillText(fmtDateLabel(bar.date, args.cardLang), DATE_END, cy)
     }
 
-    // Horizontal bar — square corners
+    // Horizontal bar — square corners, opacity by recency
     ctx.globalAlpha = bar.isLatest ? 1 : bar.isBest ? 0.65 : 0.28
     ctx.fillStyle   = bar.isLatest ? latestHex : accentC
     ctx.fillRect(BAR_X, cy - barH / 2, bw, barH)
     ctx.globalAlpha = 1
 
-    // Value label (selective when dense)
+    // Value label — right-aligned at RX; latest uses primary text
     if (showValueLabel(bar)) {
       ctx.font         = fnt(9, bar.isLatest)
       ctx.fillStyle    = bar.isLatest ? primaryText(args.isDarkBg) : ptxt(args.isDarkBg, 0.42)
@@ -463,6 +461,8 @@ function drawProgressBars(
 
     ctx.restore()
   })
+
+  return barsEndY
 }
 
 // ── MAX 1RM ───────────────────────────────────────────────────────────────────
@@ -632,6 +632,9 @@ function drawBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 
 // ── Daily Volume ──────────────────────────────────────────────────────────────
 
+// VOL_BARS_TOP: y-coordinate where the bar chart starts (must match computeVolCardH)
+const VOL_BARS_TOP = 281
+
 function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   drawBadge(ctx, args)
 
@@ -642,60 +645,60 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  // Type label
-  ctx.font = fnt(11, true); ctx.fillStyle = acc
-  ctx.fillText(args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME', CX, 116)
+  // ── Type label: small, bold, accent — clear hierarchy anchor ─────────────────
+  ctx.font = fnt(9, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? '総重量' : 'DAILY VOLUME', CX, 112)
 
-  // Category / exercise name
+  // ── Category / body part: large, bold, white — secondary visual anchor ───────
   if (args.volCardLabel) {
-    ctx.font = fnt(15, true); ctx.fillStyle = prim
-    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 133)
+    ctx.font = fnt(19, true); ctx.fillStyle = prim
+    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 132)
   }
 
   drawDiv(ctx, args, 143)
 
-  // ── SESSIONS ──
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? 'セッション' : 'SESSIONS', CX, 154)
+  // ── SESSIONS ──────────────────────────────────────────────────────────────────
+  ctx.font = fnt(8, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? 'セッション' : 'SESSIONS', CX, 155)
 
-  ctx.font = fnt(17, true); ctx.fillStyle = prim
+  ctx.font = fnt(20, true); ctx.fillStyle = prim
   ctx.fillText(
     `${args.activeVolSessionCount ?? 0}${args.cardLang === 'ja' ? ' セッション' : ' sessions'}`,
-    CX, 171,
+    CX, 173,
   )
 
-  drawDiv(ctx, args, 181)
+  drawDiv(ctx, args, 184)
 
-  // ── TOTAL (big) ──
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'TOTAL', CX, 192)
+  // ── TOTAL: main metric — largest number on the card ───────────────────────────
+  ctx.font = fnt(8, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? '合計' : 'TOTAL', CX, 196)
 
-  ctx.font = fnt(38, true); ctx.fillStyle = acc
-  ctx.fillText(args.activeVolTotalStr ?? '', CX, 236)
+  // 44px bold: the hero number — most visible element
+  ctx.font = fnt(44, true); ctx.fillStyle = acc
+  ctx.fillText(args.activeVolTotalStr ?? '', CX, 238)
 
-  ctx.font = fnt(11, false); ctx.fillStyle = dim(0.50)
-  ctx.fillText(args.cardLang === 'ja' ? '合計ボリューム' : 'total volume', CX, 251)
+  ctx.font = fnt(10, false); ctx.fillStyle = dim(0.38)
+  ctx.fillText(args.cardLang === 'ja' ? '合計ボリューム' : 'total volume', CX, 250)
 
-  drawDiv(ctx, args, 262)
+  drawDiv(ctx, args, 260)
 
-  // ── PROGRESSION header ──
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 273)
+  // ── PROGRESSION header ────────────────────────────────────────────────────────
+  ctx.font = fnt(8, true); ctx.fillStyle = acc
+  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 271)
 
-  // ── Horizontal bars (newest at top after reverse) — square corners ──────────
+  // ── Horizontal bars: newest at top, oldest at bottom ─────────────────────────
   const volBars = args.volBars ?? []
   if (volBars.length) {
     const entries: BarEntry[] = volBars.map(b => ({
       value: b.value, date: b.label, isLatest: b.isLatest, isBest: b.isBest,
     }))
     entries.reverse()
-    // Ensure the newest (first after reverse) is flagged as latest
     if (entries.length > 0 && !entries.some(e => e.isLatest)) {
       entries[0]!.isLatest = true
     }
 
     drawProgressBars(
-      ctx, args, entries, 283,
+      ctx, args, entries, VOL_BARS_TOP,
       v => fmtVolLabel(v, args.unit),
       acc, args.graphLatestHex,
     )
@@ -703,6 +706,17 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
+
+// Compute dynamic card height for volume metric based on bar count.
+// For 1RM / Body Weight the card is always full height.
+function computeVolCardH(n: number): number {
+  if (n <= 0) return CARD_H
+  const targetSlotH = n <= 10 ? 27 : n <= 20 ? 22 : n <= 30 ? 17 : 13
+  const barsEnd     = VOL_BARS_TOP + n * targetSlotH
+  const footerPad   = 34   // space below last bar for footer text
+  const minCardH    = 380  // always tall enough to show all header sections
+  return Math.max(minCardH, Math.min(CARD_H, Math.round(barsEnd - CARD_Y + footerPad)))
+}
 
 export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
   await document.fonts.ready
@@ -719,17 +733,22 @@ export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
   ctx.globalAlpha = 1
   ctx.scale(2, 2)
 
+  // Volume metric uses a shorter card that grows with bar count (min 380, max 820)
+  const effectiveCardH = args.metric === 'volume'
+    ? computeVolCardH((args.volBars ?? []).length)
+    : CARD_H
+
   ctx.save()
-  rrPath(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RX)
+  rrPath(ctx, CARD_X, CARD_Y, CARD_W, effectiveCardH, CARD_RX)
   ctx.clip()
 
   if (args.cardStyle !== 'glass') {
-    ctx.clearRect(CARD_X, CARD_Y, CARD_W, CARD_H)
+    ctx.clearRect(CARD_X, CARD_Y, CARD_W, effectiveCardH)
   }
 
   if (args.cardStyle === 'glass') {
-    drawGlass(ctx, args)
-    rrPath(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RX)
+    drawGlass(ctx, args, effectiveCardH)
+    rrPath(ctx, CARD_X, CARD_Y, CARD_W, effectiveCardH, CARD_RX)
     ctx.strokeStyle = args.gpBorder
     ctx.lineWidth   = 4
     ctx.stroke()
@@ -739,7 +758,7 @@ export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
   else if (args.metric === 'bodyweight') drawBW(ctx, args)
   else                                   drawVol(ctx, args)
 
-  drawFooter(ctx, args)
+  drawFooter(ctx, args, effectiveCardH)
 
   ctx.restore()
 
