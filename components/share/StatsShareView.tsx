@@ -1579,9 +1579,10 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   /* ── Shared UI helpers ───────────────────────────────────── */
   const gpBadge = (
     <span style={{
-      fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5,
-      background: gpBadgeBg, color: gpBadgeTxt, border: '1px solid transparent',
-      letterSpacing: '0.16em', display: 'inline-block',
+      fontSize: 8, fontWeight: 900, padding: '2px 8px', borderRadius: 6,
+      background: repraLogoBadgeFill, color: repraLogoBadgeAccent,
+      border: `1.5px solid ${repraLogoBadgeAccent}`,
+      letterSpacing: '0.17em', display: 'inline-block',
     }}>REPRA</span>
   )
 
@@ -1867,7 +1868,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 9px', borderRadius: 7, background: repraLogoBadgeFill, color: repraLogoBadgeAccent, border: `1.5px solid ${repraLogoBadgeAccent}`, letterSpacing: '0.18em', display: 'inline-block' }}>REPRA</span>
+                  {gpBadge}
                   <p style={{ fontSize: 8.5, fontWeight: 700, color: ptxt(0.40), letterSpacing: '0.14em', margin: '7px 0 2px' }}>{cl('MAX 1RM PROGRESS', '最大1RMの推移')}</p>
                   <p style={{ fontSize: 19, fontWeight: 900, color: textPrimary, lineHeight: 1.1, margin: 0 }}>{exName}</p>
                 </div>

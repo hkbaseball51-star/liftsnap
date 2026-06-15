@@ -51,13 +51,20 @@ async function generateCard(data: CardData, theme: Theme, accent: Accent, unit: 
   const shadow = () => { ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 24 }
   const noShadow = () => { ctx.shadowBlur = 0 }
 
-  // REPRA badge
-  ctx.fillStyle = accentColor
-  roundRect(ctx, 80, 110, 300, 80, 14)
+  // REPRA badge — dark semi-transparent fill + accent outline + accent text
+  const _bHex = accentColor.slice(1)
+  const _bR = parseInt(_bHex.slice(0,2),16), _bG = parseInt(_bHex.slice(2,4),16), _bB = parseInt(_bHex.slice(4,6),16)
+  roundRect(ctx, 80, 110, 300, 80, 18)
+  ctx.fillStyle = `rgba(${_bR},${_bG},${_bB},0.14)`
   ctx.fill()
-  ctx.fillStyle = 'white'
+  ctx.strokeStyle = accentColor
+  ctx.lineWidth = 4
+  ctx.stroke()
+  ctx.fillStyle = accentColor
+  ctx.textAlign = 'center'
   ctx.font = 'bold 34px system-ui, -apple-system, sans-serif'
-  ctx.fillText('REPRA', 112, 162)
+  ctx.fillText('REPRA', 80 + 150, 162)
+  ctx.textAlign = 'left'
 
   // Date
   const d = new Date(data.date + 'T00:00:00')
