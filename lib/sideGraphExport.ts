@@ -493,69 +493,69 @@ function draw1RM(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const prim = primaryText(args.isDarkBg)
   const dim  = (a: number) => ptxt(args.isDarkBg, a)
   const unit = args.unitLabel ?? ''
+  const ja   = args.cardLang === 'ja'
 
   ctx.textAlign    = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  // Type label
-  ctx.font = fnt(11, true); ctx.fillStyle = acc
-  ctx.fillText(args.cardLang === 'ja' ? '1RM 推移' : '1RM PROGRESS', CX, 116)
-
-  // Exercise name
+  // ── Exercise name (primary) — badge bottom y=104, 18px top ≈ 126 → 22px gap ──
   if (args.exName) {
-    ctx.font = fnt(15, true); ctx.fillStyle = prim
-    ctx.fillText(clipTxt(ctx, args.exName, RX - CX), CX, 133)
+    ctx.font = fnt(18, true); ctx.fillStyle = prim
+    ctx.fillText(clipTxt(ctx, args.exName, RX - CX), CX, 140)
   }
 
-  drawDiv(ctx, args, 143)
+  // ── Type subtitle ─────────────────────────────────────────────────────────────
+  ctx.font = fnt(10, true); ctx.fillStyle = acc
+  ctx.fillText(ja ? '1RM 推移' : '1RM PROGRESS', CX, 153)
 
-  // ── START ──
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? 'スタート' : 'START', CX, 154)
+  drawDiv(ctx, args, 163)
 
-  const startRM   = args.rm1SVGData?.[0]?.est1rm
-  const startDate = args.rm1Dates?.[0] ?? ''
+  // ── START compact inline ──────────────────────────────────────────────────────
+  const startRM = args.rm1SVGData?.[0]?.est1rm
+  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.38)
+  ctx.fillText(ja ? 'スタート' : 'START', CX, 179)
   if (startRM !== undefined) {
-    ctx.font = fnt(13, true); ctx.fillStyle = prim
-    ctx.fillText(`${Math.round(startRM)} ${unit}`, CX, 169)
-  }
-  if (startDate) {
-    ctx.font = fnt(9, false); ctx.fillStyle = dim(0.38)
-    ctx.fillText(fmtDateLabel(startDate, args.cardLang), CX, 181)
+    const startLabelW = ctx.measureText(ja ? 'スタート' : 'START').width
+    ctx.font = fnt(18, true); ctx.fillStyle = prim
+    ctx.fillText(`${Math.round(startRM)} ${unit}`, CX + startLabelW + 6, 179)
   }
 
-  drawDiv(ctx, args, 191)
+  // ── BEST hero: label + auto-sized value on same baseline ─────────────────────
+  const HERO_Y = 250
+  ctx.font = fnt(9, true); ctx.fillStyle = acc
+  ctx.fillText(ja ? 'ベスト' : 'BEST', CX, HERO_Y)
+  const bestLabelW = ctx.measureText(ja ? 'ベスト' : 'BEST').width
 
-  // ── BEST ──
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? 'ベスト' : 'BEST', CX, 202)
+  if (args.bestRMDisplay !== undefined && args.bestRMDisplay !== null) {
+    const heroText   = String(args.bestRMDisplay)
+    const heroMaxW   = RX - CX - bestLabelW - 6
+    const heroFontSz = Math.min(65, Math.max(36,
+      Math.floor(heroMaxW / Math.max(heroText.length * 0.62, 1))))
+    ctx.font = fnt(heroFontSz, true); ctx.fillStyle = acc
+    ctx.fillText(clipTxt(ctx, heroText, heroMaxW), CX + bestLabelW + 6, HERO_Y)
+  }
 
-  ctx.font = fnt(42, true); ctx.fillStyle = acc
-  ctx.fillText(String(args.bestRMDisplay ?? ''), CX, 248)
+  ctx.font = fnt(10, false); ctx.fillStyle = dim(0.45)
+  ctx.fillText(`${unit} ${ja ? 'ベスト' : 'best'}`, CX, HERO_Y + 14)
 
-  ctx.font = fnt(11, false); ctx.fillStyle = dim(0.50)
-  ctx.fillText(`${unit}  ${args.cardLang === 'ja' ? 'ベスト' : 'best'}`, CX, 263)
-
-  drawDiv(ctx, args, 274)
-
-  // ── GAIN ──
-  ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? '変化' : 'GAIN', CX, 285)
-
+  // ── GAIN ──────────────────────────────────────────────────────────────────────
   const growth = args.rm1Growth
   if (growth !== null && growth !== undefined) {
-    ctx.font      = fnt(17, true)
+    ctx.font      = fnt(15, true)
     ctx.fillStyle = growth >= 0 ? '#4ade80' : '#f87171'
-    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth} ${unit}`, CX, 303)
+    ctx.fillText(`${growth >= 0 ? '+' : ''}${growth} ${unit} ${ja ? '成長' : 'GAIN'}`, CX, HERO_Y + 32)
+  } else {
+    ctx.font = fnt(10, false); ctx.fillStyle = dim(0.28)
+    ctx.fillText('—', CX, HERO_Y + 32)
   }
 
-  drawDiv(ctx, args, 313)
+  drawDiv(ctx, args, HERO_Y + 45)
 
-  // ── PROGRESSION header ──
+  // ── PROGRESSION header ────────────────────────────────────────────────────────
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.45)
-  ctx.fillText(args.cardLang === 'ja' ? 'プログレス' : 'PROGRESSION', CX, 324)
+  ctx.fillText(ja ? 'プログレス' : 'PROGRESSION', CX, HERO_Y + 56)
 
-  // ── Line chart (oldest at bottom, newest at top) ──────────────────────────
+  // ── Line chart ────────────────────────────────────────────────────────────────
   const rawData  = args.rm1SVGData ?? []
   const rawDates = args.rm1Dates ?? []
   const values   = rawData.map(d => d.est1rm)
@@ -563,10 +563,10 @@ function draw1RM(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   if (values.length === 0) {
     ctx.font = fnt(9, false); ctx.fillStyle = dim(0.30)
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillText(args.cardLang === 'ja' ? 'データなし' : 'No data', (CX + RX) / 2, (334 + BARS_BOT) / 2)
+    ctx.fillText(ja ? 'データなし' : 'No data', (CX + RX) / 2, (HERO_Y + 67 + BARS_BOT) / 2)
   } else {
     drawLineChart(
-      ctx, args, values, rawDates, 334,
+      ctx, args, values, rawDates, HERO_Y + 67,
       v => `${Math.round(v)}`,
       acc, args.graphLatestHex,
     )
