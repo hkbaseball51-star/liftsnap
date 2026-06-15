@@ -3,16 +3,18 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { localGetTodayWorkoutForShare } from '@/lib/localDB'
+import { useAppData } from '@/contexts/AppDataContext'
 import TodayShareView from './TodayShareView'
 import type { TodayData } from './WorkoutStoryCardContent'
 
 export default function ShareGuestView({ date }: { date: string }) {
   const [data, setData] = useState<TodayData | null | 'loading'>('loading')
+  const { totalSessions } = useAppData()
 
   useEffect(() => {
     const result = localGetTodayWorkoutForShare(date)
     setData(result)
-  }, [date])
+  }, [date, totalSessions])
 
   if (data === 'loading') {
     return <div className="fixed inset-0 bg-black" />

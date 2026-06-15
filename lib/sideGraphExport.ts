@@ -674,23 +674,25 @@ function drawVol(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const gainVal  = startVal !== null && nowVal !== null ? nowVal - startVal : null
 
   // ── Part name (large bold primary) ──────────────────────────────────────────
+  // y=140: badge bottom is y=104; at 24px font the ascender sits ~18px above baseline,
+  // so the text top lands at ~122 — giving ~18px clearance below the badge.
   if (args.volCardLabel) {
     ctx.font = fnt(24, true); ctx.fillStyle = prim
-    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 124)
+    ctx.fillText(clipTxt(ctx, args.volCardLabel, RX - CX), CX, 140)
   }
 
   // ── Type subtitle (small accent bold) ────────────────────────────────────────
   ctx.font = fnt(10, true); ctx.fillStyle = acc
-  ctx.fillText(ja ? '総重量' : 'DAILY VOLUME', CX, 137)
+  ctx.fillText(ja ? '総重量' : 'DAILY VOLUME', CX, 153)
 
   // ── START compact inline: "START" (tiny dim) + value (medium prim) same line ─
   // Mirrors reference image: "START  55kg" on one baseline.
   ctx.font = fnt(8, true); ctx.fillStyle = dim(0.38)
-  ctx.fillText('START', CX, 165)
+  ctx.fillText('START', CX, 179)
   if (startVal !== null) {
     const startLabelW = ctx.measureText('START').width
     ctx.font = fnt(20, true); ctx.fillStyle = prim
-    ctx.fillText(fmtVolLabel(startVal, args.unit), CX + startLabelW + 6, 165)
+    ctx.fillText(fmtVolLabel(startVal, args.unit), CX + startLabelW + 6, 179)
   }
 
   // ── NOW + hero inline on same baseline ──────────────────────────────────────

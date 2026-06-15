@@ -20,6 +20,7 @@ import {
   localGetBodyWeightHistory,
 } from '@/lib/localDB'
 import { getDisplayName } from '@/lib/exerciseNames'
+import { useAppData } from '@/contexts/AppDataContext'
 
 type WeightPoint = { date: string; label: string; weight: number }
 type RMPoint     = { date: string; label: string; est1rm: number }
@@ -72,6 +73,7 @@ export default function FullScreenChart({
   const unitLabel = weightUnitLabel(unit)
   const { locale } = useLocale()
   const ja = locale === 'ja'
+  const { totalSessions } = useAppData()
 
   const metric: Metric =
     metricRaw === 'max1rm' || metricRaw === 'daily-volume' || metricRaw === 'body-weight'
@@ -101,6 +103,7 @@ export default function FullScreenChart({
   }, [])
 
   // Load local-storage data as fallback when server returned no data (local mode).
+  // totalSessions in deps ensures re-fetch when a workout is deleted via Router Cache.
   useEffect(() => {
     const start = getStartDate(period) ?? undefined
     if (metric === 'max1rm' && initialRmData.length === 0 && exercise) {
@@ -111,7 +114,7 @@ export default function FullScreenChart({
       try { setBwDataSrc(localGetBodyWeightHistory(730)) } catch {}
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [totalSessions])
 
   // Measure the chart container so the Recharts SVG height can match exactly.
   useEffect(() => {
