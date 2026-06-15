@@ -325,6 +325,7 @@ export default function WorkoutStoryCardContent({
   const badgeBgColor  = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
   const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
+  const repraLogoBadgeFill   = acRgba(p.accentHex, 0.14)
   const textPrimary   = isDarkBg ? '#fff' : '#111827'
   const rgb           = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt          = (a: number) => `rgba(${rgb},${a})`
@@ -368,8 +369,8 @@ export default function WorkoutStoryCardContent({
         <span style={{
           display: 'inline-block',
           fontSize: 10, fontWeight: 900, letterSpacing: '0.20em',
-          padding: '4px 12px', borderRadius: 99,
-          background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent,
+          padding: '4px 12px', borderRadius: 7,
+          background: repraLogoBadgeFill, color: repraLogoBadgeAccent,
           border: `1.5px solid ${repraLogoBadgeAccent}`,
         }}>REPRA</span>
       </div>
@@ -540,6 +541,7 @@ export function ExerciseStoryCard({
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
   const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
+  const repraLogoBadgeFill   = acRgba(p.accentHex, 0.14)
   const textPrimary    = isDarkBg ? '#fff' : '#111827'
   const rgb            = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt           = (a: number) => `rgba(${rgb},${a})`
@@ -572,8 +574,8 @@ export function ExerciseStoryCard({
         <span style={{
           display: 'inline-block',
           fontSize: 10, fontWeight: 900, letterSpacing: '0.20em',
-          padding: '4px 12px', borderRadius: 99,
-          background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent,
+          padding: '4px 12px', borderRadius: 7,
+          background: repraLogoBadgeFill, color: repraLogoBadgeAccent,
           border: `1.5px solid ${repraLogoBadgeAccent}`,
         }}>REPRA</span>
       </div>
@@ -674,6 +676,7 @@ export function WorkoutSummaryStoryCard({
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
   const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
+  const repraLogoBadgeFill   = acRgba(p.accentHex, 0.14)
   const textPrimary    = isDarkBg ? '#fff' : '#111827'
   const rgb            = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt           = (a: number) => `rgba(${rgb},${a})`
@@ -708,8 +711,8 @@ export function WorkoutSummaryStoryCard({
         <span style={{
           display: 'inline-block',
           fontSize: 10, fontWeight: 900, letterSpacing: '0.20em',
-          padding: '4px 12px', borderRadius: 99,
-          background: 'rgba(12,10,8,0.75)', color: repraLogoBadgeAccent,
+          padding: '4px 12px', borderRadius: 7,
+          background: repraLogoBadgeFill, color: repraLogoBadgeAccent,
           border: `1.5px solid ${repraLogoBadgeAccent}`,
         }}>REPRA</span>
       </div>

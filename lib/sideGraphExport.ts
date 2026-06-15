@@ -68,7 +68,7 @@ const RX = CARD_X + CARD_W - 10  // 263 — right content edge
 
 const BADGE_Y     = CARD_Y + 12  // 82
 const BADGE_H     = 22
-const BADGE_RX    = 10
+const BADGE_RX    = 5
 const BADGE_PAD_L = 11
 const BADGE_PAD_R = 10
 
@@ -223,7 +223,10 @@ function drawBadge(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   const textW = ctx.measureText('REPRA').width
   const bw    = Math.ceil(textW) + BADGE_PAD_L + BADGE_PAD_R
   rrPath(ctx, CX, BADGE_Y, bw, BADGE_H, BADGE_RX)
-  ctx.fillStyle   = 'rgba(12,10,8,0.75)'
+  // Accent-tinted dark fill: 14% of the glass-mode accent color (dark card bg shows through)
+  const hx = args.glassAccentHex.slice(1)
+  const fr = parseInt(hx.slice(0, 2), 16), fg = parseInt(hx.slice(2, 4), 16), fb = parseInt(hx.slice(4, 6), 16)
+  ctx.fillStyle = `rgba(${fr},${fg},${fb},0.14)`
   ctx.fill()
   ctx.strokeStyle = acc
   ctx.lineWidth   = 1.5
