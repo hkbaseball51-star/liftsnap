@@ -1917,15 +1917,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'side' && (
-              <div style={{
-                aspectRatio: '9/16', width: '100%', position: 'relative',
-                backgroundImage: 'repeating-conic-gradient(#c8c8c8 0% 25%, #f0f0f0 0% 50%)',
-                backgroundSize: '14px 14px',
-              }}>
+              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 {sidePreviewSrc
                   ? <img src={sidePreviewSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
                   : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(100,100,100,0.5)' }}>Generating…</p>
+                      <p style={{ margin: 0, fontSize: 9, color: ptxt(0.35) }}>Generating…</p>
                     </div>
                 }
               </div>
@@ -2071,15 +2067,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'side' && (
-              <div style={{
-                aspectRatio: '9/16', width: '100%', position: 'relative',
-                backgroundImage: 'repeating-conic-gradient(#c8c8c8 0% 25%, #f0f0f0 0% 50%)',
-                backgroundSize: '14px 14px',
-              }}>
+              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 {sidePreviewSrc
                   ? <img src={sidePreviewSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
                   : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(100,100,100,0.5)' }}>Generating…</p>
+                      <p style={{ margin: 0, fontSize: 9, color: ptxt(0.35) }}>Generating…</p>
                     </div>
                 }
               </div>
@@ -2219,15 +2211,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             )}
 
             {graphLayout === 'side' && (
-              <div style={{
-                aspectRatio: '9/16', width: '100%', position: 'relative',
-                backgroundImage: 'repeating-conic-gradient(#c8c8c8 0% 25%, #f0f0f0 0% 50%)',
-                backgroundSize: '14px 14px',
-              }}>
+              <div style={{ aspectRatio: '9/16', width: '100%', position: 'relative' }}>
                 {sidePreviewSrc
                   ? <img src={sidePreviewSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
                   : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(100,100,100,0.5)' }}>Generating…</p>
+                      <p style={{ margin: 0, fontSize: 9, color: ptxt(0.35) }}>Generating…</p>
                     </div>
                 }
               </div>
