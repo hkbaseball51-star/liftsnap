@@ -570,26 +570,26 @@ function MiniLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true }: 
         <polygon points={areaPoints} fill={areaFill} />
         <polyline
           points={linePoints} fill="none" stroke={accentHex}
-          strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
+          strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
       </svg>
       {/* First dot — CSS div stays a perfect circle regardless of container aspect ratio */}
       <div style={{ position: 'absolute', left: `${firstX}%`, top: `${firstY}%`,
-                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    transform: 'translate(-50%,-50%)', width: 6, height: 6,
                     borderRadius: '50%', background: firstDotColor, pointerEvents: 'none' }} />
       {/* Last-point glow rings — CSS border-radius:50% is always a perfect circle
           regardless of the container's aspect ratio */}
       <div style={{ position: 'absolute', left: `${lxPct}%`, top: `${lyPct}%`,
-                    transform: 'translate(-50%,-50%)', width: 18, height: 18,
+                    transform: 'translate(-50%,-50%)', width: 20, height: 20,
                     borderRadius: '50%', background: latestHex, opacity: 0.08,
                     pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', left: `${lxPct}%`, top: `${lyPct}%`,
-                    transform: 'translate(-50%,-50%)', width: 10, height: 10,
+                    transform: 'translate(-50%,-50%)', width: 12, height: 12,
                     borderRadius: '50%', background: latestHex, opacity: 0.28,
                     pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', left: `${lxPct}%`, top: `${lyPct}%`,
-                    transform: 'translate(-50%,-50%)', width: 7, height: 7,
+                    transform: 'translate(-50%,-50%)', width: 8, height: 8,
                     borderRadius: '50%', background: latestHex,
                     pointerEvents: 'none' }} />
     </div>
@@ -759,11 +759,11 @@ function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true, da
         ))}
         <polygon points={areaPoints} fill={areaFill} />
         <polyline points={linePoints} fill="none" stroke={accentHex}
-          strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"
+          strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
           vectorEffect="non-scaling-stroke" />
       </svg>
       <div style={{ position: 'absolute', left: `${firstX}%`, top: `${firstY}%`,
-                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    transform: 'translate(-50%,-50%)', width: 6, height: 6,
                     borderRadius: '50%', background: firstDotColor, pointerEvents: 'none' }} />
       {hasDates && dateIdxs.map((idx, i) => {
         if (idx >= n || !dates[idx]) return null
@@ -785,13 +785,13 @@ function SideLineSVG({ data, accentHex, latestHex, areaFill, isDarkBg = true, da
         </div>
       ))}
       <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
-                    transform: 'translate(-50%,-50%)', width: 14, height: 14,
+                    transform: 'translate(-50%,-50%)', width: 16, height: 16,
                     borderRadius: '50%', background: latestHex, opacity: 0.08, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
-                    transform: 'translate(-50%,-50%)', width: 8, height: 8,
+                    transform: 'translate(-50%,-50%)', width: 10, height: 10,
                     borderRadius: '50%', background: latestHex, opacity: 0.28, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`,
-                    transform: 'translate(-50%,-50%)', width: 5, height: 5,
+                    transform: 'translate(-50%,-50%)', width: 6, height: 6,
                     borderRadius: '50%', background: latestHex, pointerEvents: 'none' }} />
     </div>
   )

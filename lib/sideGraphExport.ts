@@ -263,6 +263,7 @@ function drawLineChart(
   formatValue: (v: number) => string,
   accentC:     string,
   latestHex:   string,
+  strokeW:     number = 1.5,
 ) {
   const n = values.length
   if (n === 0) return
@@ -335,7 +336,7 @@ function drawLineChart(
       else         ctx.lineTo(px(v), py(i))
     })
     ctx.strokeStyle = accentC
-    ctx.lineWidth   = 1.5
+    ctx.lineWidth   = strokeW
     ctx.lineJoin    = 'round'
     ctx.lineCap     = 'round'
     ctx.stroke()
@@ -355,9 +356,10 @@ function drawLineChart(
   })
 
   // ── First point (oldest) — subtle dot ────────────────────────────────────────
+  const ds = strokeW / 1.5  // dot scale relative to default stroke width
   if (n >= 2) {
     ctx.beginPath()
-    ctx.arc(px(values[0]!), py(0), 2.5, 0, Math.PI * 2)
+    ctx.arc(px(values[0]!), py(0), 2.5 * ds, 0, Math.PI * 2)
     ctx.fillStyle = args.isDarkBg ? 'rgba(255,255,255,0.28)' : 'rgba(17,24,39,0.25)'
     ctx.fill()
   }
@@ -368,20 +370,20 @@ function drawLineChart(
   const lyPt = py(n - 1)
   if (lp) {
     ctx.beginPath()
-    ctx.arc(lxPt, lyPt, 9, 0, Math.PI * 2)
+    ctx.arc(lxPt, lyPt, 9 * ds, 0, Math.PI * 2)
     ctx.fillStyle = `rgba(${lp.r},${lp.g},${lp.b},0.08)`
     ctx.fill()
     ctx.beginPath()
-    ctx.arc(lxPt, lyPt, 5, 0, Math.PI * 2)
+    ctx.arc(lxPt, lyPt, 5 * ds, 0, Math.PI * 2)
     ctx.fillStyle = `rgba(${lp.r},${lp.g},${lp.b},0.28)`
     ctx.fill()
     ctx.beginPath()
-    ctx.arc(lxPt, lyPt, 3.5, 0, Math.PI * 2)
+    ctx.arc(lxPt, lyPt, 3.5 * ds, 0, Math.PI * 2)
     ctx.fillStyle = latestHex
     ctx.fill()
   } else {
     ctx.beginPath()
-    ctx.arc(lxPt, lyPt, 3.5, 0, Math.PI * 2)
+    ctx.arc(lxPt, lyPt, 3.5 * ds, 0, Math.PI * 2)
     ctx.fillStyle = accentC
     ctx.fill()
   }
@@ -568,7 +570,7 @@ function draw1RM(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
     drawLineChart(
       ctx, args, values, rawDates, HERO_Y + 67,
       v => `${Math.round(v)}`,
-      acc, args.graphLatestHex,
+      acc, args.graphLatestHex, 2.0,
     )
   }
 }
