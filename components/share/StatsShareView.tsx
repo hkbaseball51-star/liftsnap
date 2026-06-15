@@ -1582,7 +1582,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       fontSize: 8, fontWeight: 900, padding: '2px 8px', borderRadius: 6,
       background: repraLogoBadgeFill, color: repraLogoBadgeAccent,
       border: `1.5px solid ${repraLogoBadgeAccent}`,
-      letterSpacing: '0.17em', display: 'inline-block',
+      letterSpacing: '0.17em', display: 'inline-block', alignSelf: 'flex-start',
     }}>REPRA</span>
   )
 
