@@ -58,7 +58,7 @@ export const EXERCISE_PROGRESS_REQUIRED = 10
 
 // ─── Chart unlock thresholds ─────────────────────────────────
 export const VOLUME_CHART_SESSION_REQUIRED = GRAPH_UNLOCK_REQUIRED
-export const BW_CHART_REQUIRED = GRAPH_UNLOCK_REQUIRED
+export const BW_CHART_REQUIRED = 5
 
 export type ExerciseGraphProgress = {
   unlocked: boolean

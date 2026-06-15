@@ -648,20 +648,38 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       )
                     })}
                   </div>
-                  <Link
-                    href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
-                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                    style={{
-                      padding: '12px 16px',
-                      background: 'var(--surface-chip)',
-                      border: '1px solid var(--card-border-primary)',
-                      color: 'var(--text-secondary)',
-                      fontSize: 13,
-                      fontWeight: 500,
-                    }}>
-                    <Share2 size={14} strokeWidth={1.5} />
-                    Share Story
-                  </Link>
+                  {selectedExerciseLogCount >= EXERCISE_GRAPH_REQUIRED ? (
+                    <Link
+                      href={`/share?type=stats&metric=max1rm&exercise=${encodeURIComponent(selectedExercise)}`}
+                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'var(--surface-chip)',
+                        border: '1px solid var(--card-border-primary)',
+                        color: 'var(--text-secondary)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}>
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share Story
+                    </Link>
+                  ) : (
+                    <div
+                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'var(--surface-chip)',
+                        border: '1px solid var(--card-border-primary)',
+                        color: 'var(--text-secondary)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        opacity: 0.38,
+                        pointerEvents: 'none',
+                      }}>
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share Story
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -790,20 +808,38 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
                       </div>
                     ))}
                   </div>
-                  <Link
-                    href={`/share?type=stats&metric=volume&bodypart=${encodeURIComponent(volBodyPart.toLowerCase())}`}
-                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
-                    style={{
-                      padding: '12px 16px',
-                      background: 'var(--surface-chip)',
-                      border: '1px solid var(--card-border-primary)',
-                      color: 'var(--text-secondary)',
-                      fontSize: 13,
-                      fontWeight: 500,
-                    }}>
-                    <Share2 size={14} strokeWidth={1.5} />
-                    Share Story
-                  </Link>
+                  {activeTotalSessions >= VOLUME_CHART_SESSION_REQUIRED ? (
+                    <Link
+                      href={`/share?type=stats&metric=volume&bodypart=${encodeURIComponent(volBodyPart.toLowerCase())}`}
+                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'var(--surface-chip)',
+                        border: '1px solid var(--card-border-primary)',
+                        color: 'var(--text-secondary)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}>
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share Story
+                    </Link>
+                  ) : (
+                    <div
+                      className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'var(--surface-chip)',
+                        border: '1px solid var(--card-border-primary)',
+                        color: 'var(--text-secondary)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        opacity: 0.38,
+                        pointerEvents: 'none',
+                      }}>
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share Story
+                    </div>
+                  )}
                 </>
               )}
           </>
@@ -952,7 +988,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
               </div>
             )}
           </div>
-          {ctxBwHistory.length > 0 && (
+          {ctxBwHistory.length >= BW_CHART_REQUIRED && (
             <Link
               href="/share?type=stats&metric=bodyweight"
               className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl"

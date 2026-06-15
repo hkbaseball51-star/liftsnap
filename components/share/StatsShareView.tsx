@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Share2, ArrowLeft } from 'lucide-react'
-import { getShareCount, incrementShareCount, getShareThemeUnlocks } from '@/lib/unlocks'
+import { getShareCount, incrementShareCount, getShareThemeUnlocks, BW_CHART_REQUIRED } from '@/lib/unlocks'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useLocale } from '@/lib/useLocale'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
@@ -1079,7 +1079,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const [cardStyle,    setCardStyle]    = useState<CardStyle>('glass')
   const [shadowLevel,  setShadowLevel]  = useState<ShadowLevel>('soft')
   const [volViewType,  setVolViewType]  = useState<VolViewType>('bodypart')
-  const [pplGroup,     setPplGroup]     = useState<PPLGroup>('all')
+  const [pplGroup,     setPplGroup]     = useState<PPLGroup>('push')
 
   useEffect(() => { setShareCount(getShareCount()) }, [])
 
@@ -1205,6 +1205,13 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const volHistory  = volRaw?.history ?? []
   const volBodyPart = volRaw?.bodyPart ?? 'all'
   const volBodyPartLabel = BODY_PART_DISPLAY[volBodyPart] ?? volBodyPart.toUpperCase()
+
+  // Redirect from 'all' to first specific body part — 'all' is excluded from Story selector
+  useEffect(() => {
+    if (isVol && volBodyPart === 'all') {
+      router.replace('/share?type=stats&metric=volume&bodypart=chest')
+    }
+  }, [isVol, volBodyPart, router])
 
   // PPL data — all groups fetched server-side, filtered client-side with useMemo
   const pplDataPush  = volRaw?.pplData?.push  ?? []
@@ -1435,6 +1442,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         return
 
       } else if (data.type === 'bodyweight') {
+        if (bwHistory.length < BW_CHART_REQUIRED) { setSharing(false); setStatus(''); return }
         const today = new Date().toISOString().split('T')[0]
         filename = graphLayout === 'full'
           ? `repra-bodyweight-story-${today}.png`
@@ -1646,7 +1654,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             <div className="px-4 mb-4">
               {sectionLabel(ja ? '部位' : 'BODY PART')}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {VOL_BODY_PARTS.map(bp => {
+                {VOL_BODY_PARTS.filter(bp => bp.key !== 'all').map(bp => {
                   const sel = volBodyPart === bp.key
                   return (
                     <button key={bp.key}
@@ -1670,7 +1678,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             <div className="px-4 mb-4">
               {sectionLabel('PPL')}
               <div style={{ display: 'flex', gap: 6 }}>
-                {VOL_PPL_GROUPS.map(pg => {
+                {VOL_PPL_GROUPS.filter(pg => pg.key !== 'all').map(pg => {
                   const sel = pplGroup === pg.key
                   return (
                     <button key={pg.key}
@@ -1715,7 +1723,33 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       </div>
 
-      {/* ③ CARD STYLE ───────────────────────────────────────── */}
+      {/* ③ EXERCISE NAME LANGUAGE — MAX 1RM only ──────────── */}
+      {isMax1RM && (
+        <div className="px-4 mb-3">
+          {sectionLabel(ja ? '種目名の表示' : 'EXERCISE NAMES')}
+          <div className="flex gap-2">
+            {([
+              { value: 'en' as const, label: ja ? '英語' : 'English'  },
+              { value: 'ja' as const, label: '日本語'    },
+            ]).map(({ value, label }) => {
+              const sel = exerciseNameLang === value
+              return (
+                <button key={value} onClick={() => setExerciseNameLang(value)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                  style={{
+                    background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
+                    color: sel ? uiAc : 'var(--text-inactive)',
+                    border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
+                  }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ④ CARD STYLE ───────────────────────────────────────── */}
       <div className="px-4 mb-3">
         {sectionLabel(ja ? 'カードスタイル' : 'CARD STYLE')}
         <div className="flex gap-2">
@@ -1794,33 +1828,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </div>
       </div>
 
-      {/* ⑤b EXERCISE NAME LANGUAGE — MAX 1RM only ──────────── */}
-      {isMax1RM && (
-        <div className="px-4 mb-4">
-          {sectionLabel(ja ? '種目名の表示' : 'EXERCISE NAMES')}
-          <div className="flex gap-2">
-            {([
-              { value: 'en' as const, label: ja ? '英語' : 'English'  },
-              { value: 'ja' as const, label: '日本語'    },
-            ]).map(({ value, label }) => {
-              const sel = exerciseNameLang === value
-              return (
-                <button key={value} onClick={() => setExerciseNameLang(value)}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                  style={{
-                    background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
-                    color: sel ? uiAc : 'var(--text-inactive)',
-                    border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
-                  }}>
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ⑥ PREVIEW ──────────────────────────────────────────── */}
+      {/* ⑦ PREVIEW ──────────────────────────────────────────── */}
       {/* Checker behind all cards (glass AND transparent) so semi-transparency is visible. */}
       {/* The checker is on the OUTER WRAPPER — outside all capture refs — so it never        */}
       {/* appears in saved PNGs. Transparent capture refs have no inline background at all.   */}
@@ -2292,6 +2300,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           {ja ? 'モバイルでは共有、PCではPNG保存' : 'Mobile only · Desktop downloads as PNG'}
         </p>
       </div>
+      <div style={{ height: 'calc(2rem + env(safe-area-inset-bottom))', flexShrink: 0 }} />
     </div>
   )
 }
