@@ -8,6 +8,7 @@ import {
   localGetBodyWeightHistory,
   localGetPPLDailyVolumeAll,
 } from '@/lib/localDB'
+import { useAppData } from '@/contexts/AppDataContext'
 import StatsShareView, { type StatsData } from './StatsShareView'
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
 
 export default function StatsShareGuestView({ metric, exercise, bodypart }: Props) {
   const [data, setData] = useState<StatsData | null | 'loading'>('loading')
+  const { totalSessions } = useAppData()
 
   useEffect(() => {
     if (metric === 'max1rm' && exercise) {
@@ -67,7 +69,7 @@ export default function StatsShareGuestView({ metric, exercise, bodypart }: Prop
     }
 
     setData(null)
-  }, [metric, exercise, bodypart])
+  }, [metric, exercise, bodypart, totalSessions])
 
   if (data === 'loading') return <div className="fixed inset-0 bg-black" />
 

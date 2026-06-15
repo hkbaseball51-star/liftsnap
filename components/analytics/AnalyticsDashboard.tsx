@@ -189,7 +189,7 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, selectedExercise, volBodyPart, period, useLocalDB, demoMounted, isDemo, demoUserId])
+  }, [tab, selectedExercise, volBodyPart, period, useLocalDB, demoMounted, isDemo, demoUserId, activeTotalSessions])
 
   // Sync bwInput when body weight data or unit resolves (whichever comes last)
   useEffect(() => {
