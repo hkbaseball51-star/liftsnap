@@ -1308,6 +1308,12 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const activeVolSessionCount = activeVolHistory.length
   const activeVolFirstDate    = activeVolHistory.length ? activeVolHistory[0].date : ''
   const activeVolLastDate     = activeVolHistory.length ? activeVolHistory[activeVolHistory.length - 1].date : ''
+  const activeVolGrowthRaw    = activeVolHistory.length >= 2
+    ? activeVolHistory[activeVolHistory.length - 1].volume - activeVolHistory[0].volume
+    : null
+  const activeVolGrowthStr    = (activeVolGrowthRaw !== null && activeVolGrowthRaw > 0)
+    ? `+${formatVolumeWithUnit(activeVolGrowthRaw, unit)}`
+    : null
 
   /* ── Side graph canvas preview ───────────────────────────── */
   // Stable string key — prevents unstable object/array refs from re-triggering the effect.
@@ -1361,7 +1367,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           cardLang, unitLabel, unit,
           exName, bestRMDisplay, rm1Growth: rm1Growth ?? null,
           rm1SVGData: rm1DataView, rm1Dates: rm1DatesView,
-          bwCurrentDisplay, bwStartDisplay, bwChangeStr,
+          bwCurrentDisplay, bwStartDisplay, bwChangeStr, bwChangeRaw,
           bwValues: bwDataView, bwHistoryLen: bwDataView.length, bwDates: bwDatesView,
           bwStartDate: bwHistory.length ? bwHistory[0].date : undefined,
           volCardLabel, activeVolTotalStr, activeVolSessionCount, volBars: volBarsSide,
@@ -1468,6 +1474,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             bwCurrentDisplay,
             bwStartDisplay,
             bwChangeStr,
+            bwChangeRaw,
             bwValues: bwDataView,
             bwHistoryLen: bwDataView.length,
             bwDates: bwDatesView,
@@ -2018,7 +2025,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     </>
                   )}
                   <div>
-                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('LATEST', '現在')}</p>
+                    <p style={{ fontSize: 6.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('CURRENT', '現在')}</p>
                     <p style={{ fontSize: bwHistory.length >= 2 ? 24 : 30, fontWeight: 900, color: gpAccent, margin: 0, lineHeight: 1 }}>
                       {bwCurrentDisplay}<span style={{ fontSize: 10, color: ptxt(0.50), fontWeight: 400, marginLeft: 2 }}>{unitLabel}</span>
                     </p>
@@ -2026,7 +2033,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   {bwChangeRaw !== 0 && (
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                       <p style={{ fontSize: 6.5, fontWeight: 700, color: ptxt(0.38), letterSpacing: '0.1em', margin: '0 0 2px' }}>{cl('CHANGE', '変化')}</p>
-                      <p style={{ fontSize: 17, fontWeight: 800, color: gpAccent, margin: 0, lineHeight: 1 }}>
+                      <p style={{ fontSize: 17, fontWeight: 800, color: bwChangeRaw >= 0 ? '#4ade80' : '#f87171', margin: 0, lineHeight: 1 }}>
                         {bwChangeStr}<span style={{ fontSize: 8.5, marginLeft: 1 }}>{unitLabel}</span>
                       </p>
                     </div>
@@ -2093,7 +2100,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       <span style={{ fontSize: 34, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bwCurrentDisplay}</span>
                       <span style={{ fontSize: 11, fontWeight: 500, color: ptxt(0.65), paddingBottom: 2 }}>{unitLabel}</span>
                     </div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: gpAccent, margin: '3px 0 0' }}>{bwChangeStr}{unitLabel}</p>
+                    {bwChangeRaw !== 0 && <p style={{ fontSize: 11, fontWeight: 700, color: bwChangeRaw >= 0 ? '#4ade80' : '#f87171', margin: '3px 0 0' }}>{bwChangeStr}{unitLabel} {cl('CHANGE', '変化')}</p>}
                   </div>
                 </div>
               </div>
@@ -2119,7 +2126,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     <span style={{ fontSize: 28, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{bwCurrentDisplay}</span>
                     <span style={{ fontSize: 10, fontWeight: 500, color: ptxt(0.60), paddingBottom: 2 }}>{unitLabel}</span>
                   </div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: gpAccent, margin: 0 }}>{bwChangeStr}{unitLabel}</p>
+                  {bwChangeRaw !== 0 && <p style={{ fontSize: 11, fontWeight: 700, color: bwChangeRaw >= 0 ? '#4ade80' : '#f87171', margin: 0 }}>{bwChangeStr}{unitLabel}</p>}
                   <div style={{ flex: 1 }} />
                   <p style={{ fontSize: 7, color: ptxt(0.30), margin: 0 }}>Made with REPRA</p>
                 </div>
@@ -2169,6 +2176,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                     {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>{cl('Best day:', 'ベスト:')} <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
                     <p style={{ fontSize: 8.5, color: ptxt(0.40), margin: 0 }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
                   </div>
+                  {activeVolGrowthStr && (
+                    <p style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', margin: '3px 0 0' }}>
+                      {activeVolGrowthStr} {cl('GAIN', '成長')}
+                    </p>
+                  )}
                 </div>
 
                 {/* Bar chart */}
@@ -2236,6 +2248,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                       <span style={{ fontSize: 28, fontWeight: 900, color: gpAccent, lineHeight: 1 }}>{activeVolTotalStr}</span>
                     </div>
                     <p style={{ fontSize: 9, color: ptxt(0.45), margin: '2px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
+                    {activeVolGrowthStr && (
+                      <p style={{ fontSize: 8.5, fontWeight: 700, color: '#4ade80', margin: '1px 0 0' }}>
+                        {activeVolGrowthStr} {cl('GAIN', '成長')}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2259,6 +2276,11 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                   <p style={{ fontSize: 8, color: ptxt(0.45), margin: '0 0 2px' }}>{cl('total', '合計')}</p>
                   {volBestStr && <p style={{ fontSize: 8.5, color: ptxt(0.50), margin: 0 }}>{cl('Best:', 'ベスト:')} <span style={{ color: gpAccent, fontWeight: 700 }}>{volBestStr}</span></p>}
                   <p style={{ fontSize: 8, color: ptxt(0.35), margin: '3px 0 0' }}>{activeVolSessionCount} {cl('sessions', 'セッション')}</p>
+                  {activeVolGrowthStr && (
+                    <p style={{ fontSize: 8.5, fontWeight: 700, color: '#4ade80', margin: '3px 0 0' }}>
+                      {activeVolGrowthStr} {cl('GAIN', '成長')}
+                    </p>
+                  )}
                   <div style={{ flex: 1 }} />
                   <p style={{ fontSize: 7, color: ptxt(0.30), margin: 0 }}>Made with REPRA</p>
                 </div>

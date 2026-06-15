@@ -37,6 +37,7 @@ export type SideGraphArgs = {
   bwCurrentDisplay?: number
   bwStartDisplay?:   number
   bwChangeStr?:      string
+  bwChangeRaw?:      number
   bwValues?:         number[]
   bwHistoryLen?:     number
   bwDates?:          string[]
@@ -622,7 +623,9 @@ function drawBW(ctx: CanvasRenderingContext2D, args: SideGraphArgs) {
   ctx.fillText(args.cardLang === 'ja' ? '変化' : 'CHANGE', CX, 260)
 
   const bwChange = args.bwChangeStr ?? ''
-  ctx.font = fnt(17, true); ctx.fillStyle = acc
+  const bwChangeRaw = args.bwChangeRaw ?? 0
+  ctx.font = fnt(17, true)
+  ctx.fillStyle = bwChangeRaw !== 0 ? (bwChangeRaw >= 0 ? '#4ade80' : '#f87171') : acc
   ctx.fillText(`${bwChange} ${unit}`, CX, 278)
 
   drawDiv(ctx, args, 288)

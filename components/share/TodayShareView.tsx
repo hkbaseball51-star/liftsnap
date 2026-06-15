@@ -263,7 +263,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   ].join(', ')
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--app-bg)' }}>
+    <div className="min-h-screen pb-nav flex flex-col" style={{ background: 'var(--app-bg)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-12 pb-3 flex-shrink-0">
@@ -284,11 +284,138 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </div>
       </div>
 
+      {/* ── Settings sections ─────────────────────────────────────────── */}
+
+      {/* Exercise Name Language */}
+      <div className="px-4 mb-3">
+        <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+          {ja ? '種目名の表示' : 'Exercise Names'}
+        </p>
+        <div className="flex gap-2">
+          {([
+            { value: 'en' as const, labelJa: '英語', labelEn: 'English' },
+            { value: 'ja' as const, labelJa: '日本語',   labelEn: 'Japanese' },
+          ]).map(({ value, labelJa, labelEn }) => (
+            <button key={value}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+              style={{
+                background: exerciseNameLang === value ? '#ED742F' : 'var(--surface-chip)',
+                color:      exerciseNameLang === value ? '#fff'    : 'var(--text-secondary)',
+                border:     `1px solid ${exerciseNameLang === value ? '#ED742F' : 'var(--border-subtle)'}`,
+              }}
+              onClick={() => setExerciseNameLang(value)}>
+              {ja ? labelJa : labelEn}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Save Format */}
+      <div className="px-4 mb-3">
+        <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+          {ja ? '保存形式' : 'Save Format'}
+        </p>
+        <div className="flex gap-2">
+          {([
+            { value: 'combined',     labelJa: 'まとめて1枚', labelEn: 'All-in-one'  },
+            { value: 'per-exercise', labelJa: '種目ごと',    labelEn: 'By Exercise' },
+          ] as { value: 'combined' | 'per-exercise'; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
+            <button key={value}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+              style={{
+                background: saveFormat === value ? '#ED742F' : 'var(--surface-chip)',
+                color:      saveFormat === value ? '#fff'    : 'var(--text-secondary)',
+                border:     `1px solid ${saveFormat === value ? '#ED742F' : 'var(--border-subtle)'}`,
+              }}
+              onClick={() => setSaveFormat(value)}>
+              {ja ? labelJa : labelEn}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Card Style */}
+      <div className="px-4 mb-3">
+        <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+          {ja ? 'カードスタイル' : 'Card Style'}
+        </p>
+        <div className="flex gap-2">
+          {([
+            { value: 'glass',       labelJa: 'ガラス', labelEn: 'Glass Card'  },
+            { value: 'transparent', labelJa: '透過',   labelEn: 'Transparent' },
+          ] as { value: CardStyle; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
+            <button key={value}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+              style={{
+                background: cardStyle === value ? '#ED742F' : 'var(--surface-chip)',
+                color:      cardStyle === value ? '#fff'    : 'var(--text-secondary)',
+                border:     `1px solid ${cardStyle === value ? '#ED742F' : 'var(--border-subtle)'}`,
+              }}
+              onClick={() => handleSetCardStyle(value)}>
+              {ja ? labelJa : labelEn}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Design Preset */}
+      <div className="px-4 mb-3">
+        <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+          {ja ? 'デザインプリセット' : 'Design Preset'}
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {PRESET_OPTIONS.map(({ value, label, labelJa, swatch }) => {
+            const sel = preset === value
+            return (
+              <button key={value}
+                className="py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+                style={{
+                  background: sel ? `${swatch}22` : 'var(--surface-chip)',
+                  color: sel
+                    ? (value === 'pearl-white' || value === 'premium-black' ? 'var(--text-primary)' : swatch)
+                    : 'var(--text-secondary)',
+                  border: `1px solid ${sel ? swatch : 'var(--border-subtle)'}`,
+                  minHeight: 44,
+                }}
+                onClick={() => handleSetPreset(value)}>
+                <span style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: swatch, flexShrink: 0,
+                  boxShadow: sel ? `0 0 6px ${swatch}` : 'none',
+                }} />
+                {ja ? labelJa : label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Text Shadow */}
+      <div className="px-4 mb-4">
+        <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+          {ja ? 'テキストシャドウ' : 'Text Shadow'}
+        </p>
+        <div className="flex gap-2">
+          {SHADOW_OPTIONS.map(({ value, labelJa, labelEn }) => (
+            <button key={value}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+              style={{
+                background: shadowMode === value ? '#ED742F' : 'var(--surface-chip)',
+                color:      shadowMode === value ? '#fff'    : 'var(--text-secondary)',
+                border:     `1px solid ${shadowMode === value ? '#ED742F' : 'var(--border-subtle)'}`,
+              }}
+              onClick={() => setShadowMode(value)}>
+              {ja ? labelJa : labelEn}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* ── Preview area ─────────────────────────────────────────────── */}
       {saveFormat === 'combined' ? (
 
         /* Combined: variable-height card — capture target is previewCardRef */
-        <div className="flex-shrink-0" style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 16px' }}>
           <div style={{
             width: 'fit-content',
             maxWidth: 'min(94vw, 420px)',
@@ -355,8 +482,8 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
       ) : (
 
-        /* Per-exercise: scrollable list of visible cards — previewExRefs[i] are capture targets */
-        <div className="flex-shrink-0 overflow-y-auto" style={{ maxHeight: '55vh', padding: '0 16px 12px' }}>
+        /* Per-exercise: list of visible cards — previewExRefs[i] are capture targets */
+        <div style={{ padding: '0 16px 16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* ── Summary card (top) ── */}
@@ -477,165 +604,36 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
       )}
 
-      {/* ── Controls panel ── */}
-      <div
-        className="flex-1 overflow-y-auto"
-        style={{ paddingBottom: 'calc(4.75rem + env(safe-area-inset-bottom))' }}
-      >
-        {/* Card Style */}
-        <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-            {ja ? 'カードスタイル' : 'Card Style'}
+      {/* Save CTA */}
+      <div className="px-4 space-y-2 mb-4">
+        {status && (
+          <p className="text-center text-sm" style={{ color: '#ED742F' }}>
+            {status}
           </p>
-          <div className="flex gap-2">
-            {([
-              { value: 'glass',       labelJa: 'ガラス', labelEn: 'Glass Card'  },
-              { value: 'transparent', labelJa: '透過',   labelEn: 'Transparent' },
-            ] as { value: CardStyle; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
-              <button key={value}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{
-                  background: cardStyle === value ? '#ED742F' : 'var(--surface-chip)',
-                  color:      cardStyle === value ? '#fff'    : 'var(--text-secondary)',
-                  border:     `1px solid ${cardStyle === value ? '#ED742F' : 'var(--border-subtle)'}`,
-                }}
-                onClick={() => handleSetCardStyle(value)}>
-                {ja ? labelJa : labelEn}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Design Preset */}
-        <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-            {ja ? 'デザインプリセット' : 'Design Preset'}
-          </p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {PRESET_OPTIONS.map(({ value, label, labelJa, swatch }) => {
-              const sel = preset === value
-              return (
-                <button key={value}
-                  className="py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-                  style={{
-                    background: sel ? `${swatch}22` : 'var(--surface-chip)',
-                    color: sel
-                      ? (value === 'pearl-white' || value === 'premium-black' ? 'var(--text-primary)' : swatch)
-                      : 'var(--text-secondary)',
-                    border: `1px solid ${sel ? swatch : 'var(--border-subtle)'}`,
-                    minHeight: 44,
-                  }}
-                  onClick={() => handleSetPreset(value)}>
-                  <span style={{
-                    width: 10, height: 10, borderRadius: '50%',
-                    background: swatch, flexShrink: 0,
-                    boxShadow: sel ? `0 0 6px ${swatch}` : 'none',
-                  }} />
-                  {ja ? labelJa : label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Text Shadow */}
-        <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-            {ja ? 'テキストシャドウ' : 'Text Shadow'}
-          </p>
-          <div className="flex gap-2">
-            {SHADOW_OPTIONS.map(({ value, labelJa, labelEn }) => (
-              <button key={value}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{
-                  background: shadowMode === value ? '#ED742F' : 'var(--surface-chip)',
-                  color:      shadowMode === value ? '#fff'    : 'var(--text-secondary)',
-                  border:     `1px solid ${shadowMode === value ? '#ED742F' : 'var(--border-subtle)'}`,
-                }}
-                onClick={() => setShadowMode(value)}>
-                {ja ? labelJa : labelEn}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Save Format */}
-        <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-            {ja ? '保存形式' : 'Save Format'}
-          </p>
-          <div className="flex gap-2">
-            {([
-              { value: 'combined',     labelJa: 'まとめて1枚', labelEn: 'All-in-one'  },
-              { value: 'per-exercise', labelJa: '種目ごと',    labelEn: 'By Exercise' },
-            ] as { value: 'combined' | 'per-exercise'; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
-              <button key={value}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{
-                  background: saveFormat === value ? '#ED742F' : 'var(--surface-chip)',
-                  color:      saveFormat === value ? '#fff'    : 'var(--text-secondary)',
-                  border:     `1px solid ${saveFormat === value ? '#ED742F' : 'var(--border-subtle)'}`,
-                }}
-                onClick={() => setSaveFormat(value)}>
-                {ja ? labelJa : labelEn}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Exercise Name Language */}
-        <div className="px-4 mb-3">
-          <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-            {ja ? '種目名の表示' : 'Exercise names'}
-          </p>
-          <div className="flex gap-2">
-            {([
-              { value: 'en' as const, labelJa: '英語', labelEn: 'English' },
-              { value: 'ja' as const, labelJa: '日本語',   labelEn: 'Japanese' },
-            ]).map(({ value, labelJa, labelEn }) => (
-              <button key={value}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                style={{
-                  background: exerciseNameLang === value ? '#ED742F' : 'var(--surface-chip)',
-                  color:      exerciseNameLang === value ? '#fff'    : 'var(--text-secondary)',
-                  border:     `1px solid ${exerciseNameLang === value ? '#ED742F' : 'var(--border-subtle)'}`,
-                }}
-                onClick={() => setExerciseNameLang(value)}>
-                {ja ? labelJa : labelEn}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Save CTA */}
-        <div className="px-4 space-y-2 mb-4">
-          {status && (
-            <p className="text-center text-sm" style={{ color: '#ED742F' }}>
-              {status}
-            </p>
-          )}
-          <button
-            className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
-            style={{
-              background: saving ? 'rgba(237,116,47,0.40)' : '#ED742F',
-              boxShadow:  saving ? 'none' : '0 4px 20px rgba(237,116,47,0.28)',
-            }}
-            disabled={saving}
-            onClick={handleSave}>
-            <Download size={20} />
-            {saving
-              ? (ja ? '画像を作成中...' : 'Creating image...')
-              : saveFormat === 'combined'
-                ? (ja ? 'まとめてカードを保存' : 'Save Full Card')
-                : (ja ? '種目カードを保存' : 'Save Exercise Cards')}
-          </button>
-          <p className="text-center text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            {ja
-              ? '保存後、Instagramで写真や動画に重ねて使えます'
-              : 'Save it, then layer it over your photo or video on Instagram.'}
-          </p>
-        </div>
+        )}
+        <button
+          className="w-full py-4 rounded-2xl text-base font-black text-white flex items-center justify-center gap-2"
+          style={{
+            background: saving ? 'rgba(237,116,47,0.40)' : '#ED742F',
+            boxShadow:  saving ? 'none' : '0 4px 20px rgba(237,116,47,0.28)',
+          }}
+          disabled={saving}
+          onClick={handleSave}>
+          <Download size={20} />
+          {saving
+            ? (ja ? '画像を作成中...' : 'Creating image...')
+            : saveFormat === 'combined'
+              ? (ja ? 'まとめてカードを保存' : 'Save Full Card')
+              : (ja ? '種目カードを保存' : 'Save Exercise Cards')}
+        </button>
+        <p className="text-center text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          {ja
+            ? '保存後、Instagramで写真や動画に重ねて使えます'
+            : 'Save it, then layer it over your photo or video on Instagram.'}
+        </p>
       </div>
+
+      <div style={{ height: 'calc(2rem + env(safe-area-inset-bottom))', flexShrink: 0 }} />
 
     </div>
   )
