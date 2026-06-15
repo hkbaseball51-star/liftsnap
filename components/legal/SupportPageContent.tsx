@@ -29,10 +29,10 @@ export default function SupportPageContent() {
 
         <LegalSection title="よくある質問">
           <P><Highlight>Q. データはどのように管理されますか？</Highlight></P>
-          <P>現在のMVPでは、トレーニング記録・体重記録・アプリ設定はすべてお使いの端末内に保存されます。サーバーへのデータ送信は行われません。詳しくは<a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>プライバシーポリシー</a>をご覧ください。</P>
+          <P>現在のバージョンでは、トレーニング記録・体重記録・アプリ設定はすべてお使いの端末内に保存されます。サーバーへのデータ送信は行われません。詳しくは<a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>プライバシーポリシー</a>をご覧ください。</P>
 
           <P><Highlight>Q. 記録したデータを削除したい</Highlight></P>
-          <P>現在のMVPではアカウントは必要ありません。端末内のデータはアプリをアンインストールすることで削除されます。将来的にアカウント機能を導入する際は、アプリ内でデータ削除の手続きができるようになります。</P>
+          <P>現在のバージョンではアカウントは必要ありません。設定画面の「すべてのデータを削除」からデータを削除できます。アプリをアンインストールしても削除されます。</P>
 
           <P><Highlight>Q. アプリが正常に動作しない</Highlight></P>
           <P>アプリを再起動するか、最新バージョンへのアップデートをお試しください。解決しない場合はメールにてご連絡ください。</P>
@@ -64,10 +64,10 @@ export default function SupportPageContent() {
 
       <LegalSection title="FAQ">
         <P><Highlight>Q. How is my data managed?</Highlight></P>
-        <P>In the current MVP, all workout records, body weight data, and app settings are stored locally on your device. No data is sent to our servers. See our <a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>Privacy Policy</a> for details.</P>
+        <P>In the current version, all workout records, body weight data, and app settings are stored locally on your device. No data is sent to our servers. See our <a href="/privacy" style={{ color: '#ED742F', textDecoration: 'underline' }}>Privacy Policy</a> for details.</P>
 
         <P><Highlight>Q. I want to delete my recorded data.</Highlight></P>
-        <P>In the current MVP, no account is required. Data stored on your device can be removed by uninstalling the App. If account features are introduced in the future, in-app data deletion will be available.</P>
+        <P>In the current version, no account is required. You can delete your data from Settings → Reset All Data, or by uninstalling the App.</P>
 
         <P><Highlight>Q. The app is not working correctly.</Highlight></P>
         <P>Try restarting the app or updating to the latest version. If the issue persists, contact us by email.</P>

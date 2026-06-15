@@ -62,7 +62,15 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const previewExRefs  = useRef<(HTMLDivElement | null)[]>([])
 
   const [cardStyle,     setCardStyleState] = useState<CardStyle>('glass')
-  const [preset,        setPreset]         = useState<DesignPreset>('orange')
+  const [preset,        setPreset]         = useState<DesignPreset>(() => {
+    try {
+      const saved = localStorage.getItem('repra_share_preset')
+      if (saved && ['orange','ice-blue','violet','mint','premium-black','pearl-white'].includes(saved)) {
+        return saved as DesignPreset
+      }
+    } catch {}
+    return 'premium-black'
+  })
   const [shadowMode,    setShadowMode]     = useState<ShadowMode>('strong')
   const [saveFormat,    setSaveFormat]     = useState<'combined' | 'per-exercise'>('combined')
   const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
@@ -97,6 +105,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   function handleSetPreset(p: DesignPreset) {
     setPreset(p)
     setShadowMode(PRESETS[p].defaultShadow)
+    try { localStorage.setItem('repra_share_preset', p) } catch {}
   }
 
   // Save the combined (all-in-one) card — captures the visible preview card

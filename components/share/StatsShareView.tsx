@@ -1075,7 +1075,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   // Graph layout controls — shared by MAX 1RM, Body Weight, Daily Volume
   const [graphLayout,  setGraphLayout]  = useState<GraphLayout>('full')
-  const [graphPreset,  setGraphPreset]  = useState<GraphPreset>('orange')
+  const [graphPreset,  setGraphPreset]  = useState<GraphPreset>(() => {
+    try {
+      const saved = localStorage.getItem('repra_share_preset')
+      if (saved && ['orange','ice-blue','violet','mint','premium-black','pearl-white'].includes(saved)) {
+        return saved as GraphPreset
+      }
+    } catch {}
+    return 'premium-black'
+  })
   const [cardStyle,    setCardStyle]    = useState<CardStyle>('glass')
   const [shadowLevel,  setShadowLevel]  = useState<ShadowLevel>('soft')
   const [volViewType,  setVolViewType]  = useState<VolViewType>('bodypart')
@@ -1786,7 +1794,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
             const swatch = pd.uiSwatch ?? pd.accentHex
             const sel    = graphPreset === pk
             return (
-              <button key={pk} onClick={() => setGraphPreset(pk)}
+              <button key={pk} onClick={() => { setGraphPreset(pk); try { localStorage.setItem('repra_share_preset', pk) } catch {} }}
                 style={{
                   padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
                   background: sel ? acRgba(swatch, 0.15) : 'var(--surface-chip)',

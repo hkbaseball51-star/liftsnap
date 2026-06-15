@@ -462,13 +462,6 @@ export default function WorkoutDetailSheet({
                   </div>
                 )}
 
-                {/* Note */}
-                {ex.note && (
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 7 }}>
-                    {ja ? 'メモ：' : 'Note: '}{ex.note}
-                  </p>
-                )}
-
                 {/* Divider */}
                 <div style={{ height: 1, background: divider, marginBottom: 8 }} />
 
@@ -515,6 +508,53 @@ export default function WorkoutDetailSheet({
             ))
           )}
         </div>
+
+        {/* Notes card — shown only when at least one exercise has a note */}
+        {exercises.some(ex => ex.note) && (
+          <div style={{ padding: '12px 18px 0' }}>
+            <p style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
+              color: 'var(--text-label)', marginBottom: 8, paddingLeft: 2,
+            }}>
+              {ja ? 'メモ' : 'NOTES'}
+            </p>
+            <div style={{
+              background: 'var(--card-bg-primary)',
+              border: '1px solid var(--card-border-primary)',
+              borderRadius: 14,
+              padding: '14px 16px',
+            }}>
+              {exercises.filter(ex => ex.note).map((ex, i, arr) => (
+                <div key={ex.name}>
+                  {arr.length > 1 && (
+                    <p style={{
+                      fontSize: 10, fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      letterSpacing: '0.04em',
+                      marginBottom: 5,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {getDisplayName(ex.name, locale)}
+                    </p>
+                  )}
+                  <p style={{
+                    fontSize: 13, fontWeight: 400,
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    margin: 0,
+                  }}>
+                    {ex.note}
+                  </p>
+                  {i < arr.length - 1 && (
+                    <div style={{ height: 1, background: divider, margin: '12px 0' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Share CTA */}
         <div style={{ padding: '14px 18px' }}>

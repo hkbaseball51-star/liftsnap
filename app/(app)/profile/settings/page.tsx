@@ -189,10 +189,12 @@ export default function SettingsPage() {
       {/* ── Data Management ── */}
       <DataManagementSection />
 
-      {/* ── Version tap target (hidden) — 5 taps reveals Demo Mode ── */}
+      {/* ── Version (tap 5× to reveal Demo Mode) ── */}
       <div className="mx-4 mb-3 flex justify-center">
-        <button onClick={handleVersionTap} className="px-4 py-1 active:opacity-40">
-          <span className="text-[9px]" style={{ color: 'var(--text-disabled)' }}>v1.0.0</span>
+        <button onClick={handleVersionTap} className="px-4 py-1.5 active:opacity-50">
+          <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+            {locale === 'ja' ? 'バージョン 1.0.0' : 'Version 1.0.0'}
+          </span>
         </button>
       </div>
 

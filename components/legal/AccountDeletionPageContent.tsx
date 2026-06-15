@@ -18,8 +18,8 @@ export default function AccountDeletionPageContent() {
     return (
       <LegalPageLayout title="アカウント削除" updatedDate="最終更新日：2026年6月4日">
 
-        <LegalSection title="現在のMVPについて">
-          <P>現在のMVPでは、REPRAはログインなしで利用できます。</P>
+        <LegalSection title="現在のバージョンについて">
+          <P>現在のバージョンでは、REPRAはログインなしで利用できます。</P>
           <P>そのため、通常のアカウント削除操作は必要ありません。</P>
           <P>
             トレーニング記録・体重記録・アプリ設定は端末内に保存されています。
@@ -45,8 +45,8 @@ export default function AccountDeletionPageContent() {
   return (
     <LegalPageLayout title="Account Deletion" updatedDate="Last updated: June 4, 2026">
 
-      <LegalSection title="About the Current MVP">
-        <P>In the current MVP, REPRA can be used without creating an account.</P>
+      <LegalSection title="About the Current Version">
+        <P>In the current version, REPRA can be used without creating an account.</P>
         <P>Therefore, account deletion is generally not required at this stage.</P>
         <P>
           Workout records, body weight data, and app settings are stored locally on your device.

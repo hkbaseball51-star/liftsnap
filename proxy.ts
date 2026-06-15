@@ -1,7 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// These paths must be publicly accessible (App Store Connect / Google Play review URLs).
+// Bypass all session processing so they return 200 to unauthenticated requests.
+const PUBLIC_PATHS = [
+  '/privacy',
+  '/terms',
+  '/support',
+  '/disclaimer',
+  '/account-deletion',
+]
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+    return NextResponse.next()
+  }
+
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

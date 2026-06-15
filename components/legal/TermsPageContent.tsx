@@ -23,7 +23,7 @@ export default function TermsPageContent() {
           <P>REPRA is a fitness tracking app for logging strength training, tracking progress, viewing stats, and sharing results. The App is not intended for medical, diagnostic, or health advisory purposes.</P>
         </LegalSection>
 
-        <LegalSection title="2. No Account Required (Current MVP)">
+        <LegalSection title="2. No Account Required (Current Version)">
           <P>In the current version, REPRA does not require account creation. Record, Calendar, Stats, and Share are all available without signing in. All data is stored locally on your device.</P>
           <P>Account features may be introduced in a future update.</P>
         </LegalSection>
@@ -33,7 +33,7 @@ export default function TermsPageContent() {
         </LegalSection>
 
         <LegalSection title="4. Training Data & Body Information">
-          <P>You enter workout logs, body weight, and photos at your own discretion. The App does not guarantee the accuracy or completeness of entered information.</P>
+          <P>You enter workout logs and body weight information at your own discretion. The App does not guarantee the accuracy or completeness of entered information.</P>
         </LegalSection>
 
         <LegalSection title="5. Health & Safety">
@@ -75,7 +75,7 @@ export default function TermsPageContent() {
         </LegalSection>
 
         <LegalSection title="11. Data and Account Deletion">
-          <P>In the current MVP, REPRA does not require an account, so account deletion is generally not applicable. Data stored on your device can be cleared by uninstalling the App.</P>
+          <P>In the current version, REPRA does not require an account, so account deletion is generally not applicable. Data stored on your device can be cleared by uninstalling the App.</P>
           <P>If account features are introduced, in-app account deletion will be provided. Contact us at {SUPPORT_EMAIL} if you need assistance.</P>
         </LegalSection>
 
@@ -115,7 +115,7 @@ export default function TermsPageContent() {
         <P>本アプリは、医療、診断、治療、健康指導、栄養指導を目的とするものではありません。</P>
       </LegalSection>
 
-      <LegalSection title="2. アカウント不要（現在のMVP）">
+      <LegalSection title="2. アカウント不要（現在のバージョン）">
         <P>現在のバージョンでは、REPRAはアカウント作成を必要としません。Record・Calendar・Stats・Shareのすべての機能を、ログインなしでご利用いただけます。データはすべてお使いの端末内に保存されます。</P>
         <P>将来的にアカウント機能を導入する場合があります。</P>
       </LegalSection>
@@ -125,7 +125,7 @@ export default function TermsPageContent() {
       </LegalSection>
 
       <LegalSection title="4. トレーニング記録と身体情報">
-        <P>ユーザーは、自身の判断と責任において、トレーニング記録、体重、身体写真等を登録するものとします。</P>
+        <P>ユーザーは、自身の判断と責任において、トレーニング記録、体重情報を登録するものとします。</P>
         <P>本アプリは、入力された情報の正確性、完全性、最新性を保証しません。</P>
       </LegalSection>
 
@@ -176,7 +176,7 @@ export default function TermsPageContent() {
       </LegalSection>
 
       <LegalSection title="11. データおよびアカウント削除">
-        <P>現在のMVPではアカウント機能を提供していないため、通常のアカウント削除操作は不要です。端末内に保存されたデータは、アプリをアンインストールすることで削除されます。</P>
+        <P>現在のバージョンではアカウント機能を提供していないため、通常のアカウント削除操作は不要です。端末内に保存されたデータは、アプリをアンインストールすることで削除されます。</P>
         <P>将来的にアカウント機能を導入する場合は、アプリ内でアカウント削除を申請できるようにする予定です。ご不明な点は {SUPPORT_EMAIL} までお問い合わせください。</P>
       </LegalSection>
 

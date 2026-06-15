@@ -29,7 +29,7 @@ export default function PrivacyPageContent() {
 
         <LegalSection title="1. No Account Required">
           <P>
-            In the current MVP, REPRA can be used without creating an account or signing in.
+            In the current version, REPRA can be used without creating an account or signing in.
             Features including Record, Calendar, Stats, and Share are available to all users
             without registration.
           </P>
@@ -148,7 +148,7 @@ export default function PrivacyPageContent() {
 
       <LegalSection title="1. ログイン不要">
         <P>
-          現在のMVPでは、REPRAはアカウント作成やログインなしで利用できます。
+          現在のバージョンでは、REPRAはアカウント作成やログインなしで利用できます。
           Record・Calendar・Stats・Shareを含むすべての機能を、登録不要でご利用いただけます。
         </P>
       </LegalSection>
