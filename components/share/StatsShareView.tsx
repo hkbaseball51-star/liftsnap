@@ -1139,9 +1139,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const glassShadow    = gp.isDark !== false
     ? `0 8px 28px rgba(0,0,0,0.62), 0 2px 8px rgba(0,0,0,0.46), 0 0 0 1px ${acRgba(gpAccent, 0.20)}, inset 0 1px 0 rgba(255,255,255,0.12)`
     : `0 4px 18px rgba(0,0,0,0.24), 0 1px 5px rgba(0,0,0,0.14), 0 0 0 1px rgba(255,255,255,0.30), inset 0 1px 0 rgba(255,255,255,0.48)`
-  const clearGlassShadow = '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)'
+  const clearGlassShadow = '0 12px 40px rgba(0,0,0,0.42), 0 3px 10px rgba(0,0,0,0.26), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1.5px 0 rgba(255,255,255,0.36), inset 0 -1px 0 rgba(255,255,255,0.10)'
   const cardBoxShadow  = isTransparentCard ? 'none' : isClearGlass ? clearGlassShadow : glassShadow
-  const cardBorder     = isTransparentCard ? 'none' : isClearGlass ? '1px solid rgba(255,255,255,0.20)' : `1px solid ${gp.border}`
+  const cardBorder     = isTransparentCard ? 'none' : isClearGlass ? '1.5px solid rgba(255,255,255,0.45)' : `1px solid ${gp.border}`
   const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
   const gridColor      = isDarkBg ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.11)'
   const gridLabelColor = isDarkBg ? 'rgba(255,255,255,0.50)' : 'rgba(15,23,42,0.42)'
@@ -1379,7 +1379,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           metric, cardStyle,
           graphAccentHex: gpAccent, graphLatestHex: gpLatest, areaFill, isDarkBg,
           glassAccentHex: gp.accentHex, glassIsDark: gp.isDark !== false,
-          gpBorder: isClearGlass ? 'rgba(255,255,255,0.20)' : gp.border, badgeBg: gpBadgeBg, badgeTxt: gpBadgeTxt,
+          gpBorder: isClearGlass ? 'rgba(255,255,255,0.45)' : gp.border, badgeBg: gpBadgeBg, badgeTxt: gpBadgeTxt,
           cardLang, unitLabel, unit,
           exName, bestRMDisplay, rm1Growth: rm1Growth ?? null,
           rm1SVGData: rm1DataView, rm1Dates: rm1DatesView,

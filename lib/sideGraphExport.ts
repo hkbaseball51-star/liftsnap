@@ -217,29 +217,51 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs, cardH = C
 // ── Clear glass background ────────────────────────────────────────────────────
 
 function drawClearGlass(ctx: CanvasRenderingContext2D, _args: SideGraphArgs, cardH = CARD_H) {
+  // Very transparent dark base
   const baseGrad = ctx.createLinearGradient(
     CARD_X + CARD_W * 0.1, CARD_Y,
     CARD_X + CARD_W * 0.6, CARD_Y + cardH,
   )
-  baseGrad.addColorStop(0, 'rgba(18,18,26,0.40)')
-  baseGrad.addColorStop(1, 'rgba(8,8,14,0.32)')
+  baseGrad.addColorStop(0, 'rgba(10,10,18,0.24)')
+  baseGrad.addColorStop(1, 'rgba(5,5,12,0.18)')
   ctx.fillStyle = baseGrad
   ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
 
-  const topGrad = ctx.createLinearGradient(0, CARD_Y, 0, CARD_Y + cardH * 0.14)
-  topGrad.addColorStop(0, 'rgba(255,255,255,0.14)')
+  // Top shimmer edge
+  const topGrad = ctx.createLinearGradient(0, CARD_Y, 0, CARD_Y + cardH * 0.10)
+  topGrad.addColorStop(0, 'rgba(255,255,255,0.20)')
   topGrad.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = topGrad
-  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH * 0.14)
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH * 0.10)
 
-  const wGlow = ctx.createRadialGradient(
-    CARD_X + CARD_W * 0.88, CARD_Y, 0,
-    CARD_X + CARD_W * 0.88, CARD_Y, CARD_W * 0.55,
-  )
-  wGlow.addColorStop(0, 'rgba(255,255,255,0.12)')
-  wGlow.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = wGlow
+  // Diagonal glass sheen
+  const sheenGrad = ctx.createLinearGradient(CARD_X, CARD_Y, CARD_X + CARD_W, CARD_Y + cardH)
+  sheenGrad.addColorStop(0, 'rgba(255,255,255,0.12)')
+  sheenGrad.addColorStop(0.45, 'rgba(255,255,255,0)')
+  sheenGrad.addColorStop(0.65, 'rgba(255,255,255,0.08)')
+  sheenGrad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = sheenGrad
   ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
+
+  // Left-top corner catch light
+  const ltGlow = ctx.createRadialGradient(
+    CARD_X + CARD_W * 0.06, CARD_Y + cardH * 0.04, 0,
+    CARD_X + CARD_W * 0.06, CARD_Y + cardH * 0.04, CARD_W * 0.42,
+  )
+  ltGlow.addColorStop(0, 'rgba(255,255,255,0.20)')
+  ltGlow.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = ltGlow
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH * 0.26)
+
+  // Right-top corner highlight
+  const rtGlow = ctx.createRadialGradient(
+    CARD_X + CARD_W * 0.94, CARD_Y + cardH * 0.03, 0,
+    CARD_X + CARD_W * 0.94, CARD_Y + cardH * 0.03, CARD_W * 0.48,
+  )
+  rtGlow.addColorStop(0, 'rgba(255,255,255,0.16)')
+  rtGlow.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = rtGlow
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH * 0.30)
 }
 
 // ── REPRA badge ───────────────────────────────────────────────────────────────
@@ -828,8 +850,8 @@ export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
   if (args.cardStyle === 'clear-glass') {
     drawClearGlass(ctx, args, effectiveCardH)
     rrPath(ctx, CARD_X, CARD_Y, CARD_W, effectiveCardH, CARD_RX)
-    ctx.strokeStyle = args.gpBorder  // 'rgba(255,255,255,0.20)' passed from StatsShareView
-    ctx.lineWidth   = 2
+    ctx.strokeStyle = args.gpBorder  // 'rgba(255,255,255,0.45)' passed from StatsShareView
+    ctx.lineWidth   = 3
     ctx.stroke()
   }
 

@@ -203,9 +203,11 @@ export function glassCardStyle(accentHex: string, isDark: boolean): { background
 export function clearGlassCardStyle(): { background: string } {
   return {
     background: [
-      'radial-gradient(ellipse 55% 32% at 88% 4%, rgba(255,255,255,0.12), transparent)',
-      'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.00) 14%)',
-      'linear-gradient(145deg, rgba(18,18,26,0.40) 0%, rgba(8,8,14,0.32) 100%)',
+      'radial-gradient(ellipse 42% 26% at 6% 4%, rgba(255,255,255,0.20), transparent)',
+      'radial-gradient(ellipse 48% 30% at 94% 3%, rgba(255,255,255,0.16), transparent)',
+      'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.00) 45%, rgba(255,255,255,0.08) 65%, rgba(255,255,255,0.00) 100%)',
+      'linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.00) 10%)',
+      'linear-gradient(150deg, rgba(10,10,18,0.24) 0%, rgba(5,5,12,0.18) 100%)',
     ].join(', '),
   }
 }
@@ -335,7 +337,7 @@ export default function WorkoutStoryCardContent({
   const tier = getTier(totalRows)
   const tp   = TIER_PARAMS[tier]
 
-  const ts = SHADOW[shadowMode]
+  const ts = isClearGlass && shadowMode === 'none' ? SHADOW['soft'] : SHADOW[shadowMode]
 
   const dividerColor = acRgba(acHex, isTransparent ? 0.35 : 0.25)
   const accentDot    = acRgba(acHex, 0.70)
@@ -353,8 +355,8 @@ export default function WorkoutStoryCardContent({
       textShadow: ts,
       ...(isClearGlass ? {
         ...clearGlassCardStyle(),
-        border: '1px solid rgba(255,255,255,0.20)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)',
+        border: '1.5px solid rgba(255,255,255,0.45)',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.42), 0 3px 10px rgba(0,0,0,0.26), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1.5px 0 rgba(255,255,255,0.36), inset 0 -1px 0 rgba(255,255,255,0.10)',
       } : isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
@@ -558,7 +560,7 @@ export function ExerciseStoryCard({
   const rgb            = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt           = (a: number) => `rgba(${rgb},${a})`
   const unitLabel      = weightUnitLabel(unit)
-  const ts             = SHADOW[shadowMode]
+  const ts             = isClearGlass && shadowMode === 'none' ? SHADOW['soft'] : SHADOW[shadowMode]
   const dividerColor   = acRgba(acHex, isTransparent ? 0.35 : 0.25)
   const accentFooter   = acRgba(acHex, isTransparent ? 0.65 : 0.50)
 
@@ -574,8 +576,8 @@ export function ExerciseStoryCard({
       textShadow: ts,
       ...(isClearGlass ? {
         ...clearGlassCardStyle(),
-        border: '1px solid rgba(255,255,255,0.20)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)',
+        border: '1.5px solid rgba(255,255,255,0.45)',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.42), 0 3px 10px rgba(0,0,0,0.26), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1.5px 0 rgba(255,255,255,0.36), inset 0 -1px 0 rgba(255,255,255,0.10)',
       } : isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
@@ -709,7 +711,7 @@ export function WorkoutSummaryStoryCard({
   const unitLabel      = weightUnitLabel(unit)
   const volStr         = formatVolumeWithUnit(data.volume, unit)
   const g1rm           = data.exercises.reduce((m, ex) => Math.max(m, ex.best1RM), 0)
-  const ts             = SHADOW[shadowMode]
+  const ts             = isClearGlass && shadowMode === 'none' ? SHADOW['soft'] : SHADOW[shadowMode]
   const dividerColor   = acRgba(acHex, isTransparent ? 0.35 : 0.25)
   const accentFooter   = acRgba(acHex, isTransparent ? 0.65 : 0.50)
 
@@ -725,8 +727,8 @@ export function WorkoutSummaryStoryCard({
       textShadow: ts,
       ...(isClearGlass ? {
         ...clearGlassCardStyle(),
-        border: '1px solid rgba(255,255,255,0.20)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)',
+        border: '1.5px solid rgba(255,255,255,0.45)',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.42), 0 3px 10px rgba(0,0,0,0.26), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1.5px 0 rgba(255,255,255,0.36), inset 0 -1px 0 rgba(255,255,255,0.10)',
       } : isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
