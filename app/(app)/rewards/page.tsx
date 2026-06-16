@@ -1,5 +1,2 @@
-import RewardsView from '@/components/rewards/RewardsView'
-
-export default function RewardsPage() {
-  return <RewardsView />
-}
+import { redirect } from 'next/navigation'
+export default function RewardsPage() { redirect('/home') }

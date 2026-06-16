@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ShopPage() {
-  redirect('/rewards')
+  redirect('/home')
 }

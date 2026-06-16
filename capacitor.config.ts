@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.repra.workout',
+  appId: 'com.repraworkout.app',
   appName: 'REPRA',
   webDir: 'public',
   server: {

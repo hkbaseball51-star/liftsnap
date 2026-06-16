@@ -37,8 +37,6 @@ export default function SupportPageContent() {
           <P><Highlight>Q. アプリが正常に動作しない</Highlight></P>
           <P>アプリを再起動するか、最新バージョンへのアップデートをお試しください。解決しない場合はメールにてご連絡ください。</P>
 
-          <P><Highlight>Q. REPRA Proはいつ使えますか？</Highlight></P>
-          <P>REPRA ProはComing Soon（近日公開予定）です。現時点ではすべての機能を無料でご利用いただけます。</P>
         </LegalSection>
 
         <LegalSection title="関連ページ">
@@ -72,8 +70,6 @@ export default function SupportPageContent() {
         <P><Highlight>Q. The app is not working correctly.</Highlight></P>
         <P>Try restarting the app or updating to the latest version. If the issue persists, contact us by email.</P>
 
-        <P><Highlight>Q. When will REPRA Pro be available?</Highlight></P>
-        <P>REPRA Pro is coming soon. All current features are available for free in the meantime.</P>
       </LegalSection>
 
       <LegalSection title="Related Pages">
