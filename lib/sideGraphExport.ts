@@ -13,7 +13,7 @@ type VolBar = { label: string; value: number; isLatest: boolean; isBest: boolean
 
 export type SideGraphArgs = {
   metric:           'max1rm' | 'bodyweight' | 'volume'
-  cardStyle:        'glass'  | 'transparent'
+  cardStyle:        'glass'  | 'clear-glass' | 'transparent'
   graphAccentHex:   string
   graphLatestHex:   string
   areaFill:         string   // 'none' for transparent, 'rgba(r,g,b,0.12)' for glass
@@ -209,6 +209,34 @@ function drawGlass(ctx: CanvasRenderingContext2D, args: SideGraphArgs, cardH = C
     CARD_X + CARD_W * 0.88, CARD_Y, CARD_W * 0.6,
   )
   wGlow.addColorStop(0, 'rgba(255,255,255,0.13)')
+  wGlow.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = wGlow
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
+}
+
+// ── Clear glass background ────────────────────────────────────────────────────
+
+function drawClearGlass(ctx: CanvasRenderingContext2D, _args: SideGraphArgs, cardH = CARD_H) {
+  const baseGrad = ctx.createLinearGradient(
+    CARD_X + CARD_W * 0.1, CARD_Y,
+    CARD_X + CARD_W * 0.6, CARD_Y + cardH,
+  )
+  baseGrad.addColorStop(0, 'rgba(18,18,26,0.40)')
+  baseGrad.addColorStop(1, 'rgba(8,8,14,0.32)')
+  ctx.fillStyle = baseGrad
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
+
+  const topGrad = ctx.createLinearGradient(0, CARD_Y, 0, CARD_Y + cardH * 0.14)
+  topGrad.addColorStop(0, 'rgba(255,255,255,0.14)')
+  topGrad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = topGrad
+  ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH * 0.14)
+
+  const wGlow = ctx.createRadialGradient(
+    CARD_X + CARD_W * 0.88, CARD_Y, 0,
+    CARD_X + CARD_W * 0.88, CARD_Y, CARD_W * 0.55,
+  )
+  wGlow.addColorStop(0, 'rgba(255,255,255,0.12)')
   wGlow.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = wGlow
   ctx.fillRect(CARD_X, CARD_Y, CARD_W, cardH)
@@ -794,6 +822,14 @@ export async function exportSideGraphCard(args: SideGraphArgs): Promise<Blob> {
     rrPath(ctx, CARD_X, CARD_Y, CARD_W, effectiveCardH, CARD_RX)
     ctx.strokeStyle = args.gpBorder
     ctx.lineWidth   = 4
+    ctx.stroke()
+  }
+
+  if (args.cardStyle === 'clear-glass') {
+    drawClearGlass(ctx, args, effectiveCardH)
+    rrPath(ctx, CARD_X, CARD_Y, CARD_W, effectiveCardH, CARD_RX)
+    ctx.strokeStyle = args.gpBorder  // 'rgba(255,255,255,0.20)' passed from StatsShareView
+    ctx.lineWidth   = 2
     ctx.stroke()
   }
 

@@ -7,7 +7,7 @@ import { getShareCount, incrementShareCount, getShareThemeUnlocks, BW_CHART_REQU
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useLocale } from '@/lib/useLocale'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
-import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
+import { PRESETS, glassCardStyle, clearGlassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
 import { useCardLang } from '@/lib/useCardLang'
 import { useTheme } from '@/lib/useTheme'
@@ -35,7 +35,7 @@ type GraphLayout  = 'full' | 'side' | 'mini' | 'wide'
 const GRAPH_STORY_LIMITS: Record<GraphLayout, number> = { full: 60, side: 60, mini: 14, wide: 40 }
 // TODO_PRO: premiumDesignPresets — 'premium-black' and 'pearl-white' are candidates for Pro-only presets.
 type GraphPreset  = 'orange' | 'ice-blue' | 'violet' | 'mint' | 'premium-black' | 'pearl-white'
-type CardStyle    = 'glass' | 'transparent'
+type CardStyle    = 'glass' | 'clear-glass' | 'transparent'
 type ShadowLevel  = 'none' | 'soft' | 'strong' | 'extra-strong'
 type VolViewType  = 'bodypart' | 'ppl'
 type PPLGroup     = 'all' | 'push' | 'pull' | 'legs'
@@ -1098,9 +1098,15 @@ export default function StatsShareView({ data }: { data: StatsData }) {
 
   // Graph card backgrounds
   const isTransparentCard = cardStyle === 'transparent'
+  const isClearGlass      = cardStyle === 'clear-glass'
   // transparent: premium-black → dark text (black on transparent); all others → light text (white on transparent)
-  const isDarkBg  = isTransparentCard ? (graphPreset !== 'premium-black') : (gp.isDark !== false)
-  const gpAccent  = isTransparentCard ? (gp.accentHexTransp ?? gp.accentHex) : gp.accentHex
+  // clear-glass: always dark bg (semi-transparent dark layer — white text)
+  const isDarkBg  = isTransparentCard ? (graphPreset !== 'premium-black') : true
+  const gpAccent  = isTransparentCard
+    ? (gp.accentHexTransp ?? gp.accentHex)
+    : isClearGlass
+      ? (gp.isDark === false ? (gp.accentHexTransp ?? gp.accentHex) : gp.accentHex)
+      : gp.accentHex
   const gpLatest  = isTransparentCard ? (gp.latestHexTransp ?? gp.latestHex ?? gpAccent) : (gp.latestHex ?? gp.accentHex)
   const gpRgb     = isDarkBg ? '255,255,255' : '17,24,39'
   const ptxt      = (a: number) => `rgba(${gpRgb},${a})`
@@ -1126,12 +1132,16 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   // Adding backgroundImage:'none' forces the computed value to none before capture.
   const cardBgProps  = isTransparentCard
     ? { background: 'transparent', backgroundImage: 'none' }
-    : gpGlassSt
+    : isClearGlass
+      ? clearGlassCardStyle()
+      : gpGlassSt
   const shadowValue    = SHADOW_MAP[shadowLevel]
   const glassShadow    = gp.isDark !== false
     ? `0 8px 28px rgba(0,0,0,0.62), 0 2px 8px rgba(0,0,0,0.46), 0 0 0 1px ${acRgba(gpAccent, 0.20)}, inset 0 1px 0 rgba(255,255,255,0.12)`
     : `0 4px 18px rgba(0,0,0,0.24), 0 1px 5px rgba(0,0,0,0.14), 0 0 0 1px rgba(255,255,255,0.30), inset 0 1px 0 rgba(255,255,255,0.48)`
-  const cardBoxShadow  = isTransparentCard ? 'none' : glassShadow
+  const clearGlassShadow = '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)'
+  const cardBoxShadow  = isTransparentCard ? 'none' : isClearGlass ? clearGlassShadow : glassShadow
+  const cardBorder     = isTransparentCard ? 'none' : isClearGlass ? '1px solid rgba(255,255,255,0.20)' : `1px solid ${gp.border}`
   const textShadowVal  = isDarkBg ? SHADOW_MAP[shadowLevel] : 'none'
   const gridColor      = isDarkBg ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.11)'
   const gridLabelColor = isDarkBg ? 'rgba(255,255,255,0.50)' : 'rgba(15,23,42,0.42)'
@@ -1369,7 +1379,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           metric, cardStyle,
           graphAccentHex: gpAccent, graphLatestHex: gpLatest, areaFill, isDarkBg,
           glassAccentHex: gp.accentHex, glassIsDark: gp.isDark !== false,
-          gpBorder: gp.border, badgeBg: gpBadgeBg, badgeTxt: gpBadgeTxt,
+          gpBorder: isClearGlass ? 'rgba(255,255,255,0.20)' : gp.border, badgeBg: gpBadgeBg, badgeTxt: gpBadgeTxt,
           cardLang, unitLabel, unit,
           exName, bestRMDisplay, rm1Growth: rm1Growth ?? null,
           rm1SVGData: rm1DataView, rm1Dates: rm1DatesView,
@@ -1741,17 +1751,21 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       <div className="px-4 mb-3">
         {sectionLabel(ja ? 'カードスタイル' : 'CARD STYLE')}
         <div className="flex gap-2">
-          {(['glass', 'transparent'] as CardStyle[]).map(cs => {
+          {([
+            { value: 'glass'       as CardStyle, labelJa: 'ガラス',     labelEn: 'Glass'       },
+            { value: 'clear-glass' as CardStyle, labelJa: '透明ガラス', labelEn: 'Clear Glass' },
+            { value: 'transparent' as CardStyle, labelJa: '透過',       labelEn: 'Transparent' },
+          ]).map(({ value: cs, labelJa, labelEn }) => {
             const sel = cardStyle === cs
             return (
               <button key={cs} onClick={() => setCardStyle(cs)}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                className="flex-1 py-2 rounded-xl text-xs font-bold"
                 style={{
                   background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
                   color: sel ? uiAc : 'var(--text-inactive)',
                   border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
                 }}>
-                {cs === 'glass' ? (ja ? 'ガラス' : 'Glass') : (ja ? '透過' : 'Transparent')}
+                {ja ? labelJa : labelEn}
               </button>
             )
           })}
@@ -1823,7 +1837,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
       <div className="px-4 mb-5" style={{
         backgroundColor: isTransparentCard
           ? (needsLightPreviewBacking ? '#F9FAFB' : '#1a1a1a')
-          : '#111111',
+          : isClearGlass ? '#1c1c24' : '#111111',
         backgroundImage: needsLightPreviewBacking ? LIGHT_CHECKER : CHECKER,
         backgroundSize: '20px 20px',
       }}>
@@ -1836,8 +1850,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div ref={fullGraphRef} style={{
                 aspectRatio: '9/16', width: '100%', ...cardBgProps, borderRadius: 24,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
-                boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
+                border: cardBorder,
+                boxShadow: cardBoxShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
                   {gpBadge}
@@ -1905,7 +1919,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div ref={miniCardRef} style={{
                   aspectRatio: '1/1', ...cardBgProps, borderRadius: 20,
                   position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: 16, display: 'flex', flexDirection: 'column',
-                  boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                  boxShadow: cardBoxShadow, border: cardBorder, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
                   <p style={{ fontSize: 13, fontWeight: 900, color: textPrimary, margin: '5px 0 1px', lineHeight: 1.1 }}>{exName}</p>
@@ -1938,7 +1952,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div ref={wideCardRef} style={{
                 width: '100%', aspectRatio: '16/9', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', boxShadow: cardBoxShadow,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                border: cardBorder, textShadow: textShadowVal,
               }}>
                 <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
@@ -1983,8 +1997,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div ref={fullWeightRef} style={{
                 aspectRatio: '9/16', width: '100%', ...cardBgProps, borderRadius: 24,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
-                boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
+                border: cardBorder,
+                boxShadow: cardBoxShadow, textShadow: textShadowVal,
               }}>
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
                   <span style={{ fontSize: 9, fontWeight: 900, padding: '2px 9px', borderRadius: 7, background: repraLogoBadgeFill, color: repraLogoBadgeAccent, border: `1.5px solid ${repraLogoBadgeAccent}`, letterSpacing: '0.18em', display: 'inline-block' }}>REPRA</span>
@@ -2055,7 +2069,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div ref={miniWeightRef} style={{
                   aspectRatio: '1/1', ...cardBgProps, borderRadius: 20,
                   position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: 16, display: 'flex', flexDirection: 'column',
-                  boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                  boxShadow: cardBoxShadow, border: cardBorder, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
                   <p style={{ fontSize: 8, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>{cl('BODY WEIGHT', '体重')}</p>
@@ -2083,7 +2097,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div ref={wideWeightRef} style={{
                 width: '100%', aspectRatio: '16/9', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', boxShadow: cardBoxShadow,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                border: cardBorder, textShadow: textShadowVal,
               }}>
                 <div style={{ width: '38%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   {gpBadge}
@@ -2124,8 +2138,8 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div ref={fullVolRef} style={{
                 aspectRatio: '9/16', width: '100%', ...cardBgProps, borderRadius: 24,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`,
-                boxShadow: isTransparentCard ? 'none' : glassShadow, textShadow: textShadowVal,
+                border: cardBorder,
+                boxShadow: cardBoxShadow, textShadow: textShadowVal,
               }}>
                 {/* Header */}
                 <div style={{ padding: '16px 18px 0', flexShrink: 0 }}>
@@ -2199,7 +2213,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
                 <div ref={miniVolRef} style={{
                   aspectRatio: '1/1', ...cardBgProps, borderRadius: 20,
                   position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: 16, display: 'flex', flexDirection: 'column',
-                  boxShadow: cardBoxShadow, border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                  boxShadow: cardBoxShadow, border: cardBorder, textShadow: textShadowVal,
                 }}>
                   {gpBadge}
                   <p style={{ fontSize: 7.5, fontWeight: 700, color: gpAccent, letterSpacing: '0.08em', margin: '5px 0 0' }}>{cl('DAILY VOLUME', '総重量')}</p>
@@ -2231,7 +2245,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
               <div ref={wideVolRef} style={{
                 width: '100%', aspectRatio: '16/9', ...cardBgProps, borderRadius: 18,
                 position: 'relative', isolation: 'isolate', overflow: 'hidden', display: 'flex', boxShadow: cardBoxShadow,
-                border: isTransparentCard ? 'none' : `1px solid ${gp.border}`, textShadow: textShadowVal,
+                border: cardBorder, textShadow: textShadowVal,
               }}>
                 {/* Left info */}
                 <div style={{ width: '34%', padding: '14px 10px 14px 16px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>

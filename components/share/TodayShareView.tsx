@@ -253,6 +253,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   const isPast        = data.date !== todayStr
   const ja            = locale === 'ja'
   const isTransparent = cardStyle === 'transparent'
+  const isClearGlass  = cardStyle === 'clear-glass'
 
   const checkerBg = [
     'linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%)',
@@ -350,8 +351,9 @@ export default function TodayShareView({ data }: { data: TodayData }) {
         </p>
         <div className="flex gap-2">
           {([
-            { value: 'glass',       labelJa: 'ガラス', labelEn: 'Glass Card'  },
-            { value: 'transparent', labelJa: '透過',   labelEn: 'Transparent' },
+            { value: 'glass',       labelJa: 'ガラス',     labelEn: 'Glass'       },
+            { value: 'clear-glass', labelJa: '透明ガラス', labelEn: 'Clear Glass' },
+            { value: 'transparent', labelJa: '透過',       labelEn: 'Transparent' },
           ] as { value: CardStyle; labelJa: string; labelEn: string }[]).map(({ value, labelJa, labelEn }) => (
             <button key={value}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
@@ -445,11 +447,11 @@ export default function TodayShareView({ data }: { data: TodayData }) {
               }}
             >
               {/* Transparent/Glass card: checker fills card background via inset:0 */}
-              {(isTransparent || cardStyle === 'glass') && (
+              {(isTransparent || cardStyle === 'glass' || isClearGlass) && (
                 <div
                   style={{
                     position: 'absolute', inset: 0,
-                    backgroundColor: needsLightPreviewBacking ? '#F9FAFB' : (isTransparent ? '#2a2a2a' : '#161616'),
+                    backgroundColor: needsLightPreviewBacking ? '#F9FAFB' : (isTransparent || isClearGlass ? '#222228' : '#161616'),
                     backgroundImage: needsLightPreviewBacking ? lightCheckerBg : checkerBg,
                     backgroundSize: '20px 20px',
                     backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',

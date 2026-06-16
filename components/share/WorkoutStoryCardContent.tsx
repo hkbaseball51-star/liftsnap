@@ -20,7 +20,7 @@ export type TodayData = {
   photoPath?: string | null
 }
 
-export type CardStyle    = 'glass' | 'transparent'
+export type CardStyle    = 'glass' | 'clear-glass' | 'transparent'
 export type ShadowMode   = 'none' | 'soft' | 'strong' | 'extra-strong'
 export type DesignPreset = 'orange' | 'ice-blue' | 'violet' | 'mint' | 'premium-black' | 'pearl-white'
 
@@ -197,6 +197,19 @@ export function glassCardStyle(accentHex: string, isDark: boolean): { background
   }
 }
 
+// ── Clear glass card background ───────────────────────────────────────
+// Highly transparent dark base with shimmer layers — no backdrop-filter
+// so it renders identically in live preview and html-to-image foreignObject export.
+export function clearGlassCardStyle(): { background: string } {
+  return {
+    background: [
+      'radial-gradient(ellipse 55% 32% at 88% 4%, rgba(255,255,255,0.12), transparent)',
+      'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.00) 14%)',
+      'linear-gradient(145deg, rgba(18,18,26,0.40) 0%, rgba(8,8,14,0.32) 100%)',
+    ].join(', '),
+  }
+}
+
 // ── Pure helpers ──────────────────────────────────────────────────────
 const JA_EN: Record<string, string> = {
   'デッドリフト': 'Deadlift',                   'ベントオーバーロウ': 'Bent Over Row',
@@ -289,13 +302,23 @@ export default function WorkoutStoryCardContent({
   exerciseNameLang = 'en',
 }: Props) {
   const dn = (n: string) => exerciseNameLang === 'ja' ? n : tname(n)
-  const p             = PRESETS[preset]
-  const isTransparent = cardStyle === 'transparent'
-  // transparent: premium-black → dark text (black on transparent); all others → light text (white on transparent)
-  const isDarkBg      = isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
-  const acHex         = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
-  const subTextColor  = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
-  const badgeBgColor  = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
+  const p              = PRESETS[preset]
+  const isClearGlass   = cardStyle === 'clear-glass'
+  const isTransparent  = cardStyle === 'transparent'
+  // clear-glass: always dark bg (semi-transparent dark layer — white text + preset accent)
+  // transparent: premium-black → dark text; all others → light text
+  // glass: follows preset isDark flag
+  const isDarkBg = isClearGlass
+    ? true
+    : isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
+  // clear-glass with pearl-white preset: accentHex is dark (#111827) — use accentHexTransp (#E5E7EB) for readability
+  const acHex = isClearGlass
+    ? (p.isDark === false ? (p.accentHexTransp ?? p.accentHex) : p.accentHex)
+    : isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
+  const subTextColor = isClearGlass
+    ? (p.isDark === false ? (p.subTextTransp ?? p.subText) : p.subText)
+    : isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
+  const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
   const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
   const repraLogoBadgeFill   = acRgba(p.accentHex, 0.14)
@@ -328,7 +351,11 @@ export default function WorkoutStoryCardContent({
       isolation: 'isolate',
       borderRadius: '24px',
       textShadow: ts,
-      ...(isTransparent ? { background: 'transparent' } : {
+      ...(isClearGlass ? {
+        ...clearGlassCardStyle(),
+        border: '1px solid rgba(255,255,255,0.20)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)',
+      } : isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
         boxShadow: p.isDark !== false
@@ -512,11 +539,17 @@ export function ExerciseStoryCard({
 }: ExerciseCardProps) {
   const dn = (n: string) => exerciseNameLang === 'ja' ? n : tname(n)
   const p              = PRESETS[preset]
+  const isClearGlass   = cardStyle === 'clear-glass'
   const isTransparent  = cardStyle === 'transparent'
-  // transparent: premium-black → dark text; all others → light text
-  const isDarkBg       = isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
-  const acHex          = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
-  const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
+  const isDarkBg = isClearGlass
+    ? true
+    : isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
+  const acHex = isClearGlass
+    ? (p.isDark === false ? (p.accentHexTransp ?? p.accentHex) : p.accentHex)
+    : isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
+  const subTextColor = isClearGlass
+    ? (p.isDark === false ? (p.subTextTransp ?? p.subText) : p.subText)
+    : isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
   const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
@@ -539,7 +572,11 @@ export function ExerciseStoryCard({
       isolation: 'isolate',
       borderRadius: '24px',
       textShadow: ts,
-      ...(isTransparent ? { background: 'transparent' } : {
+      ...(isClearGlass ? {
+        ...clearGlassCardStyle(),
+        border: '1px solid rgba(255,255,255,0.20)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)',
+      } : isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
         boxShadow: p.isDark !== false
@@ -651,11 +688,17 @@ export function WorkoutSummaryStoryCard({
   shadowMode?: ShadowMode
 }) {
   const p              = PRESETS[preset]
+  const isClearGlass   = cardStyle === 'clear-glass'
   const isTransparent  = cardStyle === 'transparent'
-  // transparent: premium-black → dark text; all others → light text
-  const isDarkBg       = isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
-  const acHex          = isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
-  const subTextColor   = isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
+  const isDarkBg = isClearGlass
+    ? true
+    : isTransparent ? (preset !== 'premium-black') : (p.isDark !== false)
+  const acHex = isClearGlass
+    ? (p.isDark === false ? (p.accentHexTransp ?? p.accentHex) : p.accentHex)
+    : isTransparent ? (p.accentHexTransp ?? p.accentHex) : p.accentHex
+  const subTextColor = isClearGlass
+    ? (p.isDark === false ? (p.subTextTransp ?? p.subText) : p.subText)
+    : isTransparent ? (p.subTextTransp ?? p.subText) : p.subText
   const badgeBgColor   = isTransparent ? (p.badgeBgTransp ?? p.badgeBg) : p.badgeBg
   const badgeTextColor = isTransparent ? (p.badgeTextTransp ?? p.badgeText) : p.badgeText
   const repraLogoBadgeAccent = isDarkBg ? acHex : 'rgba(229,231,235,0.85)'
@@ -680,7 +723,11 @@ export function WorkoutSummaryStoryCard({
       isolation: 'isolate',
       borderRadius: '24px',
       textShadow: ts,
-      ...(isTransparent ? { background: 'transparent' } : {
+      ...(isClearGlass ? {
+        ...clearGlassCardStyle(),
+        border: '1px solid rgba(255,255,255,0.20)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.52), 0 2px 8px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18)',
+      } : isTransparent ? { background: 'transparent' } : {
         ...glassCardStyle(p.accentHex, p.isDark !== false),
         border: `1px solid ${p.border}`,
         boxShadow: p.isDark !== false
