@@ -285,6 +285,7 @@ export default function TrainingCalendar({
     else setMonth(m => m - 1)
   }
   const nextMonth = () => {
+    if (year > todayYear || (year === todayYear && month >= todayMonth)) return
     if (month === 11) { setYear(y => y + 1); setMonth(0) }
     else setMonth(m => m + 1)
   }
@@ -350,8 +351,15 @@ export default function TrainingCalendar({
             </button>
             <button onClick={nextMonth}
               aria-label={locale === 'ja' ? '次月へ' : 'Next month'}
-              className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
-              style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
+              disabled={isCurrentMonth}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-opacity"
+              style={{
+                background: 'rgba(255,255,255,0.13)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                opacity: isCurrentMonth ? 0.28 : 1,
+                cursor: isCurrentMonth ? 'default' : 'pointer',
+                pointerEvents: isCurrentMonth ? 'none' : 'auto',
+              }}>
               <ChevronRight size={17} style={{ color: '#A1A1AA' }} />
             </button>
           </div>

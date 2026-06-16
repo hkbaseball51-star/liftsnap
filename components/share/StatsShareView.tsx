@@ -131,22 +131,51 @@ function fmtMonthLabel(key: string): string {
 }
 
 const RM_JA_EN: Record<string, string> = {
+  // Chest
   'ベンチプレス': 'BENCH PRESS', 'インクラインベンチプレス': 'INCLINE BENCH',
-  'ダンベルベンチプレス': 'DB BENCH PRESS', 'デッドリフト': 'DEADLIFT',
-  'スクワット': 'SQUAT', 'バーベルスクワット': 'BARBELL SQUAT',
-  'フロントスクワット': 'FRONT SQUAT', 'ルーマニアンデッドリフト': 'RDL',
-  'ショルダープレス': 'SHOULDER PRESS', 'オーバーヘッドプレス': 'OHP',
-  'ダンベルショルダープレス': 'DB SHOULDER PRESS',
-  'ラットプルダウン': 'LAT PULLDOWN', 'チンニング': 'CHIN-UP',
+  'ダンベルベンチプレス': 'DB BENCH PRESS', 'インクラインダンベルプレス': 'INCLINE DB PRESS',
+  'フラットダンベルプレス': 'FLAT DB PRESS', 'ダンベルフライ': 'DUMBBELL FLY',
+  'チェストフライ': 'CHEST FLY', 'ケーブルフライ': 'CABLE FLY',
+  'ケーブルクロスオーバー': 'CABLE CROSSOVER', 'ペックデック': 'PEC DECK',
+  'ディップス': 'DIPS', 'プッシュアップ': 'PUSH-UP',
+  // Back
+  'デッドリフト': 'DEADLIFT', 'ラットプルダウン': 'LAT PULLDOWN',
+  'チンニング': 'CHIN-UP', 'チンアップ': 'CHIN-UP',
   'プルアップ': 'PULL-UP', '懸垂': 'PULL-UP',
-  'バーベルロウ': 'BARBELL ROW', 'ベントオーバーロウ': 'BENT OVER ROW',
-  'ダンベルロウ': 'DB ROW', 'ケーブルロウ': 'CABLE ROW',
-  'レッグプレス': 'LEG PRESS', 'レッグカール': 'LEG CURL',
+  'ベントオーバーロウ': 'BENT OVER ROW', 'ベントオーバーロー': 'BENT OVER ROW',
+  'バーベルロウ': 'BARBELL ROW', 'ダンベルロウ': 'DB ROW',
+  'ワンハンドロウ': 'ONE-ARM ROW', 'ケーブルロウ': 'CABLE ROW',
+  'シーテッドロウ': 'SEATED ROW', 'シュラッグ': 'SHRUG',
+  'グッドモーニング': 'GOOD MORNING',
+  // Shoulders
+  'ショルダープレス': 'SHOULDER PRESS', 'オーバーヘッドプレス': 'OHP',
+  'ミリタリープレス': 'MILITARY PRESS', 'ダンベルショルダープレス': 'DB SHOULDER PRESS',
+  'サイドレイズ': 'LATERAL RAISE', 'フロントレイズ': 'FRONT RAISE',
+  'リアデルトフライ': 'REAR DELT FLY', 'リアレイズ': 'REAR RAISE',
+  'フェイスプル': 'FACE PULL', 'アップライトロウ': 'UPRIGHT ROW',
+  // Biceps
   'バーベルカール': 'BARBELL CURL', 'ダンベルカール': 'DB CURL',
-  'ハンマーカール': 'HAMMER CURL', 'ディップス': 'DIPS',
-  'プッシュアップ': 'PUSH-UP', 'ヒップスラスト': 'HIP THRUST',
-  'ブルガリアンスクワット': 'BULGARIAN SQUAT', 'サイドレイズ': 'LATERAL RAISE',
-  'フェイスプル': 'FACE PULL', 'ランジ': 'LUNGE',
+  'ハンマーカール': 'HAMMER CURL', 'インクラインダンベルカール': 'INCLINE DB CURL',
+  'インクラインカール': 'INCLINE CURL', 'プリーチャーカール': 'PREACHER CURL',
+  'ケーブルカール': 'CABLE CURL', 'アームカール': 'ARM CURL',
+  // Triceps
+  'トライセップスプレスダウン': 'TRICEPS PUSHDOWN', 'トライセプスプッシュダウン': 'TRICEPS PUSHDOWN',
+  'スカルクラッシャー': 'SKULL CRUSHER', 'フレンチプレス': 'FRENCH PRESS',
+  'ナローベンチプレス': 'CLOSE GRIP BENCH', 'オーバーヘッドトライセップスエクステンション': 'OVERHEAD TRICEPS',
+  'トライセプスエクステンション': 'TRICEPS EXT',
+  // Forearms
+  'リストカール': 'WRIST CURL',
+  // Legs
+  'スクワット': 'SQUAT', 'バーベルスクワット': 'BARBELL SQUAT',
+  'フロントスクワット': 'FRONT SQUAT', 'レッグプレス': 'LEG PRESS',
+  'レッグエクステンション': 'LEG EXTENSION', 'ブルガリアンスクワット': 'BULGARIAN SQUAT',
+  'ランジ': 'LUNGE', 'ステップアップ': 'STEP UP',
+  'レッグカール': 'LEG CURL', 'ルーマニアンデッドリフト': 'RDL',
+  'ヒップスラスト': 'HIP THRUST', 'カーフレイズ': 'CALF RAISE',
+  // Abs
+  'クランチ': 'CRUNCH', 'シットアップ': 'SIT UP',
+  'レッグレイズ': 'LEG RAISE', 'アブローラー': 'AB ROLLER',
+  'プランク': 'PLANK', 'ロシアンツイスト': 'RUSSIAN TWIST',
 }
 
 function acRgba(hex: string, alpha: number): string {

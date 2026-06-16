@@ -1,6 +1,7 @@
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
 import type { WeightUnit } from '@/lib/units'
 import type { Locale } from '@/lib/i18n'
+import { JA_TO_EN } from '@/lib/exerciseNames'
 
 // ── Shared types ──────────────────────────────────────────────────────
 export type TodayData = {
@@ -213,38 +214,7 @@ export function clearGlassCardStyle(): { background: string } {
 }
 
 // ── Pure helpers ──────────────────────────────────────────────────────
-const JA_EN: Record<string, string> = {
-  'デッドリフト': 'Deadlift',                   'ベントオーバーロウ': 'Bent Over Row',
-  'ベントオーバーロー': 'Bent Over Row',          'ラットプルダウン': 'Lat Pulldown',
-  'チンニング': 'Chin-up',                        'チンアップ': 'Chin-up',
-  'プルアップ': 'Pull-up',                        '懸垂': 'Pull-up',
-  'ベンチプレス': 'Bench Press',                  'インクラインベンチプレス': 'Incline Bench Press',
-  'ダンベルベンチプレス': 'DB Bench Press',       'インクラインダンベルプレス': 'Incline DB Press',
-  'フラットダンベルプレス': 'Flat DB Press',      'ショルダープレス': 'Shoulder Press',
-  'オーバーヘッドプレス': 'Overhead Press',       'ダンベルショルダープレス': 'DB Shoulder Press',
-  'スクワット': 'Squat',                          'バーベルスクワット': 'Barbell Squat',
-  'フロントスクワット': 'Front Squat',            'レッグプレス': 'Leg Press',
-  'レッグカール': 'Leg Curl',                     'レッグエクステンション': 'Leg Extension',
-  'ルーマニアンデッドリフト': 'Romanian Deadlift','アームカール': 'Arm Curl',
-  'バーベルカール': 'Barbell Curl',               'ダンベルカール': 'DB Curl',
-  'ハンマーカール': 'Hammer Curl',                'トライセプスエクステンション': 'Tricep Extension',
-  'トライセプスプッシュダウン': 'Tricep Pushdown','プッシュダウン': 'Pushdown',
-  'サイドレイズ': 'Lateral Raise',               'リアレイズ': 'Rear Delt Raise',
-  'フロントレイズ': 'Front Raise',                'ダンベルロウ': 'DB Row',
-  'ワンハンドロウ': 'One-Arm Row',                'ケーブルロウ': 'Cable Row',
-  'シーテッドロウ': 'Seated Row',                 'プランク': 'Plank',
-  'ディップス': 'Dips',                           'プッシュアップ': 'Push-up',
-  'チェストフライ': 'Chest Fly',                  'ペックデック': 'Pec Deck',
-  'ケーブルクロスオーバー': 'Cable Crossover',    'カーフレイズ': 'Calf Raise',
-  'ヒップスラスト': 'Hip Thrust',                 'グッドモーニング': 'Good Morning',
-  'バーベルロウ': 'Barbell Row',                  'ケーブルカール': 'Cable Curl',
-  'フェイスプル': 'Face Pull',                    'シュラッグ': 'Shrug',
-  'ランジ': 'Lunge',                              'ブルガリアンスクワット': 'Bulgarian Split Squat',
-  'ケーブルフライ': 'Cable Fly',                  'インクラインカール': 'Incline Curl',
-  'ステップアップ': 'Step Up',
-}
-
-export const tname = (n: string) => JA_EN[n] ?? n
+export const tname = (n: string) => JA_TO_EN[n] ?? n
 export const fmtKg  = (v: number) => v === Math.round(v) ? `${v}` : `${v.toFixed(1)}`
 
 export function fmtDate(s: string) {
