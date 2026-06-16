@@ -6,7 +6,6 @@ import Link from 'next/link'
 import {
   ChevronLeft, ChevronRight,
   Ruler, Globe,
-  Crown,
   HelpCircle, FileText,
   AlertTriangle, Shield,
   Database, Zap,
@@ -91,6 +90,7 @@ export default function SettingsPage() {
   const [demoMsg,  setDemoMsg]  = useState('')
 
   const handleVersionTap = () => {
+    if (process.env.NODE_ENV === 'production') return
     if (tapTimer.current) clearTimeout(tapTimer.current)
     tapCount.current += 1
     if (tapCount.current >= 5) {
@@ -158,31 +158,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ── REPRA PRO — Coming Soon ── */}
-      {/* TODO_PRO: When Pro launches, replace this card with a purchase flow. */}
-      <div className="mx-4 mb-4">
-        <SectionLabel text={t(locale, 'settings.sectionPro')} />
-        <div className="rounded-2xl p-4"
-          style={{ background: 'var(--card-bg-primary)', border: '1px solid rgba(237,116,47,0.20)' }}>
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-              style={{ background: 'rgba(237,116,47,0.12)', border: '1px solid rgba(237,116,47,0.25)' }}>
-              <Crown size={14} style={{ color: '#ED742F' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{t(locale, 'settings.proTeaserTitle')}</p>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t(locale, 'settings.proTeaserBody')}</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-center py-2.5 rounded-xl"
-            style={{ background: 'rgba(237,116,47,0.08)', border: '1px solid rgba(237,116,47,0.18)' }}>
-            <span className="text-[10px] font-black tracking-widest" style={{ color: 'rgba(237,116,47,0.65)' }}>
-              {t(locale, 'settings.proComingSoon').toUpperCase()}
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* ── Appearance ── */}
       <AppearanceSection />
 
@@ -198,8 +173,8 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* ── DEMO MODE (hidden — revealed by 5 taps on version label) ── */}
-      {showDemo && demoMounted && (
+      {/* ── DEMO MODE (hidden — revealed by 5 taps on version label, dev only) ── */}
+      {process.env.NODE_ENV !== 'production' && showDemo && demoMounted && (
         <div className="mx-4 mb-10">
           <SectionLabel text="— DEVELOPER —" />
           <div style={{ ...T.card, borderColor: isDemo ? 'rgba(237,116,47,0.45)' : undefined }}>
@@ -209,7 +184,7 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Demo Data Mode</p>
                 <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  {locale === 'ja' ? 'デモユーザーIDのSupabaseデータを読み込む' : 'Loads demo user data from Supabase'}
+                  {locale === 'ja' ? 'デモ用のサンプルデータを読み込む' : 'Loads pre-populated demo workout records'}
                 </p>
               </div>
               <div className="px-2.5 py-1 rounded-lg" style={{
@@ -272,8 +247,8 @@ export default function SettingsPage() {
 
           <p className="text-[9px] mt-2 px-1" style={{ color: 'var(--text-disabled)' }}>
             {locale === 'ja'
-              ? '有効化後、ホームへ移動するとデモデータが読み込まれます。URL ?demoUserId= でも有効化できます。'
-              : 'After enabling, navigate to Home to load demo data. URL ?demoUserId= also activates demo mode.'}
+              ? '有効化後、ホームへ移動するとデモデータが読み込まれます。'
+              : 'After enabling, navigate to Home to load demo data.'}
           </p>
         </div>
       )}

@@ -6,7 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
 import Link from 'next/link'
-import { Share2, Maximize2, Settings } from 'lucide-react'
+import { Share2, Maximize2 } from 'lucide-react'
 import { getExercise1RMData, getBodyPartDailyVolumeData } from '@/actions/analytics'
 import {
   localGetExercise1RMData,
@@ -433,11 +433,6 @@ export default function AnalyticsDashboard({ useLocalDB }: Props) {
     <div className="min-h-screen px-4 pt-14 pb-nav" style={{ background: 'var(--app-bg)' }}>
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-black tracking-widest" style={{ color: 'var(--text-primary)' }}>{ja ? '成長データ' : 'ANALYTICS'}</h1>
-        <Link href="/profile/settings"
-          className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0"
-          style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
-          <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
-        </Link>
       </div>
 
       {/* Tab bar */}

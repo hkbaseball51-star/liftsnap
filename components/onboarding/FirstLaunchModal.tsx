@@ -161,7 +161,7 @@ export default function FirstLaunchModal() {
               <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.62)', lineHeight: 1.6 }}>
                 {t(locale, 'onboarding.agreeLabel')}
                 <a
-                  href="https://repraworkout.com/terms"
+                  href="https://app.repraworkout.com/terms"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: ACCENT, fontWeight: 600 }}
@@ -171,7 +171,7 @@ export default function FirstLaunchModal() {
                 </a>
                 {t(locale, 'onboarding.and')}
                 <a
-                  href="https://repraworkout.com/privacy"
+                  href="https://app.repraworkout.com/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: ACCENT, fontWeight: 600 }}

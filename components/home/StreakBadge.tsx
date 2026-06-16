@@ -30,7 +30,6 @@ export default function StreakBadge({
   const workoutsDone = thisWeekWorkouts >= 2
   const photosDone   = thisWeekPhotos >= 1
   // TODO: Story share dates not persisted yet — always 0 until implemented
-  const storiesDone  = false
 
   const close = () => setOpen(false)
 
@@ -215,14 +214,6 @@ export default function StreakBadge({
                   current={thisWeekPhotos}
                   required={1}
                   done={photosDone}
-                />
-                <ProgressRow
-                  label={locale === 'ja' ? 'ストーリー' : 'Story shares'}
-                  current={0}
-                  required={1}
-                  done={storiesDone}
-                  comingSoon
-                  comingSoonLabel={locale === 'ja' ? '近日公開' : 'Coming soon'}
                 />
               </div>
 

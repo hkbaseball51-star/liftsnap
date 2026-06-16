@@ -323,10 +323,12 @@ export default function TrainingCalendar({
     <>
     <div className="premium-card rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <div>
-          <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: 'var(--text-label)' }}>TRAINING LOG</p>
-          <div className="flex items-center gap-2">
+      <div className="px-4 pt-3 pb-2">
+
+        {/* Row 1 — month title (left) + nav arrows (right) */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div>
+            <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: 'var(--text-label)' }}>TRAINING LOG</p>
             {/* Tappable month title → opens jump sheet */}
             <button
               onClick={() => setJumpOpen(true)}
@@ -338,41 +340,53 @@ export default function TrainingCalendar({
               <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>{year}</span>
               <ChevronDown size={12} style={{ color: 'var(--text-muted)', marginTop: 1 }} />
             </button>
-            {thisMonthCount > 0 && (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(237,116,47,0.15)', color: '#ED742F' }}>
-                {thisMonthCount === 1 ? '1 session' : `${thisMonthCount} sessions`}
-              </span>
-            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button onClick={prevMonth}
+              aria-label={locale === 'ja' ? '前月へ' : 'Previous month'}
+              className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
+              style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
+              <ChevronLeft size={17} style={{ color: '#A1A1AA' }} />
+            </button>
+            <button onClick={nextMonth}
+              aria-label={locale === 'ja' ? '次月へ' : 'Next month'}
+              className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
+              style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
+              <ChevronRight size={17} style={{ color: '#A1A1AA' }} />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          {/* Today button — hidden when already on current month */}
-          {!isCurrentMonth && (
-            <button
-              onClick={goToToday}
-              className="h-8 px-2.5 rounded-lg flex items-center justify-center active:opacity-80 transition-opacity"
-              style={{
-                background: 'rgba(237,116,47,0.12)',
-                border: '1px solid rgba(237,116,47,0.30)',
-                fontSize: 10, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em',
-              }}>
-              {locale === 'ja' ? '今月' : 'Today'}
-            </button>
-          )}
-          <button onClick={prevMonth}
-            aria-label={locale === 'ja' ? '前月へ' : 'Previous month'}
-            className="w-11 h-11 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
-            style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
-            <ChevronLeft size={20} style={{ color: '#A1A1AA' }} />
-          </button>
-          <button onClick={nextMonth}
-            aria-label={locale === 'ja' ? '次月へ' : 'Next month'}
-            className="w-11 h-11 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
-            style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.22)' }}>
-            <ChevronRight size={20} style={{ color: '#A1A1AA' }} />
-          </button>
-        </div>
+
+        {/* Row 2 — sessions badge (left) + Today button (right) */}
+        {(thisMonthCount > 0 || !isCurrentMonth) && (
+          <div className="flex items-center justify-between" style={{ minHeight: 26 }}>
+            <div>
+              {thisMonthCount > 0 && (
+                <span className="text-[10px] font-black px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(237,116,47,0.15)', color: '#ED742F' }}>
+                  {locale === 'ja'
+                    ? `${thisMonthCount}回`
+                    : thisMonthCount === 1 ? '1 session' : `${thisMonthCount} sessions`}
+                </span>
+              )}
+            </div>
+            <div>
+              {!isCurrentMonth && (
+                <button
+                  onClick={goToToday}
+                  className="h-7 px-3 rounded-lg flex items-center justify-center active:opacity-80 transition-opacity"
+                  style={{
+                    background: 'rgba(237,116,47,0.12)',
+                    border: '1px solid rgba(237,116,47,0.30)',
+                    fontSize: 10, fontWeight: 700, color: '#ED742F', letterSpacing: '0.04em',
+                  }}>
+                  {locale === 'ja' ? '今月' : 'Today'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       <div className="px-3 pb-3">

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { TrendingUp, BarChart2, Activity, Lock, ChevronRight, Settings, Crown } from 'lucide-react'
+import { TrendingUp, BarChart2, Activity, Lock, ChevronRight } from 'lucide-react'
 import { useWeightUnit } from '@/lib/useWeightUnit'
 import { useTheme } from '@/lib/useTheme'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit } from '@/lib/units'
@@ -257,11 +257,6 @@ export default function ShareLandingView({
               {ja ? '今日の努力をストーリーカードに変換する' : "Turn today's effort into a story."}
             </p>
           </div>
-          <Link href="/profile/settings"
-            className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-0.5"
-            style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
-            <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
-          </Link>
         </div>
       </div>
 
@@ -607,34 +602,6 @@ export default function ShareLandingView({
               </div>
             )}
 
-          </div>
-        </div>
-
-        {/* ── C. REPRA Pro info ───────────────────────────── */}
-        <div style={{
-          background: 'var(--card-bg-primary)',
-          border: '1px solid rgba(237,116,47,0.18)',
-          borderRadius: 16,
-          padding: '13px 14px',
-          opacity: 0.90,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,116,47,0.10)', border: '1px solid rgba(237,116,47,0.18)' }}>
-              <Crown size={15} color="rgba(237,116,47,0.65)" />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>REPRA Pro</p>
-                <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.10em', padding: '2px 5px', borderRadius: 4, background: 'rgba(237,116,47,0.10)', color: 'rgba(237,116,47,0.60)', border: '1px solid rgba(237,116,47,0.15)' }}>
-                  {ja ? '準備中' : 'COMING SOON'}
-                </span>
-              </div>
-              <p style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                {ja
-                  ? 'プレミアムテンプレート、透かし削除、長期グラフ共有などを準備中です。'
-                  : 'Premium templates, watermark removal, and long-term graph sharing are planned.'}
-              </p>
-            </div>
           </div>
         </div>
 

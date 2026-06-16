@@ -297,13 +297,6 @@ function OverviewTab({
             loading={!dataLoaded}
             accent
           />
-          <ProofSummaryCell
-            label={t(locale, 'proof.summaryStories')}
-            value="—"
-            sub={t(locale, 'proof.summaryStoriesComingSoon')}
-            loading={false}
-            muted
-          />
         </div>
       </div>
 

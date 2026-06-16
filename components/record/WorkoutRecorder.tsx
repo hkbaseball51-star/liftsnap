@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2, Settings } from 'lucide-react'
+import { Plus, X, Pencil, Minus, Camera, ImageIcon, Share2 } from 'lucide-react'
 import { localCreateSession, localSaveFullSession, localDeleteSession, localGetExercisePR, localGetExercisePRBatch, localUpsertBodyWeight, localGetPreviousSession, localGetPreviousSessionByType, localGetExerciseHistory, type PreviousSessionData, type ExerciseHistoryResult } from '@/lib/localDB'
 import { getDemoPreviousSession, getDemoPreviousSessionByType } from '@/actions/demo'
 import { useDemoMode } from '@/lib/useDemoMode'
@@ -904,11 +904,6 @@ export default function WorkoutRecorder({
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
             {formatNavDate(date, locale)}
           </span>
-          <Link href="/profile/settings"
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70"
-            style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
-            <Settings size={16} style={{ color: 'var(--header-icon-color)' }} />
-          </Link>
         </div>
 
         {/* Row 1.5: session title */}
