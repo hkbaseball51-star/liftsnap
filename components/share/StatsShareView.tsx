@@ -9,7 +9,6 @@ import { useLocale } from '@/lib/useLocale'
 import { toDisplayWeight, weightUnitLabel, formatVolumeWithUnit, type WeightUnit } from '@/lib/units'
 import { PRESETS, glassCardStyle } from '@/components/share/WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
-import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
 import { useCardLang } from '@/lib/useCardLang'
 import { useTheme } from '@/lib/useTheme'
 
@@ -1058,7 +1057,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const ja         = locale === 'ja'
   const { theme: appTheme } = useTheme()
   const isLight = appTheme === 'light'
-  const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
   const [cardLang, setCardLang] = useCardLang(locale)
   const cl = (en: string, ja2: string) => cardLang === 'ja' ? ja2 : en
 
@@ -1155,7 +1153,7 @@ export default function StatsShareView({ data }: { data: StatsData }) {
   const bestRM         = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).bestRM : 0
   const exNameRaw      = isMax1RM ? (data as Extract<StatsData,{type:'max1rm'}>).exerciseName : ''
   const exNameEn       = RM_JA_EN[exNameRaw] ?? exNameRaw.toUpperCase()
-  const exNameDisplay  = exerciseNameLang === 'ja' ? exNameRaw : exNameEn
+  const exNameDisplay  = cardLang === 'ja' ? exNameRaw : exNameEn
   const exName         = exNameDisplay.length > 18 ? exNameDisplay.slice(0, 17) + '…' : exNameDisplay
 
   const rm1Growth   = rm1FullHistory.length >= 2
@@ -1715,9 +1713,9 @@ export default function StatsShareView({ data }: { data: StatsData }) {
         </>
       )}
 
-      {/* ② CARD LANGUAGE ──────────────────────────────────── */}
+      {/* ② DISPLAY LANGUAGE ─────────────────────────────── */}
       <div className="px-4 mb-3">
-        {sectionLabel(ja ? 'カード表示言語' : 'CARD LANGUAGE')}
+        {sectionLabel(ja ? '表示言語' : 'DISPLAY LANGUAGE')}
         <div className="flex gap-2">
           {([
             { value: 'en' as const, label: ja ? '英語' : 'English' },
@@ -1738,32 +1736,6 @@ export default function StatsShareView({ data }: { data: StatsData }) {
           })}
         </div>
       </div>
-
-      {/* ③ EXERCISE NAME LANGUAGE — MAX 1RM only ──────────── */}
-      {isMax1RM && (
-        <div className="px-4 mb-3">
-          {sectionLabel(ja ? '種目名の表示' : 'EXERCISE NAMES')}
-          <div className="flex gap-2">
-            {([
-              { value: 'en' as const, label: ja ? '英語' : 'English'  },
-              { value: 'ja' as const, label: '日本語'    },
-            ]).map(({ value, label }) => {
-              const sel = exerciseNameLang === value
-              return (
-                <button key={value} onClick={() => setExerciseNameLang(value)}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold"
-                  style={{
-                    background: sel ? acRgba(rawUiAc, 0.15) : 'var(--surface-chip)',
-                    color: sel ? uiAc : 'var(--text-inactive)',
-                    border: `1.5px solid ${sel ? uiAc : 'var(--border-subtle)'}`,
-                  }}>
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ④ CARD STYLE ───────────────────────────────────────── */}
       <div className="px-4 mb-3">

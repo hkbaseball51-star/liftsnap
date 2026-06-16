@@ -9,7 +9,7 @@ import { useLocale } from '@/lib/useLocale'
 import WorkoutStoryCardContent, { ExerciseStoryCard, WorkoutSummaryStoryCard, tname, PRESETS } from './WorkoutStoryCardContent'
 import type { TodayData, CardStyle, DesignPreset, ShadowMode } from './WorkoutStoryCardContent'
 import { captureElement, shareOrDownloadImage } from '@/lib/shareImage'
-import { useExerciseNameLang } from '@/lib/useExerciseNameLang'
+import { useCardLang } from '@/lib/useCardLang'
 import { useTheme } from '@/lib/useTheme'
 
 export type { TodayData }
@@ -73,7 +73,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
   })
   const [shadowMode,    setShadowMode]     = useState<ShadowMode>('strong')
   const [saveFormat,    setSaveFormat]     = useState<'combined' | 'per-exercise'>('combined')
-  const [exerciseNameLang, setExerciseNameLang] = useExerciseNameLang(locale)
+  const [cardLang, setCardLang] = useCardLang(locale)
   const [saving,        setSaving]         = useState(false)
   const [status,        setStatus]         = useState('')
   const [shareCount,    setShareCount]     = useState(0)
@@ -295,24 +295,24 @@ export default function TodayShareView({ data }: { data: TodayData }) {
 
       {/* ── Settings sections ─────────────────────────────────────────── */}
 
-      {/* Exercise Name Language */}
+      {/* Display Language */}
       <div className="px-4 mb-3">
         <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-          {ja ? '種目名の表示' : 'Exercise Names'}
+          {ja ? '表示言語' : 'Display Language'}
         </p>
         <div className="flex gap-2">
           {([
             { value: 'en' as const, labelJa: '英語', labelEn: 'English' },
-            { value: 'ja' as const, labelJa: '日本語',   labelEn: 'Japanese' },
+            { value: 'ja' as const, labelJa: '日本語', labelEn: 'Japanese' },
           ]).map(({ value, labelJa, labelEn }) => (
             <button key={value}
               className="flex-1 py-2.5 rounded-xl text-xs font-bold"
               style={{
-                background: exerciseNameLang === value ? '#ED742F' : 'var(--surface-chip)',
-                color:      exerciseNameLang === value ? '#fff'    : 'var(--text-secondary)',
-                border:     `1px solid ${exerciseNameLang === value ? '#ED742F' : 'var(--border-subtle)'}`,
+                background: cardLang === value ? '#ED742F' : 'var(--surface-chip)',
+                color:      cardLang === value ? '#fff'    : 'var(--text-secondary)',
+                border:     `1px solid ${cardLang === value ? '#ED742F' : 'var(--border-subtle)'}`,
               }}
-              onClick={() => setExerciseNameLang(value)}>
+              onClick={() => setCardLang(value)}>
               {ja ? labelJa : labelEn}
             </button>
           ))}
@@ -477,10 +477,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       cardStyle={cardStyle}
                       preset={preset}
                       unit={unit}
-                      locale={locale}
+                      locale={cardLang}
                       isPast={isPast}
                       shadowMode={shadowMode}
-                      exerciseNameLang={exerciseNameLang}
+                      exerciseNameLang={cardLang}
                     />
                   </div>
                 </div>
@@ -522,7 +522,7 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       cardStyle={cardStyle}
                       preset={preset}
                       unit={unit}
-                      locale={locale}
+                      locale={cardLang}
                       isPast={isPast}
                       shadowMode={shadowMode}
                     />
@@ -582,10 +582,10 @@ export default function TodayShareView({ data }: { data: TodayData }) {
                       cardStyle={cardStyle}
                       preset={preset}
                       unit={unit}
-                      locale={locale}
+                      locale={cardLang}
                       isPast={isPast}
                       shadowMode={shadowMode}
-                      exerciseNameLang={exerciseNameLang}
+                      exerciseNameLang={cardLang}
                     />
                   </div>
                 </div>
