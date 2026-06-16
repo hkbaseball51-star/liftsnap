@@ -350,23 +350,25 @@ export default function WorkoutStoryCardContent({
 
       {/* WORKOUT label · date · title */}
       <div style={{ marginTop: 12 }}>
-        <p style={{
+        <div style={{
+          display: 'block',
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
           color: ptxt(0.42), margin: 0, lineHeight: 1,
         }}>
           {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
-        </p>
-        <p style={{ fontSize: 11, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
+        </div>
+        <div style={{ display: 'block', fontSize: 11, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
           {fmtDate(data.date)}
-        </p>
-        <p style={{
+        </div>
+        <div style={{
+          display: 'block',
           fontSize: 16, fontWeight: 900, color: textPrimary,
           lineHeight: 1.15, margin: '4px 0 0', letterSpacing: '-0.01em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           textTransform: 'uppercase',
         }}>
           {data.title}
-        </p>
+        </div>
       </div>
 
       {/* Divider */}
@@ -374,19 +376,21 @@ export default function WorkoutStoryCardContent({
 
       {/* TOTAL VOLUME */}
       <div>
-        <p style={{
+        <div style={{
+          display: 'block',
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
           color: ptxt(0.42), margin: '0 0 6px', lineHeight: 1,
         }}>
           TOTAL VOLUME
-        </p>
-        <p style={{
+        </div>
+        <div style={{
+          display: 'block',
           fontSize: tp.volumeSize, fontWeight: 900, color: acHex,
           lineHeight: 1, margin: 0, letterSpacing: '-0.025em',
         }}>
           {volStr}
-        </p>
-        <p style={{ fontSize: 11, color: subTextColor, margin: '7px 0 0', lineHeight: 1 }}>
+        </div>
+        <div style={{ display: 'block', fontSize: 11, color: subTextColor, margin: '7px 0 0', lineHeight: 1 }}>
           {data.setsCount}&thinsp;SETS
           {g1rm > 0 && (
             <>
@@ -396,7 +400,7 @@ export default function WorkoutStoryCardContent({
               </span>
             </>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Divider */}
@@ -409,12 +413,13 @@ export default function WorkoutStoryCardContent({
             width: 2, height: 9, borderRadius: 1,
             background: accentDot, flexShrink: 0,
           }} />
-          <p style={{
+          <div style={{
+            display: 'block',
             fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
             color: ptxt(0.42), margin: 0, lineHeight: 1,
           }}>
             EXERCISES
-          </p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: tp.exGap }}>
@@ -466,14 +471,15 @@ export default function WorkoutStoryCardContent({
       </div>
 
       {/* Made with REPRA */}
-      <p style={{
+      <div style={{
+        display: 'block',
         fontSize: 8,
         color: isTransparent ? ptxt(0.45) : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
       }}>
         Made with{' '}
         <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
-      </p>
+      </div>
 
     </div>
   )
@@ -555,30 +561,32 @@ export function ExerciseStoryCard({
 
       {/* Label + date */}
       <div style={{ marginTop: 10 }}>
-        <p style={{
+        <div style={{
+          display: 'block',
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
           color: ptxt(0.42), margin: 0, lineHeight: 1,
         }}>
           {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
-        </p>
-        <p style={{ fontSize: 11, color: subTextColor, margin: '4px 0 0', lineHeight: 1 }}>
+        </div>
+        <div style={{ display: 'block', fontSize: 11, color: subTextColor, margin: '4px 0 0', lineHeight: 1 }}>
           {fmtDate(data.date)}
-        </p>
+        </div>
       </div>
 
       {/* Divider */}
       <div style={{ height: 1, width: '60%', background: dividerColor, margin: '10px 0' }} />
 
       {/* Exercise name */}
-      <p style={{
+      <div style={{
+        display: 'block',
         fontSize: 20, fontWeight: 900, color: textPrimary,
         margin: 0, lineHeight: 1.15, letterSpacing: '-0.02em',
       }}>
         {dn(data.name)}
-      </p>
+      </div>
 
       {/* Sets + est. 1RM */}
-      <p style={{ fontSize: 12, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
+      <div style={{ display: 'block', fontSize: 12, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
         {data.setCount}{locale === 'ja' ? 'セット' : ' sets'}
         {data.best1RM > 0 && (
           <>
@@ -588,7 +596,7 @@ export function ExerciseStoryCard({
             </span>
           </>
         )}
-      </p>
+      </div>
 
       {/* Divider */}
       <div style={{ height: 1, width: '60%', background: dividerColor, margin: '10px 0' }} />
@@ -601,25 +609,27 @@ export function ExerciseStoryCard({
             : s.reps > 0 ? `BW × ${s.reps}` : null
           if (!str) return null
           return (
-            <p key={i} style={{
+            <div key={i} style={{
+              display: 'block',
               fontSize: 18, color: ptxt(0.88),
               margin: 0, lineHeight: 1.2,
             }}>
               {str}
-            </p>
+            </div>
           )
         })}
       </div>
 
       {/* Made with REPRA */}
-      <p style={{
+      <div style={{
+        display: 'block',
         fontSize: 8,
         color: isTransparent ? ptxt(0.45) : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 10,
       }}>
         Made with{' '}
         <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
-      </p>
+      </div>
 
     </div>
   )
@@ -692,23 +702,25 @@ export function WorkoutSummaryStoryCard({
 
       {/* TODAY'S WORKOUT · date · session title */}
       <div style={{ marginTop: 16 }}>
-        <p style={{
+        <div style={{
+          display: 'block',
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
           color: ptxt(0.42), margin: 0, lineHeight: 1,
         }}>
           {isPast ? 'WORKOUT STORY' : "TODAY'S WORKOUT"}
-        </p>
-        <p style={{ fontSize: 11, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
+        </div>
+        <div style={{ display: 'block', fontSize: 11, color: subTextColor, margin: '5px 0 0', lineHeight: 1 }}>
           {fmtDate(data.date)}
-        </p>
-        <p style={{
+        </div>
+        <div style={{
+          display: 'block',
           fontSize: 20, fontWeight: 900, color: textPrimary,
           lineHeight: 1.15, margin: '6px 0 0', letterSpacing: '-0.01em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           textTransform: 'uppercase',
         }}>
           {data.title}
-        </p>
+        </div>
       </div>
 
       {/* Divider */}
@@ -716,19 +728,21 @@ export function WorkoutSummaryStoryCard({
 
       {/* TOTAL VOLUME */}
       <div>
-        <p style={{
+        <div style={{
+          display: 'block',
           fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
           color: ptxt(0.42), margin: '0 0 8px', lineHeight: 1,
         }}>
           TOTAL VOLUME
-        </p>
-        <p style={{
+        </div>
+        <div style={{
+          display: 'block',
           fontSize: 52, fontWeight: 900, color: acHex,
           lineHeight: 1, margin: 0, letterSpacing: '-0.03em',
         }}>
           {volStr}
-        </p>
-        <p style={{ fontSize: 12, color: subTextColor, margin: '12px 0 0', lineHeight: 1 }}>
+        </div>
+        <div style={{ display: 'block', fontSize: 12, color: subTextColor, margin: '12px 0 0', lineHeight: 1 }}>
           {data.setsCount}&thinsp;{locale === 'ja' ? 'セット' : 'SETS'}
           {g1rm > 0 && (
             <>
@@ -738,18 +752,19 @@ export function WorkoutSummaryStoryCard({
               </span>
             </>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Made with REPRA */}
-      <p style={{
+      <div style={{
+        display: 'block',
         fontSize: 8,
         color: isTransparent ? ptxt(0.45) : ptxt(0.22),
         textAlign: 'right', letterSpacing: '0.06em', lineHeight: 1, marginTop: 28,
       }}>
         Made with{' '}
         <span style={{ color: accentFooter, fontWeight: 700 }}>REPRA</span>
-      </p>
+      </div>
 
     </div>
   )
