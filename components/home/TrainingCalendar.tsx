@@ -151,7 +151,8 @@ const MONTH_NAMES    = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const MONTH_NAMES_JA = ['1月', '2月', '3月', '4月', '5月', '6月',
   '7月', '8月', '9月', '10月', '11月', '12月']
-const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const DAY_NAMES    = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const DAY_NAMES_JA = ['日', '月', '火', '水', '木', '金', '土']
 
 // CALENDAR_LABEL_LEGEND is re-exported from lib/calendarLabel for external use
 export { CALENDAR_LABEL_LEGEND }
@@ -329,7 +330,7 @@ export default function TrainingCalendar({
         {/* Row 1 — month title (left) + nav arrows (right) */}
         <div className="flex items-center justify-between mb-1.5">
           <div>
-            <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: 'var(--text-label)' }}>TRAINING LOG</p>
+            <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: isLight ? 'var(--text-label)' : '#FFFFFF' }}>TRAINING LOG</p>
             {/* Tappable month title → opens jump sheet */}
             <button
               onClick={() => setJumpOpen(true)}
@@ -338,8 +339,8 @@ export default function TrainingCalendar({
               <span className="text-xl font-black tracking-wider" style={{ color: 'var(--text-primary)' }}>
                 {locale === 'ja' ? MONTH_NAMES_JA[month] : MONTH_NAMES[month]}
               </span>
-              <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>{year}</span>
-              <ChevronDown size={12} style={{ color: 'var(--text-muted)', marginTop: 1 }} />
+              <span className="text-lg font-bold" style={{ color: isLight ? 'var(--text-muted)' : '#FFFFFF' }}>{year}</span>
+              <ChevronDown size={12} style={{ color: isLight ? 'var(--text-muted)' : '#FFFFFF', marginTop: 1 }} />
             </button>
           </div>
           <div className="flex items-center gap-1.5">
@@ -403,9 +404,9 @@ export default function TrainingCalendar({
 
           {/* Day labels */}
           <div className="grid grid-cols-7 mb-1">
-            {DAY_NAMES.map(d => (
-              <div key={d} className="text-center py-1">
-                <span className="text-[9px] font-black tracking-wider" style={{ color: 'var(--text-muted)' }}>{d}</span>
+            {(locale === 'ja' ? DAY_NAMES_JA : DAY_NAMES).map((d, i) => (
+              <div key={i} className="text-center py-1">
+                <span className="text-[9px] font-black tracking-wider" style={{ color: isLight ? 'var(--text-muted)' : '#FFFFFF' }}>{d}</span>
               </div>
             ))}
           </div>
@@ -462,7 +463,7 @@ export default function TrainingCalendar({
                 bg        = 'transparent'
                 border    = '1px solid transparent'
                 shadow    = 'none'
-                textColor = isFuture ? '#2a2a2a' : '#5a5a5a'
+                textColor = isLight ? (isFuture ? '#2a2a2a' : '#5a5a5a') : '#FFFFFF'
               }
 
               if (hasPhoto) {

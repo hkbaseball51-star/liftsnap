@@ -24,8 +24,11 @@
 
   /* Theme-switchable tokens (default = dark) */
   --app-bg: #0a0a0a;
-  --nav-bg: #0a0a0a;
-  --nav-border: #1e1e1e;
+  --nav-bg: #0B0B0C;
+  --nav-border: #27272A;
+  --nav-inactive-icon: rgba(255,255,255,0.90);
+  --nav-inactive-label: rgba(255,255,255,0.88);
+  --nav-active-bg: transparent;
   --card-bg-primary: #1D1D1D;
   --card-border-primary: rgba(255,255,255,0.17);
   --card-divider: rgba(255,255,255,0.07);
@@ -76,8 +79,11 @@
 
   /* Theme-switchable tokens (light) */
   --app-bg: #F8F7F3;
-  --nav-bg: rgba(255,255,255,0.92);
-  --nav-border: rgba(0,0,0,0.08);
+  --nav-bg: #FFFFFF;
+  --nav-border: #E4E4E7;
+  --nav-inactive-icon: #667085;
+  --nav-inactive-label: #4B5563;
+  --nav-active-bg: rgba(242, 107, 33, 0.09);
   --card-bg-primary: #FFFFFF;
   --card-border-primary: rgba(0,0,0,0.08);
   --card-divider: rgba(0,0,0,0.06);
@@ -158,9 +164,9 @@ h1, h2 {
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-/* Nav total height: 10px top padding + 56px row + 10px bottom padding = 76px (+ safe area).
+/* Nav total height: 8px top padding + 56px row + 8px bottom padding = 72px (+ safe area).
    pb-nav gives page content clearance equal to the nav height so nothing is hidden. */
-.pb-nav { padding-bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
+.pb-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
