@@ -9,24 +9,26 @@ import TrainingHistorySection, { getAutoFilter } from './TrainingHistorySection'
 import { CALENDAR_LABEL_LEGEND } from '@/lib/calendarLabel'
 import { useLocale } from '@/lib/useLocale'
 import { t } from '@/lib/i18n'
+import { useTheme } from '@/lib/useTheme'
 
 const LEGEND_NAME_JA: Record<string, string> = {
   PUS: 'プッシュ', PUL: 'プル', LEG: '脚', FULL: '全身',
   C: '胸', B: '背中', L: '脚', S: '肩', A: '腕', ABS: '腹筋',
 }
 
-function LegendItem({ label, name, color, ja }: { label: string; name: string; color: string; ja: boolean }) {
+function LegendItem({ label, name, color, ja, isLight }: { label: string; name: string; color: string; ja: boolean; isLight: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
       <span style={{
-        fontSize: 11, fontWeight: 800, letterSpacing: '0.04em',
-        color, lineHeight: 1,
+        fontSize: 'clamp(15px, 4vw, 17px)', fontWeight: 800, letterSpacing: '0.04em',
+        color, lineHeight: 1.2,
       }}>
         {label}
       </span>
       <span style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-        color: 'var(--text-muted)', lineHeight: 1,
+        fontSize: 'clamp(13px, 3.6vw, 15px)', fontWeight: 600, letterSpacing: '0.01em',
+        color: isLight ? 'var(--text-muted)' : '#FFFFFF', lineHeight: 1.2,
+        whiteSpace: 'nowrap',
       }}>
         {ja ? (LEGEND_NAME_JA[label] ?? name) : name}
       </span>
@@ -34,13 +36,14 @@ function LegendItem({ label, name, color, ja }: { label: string; name: string; c
   )
 }
 
-const SECTION_TITLE: React.CSSProperties = {
-  fontSize: 9, fontWeight: 800, letterSpacing: '0.14em',
-  color: 'var(--text-label)', marginBottom: 8,
-  textTransform: 'uppercase',
-}
-
 function CalendarLegend({ ja }: { ja: boolean }) {
+  const { theme: appTheme } = useTheme()
+  const isLight = appTheme === 'light'
+  const sectionTitle = {
+    fontSize: 'clamp(14px, 3.8vw, 16px)', fontWeight: 700, letterSpacing: '0.08em',
+    color: isLight ? 'var(--text-label)' : '#FFFFFF', marginBottom: 8,
+    textTransform: 'uppercase' as const,
+  }
   return (
     <div style={{
       background: 'var(--card-bg-primary)',
@@ -49,22 +52,22 @@ function CalendarLegend({ ja }: { ja: boolean }) {
       padding: '10px 14px',
       marginTop: 10,
     }}>
-      {/* SPLIT — horizontal wrap */}
-      <p style={SECTION_TITLE}>SPLIT</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 10 }}>
+      {/* SPLIT — full width */}
+      <p style={sectionTitle}>SPLIT</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
         {CALENDAR_LABEL_LEGEND.split.map((item) => (
-          <LegendItem key={item.label} {...item} ja={ja} />
+          <LegendItem key={item.label} {...item} ja={ja} isLight={isLight} />
         ))}
       </div>
 
       {/* Horizontal divider */}
       <div style={{ height: 1, background: 'var(--card-divider)', marginBottom: 10 }} />
 
-      {/* MUSCLE — horizontal wrap */}
-      <p style={SECTION_TITLE}>MUSCLE</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+      {/* MUSCLE — full width */}
+      <p style={sectionTitle}>MUSCLE</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         {CALENDAR_LABEL_LEGEND.muscle.map((item) => (
-          <LegendItem key={item.label} {...item} ja={ja} />
+          <LegendItem key={item.label} {...item} ja={ja} isLight={isLight} />
         ))}
       </div>
     </div>
