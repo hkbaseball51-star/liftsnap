@@ -34,6 +34,13 @@ function diffColor(n: number): string {
   return 'var(--text-muted)'
 }
 
+function diffColorBright(n: number, isLight: boolean): string {
+  if (isLight) return diffColor(n)
+  if (n > 0) return '#34D77B'
+  if (n < 0) return '#FF6673'
+  return '#A1A1AA'
+}
+
 function fmtVolDiff(diffKg: number, unit: WeightUnit): string {
   const sign = diffKg > 0 ? '+' : ''
   if (unit === 'lbs') {
@@ -211,6 +218,12 @@ export default function WorkoutDetailSheet({
 
   const divider = 'var(--card-divider)'
 
+  // Dark-theme overrides for card backgrounds in this sheet
+  const summaryCardBg     = isLight ? 'var(--card-bg-primary)' : '#222225'
+  const summaryCardBorder = isLight ? 'var(--card-border-primary)' : '#3F3F46'
+  const compCardBg        = isLight ? 'var(--card-bg-primary)' : '#1F1F21'
+  const compCardBorder    = isLight ? 'var(--card-border-primary)' : '#333338'
+
   return (
     <>
       {/* ── Backdrop ─────────────────────────────────────────────────────── */}
@@ -236,92 +249,117 @@ export default function WorkoutDetailSheet({
           WebkitOverflowScrolling: 'touch',
         } as React.CSSProperties}>
 
-        {/* Drag bar */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 2 }}>
-          <div style={{
-            width: 36, height: 4, borderRadius: 2,
-            background: 'var(--text-muted)', opacity: 0.4,
-          }} />
-        </div>
-
-        {/* Header row: date / [edit] [close] */}
+        {/* ── Sticky header (drag handle + date row + edit/close) ── */}
         <div style={{
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-          padding: '10px 18px 0',
+          position: 'sticky', top: 0, zIndex: 10,
+          background: 'var(--bg-card)',
+          borderRadius: '22px 22px 0 0',
+          paddingBottom: 10,
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
-                {dateLabel}
-              </span>
-              {agoLabel && (
-                <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>
-                  {agoLabel}
-                </span>
-              )}
-            </div>
-            <span style={{
-              fontSize: 11, fontWeight: 800, letterSpacing: '0.08em',
-              padding: '3px 10px', borderRadius: 20,
-              background: `rgba(${accentRgb}, 0.14)`,
-              color: accentColor,
-              border: `1px solid rgba(${accentRgb}, 0.28)`,
-            }}>
-              {badgeText}
-            </span>
+          {/* Drag bar */}
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 8 }}>
+            <div style={{
+              width: 36, height: 4, borderRadius: 2,
+              background: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.30)',
+            }} />
           </div>
 
-          {/* Edit + Close buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexShrink: 0 }}>
-            <button
-              onClick={() => { onClose(); router.push(`/record?date=${summary.date}&from=calendar`) }}
-              style={{
-                padding: '5px 13px',
-                borderRadius: 20,
-                background: '#F97316',
-                border: 'none',
-                color: '#fff',
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                cursor: 'pointer',
+          {/* Header row: date+badge / [edit] [close] */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 18px',
+            gap: 10,
+          }}>
+            {/* Left: date + ago inline, then badge below */}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <span style={{
+                  fontSize: 24, fontWeight: 800, lineHeight: 1.2,
+                  color: isLight ? 'var(--text-primary)' : '#FFFFFF',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {dateLabel}
+                </span>
+                {agoLabel && (
+                  <span style={{
+                    fontSize: 15, fontWeight: 600, lineHeight: 1.2,
+                    color: isLight ? 'var(--text-muted)' : '#E4E4E7',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {agoLabel}
+                  </span>
+                )}
+              </div>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center',
+                height: 30, minWidth: 48,
+                padding: '0 12px',
+                borderRadius: 9999,
+                fontSize: 14, fontWeight: 800, letterSpacing: '0.06em',
+                whiteSpace: 'nowrap',
+                background: `rgba(${accentRgb}, 0.18)`,
+                color: accentColor,
+                border: `1px solid rgba(${accentRgb}, 0.32)`,
               }}>
-              {ja ? '編集' : 'Edit'}
-            </button>
-            <button
-              onClick={onClose}
-              style={{
-                width: 30, height: 30, borderRadius: 15,
-                background: 'var(--surface-chip)',
-                border: '1px solid var(--border-subtle)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', flexShrink: 0,
-              }}>
-              <X size={14} style={{ color: 'var(--text-secondary)' }} />
-            </button>
+                {badgeText}
+              </span>
+            </div>
+
+            {/* Edit + Close buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => { onClose(); router.push(`/record?date=${summary.date}&from=calendar`) }}
+                style={{
+                  height: 44,
+                  minWidth: 72,
+                  padding: '0 18px',
+                  borderRadius: 9999,
+                  background: '#F97316',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  whiteSpace: 'nowrap',
+                }}>
+                {ja ? '編集' : 'Edit'}
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  width: 44, height: 44, borderRadius: 22,
+                  background: 'var(--surface-chip)',
+                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.18)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', flexShrink: 0,
+                }}>
+                <X size={22} style={{ color: isLight ? 'var(--text-secondary)' : '#FFFFFF' }} />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Prev / Next navigation row */}
-        <div style={{ display: 'flex', gap: 8, padding: '10px 18px 0' }}>
+        {/* ── Prev / Next navigation row ── */}
+        <div style={{ display: 'flex', gap: 12, padding: '0 18px 14px' }}>
           <button
             onClick={handlePrev}
             disabled={!hasPrev}
             style={{
-              flex: 1, minHeight: 46,
-              borderRadius: 14,
+              flex: 1, height: 56,
+              borderRadius: 18,
               background: hasPrev
-                ? (isLight ? '#FFFFFF' : 'rgba(255,255,255,0.08)')
+                ? (isLight ? '#FFFFFF' : 'rgba(255,255,255,0.10)')
                 : (isLight ? '#F3F4F6' : 'rgba(255,255,255,0.04)'),
               border: `1px solid ${hasPrev
-                ? (isLight ? 'rgba(15,23,42,0.14)' : 'rgba(255,255,255,0.14)')
-                : (isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)')}`,
+                ? (isLight ? 'rgba(15,23,42,0.14)' : '#52525B')
+                : (isLight ? 'rgba(15,23,42,0.08)' : '#3F3F46')}`,
               color: hasPrev
-                ? (isLight ? '#111827' : 'rgba(255,255,255,0.90)')
-                : (isLight ? 'rgba(17,24,39,0.32)' : 'rgba(255,255,255,0.28)'),
-              fontSize: 14, fontWeight: 700,
+                ? (isLight ? '#111827' : '#FFFFFF')
+                : (isLight ? 'rgba(17,24,39,0.32)' : '#71717A'),
+              fontSize: 16, fontWeight: 700,
               boxShadow: hasPrev && isLight ? '0 4px 12px rgba(15,23,42,0.06)' : 'none',
-              opacity: hasPrev ? 1 : 0.55,
               cursor: hasPrev ? 'pointer' : 'default',
               pointerEvents: hasPrev ? 'auto' : 'none',
               transition: 'background 150ms, border-color 150ms',
@@ -332,20 +370,19 @@ export default function WorkoutDetailSheet({
             onClick={handleNext}
             disabled={!hasNext}
             style={{
-              flex: 1, minHeight: 46,
-              borderRadius: 14,
+              flex: 1, height: 56,
+              borderRadius: 18,
               background: hasNext
-                ? (isLight ? '#FFFFFF' : 'rgba(255,255,255,0.08)')
+                ? (isLight ? '#FFFFFF' : 'rgba(255,255,255,0.10)')
                 : (isLight ? '#F3F4F6' : 'rgba(255,255,255,0.04)'),
               border: `1px solid ${hasNext
-                ? (isLight ? 'rgba(15,23,42,0.14)' : 'rgba(255,255,255,0.14)')
-                : (isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)')}`,
+                ? (isLight ? 'rgba(15,23,42,0.14)' : '#52525B')
+                : (isLight ? 'rgba(15,23,42,0.08)' : '#3F3F46')}`,
               color: hasNext
-                ? (isLight ? '#111827' : 'rgba(255,255,255,0.90)')
-                : (isLight ? 'rgba(17,24,39,0.32)' : 'rgba(255,255,255,0.28)'),
-              fontSize: 14, fontWeight: 700,
+                ? (isLight ? '#111827' : '#FFFFFF')
+                : (isLight ? 'rgba(17,24,39,0.32)' : '#71717A'),
+              fontSize: 16, fontWeight: 700,
               boxShadow: hasNext && isLight ? '0 4px 12px rgba(15,23,42,0.06)' : 'none',
-              opacity: hasNext ? 1 : 0.55,
               cursor: hasNext ? 'pointer' : 'default',
               pointerEvents: hasNext ? 'auto' : 'none',
               transition: 'background 150ms, border-color 150ms',
@@ -354,46 +391,122 @@ export default function WorkoutDetailSheet({
           </button>
         </div>
 
-        {/* Summary stats */}
-        <div style={{ padding: '12px 18px 0' }}>
-          <p style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-secondary)', marginBottom: 5 }}>
-            {ja ? `${summary.totalSets}セット` : `${summary.totalSets} sets`}
-            {' · '}
-            {formatVolume(summary.totalVolume, unit)}
-            {summary.best1rm > 0 && (
-              <> {' · '}1RM&nbsp;{toDisplayWeight(summary.best1rm, unit)}{weightUnitLabel(unit)}</>
-            )}
-          </p>
-
-          {/* Diff row */}
-          {diff !== null ? (
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '3px 8px' }}>
-              <span style={{
-                fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
-                letterSpacing: '0.06em', marginRight: 2,
-              }}>
-                {ja ? '前回比' : 'vs prev'}
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: diffColor(diff.volumeDiff) }}>
-                {fmtVolDiff(diff.volumeDiff, unit)}
-              </span>
-              {diff.rmDiff !== null && (
-                <span style={{ fontSize: 12, fontWeight: 700, color: diffColor(diff.rmDiff) }}>
-                  {fmtRmDiff(diff.rmDiff, unit)}&nbsp;1RM
-                </span>
-              )}
-            </div>
-          ) : (
-            <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>
-              {ja ? '初回記録' : 'First record'}
-            </span>
-          )}
+        {/* ── 3-column summary card ── */}
+        <div style={{ padding: '0 18px 12px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            background: summaryCardBg,
+            border: `1px solid ${summaryCardBorder}`,
+            borderRadius: 16,
+            padding: '14px 10px',
+          }}>
+            {[
+              {
+                label: ja ? 'セット数' : 'SETS',
+                value: `${summary.totalSets}`,
+                unit: undefined as string | undefined,
+                accent: false,
+              },
+              {
+                label: ja ? '総重量' : 'VOLUME',
+                value: formatVolume(summary.totalVolume, unit),
+                unit: undefined as string | undefined,
+                accent: false,
+              },
+              {
+                label: ja ? '推定1RM' : 'EST 1RM',
+                value: summary.best1rm > 0
+                  ? `${toDisplayWeight(summary.best1rm, unit)}${weightUnitLabel(unit)}`
+                  : '—',
+                unit: undefined as string | undefined,
+                accent: summary.best1rm > 0,
+              },
+            ].map(({ label, value, accent }, i, arr) => (
+              <div
+                key={label}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  padding: '0 6px',
+                  borderRight: i < arr.length - 1
+                    ? `1px solid ${isLight ? 'var(--card-divider)' : 'rgba(255,255,255,0.08)'}`
+                    : 'none',
+                }}>
+                <p style={{
+                  fontSize: 12, fontWeight: 700,
+                  color: isLight ? 'var(--text-label)' : '#D4D4D8',
+                  marginBottom: 6, whiteSpace: 'nowrap',
+                }}>
+                  {label}
+                </p>
+                <p style={{
+                  fontSize: 20, fontWeight: 800, lineHeight: 1.2,
+                  color: accent ? accentColor : (isLight ? 'var(--text-primary)' : '#FFFFFF'),
+                }}>
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, background: divider, margin: '14px 18px' }} />
+        {/* ── Previous comparison area ── */}
+        {diff !== null ? (
+          <div style={{ padding: '0 18px 14px' }}>
+            <div style={{
+              background: compCardBg,
+              border: `1px solid ${compCardBorder}`,
+              borderRadius: 14,
+              padding: '12px 14px',
+            }}>
+              <p style={{
+                fontSize: 14, fontWeight: 700,
+                color: isLight ? 'var(--text-secondary)' : '#FFFFFF',
+                marginBottom: 8,
+              }}>
+                {ja ? '前回比' : 'vs prev'}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 16px' }}>
+                <span style={{
+                  fontSize: 17, fontWeight: 800, lineHeight: 1.3,
+                  color: diffColorBright(diff.volumeDiff, isLight),
+                }}>
+                  {fmtVolDiff(diff.volumeDiff, unit)}
+                </span>
+                {diff.rmDiff !== null && (
+                  <span style={{
+                    fontSize: 17, fontWeight: 800, lineHeight: 1.3,
+                    color: diffColorBright(diff.rmDiff, isLight),
+                  }}>
+                    {fmtRmDiff(diff.rmDiff, unit)}&nbsp;1RM
+                  </span>
+                )}
+                {diff.setsDiff !== 0 && (
+                  <span style={{
+                    fontSize: 17, fontWeight: 800, lineHeight: 1.3,
+                    color: diffColorBright(diff.setsDiff, isLight),
+                  }}>
+                    {diff.setsDiff > 0 ? '+' : ''}{diff.setsDiff}&nbsp;sets
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '0 18px 14px' }}>
+            <span style={{
+              fontSize: 13, fontWeight: 600, letterSpacing: '0.06em',
+              color: isLight ? 'var(--text-muted)' : '#A1A1AA',
+            }}>
+              {ja ? '初回記録' : 'First record'}
+            </span>
+          </div>
+        )}
 
-        {/* Exercise list */}
+        {/* Divider */}
+        <div style={{ height: 1, background: divider, margin: '0 18px 16px' }} />
+
+        {/* ── Exercise list ── */}
         <div style={{ padding: '0 18px' }}>
           {sessionDetail === null ? (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>
@@ -409,16 +522,18 @@ export default function WorkoutDetailSheet({
                 key={ex.name}
                 style={{
                   background: 'var(--card-bg-primary)',
-                  border: '1px solid var(--card-border-primary)',
+                  border: `1px solid ${isLight ? 'var(--card-border-primary)' : 'rgba(255,255,255,0.14)'}`,
                   borderRadius: 14,
-                  padding: '12px 14px',
-                  marginBottom: exIdx < exercises.length - 1 ? 8 : 0,
+                  padding: '16px 16px',
+                  marginBottom: exIdx < exercises.length - 1 ? 14 : 0,
                 }}>
 
                 {/* Exercise name */}
                 <p style={{
-                  fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
-                  margin: '0 0 8px', lineHeight: 1.3,
+                  fontSize: 18, fontWeight: 800,
+                  color: isLight ? 'var(--text-primary)' : '#FFFFFF',
+                  margin: '0 0 10px', lineHeight: 1.3,
+                  wordBreak: 'break-word',
                 }}>
                   {getDisplayName(ex.name, locale)}
                 </p>
@@ -426,35 +541,69 @@ export default function WorkoutDetailSheet({
                 {/* Highlight box: Best set · Est 1RM · Volume */}
                 {ex.bestSet && (
                   <div style={{
-                    display: 'flex', gap: 16, flexWrap: 'wrap',
-                    padding: '7px 10px', borderRadius: 8,
-                    background: `rgba(${accentRgb}, 0.08)`,
-                    marginBottom: 8,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 0,
+                    padding: '14px 10px',
+                    borderRadius: 10,
+                    background: `rgba(${accentRgb}, 0.10)`,
+                    marginBottom: 10,
                   }}>
-                    <div>
-                      <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 3 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 4px' }}>
+                      <p style={{
+                        fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+                        color: isLight ? 'var(--text-muted)' : '#D4D4D8',
+                        marginBottom: 5, whiteSpace: 'nowrap',
+                        textAlign: 'center',
+                      }}>
                         {ja ? 'ベストセット' : 'BEST SET'}
                       </p>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <p style={{
+                        fontSize: 17, fontWeight: 800,
+                        color: isLight ? 'var(--text-primary)' : '#FFFFFF',
+                        textAlign: 'center',
+                      }}>
                         {toDisplayWeight(ex.bestSet.weight_kg ?? 0, unit)}{weightUnitLabel(unit)}&nbsp;×&nbsp;{ex.bestSet.reps ?? 0}
                       </p>
                     </div>
                     {ex.est1rm > 0 && (
-                      <div>
-                        <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 3 }}>
+                      <div style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 4px',
+                        borderLeft: `1px solid rgba(${accentRgb}, 0.20)`,
+                        borderRight: ex.volume > 0 ? `1px solid rgba(${accentRgb}, 0.20)` : 'none',
+                      }}>
+                        <p style={{
+                          fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+                          color: isLight ? 'var(--text-muted)' : '#D4D4D8',
+                          marginBottom: 5, whiteSpace: 'nowrap',
+                          textAlign: 'center',
+                        }}>
                           {ja ? '推定1RM' : 'EST 1RM'}
                         </p>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: accentColor }}>
+                        <p style={{
+                          fontSize: 17, fontWeight: 800,
+                          color: accentColor,
+                          textAlign: 'center',
+                        }}>
                           {toDisplayWeight(ex.est1rm, unit)}{weightUnitLabel(unit)}
                         </p>
                       </div>
                     )}
                     {ex.volume > 0 && (
-                      <div>
-                        <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: 3 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 4px' }}>
+                        <p style={{
+                          fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+                          color: isLight ? 'var(--text-muted)' : '#D4D4D8',
+                          marginBottom: 5, whiteSpace: 'nowrap',
+                          textAlign: 'center',
+                        }}>
                           {ja ? 'ボリューム' : 'VOLUME'}
                         </p>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <p style={{
+                          fontSize: 17, fontWeight: 800,
+                          color: isLight ? 'var(--text-primary)' : '#FFFFFF',
+                          textAlign: 'center',
+                        }}>
                           {formatVolume(ex.volume, unit)}
                         </p>
                       </div>
@@ -463,30 +612,36 @@ export default function WorkoutDetailSheet({
                 )}
 
                 {/* Divider */}
-                <div style={{ height: 1, background: divider, marginBottom: 8 }} />
+                <div style={{ height: 1, background: divider, marginBottom: 10 }} />
 
                 {/* Sets list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {ex.validSets.map((s, i) => {
-                    const w         = s.weight_kg ?? 0
-                    const r         = s.reps      ?? 0
-                    const isBest    = ex.bestSet?.set_number === s.set_number
+                    const w      = s.weight_kg ?? 0
+                    const r      = s.reps      ?? 0
+                    const isBest = ex.bestSet?.set_number === s.set_number
                     return (
                       <div
                         key={s.id}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          minHeight: 36,
+                        }}>
                         {/* Set number */}
                         <span style={{
-                          fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
-                          width: 18, textAlign: 'right', flexShrink: 0,
+                          fontSize: 14, fontWeight: 600,
+                          color: isLight ? 'var(--text-muted)' : '#D4D4D8',
+                          width: 22, textAlign: 'right', flexShrink: 0,
                         }}>
                           {i + 1}
                         </span>
                         {/* Weight × Reps */}
                         <span style={{
-                          fontSize: 13,
-                          fontWeight: isBest ? 700 : 500,
-                          color: isBest ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          fontSize: 17,
+                          fontWeight: isBest ? 800 : 600,
+                          color: isBest
+                            ? (isLight ? 'var(--text-primary)' : '#FFFFFF')
+                            : (isLight ? 'var(--text-secondary)' : '#EDEDEF'),
                           flex: 1,
                         }}>
                           {toDisplayWeight(w, unit)}{weightUnitLabel(unit)}&nbsp;×&nbsp;{r}
@@ -494,8 +649,9 @@ export default function WorkoutDetailSheet({
                         {/* Best marker */}
                         {isBest && (
                           <span style={{
-                            fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+                            fontSize: 13, fontWeight: 800, letterSpacing: '0.06em',
                             color: accentColor,
+                            flexShrink: 0,
                           }}>
                             BEST
                           </span>
@@ -511,7 +667,7 @@ export default function WorkoutDetailSheet({
 
         {/* Notes card — shown only when at least one exercise has a note */}
         {exercises.some(ex => ex.note) && (
-          <div style={{ padding: '12px 18px 0' }}>
+          <div style={{ padding: '14px 18px 0' }}>
             <p style={{
               fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
               color: 'var(--text-label)', marginBottom: 8, paddingLeft: 2,
@@ -577,7 +733,7 @@ export default function WorkoutDetailSheet({
         </div>
 
         {/* iOS safe area padding */}
-        <div style={{ height: 'env(safe-area-inset-bottom, 16px)', minHeight: 16 }} />
+        <div style={{ height: 'env(safe-area-inset-bottom, 20px)', minHeight: 20 }} />
       </div>
     </>
   )
