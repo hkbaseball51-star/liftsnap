@@ -151,7 +151,8 @@ const MONTH_NAMES    = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const MONTH_NAMES_JA = ['1月', '2月', '3月', '4月', '5月', '6月',
   '7月', '8月', '9月', '10月', '11月', '12月']
-const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const DAY_NAMES    = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const DAY_NAMES_JA = ['日', '月', '火', '水', '木', '金', '土']
 
 // CALENDAR_LABEL_LEGEND is re-exported from lib/calendarLabel for external use
 export { CALENDAR_LABEL_LEGEND }
@@ -403,8 +404,8 @@ export default function TrainingCalendar({
 
           {/* Day labels */}
           <div className="grid grid-cols-7 mb-1">
-            {DAY_NAMES.map(d => (
-              <div key={d} className="text-center py-1">
+            {(locale === 'ja' ? DAY_NAMES_JA : DAY_NAMES).map((d, i) => (
+              <div key={i} className="text-center py-1">
                 <span className="text-[9px] font-black tracking-wider" style={{ color: isLight ? 'var(--text-muted)' : '#FFFFFF' }}>{d}</span>
               </div>
             ))}
