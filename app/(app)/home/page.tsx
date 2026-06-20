@@ -8,6 +8,7 @@ import CalendarWithSummary from '@/components/home/CalendarWithSummary'
 import { t } from '@/lib/i18n'
 import { useLocale } from '@/lib/useLocale'
 import { useDemoMode } from '@/lib/useDemoMode'
+import { useTheme } from '@/lib/useTheme'
 import { useAppData } from '@/contexts/AppDataContext'
 import HomeGreeting from '@/components/home/HomeGreeting'
 import HomeCTACard from '@/components/home/HomeCTACard'
@@ -59,6 +60,8 @@ export default function HomePage() {
   const { locale }                         = useLocale()
   const { unit }                           = useWeightUnit()
   const { isDemo, demoUserId }             = useDemoMode()
+  const { theme: appTheme }               = useTheme()
+  const isLight                           = appTheme === 'light'
 
   const {
     calendarSessions,
@@ -129,7 +132,7 @@ export default function HomePage() {
         <Link href="/profile/settings"
           className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-70 flex-shrink-0 mt-1"
           style={{ background: 'var(--header-icon-bg)', border: '1px solid var(--header-icon-border)' }}>
-          <Settings size={18} style={{ color: 'var(--header-icon-color)' }} />
+          <Settings size={18} style={{ color: isLight ? 'var(--header-icon-color)' : '#FFFFFF' }} />
         </Link>
       </div>
 
