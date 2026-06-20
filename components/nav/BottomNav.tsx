@@ -41,27 +41,43 @@ export default function BottomNav() {
       style={{
         background: 'var(--nav-bg)',
         borderTop: '1px solid var(--nav-border)',
-        paddingTop: 10,
-        paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)',
+        boxShadow: '0 -1px 4px rgba(0,0,0,0.06)',
+        paddingTop: 8,
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
       }}
     >
-      {/* Inner row: 56px — icon (22) + gap (4) + label (10) = 36px content,
-          centered with 10px headroom each side. Flex-1 links make the full
-          row width tappable, satisfying the 44×44 px minimum. */}
-      <div className="flex justify-around" style={{ height: 56 }}>
+      {/* Inner row: 56px — icon pill (32) + gap (5) + label (≈18) = 55px content.
+          Flex-1 links span full width, satisfying ≥56px tap target requirement. */}
+      <div className="flex" style={{ height: 56 }}>
         {tabs.map(({ href, base, icon: Icon, label }) => {
-          const active = pathname.startsWith(base)
-          const color  = active ? '#ED742F' : 'var(--text-muted)'
+          const active     = pathname.startsWith(base)
+          const iconColor  = active ? '#ED742F' : 'var(--nav-inactive-icon)'
+          const labelColor = active ? '#ED742F' : 'var(--nav-inactive-label)'
           return (
             <Link
               key={base}
               href={href}
               prefetch
-              className="flex flex-col items-center justify-center gap-1 active:opacity-60 transition-opacity"
-              style={{ flex: 1, minHeight: 44 }}
+              className="flex flex-col items-center justify-center active:opacity-60 transition-opacity"
+              style={{ flex: 1, minHeight: 56, gap: 5 }}
             >
-              <Icon size={22} color={color} strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[8px] font-black tracking-widest" style={{ color }}>
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 40,
+                  height: 32,
+                  borderRadius: 10,
+                  background: active ? 'var(--nav-active-bg)' : 'transparent',
+                }}
+              >
+                <Icon size={28} color={iconColor} strokeWidth={active ? 2.4 : 2.2} />
+              </span>
+              <span
+                className="font-bold leading-none whitespace-nowrap"
+                style={{ fontSize: 13, color: labelColor }}
+              >
                 {label}
               </span>
             </Link>
