@@ -26,9 +26,9 @@
   --app-bg: #0a0a0a;
   --nav-bg: #0B0B0C;
   --nav-border: #27272A;
-  --nav-inactive-icon: #C5C5CA;
-  --nav-inactive-label: #D1D1D6;
-  --nav-active-bg: rgba(237, 116, 47, 0.11);
+  --nav-inactive-icon: rgba(255,255,255,0.90);
+  --nav-inactive-label: rgba(255,255,255,0.88);
+  --nav-active-bg: transparent;
   --card-bg-primary: #1D1D1D;
   --card-border-primary: rgba(255,255,255,0.17);
   --card-divider: rgba(255,255,255,0.07);
